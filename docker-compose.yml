@@ -1,0 +1,72 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: deepintel-api
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://deepintel:deepintel_secret@db:5432/deepintel
+      - REDIS_URL=redis://redis:6379/0
+      - LLM_PROVIDER=qwen
+      - LLM_API_KEY=${QWEN_API_KEY:-}
+      - LLM_MODEL=qwen-plus
+      - RAG_EMBED_MODEL=BAAI/bge-zh-qwen2-int8
+      - RAG_RERANK_MODEL=BAAI/bge-reranker-v2-m3
+      - RAG_RERANK_DEVICE=cpu
+      - PLAYWRIGHT_HEADLESS=true
+      - PLAYWRIGHT_POOL_SIZE=2
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  db:
+    image: pgvector/pgvector:pg16
+    container_name: deepintel-db
+    environment:
+      - POSTGRES_DB=deepintel
+      - POSTGRES_USER=deepintel
+      - POSTGRES_PASSWORD=deepintel_secret
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U deepintel"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: deepintel-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    command: redis-server --appendonly yes
+
+  # Frontend (production build)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: deepintel-frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      - api
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  redisdata:

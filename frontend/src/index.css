@@ -1,0 +1,287 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Xiaomi-style design system */
+:root {
+  --xm-orange: #ff8c00;
+  --xm-orange-light: #ffaa55;
+  --xm-orange-dark: #cc5500;
+  --xm-gray-light: #f5f5f5;
+  --xm-gray: #9e9e9e;
+  --xm-gray-dark: #616161;
+  --xm-text-primary: #212121;
+  --xm-text-secondary: #616161;
+  --xm-text-muted: #9e9e9e;
+  --xm-border: #eeeeee;
+  --xm-bg: #ffffff;
+  --xm-bg-secondary: #fafafa;
+}
+
+@layer base {
+  body {
+    @apply bg-white text-xmgray-900 antialiased;
+    font-family: 'Inter', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+@layer components {
+  /* Xiaomi-style primary button */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3
+           bg-xm-500 text-white text-sm font-medium rounded-xl
+           transition-all duration-250
+           hover:bg-xm-600 hover:shadow-xm-hover
+           active:scale-[0.98]
+           disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:shadow-none;
+  }
+
+  /* Xiaomi-style secondary button */
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3
+           bg-white text-xmgray-800 text-sm font-medium rounded-xl
+           border border-xmgray-200
+           transition-all duration-250
+           hover:border-xmgray-300 hover:shadow-xm
+           active:scale-[0.98]
+           disabled:opacity-40 disabled:cursor-not-allowed;
+  }
+
+  /* Xiaomi-style ghost button */
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2
+           text-xmgray-600 text-sm font-medium rounded-lg
+           transition-all duration-200
+           hover:bg-xmgray-50 hover:text-xmgray-900;
+  }
+
+  /* Xiaomi-style card */
+  .card {
+    @apply bg-white rounded-2xl border border-xmgray-100
+           transition-all duration-300;
+  }
+
+  .card:hover {
+    @apply shadow-xm-md;
+  }
+
+  /* Xiaomi-style input */
+  .input-xm {
+    @apply w-full px-5 py-4 text-base
+           bg-white text-xmgray-900 placeholder-xmgray-400
+           border border-xmgray-200 rounded-2xl
+           transition-all duration-200
+           outline-none
+           focus:border-xm-500 focus:ring-0
+           hover:border-xmgray-300;
+  }
+
+  /* Xiaomi-style section title */
+  .section-title {
+    @apply text-3xl font-bold text-xmgray-900 tracking-tight;
+    font-family: 'Inter', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
+  }
+
+  /* Xiaomi-style section subtitle */
+  .section-subtitle {
+    @apply text-base text-xmgray-500 mt-2 leading-relaxed;
+  }
+
+  /* Xiaomi-style tag */
+  .tag {
+    @apply inline-flex items-center px-3 py-1
+           text-xs font-medium rounded-full
+           bg-xmgray-50 text-xmgray-600
+           border border-xmgray-100;
+  }
+
+  /* Xiaomi-style orange tag */
+  .tag-orange {
+    @apply inline-flex items-center px-3 py-1
+           text-xs font-medium rounded-full
+           bg-xm-50 text-xm-700
+           border border-xm-100;
+  }
+
+  /* Xiaomi-style status dot */
+  .status-dot {
+    @apply w-2 h-2 rounded-full inline-block;
+  }
+
+  .status-dot.online {
+    @apply bg-green-500;
+    box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.15);
+  }
+
+  .status-dot.streaming {
+    @apply bg-xm-500;
+    animation: xm-pulse 1.5s ease-in-out infinite;
+  }
+
+  .status-dot.offline {
+    @apply bg-xmgray-300;
+  }
+}
+
+/* SSE Event Stream Indicator */
+@keyframes xm-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(1.1); }
+}
+
+.streaming-indicator {
+  animation: xm-pulse 1.5s ease-in-out infinite;
+}
+
+/* Agent Trace Panel - Xiaomi style */
+.agent-trace-item {
+  @apply flex items-start gap-3 pl-4 py-2.5 text-sm rounded-lg
+         transition-all duration-200;
+}
+
+.agent-trace-item:hover {
+  @apply bg-xmgray-50;
+}
+
+.agent-trace-item.agent_start,
+.agent-trace-item.agent_start {
+  @apply bg-blue-50/60 text-blue-800;
+  border-left: 3px solid #3b82f6;
+}
+
+.agent-trace-item.agent_complete {
+  @apply bg-emerald-50/60 text-emerald-800;
+  border-left: 3px solid #10b981;
+}
+
+.agent-trace-item.thought {
+  @apply bg-xmgray-50 text-xmgray-700;
+  border-left: 3px solid #e0e0e0;
+}
+
+.agent-trace-item.tool_start,
+.agent-trace-item.tool_call {
+  @apply bg-xm-50/40 text-xm-700;
+  border-left: 3px solid #ff8c00;
+}
+
+.agent-trace-item.tool_complete,
+.agent-trace-item.tool_result {
+  @apply bg-emerald-50/40 text-emerald-700;
+  border-left: 3px solid #10b981;
+}
+
+.agent-trace-item.tool_error {
+  @apply bg-red-50/60 text-red-700;
+  border-left: 3px solid #ef4444;
+}
+
+.agent-trace-item.error {
+  @apply bg-red-50/80 text-red-800;
+  border-left: 3px solid #ef4444;
+}
+
+/* Report Preview - Xiaomi typography */
+.report-content {
+  @apply text-xmgray-700 leading-relaxed;
+}
+
+.report-content h1 {
+  @apply text-2xl font-bold text-xmgray-900 mb-5 mt-0 tracking-tight;
+  line-height: 1.3;
+}
+
+.report-content h2 {
+  @apply text-xl font-semibold text-xmgray-900 mt-8 mb-3
+         relative;
+}
+
+.report-content h2::before {
+  content: '';
+  @apply absolute -left-4 top-1/2 -translate-y-1/2
+         w-1 h-6 bg-xm-500 rounded-full;
+}
+
+.report-content h3 {
+  @apply text-lg font-medium text-xmgray-800 mt-5 mb-2;
+}
+
+.report-content p {
+  @apply text-[15px] leading-8 mb-4;
+}
+
+.report-content ul, .report-content ol {
+  @apply pl-5 mb-4 space-y-1.5;
+}
+
+.report-content li {
+  @apply text-[15px] leading-7;
+}
+
+.report-content blockquote {
+  @apply pl-4 py-1 my-4
+         border-l-4 border-xm-300
+         bg-xm-50/50 rounded-r-lg
+         text-xmgray-600 italic;
+}
+
+.report-content code {
+  @apply px-1.5 py-0.5 mx-0.5
+         bg-xmgray-100 text-xm-700
+         text-sm font-mono rounded
+         border border-xmgray-100;
+}
+
+.report-content pre {
+  @apply bg-xmgray-900 text-xmgray-100
+         rounded-xl p-4 my-4 overflow-x-auto;
+}
+
+.report-content pre code {
+  @apply bg-transparent text-inherit p-0 mx-0 border-0 rounded-none;
+}
+
+.report-content table {
+  @apply w-full my-4 text-sm;
+}
+
+.report-content th {
+  @apply text-left font-semibold text-xmgray-700
+         border-b-2 border-xmgray-200 pb-2 mb-2;
+}
+
+.report-content td {
+  @apply py-2 border-b border-xmgray-100 text-xmgray-600;
+}
+
+/* Citation hover */
+.citation-ref {
+  @apply text-xm-600 hover:text-xm-700
+         cursor-pointer underline decoration-dotted underline-offset-2
+         transition-colors duration-200;
+}
+
+/* Xiaomi scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-xmgray-200 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-xmgray-300;
+}
+
+/* Xiaomi smooth transitions for all interactive elements */
+a, button, input, .card {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
