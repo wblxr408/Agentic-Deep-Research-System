@@ -15,7 +15,13 @@ from pydantic import BaseModel, Field
 from sse_starlette.sse import EventSourceResponse
 
 from app.config import get_settings
-from app.guardrails import build_guardrail_decision, build_review_status, compose_guardrail_prompt
+from app.guardrails import (
+    build_guardrail_decision,
+    build_review_status,
+    compose_guardrail_prompt,
+    get_research_budget,
+    normalize_research_length,
+)
 from app.graph.compiler import compile_research_graph
 from app.graph.state import create_initial_state, ResearchState, TaskStatus
 from app.observability.sse_manager import get_sse_manager
@@ -113,6 +119,10 @@ class ResearchRequest(BaseModel):
         max_length=100,
         description="Optional internal RAG source group filter.",
     )
+    output_length: str = Field(
+        default="medium",
+        description="Output length: short, medium, long.",
+    )
 
 
 class ResearchStatus(BaseModel):
@@ -129,6 +139,8 @@ class ResearchResponse(BaseModel):
     status: str
     message: str
     requires_confirmation: bool = False
+    output_length: str = "medium"
+    budget: dict[str, int] = Field(default_factory=dict)
 
 
 # ==============================================================
@@ -205,6 +217,8 @@ async def create_research(
     # Generate or use provided session ID
     session_id = request.session_id or str(uuid.uuid4())
     decision = build_guardrail_decision(request.query, user_confirmed=request.user_confirmed)
+    output_length = normalize_research_length(request.output_length)
+    budget = get_research_budget(output_length)
 
     logger.info(f"Creating research session: {session_id}, query: {request.query[:50]}")
 
@@ -257,6 +271,8 @@ async def create_research(
             status="pending_confirmation",
             message="High-risk request requires user confirmation before execution.",
             requires_confirmation=True,
+            output_length=output_length.value,
+            budget=budget,
         )
 
     # Start background execution
@@ -268,6 +284,7 @@ async def create_research(
         user_confirmed=request.user_confirmed,
         allow_web_after_rag_hit=request.allow_web_after_rag_hit,
         rag_group=request.rag_group,
+        output_length=output_length.value,
     )
 
     return ResearchResponse(
@@ -275,6 +292,8 @@ async def create_research(
         status="running",
         message=f"Research task started. Connect to /api/v1/research/stream/{session_id} for updates.",
         requires_confirmation=False,
+        output_length=output_length.value,
+        budget=budget,
     )
 
 
@@ -355,6 +374,7 @@ async def run_research_workflow(
     user_confirmed: bool = False,
     allow_web_after_rag_hit: bool = False,
     rag_group: str | None = None,
+    output_length: str = "medium",
 ):
     """
     Execute the LangGraph research workflow in background.
@@ -378,11 +398,13 @@ async def run_research_workflow(
         # Create initial state
         state = create_initial_state(query, session_id)
         state["session"]["max_revisions"] = max_revision
+        state["session"]["output_length"] = output_length
         decision = build_guardrail_decision(query)
         state["guardrail_decision"] = decision.model_dump()
         state["user_confirmed"] = user_confirmed
         state["allow_web_after_rag_hit"] = allow_web_after_rag_hit
         state["rag_group"] = rag_group
+        state["output_length"] = output_length
         state["retrieval_policy"] = {
             "mode": "internal_first",
             "allow_web_after_rag_hit": allow_web_after_rag_hit,

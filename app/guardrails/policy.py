@@ -31,6 +31,55 @@ class PromptProfile(str, Enum):
     RESEARCH_ANALYSIS = "research_analysis"
 
 
+class ResearchLength(str, Enum):
+    SHORT = "short"
+    MEDIUM = "medium"
+    LONG = "long"
+
+
+RESEARCH_LENGTH_BUDGETS: dict[ResearchLength, dict[str, int]] = {
+    ResearchLength.SHORT: {
+        "report_max_tokens": 3000,
+        "search_max_queries": 2,
+        "search_max_results": 5,
+        "rag_max_results": 4,
+        "citation_max": 8,
+        "browser_max_results": 1,
+    },
+    ResearchLength.MEDIUM: {
+        "report_max_tokens": 6000,
+        "search_max_queries": 4,
+        "search_max_results": 10,
+        "rag_max_results": 8,
+        "citation_max": 15,
+        "browser_max_results": 2,
+    },
+    ResearchLength.LONG: {
+        "report_max_tokens": 12000,
+        "search_max_queries": 6,
+        "search_max_results": 15,
+        "rag_max_results": 12,
+        "citation_max": 30,
+        "browser_max_results": 3,
+    },
+}
+
+
+def normalize_research_length(value: str | ResearchLength | None) -> ResearchLength:
+    if isinstance(value, ResearchLength):
+        return value
+    if value:
+        normalized = value.lower()
+        if normalized in ResearchLength._value2member_map_:
+            return ResearchLength(normalized)
+    return ResearchLength.MEDIUM
+
+
+def get_research_budget(value: str | ResearchLength | None) -> dict[str, int]:
+    length = normalize_research_length(value)
+    return dict(RESEARCH_LENGTH_BUDGETS[length])
+
+
 BASE_GUARDRAIL_PREFIX = """你是一个研究型 Agent。
 必须遵守：
 1. 不知道就说不知道。

@@ -63,12 +63,18 @@ from app.guardrails import (
     build_answer_gate_message,
     build_evidence_gate,
     build_guardrail_decision,
+    get_research_budget,
+    normalize_research_length,
     is_tool_allowed,
     record_guardrail_event,
 )
 
 TOOL_NODE_TYPES = {"search", "browser", "rag"}
 WEB_NODE_TYPES = {"search", "browser"}
+
+
+def _research_budget(state: ResearchState) -> dict[str, int]:
+    return get_research_budget(state.get("output_length") or state.get("session", {}).get("output_length"))
 
 
 def _enforce_internal_first_dag(dag: DAGDefinition, user_query: str) -> DAGDefinition:
@@ -503,8 +509,11 @@ def search_node(state: ResearchState) -> dict:
     agent = SearchAgent()
     all_evidence = []
     tool_histories = []
+    budget = _research_budget(state)
+    max_queries = budget.get("search_max_queries", 4)
+    max_results = budget.get("search_max_results", 10)
 
-    for node in search_nodes:
+    for node in search_nodes[:max_queries]:
         trace.append(_append_trace_event(
             state,
             EventType.TOOL_START,
@@ -534,7 +543,7 @@ def search_node(state: ResearchState) -> dict:
         node.status = StepStatus.RUNNING
 
         try:
-            results = agent.execute_search(node.query)
+            results = agent.execute_search(node.query)[:max_results]
             node.result = {"results": [r.model_dump() for r in results]}
             node.confidence = 0.9 if results else 0.0
             _finish_tool_history(
@@ -628,8 +637,10 @@ def browser_node(state: ResearchState) -> dict:
     agent = BrowserAgent()
     all_evidence = []
     tool_histories = []
+    budget = _research_budget(state)
+    max_results = budget.get("browser_max_results", 2)
 
-    for node in browser_nodes:
+    for node in browser_nodes[:max_results]:
         trace.append(_append_trace_event(
             state,
             EventType.TOOL_START,
@@ -743,8 +754,10 @@ def rag_node(state: ResearchState) -> dict:
     agent = RAGAgent()
     all_evidence = []
     tool_histories = []
+    budget = _research_budget(state)
+    max_results = budget.get("rag_max_results", 8)
 
-    for node in rag_nodes:
+    for node in rag_nodes[:1]:
         trace.append(_append_trace_event(
             state,
             EventType.TOOL_START,
@@ -777,7 +790,7 @@ def rag_node(state: ResearchState) -> dict:
                 node.query,
                 state["user_query"],
                 group=state.get("rag_group"),
-            )
+            )[:max_results]
             node.result = {"results": [r.model_dump() for r in results]}
             node.confidence = 0.88 if results else 0.0
             _finish_tool_history(
@@ -1148,6 +1161,7 @@ async def report_node(state: ResearchState) -> dict:
         analysis=state["analysis"],
         evidence_list=evidence_list,
         reflection=verification,
+        output_length=state.get("output_length") or state.get("session", {}).get("output_length"),
         on_chunk=on_chunk,
         on_citation=on_citation,
     )

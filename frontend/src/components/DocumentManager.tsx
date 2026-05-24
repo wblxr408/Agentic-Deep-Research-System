@@ -46,7 +46,8 @@ async function readErrorMessage(res: Response, fallback: string) {
 
 function DocumentManager() {
   const queryClient = useQueryClient()
-  const [mode, setMode] = useState<Mode>('list')
+  const [mode, setMode] = useState<Mode>('create')
+  const [groupMode, setGroupMode] = useState<'all' | 'manage'>('manage')
   const [groupFilter, setGroupFilter] = useState('')
   const [name, setName] = useState('')
   const [groupName, setGroupName] = useState('')
@@ -206,15 +207,15 @@ function DocumentManager() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-2xl font-bold text-xmgray-900">内部 RAG 文档源</h2>
-          <p className="text-sm text-xmgray-500">支持 {supportedFormats.join(' / ')}，前端手动维护分组与来源。</p>
+          <p className="text-sm text-xmgray-500">支持 {supportedFormats.join(' / ')}，前端手动维护分组、上传、编辑与删除。</p>
         </div>
         <div className="flex gap-2">
           <button className={`btn-secondary ${mode === 'list' ? 'bg-xm-50' : ''}`} onClick={() => setMode('list')}>列表</button>
-          <button className={`btn-primary ${mode === 'create' ? '' : ''}`} onClick={() => setMode('create')}>新增</button>
+          <button className={`btn-primary`} onClick={() => setMode('create')}>上传 / 新增</button>
         </div>
       </div>
 
-      <div className="mb-6 flex items-center gap-3">
+      <div className="mb-6 flex flex-wrap items-center gap-3">
         <input
           value={groupFilter}
           onChange={e => setGroupFilter(e.target.value)}
@@ -222,7 +223,24 @@ function DocumentManager() {
           className="input-xm max-w-xs"
         />
         <button className="btn-secondary text-sm" onClick={() => setGroupFilter('')}>清除筛选</button>
+        <button className="btn-secondary text-sm" onClick={() => setGroupMode('all')}>全部组</button>
+        <button className="btn-secondary text-sm" onClick={() => setGroupMode('manage')}>管理组</button>
       </div>
+
+      {groupMode === 'manage' && (
+        <div className="card p-5 mb-6">
+          <h3 className="font-semibold mb-3">知识库组管理</h3>
+          <div className="flex flex-wrap items-center gap-3">
+            <input
+              className="input-xm max-w-xs"
+              value={groupName}
+              onChange={e => setGroupName(e.target.value)}
+              placeholder="新建 / 修改组名"
+            />
+            <button className="btn-primary" onClick={() => setMode('create')}>进入新增</button>
+          </div>
+        </div>
+      )}
 
       {mode === 'create' && (
         <div className="grid gap-4 lg:grid-cols-2 mb-8">
@@ -231,7 +249,7 @@ function DocumentManager() {
             <div className="space-y-3">
               <input className="input-xm w-full" value={name} onChange={e => setName(e.target.value)} placeholder="名称" />
               <input className="input-xm w-full" value={groupName} onChange={e => setGroupName(e.target.value)} placeholder="分组" />
-              <textarea className="input-xm w-full min-h-48" value={content} onChange={e => setContent(e.target.value)} placeholder="粘贴 JSON / MD / TXT 内容" />
+              <textarea className="input-xm w-full min-h-48" value={content} onChange={e => setContent(e.target.value)} placeholder="粘贴 JSON / MD / TXT 内容，或切换到文件上传" />
               <div className="grid grid-cols-2 gap-3">
                 <input type="number" className="input-xm w-full" value={chunkSize} onChange={e => setChunkSize(Number(e.target.value))} />
                 <input type="number" className="input-xm w-full" value={chunkOverlap} onChange={e => setChunkOverlap(Number(e.target.value))} />
@@ -257,12 +275,12 @@ function DocumentManager() {
       )}
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <div className="card p-0 overflow-hidden">
-          <div className="px-5 py-4 border-b border-xmgray-100 flex items-center justify-between">
-            <h3 className="font-medium">知识源列表</h3>
-            <span className="text-xs text-xmgray-400">{isLoading ? '加载中...' : `${sources?.items.length || 0} 项`}</span>
-          </div>
-          <div className="max-h-[620px] overflow-y-auto p-4 space-y-2">
+          <div className="card p-0 overflow-hidden">
+            <div className="px-5 py-4 border-b border-xmgray-100 flex items-center justify-between">
+              <h3 className="font-medium">知识源列表</h3>
+              <span className="text-xs text-xmgray-400">{isLoading ? '加载中...' : `${sources?.items.length || 0} 项`}</span>
+            </div>
+            <div className="max-h-[620px] overflow-y-auto p-4 space-y-2">
             {sources?.items?.map(source => (
               <button
                 key={source.id}
@@ -277,6 +295,7 @@ function DocumentManager() {
                   <span className="text-[11px] text-xmgray-400">{source.status}</span>
                 </div>
                 <div className="mt-2 flex gap-2">
+                  <button className="text-xs text-xm-600" onClick={(e) => { e.stopPropagation(); setMode('create'); setSelectedSourceId(source.id) }}>修改</button>
                   <button className="text-xs text-red-500" onClick={(e) => { e.stopPropagation(); deleteMutation.mutate(source.id) }}>删除</button>
                 </div>
               </button>

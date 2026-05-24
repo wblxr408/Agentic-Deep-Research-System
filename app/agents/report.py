@@ -10,7 +10,7 @@ import logging
 from typing import TYPE_CHECKING, Callable
 
 from app.config import get_settings
-from app.guardrails import build_guardrail_decision, build_prompt_profile_message
+from app.guardrails import build_guardrail_decision, build_prompt_profile_message, get_research_budget
 from app.graph.state import Citation, Evidence
 
 if TYPE_CHECKING:
@@ -121,6 +121,7 @@ class ReportAgent:
         analysis: str,
         evidence_list: list[Evidence],
         reflection: dict | None,
+        output_length: str | None = None,
         on_chunk: Callable[[str], None] | None = None,
         on_citation: Callable[[Citation], None] | None = None,
     ) -> tuple[str, list[Citation]]:
@@ -138,7 +139,13 @@ class ReportAgent:
         """
         logger.info(f"Report: generating report for query: {user_query[:80]}")
         decision = build_guardrail_decision(user_query)
+        budget = get_research_budget(output_length)
         system_prompt = f"{build_prompt_profile_message(decision, user_query)}\n\n{self.SYSTEM_PROMPT}"
+        system_prompt += (
+            f"\n\n输出长度要求：{output_length or 'medium'}。"
+            f"请优先控制在约 {budget['report_max_tokens']} tokens 内。"
+            f"引用数量上限约 {budget['citation_max']} 条。"
+        )
         if not evidence_list and not decision.reject_if_no_evidence:
             system_prompt += (
                 "\n\n当前没有外部证据。允许回答简单事实问题，但必须明确说明“未检索验证”。"
@@ -192,7 +199,7 @@ Make sure every factual claim has a [citation:N] reference."""
                 model=self.model,
                 messages=messages,
                 temperature=0.3,
-                max_tokens=8192,
+                max_tokens=budget["report_max_tokens"],
                 stream=True,
             )
             chunks: list[str] = []

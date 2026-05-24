@@ -55,7 +55,7 @@ function Header({
         {/* Nav */}
         <nav className="hidden md:flex items-center gap-8">
           <button type="button" onClick={onOpenResearch} className="text-sm text-xmgray-500 hover:text-xmgray-900 transition-colors">研究</button>
-          <button type="button" onClick={onOpenDocs} className="text-sm text-xmgray-500 hover:text-xmgray-900 transition-colors">文档</button>
+          <button type="button" onClick={onOpenDocs} className="text-sm text-xmgray-500 hover:text-xmgray-900 transition-colors">知识库</button>
           <button type="button" onClick={onOpenAbout} className="text-sm text-xmgray-500 hover:text-xmgray-900 transition-colors">关于</button>
         </nav>
 
@@ -264,6 +264,7 @@ function App() {
         {view === 'home' && (
           <>
             <HeroSection onExplore={handleExplore} onDemo={handleExplore} />
+            <QuickLinks onOpenResearch={handleExplore} onOpenDocuments={handleOpenDocuments} />
             <FeaturesSection />
             {/* Footer */}
             <footer className="border-t border-xmgray-100 py-8 text-center">
@@ -293,6 +294,25 @@ function App() {
         )}
       </div>
     </QueryClientProvider>
+  )
+}
+
+function QuickLinks({ onOpenResearch, onOpenDocuments }: { onOpenResearch: () => void; onOpenDocuments: () => void }) {
+  return (
+    <section className="max-w-6xl mx-auto px-6 md:px-8 pb-20">
+      <div className="grid gap-4 md:grid-cols-2">
+        <button className="card p-6 text-left hover:border-xmgray-200" onClick={onOpenResearch}>
+          <p className="text-sm text-xmgray-400">研究</p>
+          <h3 className="mt-2 text-xl font-semibold text-xmgray-900">开始新研究</h3>
+          <p className="mt-2 text-sm text-xmgray-500">支持短文 / 中篇 / 长篇。</p>
+        </button>
+        <button className="card p-6 text-left hover:border-xmgray-200" onClick={onOpenDocuments}>
+          <p className="text-sm text-xmgray-400">知识库</p>
+          <h3 className="mt-2 text-xl font-semibold text-xmgray-900">管理内部资料源</h3>
+          <p className="mt-2 text-sm text-xmgray-500">上传、分组、修改、删除与 chunk 预览。</p>
+        </button>
+      </div>
+    </section>
   )
 }
 

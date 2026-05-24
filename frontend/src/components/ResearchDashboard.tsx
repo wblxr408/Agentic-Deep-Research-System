@@ -41,6 +41,7 @@ function ResearchDashboard({ onBack }: ResearchDashboardProps) {
   const [query, setQuery] = useState('')
   const [ragGroup, setRagGroup] = useState('')
   const [allowWebAfterRagHit, setAllowWebAfterRagHit] = useState(false)
+  const [outputLength, setOutputLength] = useState<'short' | 'medium' | 'long'>('medium')
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null)
   const [isStreaming, setIsStreaming] = useState(false)
   const [sessionStatus, setSessionStatus] = useState<string | null>(null)
@@ -76,6 +77,7 @@ function ResearchDashboard({ onBack }: ResearchDashboardProps) {
           query: q,
           allow_web_after_rag_hit: allowWebAfterRagHit,
           rag_group: ragGroup.trim() || null,
+          output_length: outputLength,
         }),
       })
       if (!res.ok) throw new Error('Failed to start research')
@@ -136,7 +138,7 @@ function ResearchDashboard({ onBack }: ResearchDashboardProps) {
   const handleStart = useCallback(() => {
     if (query.trim().length < 5) return
     startMutation.mutate(query.trim())
-  }, [query, startMutation, allowWebAfterRagHit, ragGroup])
+  }, [query, startMutation, allowWebAfterRagHit, ragGroup, outputLength])
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
@@ -265,6 +267,26 @@ function ResearchDashboard({ onBack }: ResearchDashboardProps) {
                 />
                 内部命中后仍继续联网
               </label>
+            </div>
+            <div className="mt-4 flex flex-wrap gap-2">
+              {[
+                { value: 'short', label: '短文' },
+                { value: 'medium', label: '中篇' },
+                { value: 'long', label: '长篇' },
+              ].map(option => (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => setOutputLength(option.value as 'short' | 'medium' | 'long')}
+                  className={`rounded-full px-4 py-2 text-sm transition-colors ${
+                    outputLength === option.value
+                      ? 'bg-xm-500 text-white'
+                      : 'bg-xmgray-50 text-xmgray-600 hover:bg-xmgray-100'
+                  }`}
+                >
+                  {option.label}
+                </button>
+              ))}
             </div>
             <p className="mt-2 text-[11px] text-xmgray-400">
               不勾选时：内部 RAG 有结果就只用内部证据；内部为空才自动联网。
