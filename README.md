@@ -29,6 +29,8 @@
 - SSE 实时事件流
 - 证据驱动的报告生成
 - 反思校验与重规划
+- 报告长度分档控制（短文 / 中篇 / 长篇）
+- 内部知识库源 CRUD、分组管理与文件上传
 
 ## 目录结构
 
@@ -71,6 +73,7 @@ deepintel/
 - `health.py`：健康检查与就绪检查
 - `research.py`：研究任务创建、状态查询、结果查询、SSE 流式接口
 - `config.py`：前端可配置的 LLM 运行时配置接口
+- `documents.py`：内部知识库源管理、分组、上传与切分入库接口
 
 #### `app/agents/`
 
@@ -124,6 +127,7 @@ deepintel/
 - `src/components/ToolTrace.tsx`：工具调用流展示
 - `src/components/ReportPreview.tsx`：报告预览
 - `src/components/LLMConfigPanel.tsx`：LLM 配置面板
+- `src/components/DocumentManager.tsx`：知识库源、分组、上传与维护界面
 - `src/hooks/useSSE.ts`：SSE 连接封装
 
 #### `metrics/`
@@ -166,6 +170,18 @@ deepintel/
 6. `analyst.py` 生成分析结论
 7. `reflection.py` 判断是否需要重规划
 8. `report.py` 生成 Markdown 报告并推送 SSE
+
+### 输出长度控制
+
+- 前端支持 `short / medium / long` 三档输出长度。
+- 后端按档位控制报告生成 token 预算、搜索次数和工具结果上限。
+- 目标是避免报告被截断，同时让简单问题保持低成本。
+
+### 知识库管理
+
+- 前端提供知识库源的新增、编辑、删除和分组管理。
+- 上传文件支持 `json`、`md`、`docx`、`pdf`、`txt`。
+- 文档入库时会执行切分和 embedding，再写入向量检索表。
 
 ### 状态与持久化
 
