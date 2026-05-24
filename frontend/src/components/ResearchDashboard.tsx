@@ -39,6 +39,8 @@ interface ResearchDashboardProps {
 
 function ResearchDashboard({ onBack }: ResearchDashboardProps) {
   const [query, setQuery] = useState('')
+  const [ragGroup, setRagGroup] = useState('')
+  const [allowWebAfterRagHit, setAllowWebAfterRagHit] = useState(false)
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null)
   const [isStreaming, setIsStreaming] = useState(false)
   const [sessionStatus, setSessionStatus] = useState<string | null>(null)
@@ -70,7 +72,11 @@ function ResearchDashboard({ onBack }: ResearchDashboardProps) {
       const res = await fetch('/api/v1/research', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: q }),
+        body: JSON.stringify({
+          query: q,
+          allow_web_after_rag_hit: allowWebAfterRagHit,
+          rag_group: ragGroup.trim() || null,
+        }),
       })
       if (!res.ok) throw new Error('Failed to start research')
       return res.json()
@@ -130,7 +136,7 @@ function ResearchDashboard({ onBack }: ResearchDashboardProps) {
   const handleStart = useCallback(() => {
     if (query.trim().length < 5) return
     startMutation.mutate(query.trim())
-  }, [query, startMutation])
+  }, [query, startMutation, allowWebAfterRagHit, ragGroup])
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
@@ -144,6 +150,7 @@ function ResearchDashboard({ onBack }: ResearchDashboardProps) {
   const handleNewResearch = useCallback(() => {
     setActiveSessionId(null)
     setQuery('')
+    setRagGroup('')
     setSessionStatus(null)
     clearEvents()
     inputRef.current?.focus()
@@ -235,8 +242,34 @@ function ResearchDashboard({ onBack }: ResearchDashboardProps) {
             </button>
           </div>
           <p className="mt-3 text-xs text-xmgray-400 text-center">
-            按 Enter 开始研究 · 整个过程自动完成
+            默认先搜内部 RAG；内部没有结果时自动联网
           </p>
+          <div className="mt-4 rounded-2xl border border-xmgray-100 bg-white/80 p-4 text-left shadow-sm">
+            <div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-center">
+              <label className="block">
+                <span className="text-xs font-medium text-xmgray-500">内部 RAG 分组（可选）</span>
+                <input
+                  type="text"
+                  value={ragGroup}
+                  onChange={e => setRagGroup(e.target.value)}
+                  placeholder="例如：company_docs / project_a"
+                  className="mt-1 w-full rounded-xl border border-xmgray-200 px-3 py-2 text-sm text-xmgray-700 outline-none focus:border-xm-400"
+                />
+              </label>
+              <label className="flex items-center gap-2 rounded-xl bg-xmgray-50 px-3 py-2 text-xs text-xmgray-600">
+                <input
+                  type="checkbox"
+                  checked={allowWebAfterRagHit}
+                  onChange={e => setAllowWebAfterRagHit(e.target.checked)}
+                  className="accent-orange-500"
+                />
+                内部命中后仍继续联网
+              </label>
+            </div>
+            <p className="mt-2 text-[11px] text-xmgray-400">
+              不勾选时：内部 RAG 有结果就只用内部证据；内部为空才自动联网。
+            </p>
+          </div>
         </div>
 
         {/* Example queries */}

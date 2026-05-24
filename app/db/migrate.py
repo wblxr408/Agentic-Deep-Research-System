@@ -27,12 +27,23 @@ CREATE EXTENSION IF NOT EXISTS vector;
 -- ==============================================================
 CREATE TABLE IF NOT EXISTS documents (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    source_id UUID,
+    source_name TEXT,
+    source_type VARCHAR(20) DEFAULT 'manual',
+    chunk_index INTEGER DEFAULT 0,
+    chunk_count INTEGER DEFAULT 1,
     content TEXT NOT NULL,
     metadata JSONB DEFAULT '{}',
     embedding VECTOR({dimension}),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+ALTER TABLE documents ADD COLUMN IF NOT EXISTS source_id UUID;
+ALTER TABLE documents ADD COLUMN IF NOT EXISTS source_name TEXT;
+ALTER TABLE documents ADD COLUMN IF NOT EXISTS source_type VARCHAR(20) DEFAULT 'manual';
+ALTER TABLE documents ADD COLUMN IF NOT EXISTS chunk_index INTEGER DEFAULT 0;
+ALTER TABLE documents ADD COLUMN IF NOT EXISTS chunk_count INTEGER DEFAULT 1;
 
 -- Vector similarity index (IVF for approximate nearest neighbor)
 CREATE INDEX IF NOT EXISTS idx_documents_embedding
@@ -46,6 +57,26 @@ CREATE INDEX IF NOT EXISTS idx_documents_fts
 -- Metadata filtering index
 CREATE INDEX IF NOT EXISTS idx_documents_metadata
     ON documents USING gin (metadata);
+
+-- Knowledge source table
+CREATE TABLE IF NOT EXISTS document_sources (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name TEXT NOT NULL,
+    group_name TEXT NOT NULL,
+    source_type VARCHAR(20) DEFAULT 'manual',
+    file_name TEXT,
+    file_ext VARCHAR(20),
+    status VARCHAR(20) DEFAULT 'active',
+    original_text TEXT,
+    chunk_size INTEGER DEFAULT 400,
+    chunk_overlap INTEGER DEFAULT 80,
+    metadata JSONB DEFAULT '{}',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_document_sources_group
+    ON document_sources (group_name);
 
 -- ==============================================================
 -- Research sessions table

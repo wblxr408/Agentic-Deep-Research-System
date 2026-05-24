@@ -16,7 +16,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 
 from app.config import get_settings
-from app.api import research_router, health_router, config_router
+from app.api import research_router, health_router, config_router, documents_router
 from app.db.connection import init_db, close_db
 
 # ==============================================================
@@ -110,6 +110,7 @@ def create_app() -> FastAPI:
     app.include_router(health_router)
     app.include_router(research_router)
     app.include_router(config_router)
+    app.include_router(documents_router)
 
     # Root endpoint
     @app.get("/")

@@ -94,6 +94,7 @@ class RAGAgent:
         self,
         plan_steps: list[PlanStep],
         user_query: str,
+        group: str | None = None,
     ) -> list[RAGResult]:
         """
         Execute RAG retrieval for the given plan steps.
@@ -121,9 +122,15 @@ class RAGAgent:
                         SELECT id, content, metadata,
                                1 - (embedding <=> $1::vector) AS similarity
                         FROM documents
+                        WHERE (
+                            $2::text IS NULL
+                            OR metadata->>'group' = $2::text
+                            OR metadata->>'source_group' = $2::text
+                            OR metadata->>'knowledge_group' = $2::text
+                        )
                         ORDER BY embedding <=> $1::vector
                         LIMIT 30
-                    """, query_embedding)
+                    """, query_embedding, group)
 
                     # BM25 search
                     bm25_rows = await conn.fetch(
@@ -135,10 +142,17 @@ class RAGAgent:
                                ) AS bm25_score
                         FROM documents
                         WHERE to_tsvector({fts_config}, content) @@ plainto_tsquery({fts_config}, $1)
+                        AND (
+                            $2::text IS NULL
+                            OR metadata->>'group' = $2::text
+                            OR metadata->>'source_group' = $2::text
+                            OR metadata->>'knowledge_group' = $2::text
+                        )
                         ORDER BY bm25_score DESC
                         LIMIT 30
                         """.format(fts_config=fts_config_sql),
                         step.target_query,
+                        group,
                     )
 
                 # Build result lists
@@ -217,18 +231,28 @@ class RAGAgent:
         logger.info(f"RAG Agent: {len(results)} results retrieved")
         return results
 
-    def execute(self, plan_steps: list[PlanStep], user_query: str) -> list[RAGResult]:
+    def execute(
+        self,
+        plan_steps: list[PlanStep],
+        user_query: str,
+        group: str | None = None,
+    ) -> list[RAGResult]:
         """Synchronous wrapper."""
         try:
             import asyncio
-            return asyncio.run(self.execute_async(plan_steps, user_query))
+            return asyncio.run(self.execute_async(plan_steps, user_query, group=group))
         except RuntimeError:
             import nest_asyncio
             nest_asyncio.apply()
             import asyncio
-            return asyncio.run(self.execute_async(plan_steps, user_query))
+            return asyncio.run(self.execute_async(plan_steps, user_query, group=group))
 
-    def execute_retrieval(self, query: str, context: str = "") -> list[RAGResult]:
+    def execute_retrieval(
+        self,
+        query: str,
+        context: str = "",
+        group: str | None = None,
+    ) -> list[RAGResult]:
         """
         Execute RAG retrieval for a single query (主题 3 工具接口).
 
@@ -236,8 +260,13 @@ class RAGAgent:
         """
         from app.graph.state import PlanStep
         step = PlanStep(target_query=query, node_type="rag")
-        return self.execute([step], context or query)
+        return self.execute([step], context or query, group=group)
 
-    def execute_for_node(self, node_query: str, context: str = "") -> list[RAGResult]:
+    def execute_for_node(
+        self,
+        node_query: str,
+        context: str = "",
+        group: str | None = None,
+    ) -> list[RAGResult]:
         """兼容接口：根据节点 query 执行检索。"""
-        return self.execute_retrieval(node_query, context)
+        return self.execute_retrieval(node_query, context, group=group)

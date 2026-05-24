@@ -8,8 +8,10 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import time
 from typing import TYPE_CHECKING
+from urllib.parse import parse_qs, unquote, urlparse
 
 from app.config import get_settings
 from app.graph.state import PlanStep, SearchResult
@@ -115,13 +117,44 @@ Return JSON with a "queries" array of strings."""
         """
         Execute a single search query.
 
-        Uses DuckDuckGo (no API key required) as primary,
-        falls back to Brave Search if configured.
+        Uses DuckDuckGo HTML search for real web results, with the Instant
+        Answer API only as a supplemental fallback.
         """
+        html_results = self._execute_duckduckgo_html_search(query)
+        if html_results:
+            return html_results
+        return self._execute_duckduckgo_instant_answer(query)
+
+    def _execute_duckduckgo_html_search(self, query: str) -> list[SearchResult]:
+        """Fetch and parse DuckDuckGo's HTML results page."""
         try:
             import requests
 
-            # Try DuckDuckGo Instant Answer API (free, no auth)
+            url = "https://html.duckduckgo.com/html/"
+            params = {
+                "q": query,
+            }
+            headers = {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                              "(KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
+                "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
+            }
+            response = requests.get(url, params=params, headers=headers, timeout=10)
+            if response.status_code != 200:
+                logger.warning("DuckDuckGo HTML search returned status %s", response.status_code)
+                return []
+
+            return self._parse_duckduckgo_html(response.text, query)
+
+        except Exception as e:
+            logger.warning(f"DuckDuckGo HTML search failed for '{query}': {e}")
+            return []
+
+    def _execute_duckduckgo_instant_answer(self, query: str) -> list[SearchResult]:
+        """Fallback to DuckDuckGo Instant Answer API."""
+        try:
+            import requests
+
             url = "https://api.duckduckgo.com/"
             params = {
                 "q": query,
@@ -129,9 +162,6 @@ Return JSON with a "queries" array of strings."""
                 "no_html": "1",
                 "skip_disambig": "1",
             }
-
-            # Keep this aligned with the LangChain tool wrapper so the workflow
-            # does not fail on transient network latency.
             response = requests.get(url, params=params, timeout=10)
             if response.status_code != 200:
                 return []
@@ -161,8 +191,73 @@ Return JSON with a "queries" array of strings."""
             return results
 
         except Exception as e:
-            logger.warning(f"Search execution failed for '{query}': {e}")
+            logger.warning(f"DuckDuckGo instant answer failed for '{query}': {e}")
             return []
+
+    def _parse_duckduckgo_html(self, html_text: str, query: str) -> list[SearchResult]:
+        """Parse title, URL and snippet from DuckDuckGo HTML without extra deps."""
+        import html as html_lib
+
+        results: list[SearchResult] = []
+        blocks = re.findall(
+            r'<div[^>]+class="[^"]*result[^"]*"[^>]*>(.*?)</div>\s*</div>',
+            html_text,
+            flags=re.IGNORECASE | re.DOTALL,
+        )
+        if not blocks:
+            blocks = html_text.split('class="result__body"')
+
+        for block in blocks:
+            link_match = re.search(
+                r'<a[^>]+class="[^"]*result__a[^"]*"[^>]+href="([^"]+)"[^>]*>(.*?)</a>',
+                block,
+                flags=re.IGNORECASE | re.DOTALL,
+            )
+            if not link_match:
+                continue
+
+            raw_url = html_lib.unescape(link_match.group(1))
+            title = self._clean_html(link_match.group(2))
+            snippet_match = re.search(
+                r'<a[^>]+class="[^"]*result__snippet[^"]*"[^>]*>(.*?)</a>|'
+                r'<div[^>]+class="[^"]*result__snippet[^"]*"[^>]*>(.*?)</div>',
+                block,
+                flags=re.IGNORECASE | re.DOTALL,
+            )
+            snippet_html = ""
+            if snippet_match:
+                snippet_html = next((g for g in snippet_match.groups() if g), "")
+            snippet = self._clean_html(snippet_html)
+            url = self._normalize_duckduckgo_url(raw_url)
+
+            if not url or not title:
+                continue
+
+            parsed = urlparse(url)
+            results.append(SearchResult(
+                url=url,
+                title=title,
+                snippet=snippet[:300] or title,
+                relevance_score=0.7,
+                domain=parsed.netloc,
+            ))
+
+            if len(results) >= 10:
+                break
+
+        if not results:
+            logger.info("DuckDuckGo HTML search parsed 0 results for query: %s", query)
+        return results
+
+    def _normalize_duckduckgo_url(self, raw_url: str) -> str:
+        """Resolve DuckDuckGo redirect URLs to target URLs."""
+        if raw_url.startswith("//"):
+            raw_url = f"https:{raw_url}"
+        parsed = urlparse(raw_url)
+        qs = parse_qs(parsed.query)
+        if "uddg" in qs and qs["uddg"]:
+            return unquote(qs["uddg"][0])
+        return raw_url
 
     def _clean_html(self, text: str) -> str:
         """Remove HTML entities and excess whitespace."""

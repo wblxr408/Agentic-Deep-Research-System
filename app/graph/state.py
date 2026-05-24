@@ -637,6 +637,9 @@ class ResearchState(TypedDict):
     evidence_status: dict | None
     review_status: dict | None
     user_confirmed: bool
+    allow_web_after_rag_hit: bool
+    rag_group: str | None
+    retrieval_policy: dict | None
 
     # ===== 可观测性 =====
     agent_trace: Annotated[list[dict], merge_lists]
@@ -695,6 +698,9 @@ def create_initial_state(
         evidence_status=None,
         review_status=None,
         user_confirmed=False,
+        allow_web_after_rag_hit=False,
+        rag_group=None,
+        retrieval_policy=None,
 
         agent_trace=[],
         guardrail_trace=[],

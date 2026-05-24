@@ -13,6 +13,7 @@ import { useState, useCallback } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import ResearchDashboard from './components/ResearchDashboard'
 import LLMConfigPanel from './components/LLMConfigPanel'
+import DocumentManager from './components/DocumentManager'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -26,11 +27,6 @@ const queryClient = new QueryClient({
 /* ============================================================
  * HEADER - Ultra minimal, floating
  * ============================================================ */
-function getBackendUrl(path: string) {
-  const { protocol, hostname } = window.location
-  return `${protocol}//${hostname}:8000${path}`
-}
-
 function Header({
   onOpenSettings,
   onOpenResearch,
@@ -237,7 +233,7 @@ function FeaturesSection() {
  * MAIN APP
  * ============================================================ */
 function App() {
-  const [view, setView] = useState<'home' | 'research' | 'settings'>('home')
+  const [view, setView] = useState<'home' | 'research' | 'settings' | 'documents'>('home')
 
   const handleExplore = useCallback(() => {
     setView('research')
@@ -247,12 +243,12 @@ function App() {
     setView('settings')
   }, [])
 
-  const handleOpenDocs = useCallback(() => {
-    window.open(getBackendUrl('/docs'), '_blank', 'noopener,noreferrer')
-  }, [])
-
   const handleOpenAbout = useCallback(() => {
     window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })
+  }, [])
+
+  const handleOpenDocuments = useCallback(() => {
+    setView('documents')
   }, [])
 
   return (
@@ -261,7 +257,7 @@ function App() {
         <Header
           onOpenSettings={handleOpenSettings}
           onOpenResearch={handleExplore}
-          onOpenDocs={handleOpenDocs}
+          onOpenDocs={handleOpenDocuments}
           onOpenAbout={handleOpenAbout}
         />
 
@@ -287,6 +283,12 @@ function App() {
         {view === 'settings' && (
           <main className="pt-20 px-6 pb-12">
             <LLMConfigPanel onClose={() => setView('home')} />
+          </main>
+        )}
+
+        {view === 'documents' && (
+          <main className="pt-14">
+            <DocumentManager />
           </main>
         )}
       </div>

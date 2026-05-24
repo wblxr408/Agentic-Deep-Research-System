@@ -221,6 +221,9 @@ function ToolTrace({ events }: ToolTraceProps) {
             {call.query && (
               <p className="text-[10px] text-xmgray-400 truncate mt-0.5 pl-9">{call.query}</p>
             )}
+            {call.error && (
+              <p className="text-[10px] text-red-500 truncate mt-0.5 pl-9">{call.error}</p>
+            )}
           </div>
         </div>
       ))}

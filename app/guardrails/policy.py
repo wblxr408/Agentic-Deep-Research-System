@@ -128,6 +128,7 @@ TOOL_SPECS: dict[str, ToolInvocationSpec] = {
             "properties": {
                 "query": {"type": "string", "minLength": 2},
                 "top_k": {"type": "integer", "minimum": 1, "maximum": 20},
+                "group": {"type": "string", "minLength": 1},
             },
             "required": ["query"],
             "additionalProperties": False,

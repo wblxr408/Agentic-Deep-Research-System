@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 
 @tool
-def knowledge_base_search(query: str, top_k: int = 5) -> str:
+def knowledge_base_search(query: str, top_k: int = 5, group: str | None = None) -> str:
     """
     Search the internal knowledge base for relevant documents and context.
 
@@ -32,6 +32,8 @@ def knowledge_base_search(query: str, top_k: int = 5) -> str:
     Args:
         query: The search query
         top_k: Number of top results to return (default 5)
+        group: Optional knowledge source group. Matches metadata.group,
+            metadata.source_group, or metadata.knowledge_group.
 
     Returns:
         JSON string of retrieved document chunks with metadata
@@ -47,7 +49,7 @@ def knowledge_base_search(query: str, top_k: int = 5) -> str:
             target_query=query,
         )
         agent = RAGAgent()
-        results = agent.execute([step], query)
+        results = agent.execute([step], query, group=group)
 
         output = []
         for r in results[:top_k]:

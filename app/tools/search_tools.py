@@ -7,7 +7,7 @@ Provides DuckDuckGo search as a LangChain-compatible tool.
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from langchain_core.tools import tool
 
@@ -30,42 +30,13 @@ def duckduckgo_search(query: str) -> str:
         JSON string of search results with title, URL, and snippet
     """
     import json
-    import requests
-    import html
-
     try:
-        url = "https://api.duckduckgo.com/"
-        params = {
-            "q": query,
-            "format": "json",
-            "no_html": "1",
-            "skip_disambig": "1",
-        }
-        response = requests.get(url, params=params, timeout=10)
-        if response.status_code != 200:
-            return json.dumps({"error": "Search failed", "status": response.status_code})
+        from app.agents.search import SearchAgent
 
-        data = response.json()
-        results: list[dict[str, Any]] = []
-
-        # Extract abstract
-        if data.get("AbstractText"):
-            results.append({
-                "title": data.get("Heading", query),
-                "url": data.get("AbstractURL", ""),
-                "snippet": html.unescape(data["AbstractText"])[:400],
-                "type": "abstract",
-            })
-
-        # Extract related topics
-        for topic in data.get("RelatedTopics", [])[:10]:
-            if "Text" in topic and "URL" in topic:
-                results.append({
-                    "title": query,
-                    "url": topic["URL"],
-                    "snippet": html.unescape(topic["Text"])[:300],
-                    "type": "related",
-                })
+        results = [
+            result.model_dump()
+            for result in SearchAgent().execute_search(query)
+        ]
 
         return json.dumps(results, ensure_ascii=False, indent=2)
 

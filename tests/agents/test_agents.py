@@ -37,8 +37,8 @@ class TestPlannerAgent:
 
         dag = PlannerAgent().create_dag("量子计算是什么")
 
-        assert len(dag.nodes) == 2
-        assert [node.node_type for node in dag.nodes] == ["search", "analyst"]
+        assert len(dag.nodes) == 3
+        assert [node.node_type for node in dag.nodes] == ["rag", "search", "analyst"]
 
 
 class TestSearchAgent:
@@ -50,13 +50,14 @@ class TestSearchAgent:
     def test_execute_search_uses_ten_second_timeout(self, monkeypatch):
         from app.agents.search import SearchAgent
 
-        captured = {}
+        captured = {"timeouts": []}
 
-        def fake_get(url, params=None, timeout=None):
-            captured["timeout"] = timeout
+        def fake_get(url, params=None, timeout=None, headers=None):
+            captured["timeouts"].append(timeout)
 
             class _Response:
                 status_code = 200
+                text = ""
 
                 def json(self):
                     return {}
@@ -68,8 +69,26 @@ class TestSearchAgent:
         agent = SearchAgent()
         result = agent._execute_search("test query")
 
-        assert captured["timeout"] == 10
+        assert captured["timeouts"] == [10, 10]
         assert result == []
+
+    def test_parse_duckduckgo_html_results(self):
+        from app.agents.search import SearchAgent
+
+        html = '''
+        <div class="result">
+          <div class="result__body">
+            <a class="result__a" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fexample.com%2Fdoc">Example &amp; Title</a>
+            <a class="result__snippet">Useful snippet about the topic.</a>
+          </div>
+        </div>
+        '''
+
+        results = SearchAgent()._parse_duckduckgo_html(html, "topic")
+
+        assert len(results) == 1
+        assert results[0].url == "https://example.com/doc"
+        assert results[0].title == "Example & Title"
 
     def test_deduplication(self):
         from app.agents.search import SearchAgent, SearchResult

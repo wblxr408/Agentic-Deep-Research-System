@@ -45,6 +45,11 @@ async def init_db() -> asyncpg.Pool:
         await conn.execute("""
             CREATE TABLE IF NOT EXISTS documents (
                 id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                source_id UUID,
+                source_name TEXT,
+                source_type VARCHAR(20) DEFAULT 'manual',
+                chunk_index INTEGER DEFAULT 0,
+                chunk_count INTEGER DEFAULT 1,
                 content TEXT NOT NULL,
                 metadata JSONB DEFAULT '{}',
                 embedding VECTOR(1024),
@@ -52,6 +57,11 @@ async def init_db() -> asyncpg.Pool:
                 updated_at TIMESTAMP DEFAULT NOW()
             )
         """)
+        await conn.execute("ALTER TABLE documents ADD COLUMN IF NOT EXISTS source_id UUID")
+        await conn.execute("ALTER TABLE documents ADD COLUMN IF NOT EXISTS source_name TEXT")
+        await conn.execute("ALTER TABLE documents ADD COLUMN IF NOT EXISTS source_type VARCHAR(20) DEFAULT 'manual'")
+        await conn.execute("ALTER TABLE documents ADD COLUMN IF NOT EXISTS chunk_index INTEGER DEFAULT 0")
+        await conn.execute("ALTER TABLE documents ADD COLUMN IF NOT EXISTS chunk_count INTEGER DEFAULT 1")
         await conn.execute("""
             CREATE INDEX IF NOT EXISTS idx_documents_embedding
             ON documents USING ivfflat (embedding vector_cosine_ops)
@@ -72,6 +82,28 @@ async def init_db() -> asyncpg.Pool:
                 CREATE INDEX IF NOT EXISTS idx_documents_fts
                 ON documents USING gin (to_tsvector('simple', content))
             """)
+
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS document_sources (
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                name TEXT NOT NULL,
+                group_name TEXT NOT NULL,
+                source_type VARCHAR(20) DEFAULT 'manual',
+                file_name TEXT,
+                file_ext VARCHAR(20),
+                status VARCHAR(20) DEFAULT 'active',
+                original_text TEXT,
+                chunk_size INTEGER DEFAULT 400,
+                chunk_overlap INTEGER DEFAULT 80,
+                metadata JSONB DEFAULT '{}',
+                created_at TIMESTAMP DEFAULT NOW(),
+                updated_at TIMESTAMP DEFAULT NOW()
+            )
+        """)
+        await conn.execute("""
+            CREATE INDEX IF NOT EXISTS idx_document_sources_group
+            ON document_sources (group_name)
+        """)
 
         await conn.execute("""
             CREATE TABLE IF NOT EXISTS research_sessions (
@@ -177,16 +209,30 @@ class Document:
         content: str,
         metadata: dict[str, Any],
         embedding: list[float] | None = None,
+        source_id: str | None = None,
+        source_name: str | None = None,
+        source_type: str = "manual",
+        chunk_index: int = 0,
+        chunk_count: int = 1,
     ) -> str:
         """Create a new document and return its ID."""
         pool = await get_db_pool()
         async with pool.acquire() as conn:
             row = await conn.fetchrow(
                 """
-                INSERT INTO documents (content, metadata, embedding)
-                VALUES ($1, $2, $3::vector)
+                INSERT INTO documents (
+                    source_id, source_name, source_type,
+                    chunk_index, chunk_count,
+                    content, metadata, embedding
+                )
+                VALUES ($1::uuid, $2, $3, $4, $5, $6, $7, $8::vector)
                 RETURNING id
                 """,
+                source_id,
+                source_name,
+                source_type,
+                chunk_index,
+                chunk_count,
                 content,
                 metadata,
                 embedding,
@@ -221,3 +267,43 @@ class Document:
         async with pool.acquire() as conn:
             row = await conn.fetchrow("SELECT COUNT(*) FROM documents")
             return int(row["count"])
+
+
+class DocumentSource:
+    """Document source model."""
+
+    @staticmethod
+    async def create(
+        *,
+        name: str,
+        group_name: str,
+        source_type: str = "manual",
+        file_name: str | None = None,
+        file_ext: str | None = None,
+        original_text: str | None = None,
+        chunk_size: int = 400,
+        chunk_overlap: int = 80,
+        metadata: dict[str, Any] | None = None,
+    ) -> str:
+        pool = await get_db_pool()
+        async with pool.acquire() as conn:
+            row = await conn.fetchrow(
+                """
+                INSERT INTO document_sources (
+                    name, group_name, source_type, file_name, file_ext,
+                    original_text, chunk_size, chunk_overlap, metadata
+                )
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                RETURNING id
+                """,
+                name,
+                group_name,
+                source_type,
+                file_name,
+                file_ext,
+                original_text,
+                chunk_size,
+                chunk_overlap,
+                metadata or {},
+            )
+            return str(row["id"])

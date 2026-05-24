@@ -59,6 +59,9 @@ KNOWN_STATE_KEYS = {
     "evidence_status",
     "review_status",
     "user_confirmed",
+    "allow_web_after_rag_hit",
+    "rag_group",
+    "retrieval_policy",
     "agent_trace",
     "guardrail_trace",
     "errors",
@@ -101,6 +104,15 @@ class ResearchRequest(BaseModel):
     session_id: str | None = Field(default=None, description="Optional session ID for continuation")
     max_revision: int = Field(default=3, ge=1, le=5, description="Max revision loops")
     user_confirmed: bool = Field(default=False, description="User confirmed high-risk task")
+    allow_web_after_rag_hit: bool = Field(
+        default=False,
+        description="If internal RAG finds evidence, also run internet search.",
+    )
+    rag_group: str | None = Field(
+        default=None,
+        max_length=100,
+        description="Optional internal RAG source group filter.",
+    )
 
 
 class ResearchStatus(BaseModel):
@@ -254,6 +266,8 @@ async def create_research(
         query=request.query,
         max_revision=request.max_revision,
         user_confirmed=request.user_confirmed,
+        allow_web_after_rag_hit=request.allow_web_after_rag_hit,
+        rag_group=request.rag_group,
     )
 
     return ResearchResponse(
@@ -339,6 +353,8 @@ async def run_research_workflow(
     query: str,
     max_revision: int = 3,
     user_confirmed: bool = False,
+    allow_web_after_rag_hit: bool = False,
+    rag_group: str | None = None,
 ):
     """
     Execute the LangGraph research workflow in background.
@@ -365,6 +381,16 @@ async def run_research_workflow(
         decision = build_guardrail_decision(query)
         state["guardrail_decision"] = decision.model_dump()
         state["user_confirmed"] = user_confirmed
+        state["allow_web_after_rag_hit"] = allow_web_after_rag_hit
+        state["rag_group"] = rag_group
+        state["retrieval_policy"] = {
+            "mode": "internal_first",
+            "allow_web_after_rag_hit": allow_web_after_rag_hit,
+            "rag_group": rag_group,
+            "rag_hit_count": 0,
+            "web_search_required": None,
+            "web_search_reason": None,
+        }
         state["session"]["prompt_profile"] = decision.prompt_profile.value
         state["session"]["enabled_tools"] = decision.enabled_tools
         state["session"]["prompt_template"] = compose_guardrail_prompt(query, decision)

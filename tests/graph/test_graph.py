@@ -25,7 +25,8 @@ class TestResearchState:
             "search_results", "browser_results", "rag_results", "aggregated_evidence",
             "revision_needed", "revision_count", "analysis",
             "final_report", "citations", "guardrail_decision", "evidence_status",
-            "review_status", "user_confirmed", "agent_trace", "guardrail_trace", "errors"
+            "review_status", "user_confirmed", "allow_web_after_rag_hit", "rag_group",
+            "retrieval_policy", "agent_trace", "guardrail_trace", "errors"
         }
         assert set(state.keys()) == required_keys
 
@@ -125,7 +126,7 @@ class TestGraphCompilation:
         from unittest.mock import patch
 
         from app.graph.compiler import search_node
-        from app.graph.state import DAGDefinition, PlanNode, serialize_dag
+        from app.graph.state import DAGDefinition, PlanNode, serialize_dag, deserialize_dag
 
         node = PlanNode(node_type="search", query="test query")
         state = create_initial_state("test query", "session-1")
@@ -142,7 +143,7 @@ class TestGraphCompilation:
         from unittest.mock import patch
 
         from app.graph.compiler import search_node
-        from app.graph.state import DAGDefinition, PlanNode, serialize_dag
+        from app.graph.state import DAGDefinition, PlanNode, serialize_dag, deserialize_dag
 
         node = PlanNode(node_type="search", query="test query")
         state = create_initial_state("test query", "session-1")
@@ -154,11 +155,11 @@ class TestGraphCompilation:
 
         event_types = [event["event_type"] for event in result["agent_trace"]]
         assert "tool_start" in event_types
-        assert "tool_complete" in event_types
+        assert "tool_error" in event_types
 
     def test_execute_tool_batch_includes_dag_payload(self):
         from app.graph.compiler import execute_tool_batch
-        from app.graph.state import DAGDefinition, PlanNode, serialize_dag
+        from app.graph.state import DAGDefinition, PlanNode, serialize_dag, deserialize_dag
 
         node = PlanNode(node_type="search", query="test query")
         state = create_initial_state("test query", "session-1")
@@ -172,6 +173,65 @@ class TestGraphCompilation:
         payload = sends[0].arg
         assert "dag" in payload
         assert payload["executing_nodes"] == [node.node_id]
+
+    def test_planner_enforces_internal_rag_before_search(self):
+        from unittest.mock import patch
+
+        from app.graph.compiler import planner_node
+        from app.graph.state import DAGDefinition, PlanNode, serialize_dag, deserialize_dag
+
+        search_node_only = PlanNode(node_id="s1", node_type="search", query="test query")
+        dag = DAGDefinition(dag_name="test", nodes=[search_node_only], edges=[])
+        state = create_initial_state("test query", "session-1")
+
+        with patch("app.agents.planner.PlannerAgent.create_dag", return_value=dag):
+            result = planner_node(state)
+
+        planned = deserialize_dag(result["dag"])
+        rag_nodes = [node for node in planned.nodes if node.node_type == "rag"]
+        search_nodes = [node for node in planned.nodes if node.node_type == "search"]
+
+        assert rag_nodes
+        assert search_nodes[0].depends_on == [rag_nodes[0].node_id]
+
+    def test_dag_aggregator_skips_web_after_rag_hit_by_default(self):
+        from app.graph.compiler import dag_results_aggregator
+        from app.graph.state import DAGDefinition, PlanNode, serialize_dag, deserialize_dag
+
+        rag = PlanNode(node_id="r1", node_type="rag", query="internal")
+        search = PlanNode(node_id="s1", node_type="search", query="web", depends_on=["r1"])
+        rag.result = {"results": [{"content": "internal evidence"}]}
+        state = create_initial_state("test query", "session-1")
+        state["dag"] = serialize_dag(DAGDefinition(dag_name="test", nodes=[rag, search], edges=[]))
+        state["current_executing_nodes"] = ["r1"]
+        state["retrieval_policy"] = {"allow_web_after_rag_hit": False}
+
+        result = dag_results_aggregator(state)
+        planned = deserialize_dag(result["dag"])
+        skipped = next(node for node in planned.nodes if node.node_id == "s1")
+
+        assert skipped.status == StepStatus.SKIPPED
+        assert "s1" in result["completed_nodes"]
+        assert result["retrieval_policy"]["web_search_required"] is False
+
+    def test_dag_aggregator_allows_web_when_rag_empty(self):
+        from app.graph.compiler import dag_results_aggregator
+        from app.graph.state import DAGDefinition, PlanNode, serialize_dag, deserialize_dag
+
+        rag = PlanNode(node_id="r1", node_type="rag", query="internal")
+        search = PlanNode(node_id="s1", node_type="search", query="web", depends_on=["r1"])
+        rag.result = {"results": []}
+        state = create_initial_state("test query", "session-1")
+        state["dag"] = serialize_dag(DAGDefinition(dag_name="test", nodes=[rag, search], edges=[]))
+        state["current_executing_nodes"] = ["r1"]
+        state["retrieval_policy"] = {"allow_web_after_rag_hit": False}
+
+        result = dag_results_aggregator(state)
+        planned = deserialize_dag(result["dag"])
+        web = next(node for node in planned.nodes if node.node_id == "s1")
+
+        assert web.status == StepStatus.PENDING
+        assert result["retrieval_policy"]["web_search_required"] is True
 
 
 if __name__ == "__main__":

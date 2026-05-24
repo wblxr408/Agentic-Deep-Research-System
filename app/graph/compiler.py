@@ -48,6 +48,7 @@ from app.graph.state import (
     ResearchState,
     DAGDefinition,
     PlanNode,
+    PlanEdge,
     StepStatus,
     TaskStatus,
     AgentType,
@@ -67,6 +68,53 @@ from app.guardrails import (
 )
 
 TOOL_NODE_TYPES = {"search", "browser", "rag"}
+WEB_NODE_TYPES = {"search", "browser"}
+
+
+def _enforce_internal_first_dag(dag: DAGDefinition, user_query: str) -> DAGDefinition:
+    """Ensure every web retrieval node runs only after internal RAG has been checked."""
+    rag_nodes = [node for node in dag.nodes if node.node_type == "rag"]
+    if not rag_nodes:
+        rag_node = PlanNode(
+            node_id="internal_rag_first",
+            node_type="rag",
+            query=f"内部知识库检索：{user_query}",
+            depends_on=[],
+            parallel=True,
+        )
+        dag.nodes.insert(0, rag_node)
+        rag_nodes = [rag_node]
+
+    rag_ids = [node.node_id for node in rag_nodes]
+    existing_edges = {(edge.from_node, edge.to_node) for edge in dag.edges}
+    for node in dag.nodes:
+        if node.node_type not in WEB_NODE_TYPES:
+            continue
+        for rag_id in rag_ids:
+            if rag_id == node.node_id or rag_id in node.depends_on:
+                continue
+            node.depends_on.append(rag_id)
+            if (rag_id, node.node_id) not in existing_edges:
+                dag.edges.append(PlanEdge(from_node=rag_id, to_node=node.node_id, edge_type="sequential"))
+                existing_edges.add((rag_id, node.node_id))
+
+    return dag
+
+
+def _result_count(node: PlanNode) -> int:
+    if not node.result:
+        return 0
+    results = node.result.get("results")
+    return len(results) if isinstance(results, list) else 0
+
+
+def _skip_pending_web_nodes(dag: DAGDefinition) -> list[str]:
+    skipped: list[str] = []
+    for node in dag.nodes:
+        if node.node_type in WEB_NODE_TYPES and node.status == StepStatus.PENDING:
+            node.status = StepStatus.SKIPPED
+            skipped.append(node.node_id)
+    return skipped
 
 
 # ==============================================================
@@ -238,6 +286,7 @@ def planner_node(state: ResearchState) -> dict:
     # 调用 Planner Agent 生成 DAG
     agent = PlannerAgent()
     dag: DAGDefinition = agent.create_dag(state["user_query"])
+    dag = _enforce_internal_first_dag(dag, state["user_query"])
     decision = build_guardrail_decision(state["user_query"], user_confirmed=state.get("user_confirmed", False))
     record_guardrail_event(
         state,
@@ -321,6 +370,8 @@ def dag_results_aggregator(state: ResearchState) -> dict:
 
     当一批并行节点执行完成后，调用此函数更新 DAG 状态。
     """
+    from app.observability.trace import EventType
+
     dag = deserialize_dag(state["dag"])
     current_nodes = set(state.get("current_executing_nodes", []))
 
@@ -330,10 +381,63 @@ def dag_results_aggregator(state: ResearchState) -> dict:
             node.status = StepStatus.DONE
 
     completed = list(set(state.get("completed_nodes", [])) | current_nodes)
+    retrieval_policy = dict(state.get("retrieval_policy") or {})
+    retrieval_policy.setdefault("mode", "internal_first")
+    retrieval_policy.setdefault("allow_web_after_rag_hit", bool(state.get("allow_web_after_rag_hit", False)))
+    retrieval_policy.setdefault("rag_group", state.get("rag_group"))
+
+    rag_hit_count = sum(
+        _result_count(node)
+        for node in dag.nodes
+        if node.node_type == "rag" and node.status == StepStatus.DONE
+    )
+    retrieval_policy["rag_hit_count"] = rag_hit_count
+
+    skipped_web_nodes: list[str] = []
+    if current_nodes and all(
+        (node.node_type == "rag")
+        for node in dag.nodes
+        if node.node_id in current_nodes
+    ):
+        if rag_hit_count > 0:
+            if retrieval_policy["allow_web_after_rag_hit"]:
+                retrieval_policy["web_search_required"] = True
+                retrieval_policy["web_search_reason"] = "rag_hit_user_allowed_web"
+            else:
+                retrieval_policy["web_search_required"] = False
+                retrieval_policy["web_search_reason"] = "rag_hit_user_skipped_web"
+                skipped_web_nodes = _skip_pending_web_nodes(dag)
+                completed = list(set(completed) | set(skipped_web_nodes))
+        else:
+            retrieval_policy["web_search_required"] = True
+            retrieval_policy["web_search_reason"] = "rag_empty_auto_web"
+
+    trace = []
+    if skipped_web_nodes:
+        trace.append(_append_trace_event(
+            state,
+            EventType.AGENT_COMPLETE,
+            "retrieval_policy",
+            f"Internal RAG found {rag_hit_count} chunks; skipped {len(skipped_web_nodes)} web nodes by user policy.",
+            {
+                "retrieval_policy": retrieval_policy,
+                "skipped_web_nodes": skipped_web_nodes,
+            },
+        ))
+    elif current_nodes and any(node.node_type == "rag" for node in dag.nodes if node.node_id in current_nodes):
+        trace.append(_append_trace_event(
+            state,
+            EventType.AGENT_COMPLETE,
+            "retrieval_policy",
+            f"Internal RAG found {rag_hit_count} chunks; web search policy: {retrieval_policy.get('web_search_reason')}.",
+            {"retrieval_policy": retrieval_policy},
+        ))
 
     return {
         "dag": serialize_dag(dag),
         "completed_nodes": completed,
+        "retrieval_policy": retrieval_policy,
+        "agent_trace": trace,
     }
 
 
@@ -435,8 +539,9 @@ def search_node(state: ResearchState) -> dict:
             node.confidence = 0.9 if results else 0.0
             _finish_tool_history(
                 tool_history,
-                status="success",
+                status="success" if results else "error",
                 result_summary=f"{len(results)} search results",
+                error=None if results else "no_search_results",
             )
 
             # 转换为 Evidence
@@ -451,9 +556,16 @@ def search_node(state: ResearchState) -> dict:
                 all_evidence.append(evidence)
 
             trace.append(_append_trace_event(
-                state, EventType.TOOL_COMPLETE, "search",
-                f"Found {len(results)} results for: {node.query}",
-                {"tool_name": "duckduckgo_search", "status": "success", "result_summary": f"{len(results)} search results"},
+                state,
+                EventType.TOOL_COMPLETE if results else EventType.TOOL_ERROR,
+                "search",
+                f"Found {len(results)} results for: {node.query}" if results else f"No web search results for: {node.query}",
+                {
+                    "tool_name": "duckduckgo_search",
+                    "status": "success" if results else "error",
+                    "result_summary": f"{len(results)} search results",
+                    "error": None if results else "no_search_results",
+                },
             ))
         except Exception as e:
             node.status = StepStatus.FAILED
@@ -661,7 +773,11 @@ def rag_node(state: ResearchState) -> dict:
         node.status = StepStatus.RUNNING
 
         try:
-            results = agent.execute_retrieval(node.query, state["user_query"])
+            results = agent.execute_retrieval(
+                node.query,
+                state["user_query"],
+                group=state.get("rag_group"),
+            )
             node.result = {"results": [r.model_dump() for r in results]}
             node.confidence = 0.88 if results else 0.0
             _finish_tool_history(
@@ -743,6 +859,9 @@ def execute_tool_batch(state: ResearchState) -> list[Send]:
         "user_query": state.get("user_query"),
         "session": state.get("session", {}),
         "guardrail_decision": state.get("guardrail_decision"),
+        "allow_web_after_rag_hit": state.get("allow_web_after_rag_hit", False),
+        "rag_group": state.get("rag_group"),
+        "retrieval_policy": state.get("retrieval_policy"),
     }
 
     for node_id in executing_nodes:

@@ -388,21 +388,29 @@ Return a JSON object with dag_name, nodes, and edges."""
             nodes=[
                 PlanNode(
                     node_id="n1",
-                    node_type="search",
+                    node_type="rag",
                     query=query,
                     depends_on=[],
                     parallel=True,
                 ),
                 PlanNode(
                     node_id="n2",
+                    node_type="search",
+                    query=query,
+                    depends_on=["n1"],
+                    parallel=False,
+                ),
+                PlanNode(
+                    node_id="n3",
                     node_type="analyst",
                     query=f"回答事实问题：{query}",
-                    depends_on=["n1"],
+                    depends_on=["n1", "n2"],
                     parallel=False,
                 ),
             ],
             edges=[
                 PlanEdge(from_node="n1", to_node="n2", edge_type="sequential"),
+                PlanEdge(from_node="n2", to_node="n3", edge_type="sequential"),
             ],
         )
 
