@@ -1,0 +1,23 @@
+\begin{tikzpicture}[
+  node distance=8mm and 10mm,
+  box/.style={draw, rounded corners, align=center, minimum width=24mm, minimum height=9mm},
+  decision/.style={diamond, draw, align=center, aspect=2},
+  flow/.style={-Latex, thick}
+]
+\node[box] (tool) {Tool Node};
+\node[decision, below=of tool] (outcome) {NodeOutcome};
+\node[box, below left=of outcome] (success) {success\\$\rightarrow$ DONE};
+\node[box, below=of outcome] (retry) {retryable\_error\\$\rightarrow$ FAILED};
+\node[box, below right=of outcome] (terminal) {terminal\_error\\$\rightarrow$ FAILED};
+\node[box, right=18mm of retry] (approval) {awaiting\_approval\\$\rightarrow$ PENDING};
+\node[box, below=of retry] (executor) {dag\_executor retry};
+\node[box, below=of terminal] (stop) {terminal\_failed / stop};
+
+\draw[flow] (tool) -- (outcome);
+\draw[flow] (outcome) -- (success);
+\draw[flow] (outcome) -- (retry);
+\draw[flow] (outcome) -- (terminal);
+\draw[flow] (outcome) -- (approval);
+\draw[flow] (retry) -- (executor);
+\draw[flow] (terminal) -- (stop);
+\end{tikzpicture}

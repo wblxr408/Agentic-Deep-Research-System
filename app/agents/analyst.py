@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING
 from app.config import get_settings
 from app.guardrails import build_guardrail_decision, build_prompt_profile_message
 from app.graph.state import Evidence
+from app.llm_client import collect_usage_metrics
 
 if TYPE_CHECKING:
     from openai import OpenAI
@@ -51,6 +52,7 @@ Return a JSON object with these fields:
         settings = get_settings()
         self.model = settings.llm.model
         self._client: OpenAI | None = None
+        self.last_usage: dict | None = None
 
     @property
     def client(self) -> OpenAI:
@@ -105,8 +107,14 @@ Also provide the structured JSON output."""
                 temperature=0.4,
                 max_tokens=4096,
             )
-
             content = response.choices[0].message.content
+            self.last_usage = collect_usage_metrics(
+                response=response,
+                model=self.model,
+                messages=messages,
+                completion_text=content,
+            )
+
             if not content:
                 return self._fallback_analysis(user_query, evidence_list)
 
@@ -133,6 +141,7 @@ Also provide the structured JSON output."""
 
         except Exception as e:
             logger.error(f"Analyst error: {e}")
+            self.last_usage = None
             return self._fallback_analysis(user_query, evidence_list)
 
     def _format_evidence(self, evidence_list: list[Evidence]) -> str:

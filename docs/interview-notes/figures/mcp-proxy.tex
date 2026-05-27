@@ -1,0 +1,18 @@
+\begin{tikzpicture}[
+  node distance=9mm and 10mm,
+  box/.style={draw, rounded corners, align=center, minimum width=24mm, minimum height=9mm},
+  flow/.style={-Latex, thick}
+]
+\node[box] (graph) {Graph Node};
+\node[box, right=of graph] (proxy) {McpPolicyProxy};
+\node[box, above right=of proxy] (registry) {Server Registry\\allowlist / trust};
+\node[box, below right=of proxy] (approval) {Approval Gate};
+\node[box, right=of proxy] (redact) {Secret Redaction};
+\node[box, right=of redact] (server) {MCP Server};
+
+\draw[flow] (graph) -- (proxy);
+\draw[flow] (registry) -- (proxy);
+\draw[flow] (approval) -- (proxy);
+\draw[flow] (proxy) -- (redact);
+\draw[flow] (redact) -- (server);
+\end{tikzpicture}

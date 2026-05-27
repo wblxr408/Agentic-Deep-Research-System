@@ -15,6 +15,11 @@ from app.config import get_settings
 
 logger = logging.getLogger(__name__)
 
+MODEL_PRICING_USD_PER_1K: dict[str, tuple[float, float]] = {
+    "gpt-4o-mini": (0.00015, 0.0006),
+    "gpt-4o": (0.005, 0.015),
+}
+
 
 def get_llm_client_config() -> dict[str, Any]:
     """
@@ -103,6 +108,105 @@ def get_llm_max_tokens() -> int:
     """Get the current LLM max tokens."""
     config = get_llm_client_config()
     return config.get("max_tokens", 8192)
+
+
+def estimate_text_tokens(text: str | None) -> int:
+    """Approximate token count using a conservative chars-per-token heuristic."""
+    if not text:
+        return 0
+    return max(1, int(len(text) / 4))
+
+
+def estimate_messages_tokens(messages: list[dict[str, Any]] | None) -> int:
+    """Approximate token usage for OpenAI-style chat messages."""
+    if not messages:
+        return 0
+    total_chars = 0
+    for message in messages:
+        if not isinstance(message, dict):
+            continue
+        total_chars += len(str(message.get("role", "")))
+        content = message.get("content", "")
+        if isinstance(content, list):
+            total_chars += sum(len(str(part)) for part in content)
+        else:
+            total_chars += len(str(content))
+    return estimate_text_tokens("x" * total_chars)
+
+
+def estimate_cost_usd(
+    model: str | None,
+    *,
+    prompt_tokens: int,
+    completion_tokens: int,
+) -> float:
+    """Estimate request cost for models with known pricing."""
+    if not model:
+        return 0.0
+    pricing = MODEL_PRICING_USD_PER_1K.get(model)
+    if not pricing:
+        return 0.0
+    prompt_price, completion_price = pricing
+    return round((prompt_tokens / 1000.0) * prompt_price + (completion_tokens / 1000.0) * completion_price, 6)
+
+
+def collect_usage_metrics(
+    *,
+    response: Any | None = None,
+    model: str | None = None,
+    messages: list[dict[str, Any]] | None = None,
+    completion_text: str | None = None,
+) -> dict[str, Any]:
+    """
+    Normalize provider usage into a stable structure.
+
+    If the provider does not return usage, fall back to a simple token estimate.
+    """
+    usage_obj = getattr(response, "usage", None) if response is not None else None
+    if usage_obj is None and isinstance(response, dict):
+        usage_obj = response.get("usage")
+
+    prompt_tokens = None
+    completion_tokens = None
+    total_tokens = None
+    estimated = False
+
+    if usage_obj is not None:
+        if isinstance(usage_obj, dict):
+            prompt_tokens = usage_obj.get("prompt_tokens")
+            completion_tokens = usage_obj.get("completion_tokens")
+            total_tokens = usage_obj.get("total_tokens")
+        else:
+            prompt_tokens = getattr(usage_obj, "prompt_tokens", None)
+            completion_tokens = getattr(usage_obj, "completion_tokens", None)
+            total_tokens = getattr(usage_obj, "total_tokens", None)
+
+    if prompt_tokens is None:
+        prompt_tokens = estimate_messages_tokens(messages)
+        estimated = True
+    if completion_tokens is None:
+        completion_tokens = estimate_text_tokens(completion_text)
+        estimated = True
+    if total_tokens is None:
+        total_tokens = int(prompt_tokens or 0) + int(completion_tokens or 0)
+        estimated = True
+
+    cost_usd = estimate_cost_usd(
+        model,
+        prompt_tokens=int(prompt_tokens or 0),
+        completion_tokens=int(completion_tokens or 0),
+    )
+    if cost_usd == 0.0 and total_tokens:
+        estimated = True
+
+    return {
+        "prompt_tokens": int(prompt_tokens or 0),
+        "completion_tokens": int(completion_tokens or 0),
+        "total_tokens": int(total_tokens or 0),
+        "cost_usd": float(cost_usd),
+        "estimated": estimated,
+        "model": model,
+    }
 
 
 class LLMClientWrapper:

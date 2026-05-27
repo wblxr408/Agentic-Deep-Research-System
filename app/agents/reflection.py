@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING
 
 from app.config import get_settings
 from app.guardrails import build_guardrail_decision, build_prompt_profile_message
+from app.llm_client import collect_usage_metrics
 from app.graph.state import (
     ClaimConflict,
     Evidence,
@@ -93,6 +94,7 @@ Be strict but fair. Flag real hallucinations but don't over-flag.
         settings = get_settings()
         self.model = settings.llm.model
         self._client: OpenAI | None = None
+        self.last_usage: dict | None = None
 
     @property
     def client(self) -> OpenAI:
@@ -151,6 +153,12 @@ Perform a rigorous quality check and return the structured JSON output."""
             )
 
             content = response.choices[0].message.content
+            self.last_usage = collect_usage_metrics(
+                response=response,
+                model=self.model,
+                messages=messages,
+                completion_text=content,
+            )
             if not content:
                 return self._default_result()
 
@@ -202,6 +210,7 @@ Perform a rigorous quality check and return the structured JSON output."""
 
         except Exception as e:
             logger.error(f"Reflection error: {e}")
+            self.last_usage = None
             return self._default_result()
 
     def _format_evidence(self, evidence_list: list[Evidence]) -> str:

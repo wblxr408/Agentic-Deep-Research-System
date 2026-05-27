@@ -1,0 +1,29 @@
+\begin{tikzpicture}[
+  node distance=8mm and 8mm,
+  box/.style={draw, rounded corners, align=center, minimum width=23mm, minimum height=9mm},
+  flow/.style={-Latex, thick}
+]
+\node[box] (create) {create\_research};
+\node[box, right=of create] (pending) {pending\_confirmation\\or running};
+\node[box, below=of pending] (planner) {planner};
+\node[box, below=of planner] (dagx) {dag\_executor};
+\node[box, below left=of dagx] (tools) {search / browser / rag};
+\node[box, below=of dagx] (agg) {dag\_aggregator};
+\node[box, below=of agg] (analyst) {analyst};
+\node[box, below=of analyst] (reflection) {reflection};
+\node[box, below left=of reflection] (replan) {replan};
+\node[box, below right=of reflection] (report) {report};
+\node[box, below=of report] (end) {END};
+
+\draw[flow] (create) -- (pending);
+\draw[flow] (pending) -- (planner);
+\draw[flow] (planner) -- (dagx);
+\draw[flow] (dagx) -- (tools);
+\draw[flow] (tools) -- (agg);
+\draw[flow] (agg) -- (analyst);
+\draw[flow] (analyst) -- (reflection);
+\draw[flow] (reflection) -- node[above left, font=\scriptsize]{needs\_revision} (replan);
+\draw[flow] (replan) |- (dagx);
+\draw[flow] (reflection) -- node[above right, font=\scriptsize]{pass} (report);
+\draw[flow] (report) -- (end);
+\end{tikzpicture}

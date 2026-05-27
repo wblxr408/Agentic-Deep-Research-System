@@ -25,6 +25,39 @@ class TestResearchWorkflowIntegration:
         assert state["tool_histories"] == []
         assert state["collected_evidence"] == []
         assert state["current_executing_nodes"] == []
+        assert state["node_outcomes"] == []
+        assert state["runtime_status"] == "pending"
+
+    def test_collect_usage_metrics_reads_provider_usage(self):
+        from app.llm_client import collect_usage_metrics
+
+        response = SimpleNamespace(
+            usage=SimpleNamespace(prompt_tokens=120, completion_tokens=30, total_tokens=150),
+        )
+        usage = collect_usage_metrics(
+            response=response,
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": "hello"}],
+            completion_text="world",
+        )
+
+        assert usage["prompt_tokens"] == 120
+        assert usage["completion_tokens"] == 30
+        assert usage["total_tokens"] == 150
+        assert usage["estimated"] is False
+
+    def test_collect_usage_metrics_falls_back_to_estimate(self):
+        from app.llm_client import collect_usage_metrics
+
+        usage = collect_usage_metrics(
+            response=None,
+            model="unknown-model",
+            messages=[{"role": "user", "content": "hello world"}],
+            completion_text="response text",
+        )
+
+        assert usage["total_tokens"] > 0
+        assert usage["estimated"] is True
 
     @pytest.mark.asyncio
     async def test_workflow_with_mocked_llm(
@@ -230,6 +263,56 @@ class TestSSEIntegration:
 class TestResearchResultNormalization:
     """Tests for research result response normalization."""
 
+    def test_normalize_tool_audit_rows_joins_outcomes(self):
+        from app.api.research import _normalize_tool_audit_rows
+
+        rows = _normalize_tool_audit_rows(
+            session_id="test-session",
+            tool_histories=[
+                {
+                    "agent_type": "search",
+                    "tool_calls": [
+                        {
+                            "call_id": "call-1",
+                            "tool_name": "duckduckgo_search",
+                            "args": {"query": "openai"},
+                            "status": "success",
+                            "result_summary": "1 result",
+                            "tokens_used": 12,
+                            "cost_usd": 0.01,
+                            "started_at": "2026-05-27T00:00:00",
+                            "completed_at": "2026-05-27T00:00:01",
+                        }
+                    ],
+                }
+            ],
+            node_outcomes=[
+                {
+                    "node_id": "n1",
+                    "tool_call_id": "call-1",
+                    "tool_name": "duckduckgo_search",
+                    "status": "success",
+                    "retry_count": 1,
+                    "error_category": None,
+                    "error_message": None,
+                    "tokens_used": 12,
+                    "cost_usd": 0.01,
+                }
+            ],
+        )
+
+        assert len(rows) == 1
+        row = rows[0]
+        assert row[0] == "call-1"
+        assert row[1] == "test-session"
+        assert row[2] == "n1"
+        assert row[3] == "search"
+        assert row[4] == "duckduckgo_search"
+        assert row[8] is None
+        assert row[10] == 1
+        assert row[13] == 12
+        assert row[14] == 0.01
+
     def test_iter_state_updates_unwraps_langgraph_node_chunks(self):
         from app.api.research import _iter_state_updates
 
@@ -268,6 +351,10 @@ class TestResearchResultNormalization:
             "final_report": "report",
             "citations": {"citation_id": "citation:1", "source_url": "https://example.com"},
             "agent_trace": [],
+            "review_status": {
+                "runtime_status": "completed",
+                "tool_audit_summary": {"total_calls": 3, "error_calls": 1},
+            },
             "created_at": SimpleNamespace(isoformat=lambda: "2026-05-23T00:00:00"),
             "completed_at": None,
         }
@@ -296,6 +383,71 @@ class TestResearchResultNormalization:
             response = await get_research_result("test-session")
 
         assert response["citations"] == [{"citation_id": "citation:1", "source_url": "https://example.com"}]
+        assert response["runtime_status"] == "completed"
+        assert response["tool_audit_summary"] == {"total_calls": 3, "error_calls": 1}
+
+    @pytest.mark.asyncio
+    async def test_get_research_tool_calls_returns_persisted_audit_rows(self):
+        from app.api.research import get_research_tool_calls
+
+        session_row = {"id": "test-session"}
+        tool_rows = [
+            {
+                "call_id": "call-1",
+                "session_id": "test-session",
+                "node_id": "n1",
+                "agent_type": "search",
+                "tool_name": "duckduckgo_search",
+                "args_json": {"query": "openai"},
+                "args_hash": "abc",
+                "status": "success",
+                "error_category": None,
+                "error_message": None,
+                "retry_count": 1,
+                "result_summary": "1 result",
+                "result_hash": "def",
+                "tokens_used": 20,
+                "cost_usd": 0.02,
+                "decision_id": None,
+                "approved_by": None,
+                "server_fingerprint": None,
+                "started_at": SimpleNamespace(isoformat=lambda: "2026-05-27T00:00:00"),
+                "completed_at": SimpleNamespace(isoformat=lambda: "2026-05-27T00:00:01"),
+                "created_at": SimpleNamespace(isoformat=lambda: "2026-05-27T00:00:02"),
+            }
+        ]
+
+        class FakeConn:
+            async def fetchrow(self, query, *args, **kwargs):
+                if "FROM research_sessions" in query:
+                    return session_row
+                return None
+
+            async def fetch(self, *args, **kwargs):
+                return tool_rows
+
+            def acquire(self):
+                return self
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, exc_type, exc, tb):
+                return None
+
+        class FakePool:
+            def acquire(self):
+                return FakeConn()
+
+        with patch("app.api.research.get_db_pool", AsyncMock(return_value=FakePool())):
+            response = await get_research_tool_calls("test-session")
+
+        assert len(response) == 1
+        assert response[0].call_id == "call-1"
+        assert response[0].node_id == "n1"
+        assert response[0].tool_name == "duckduckgo_search"
+        assert response[0].args_json == {"query": "openai"}
+        assert response[0].retry_count == 1
 
 
 class TestGraphCompilation:
@@ -524,6 +676,96 @@ class TestAPIEndpoints:
             session_id="test-123",
             status="running",
             created_at="2026-01-01T00:00:00",
+            runtime_status="running",
         )
         assert status.session_id == "test-123"
         assert status.status == "running"
+        assert status.runtime_status == "running"
+
+    @pytest.mark.asyncio
+    async def test_research_status_includes_runtime_fields(self):
+        from app.api.research import get_research_status
+
+        row = {
+            "id": "test-session",
+            "user_query": "Test query",
+            "status": "running",
+            "review_status": {
+                "runtime_status": "retryable_failed",
+                "requires_confirmation": False,
+                "pending_approval_count": 1,
+                "budget_state": {"budget_profile": "medium"},
+                "last_error_category": "timeout",
+            },
+            "max_total_tokens": 60000,
+            "max_cost_usd": 0.5,
+            "max_tool_calls": 12,
+            "max_wall_clock_seconds": 420,
+            "used_total_tokens": 140,
+            "used_cost_usd": 0.0012,
+            "used_tool_calls": 2,
+            "elapsed_wall_clock_seconds": 8,
+            "hard_stop_reason": None,
+            "created_at": SimpleNamespace(isoformat=lambda: "2026-05-27T00:00:00"),
+            "updated_at": SimpleNamespace(isoformat=lambda: "2026-05-27T00:01:00"),
+            "completed_at": None,
+        }
+
+        class FakeConn:
+            async def fetchrow(self, *args, **kwargs):
+                return row
+
+            def acquire(self):
+                return self
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, exc_type, exc, tb):
+                return None
+
+        class FakePool:
+            def acquire(self):
+                return FakeConn()
+
+        with patch("app.api.research.get_db_pool", AsyncMock(return_value=FakePool())):
+            response = await get_research_status("test-session")
+
+        assert response.runtime_status == "retryable_failed"
+        assert response.pending_approval_count == 1
+        assert response.last_error_category == "timeout"
+        assert response.budget_state["max_tool_calls"] == 12
+        assert response.budget_state["used_total_tokens"] == 140
+
+    @pytest.mark.asyncio
+    async def test_create_research_returns_session_budget_thresholds(self):
+        from app.api.research import create_research, ResearchRequest
+
+        class FakeConn:
+            async def execute(self, *args, **kwargs):
+                return "OK"
+
+            def acquire(self):
+                return self
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, exc_type, exc, tb):
+                return None
+
+        class FakePool:
+            def acquire(self):
+                return FakeConn()
+
+        background_tasks = SimpleNamespace(tasks=[], add_task=lambda *args, **kwargs: None)
+
+        with patch("app.api.research.get_db_pool", AsyncMock(return_value=FakePool())):
+            response = await create_research(
+                ResearchRequest(query="请研究中国 AI Agent 市场格局"),
+                background_tasks,
+            )
+
+        assert response.status == "running"
+        assert response.budget["max_tool_calls"] == 12
+        assert response.budget["max_wall_clock_seconds"] == 420

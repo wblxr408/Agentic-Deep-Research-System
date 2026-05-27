@@ -145,6 +145,59 @@ async def init_db() -> asyncpg.Pool:
             CREATE INDEX IF NOT EXISTS idx_citations_session
             ON citations (session_id)
         """)
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS tool_call_audit (
+                call_id VARCHAR(64) PRIMARY KEY,
+                session_id UUID REFERENCES research_sessions(id) ON DELETE CASCADE,
+                node_id VARCHAR(64),
+                agent_type VARCHAR(50) NOT NULL,
+                tool_name VARCHAR(100) NOT NULL,
+                args_json JSONB DEFAULT '{}',
+                args_hash VARCHAR(64),
+                status VARCHAR(32) NOT NULL,
+                error_category VARCHAR(64),
+                error_message TEXT,
+                retry_count INTEGER DEFAULT 0,
+                result_summary TEXT,
+                result_hash VARCHAR(64),
+                tokens_used INTEGER DEFAULT 0,
+                cost_usd NUMERIC(10, 6) DEFAULT 0,
+                decision_id VARCHAR(100),
+                approved_by VARCHAR(100),
+                server_fingerprint VARCHAR(255),
+                started_at TIMESTAMP,
+                completed_at TIMESTAMP,
+                created_at TIMESTAMP DEFAULT NOW()
+            )
+        """)
+        await conn.execute("""
+            CREATE INDEX IF NOT EXISTS idx_tool_call_audit_session
+            ON tool_call_audit (session_id)
+        """)
+        await conn.execute("""
+            CREATE INDEX IF NOT EXISTS idx_tool_call_audit_tool
+            ON tool_call_audit (tool_name)
+        """)
+        await conn.execute("""
+            CREATE INDEX IF NOT EXISTS idx_tool_call_audit_status
+            ON tool_call_audit (status)
+        """)
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS session_budget_state (
+                session_id UUID PRIMARY KEY REFERENCES research_sessions(id) ON DELETE CASCADE,
+                max_total_tokens INTEGER DEFAULT 0,
+                max_cost_usd NUMERIC(10, 6) DEFAULT 0,
+                max_tool_calls INTEGER DEFAULT 0,
+                max_wall_clock_seconds INTEGER DEFAULT 0,
+                max_retries_per_tool INTEGER DEFAULT 0,
+                used_total_tokens INTEGER DEFAULT 0,
+                used_cost_usd NUMERIC(10, 6) DEFAULT 0,
+                used_tool_calls INTEGER DEFAULT 0,
+                elapsed_wall_clock_seconds INTEGER DEFAULT 0,
+                hard_stop_reason VARCHAR(64),
+                updated_at TIMESTAMP DEFAULT NOW()
+            )
+        """)
 
     _db_pool = pool
     logger.info("Database initialized successfully")

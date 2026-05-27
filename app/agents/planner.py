@@ -26,6 +26,7 @@ from typing import TYPE_CHECKING, Literal
 
 from app.config import get_settings
 from app.guardrails import TaskIntent, build_prompt_profile_message, build_guardrail_decision
+from app.llm_client import collect_usage_metrics
 from app.graph.state import (
     DAGDefinition,
     PlanNode,
@@ -157,6 +158,7 @@ Return a JSON object with dag_name, nodes, and edges."""
         self.model = settings.llm.model
         self.provider = settings.llm.provider
         self._client: OpenAI | None = None
+        self.last_usage: dict | None = None
 
     @property
     def client(self) -> OpenAI:
@@ -249,6 +251,12 @@ Return a JSON object with dag_name, nodes, and edges."""
                 create_kwargs["response_format"] = {"type": "json_object"}
 
             response = self.client.chat.completions.create(**create_kwargs)
+            self.last_usage = collect_usage_metrics(
+                response=response,
+                model=self.model,
+                messages=messages,
+                completion_text=response.choices[0].message.content if response.choices else "",
+            )
 
             content = response.choices[0].message.content
             if not content:
@@ -269,6 +277,7 @@ Return a JSON object with dag_name, nodes, and edges."""
 
         except Exception as e:
             logger.error(f"Planner error: {e}")
+            self.last_usage = None
             return self._fallback_dag(query)
 
     def _parse_dag(self, data: dict, query: str) -> DAGDefinition:

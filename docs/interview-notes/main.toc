@@ -1,0 +1,62 @@
+\contentsline {section}{\numberline {1}怎么使用这份笔记}{4}{section.1}%
+\contentsline {section}{\numberline {2}第一轮拷打：先把项目说清楚}{4}{section.2}%
+\contentsline {subsection}{\numberline {2.1}先用一句话定义这个项目}{4}{subsection.2.1}%
+\contentsline {subsection}{\numberline {2.2}面试开场应该怎么讲}{5}{subsection.2.2}%
+\contentsline {subsection}{\numberline {2.3}系统的分层怎么看}{5}{subsection.2.3}%
+\contentsline {subsection}{\numberline {2.4}为什么这个系统不是简单的 RAG 问答}{5}{subsection.2.4}%
+\contentsline {section}{\numberline {3}第二轮拷打：为什么这么选，而不是别的}{6}{section.3}%
+\contentsline {subsection}{\numberline {3.1}Agent 编排框架：为什么选择 LangGraph}{6}{subsection.3.1}%
+\contentsline {subsection}{\numberline {3.2}LangGraph 和 DAG 的关系}{7}{subsection.3.2}%
+\contentsline {subsection}{\numberline {3.3}为什么还要 Harness，而不是只靠 LangGraph}{7}{subsection.3.3}%
+\contentsline {subsection}{\numberline {3.4}LLM 选型：为什么强调结构化输出和工具调用}{7}{subsection.3.4}%
+\contentsline {subsection}{\numberline {3.5}浏览器自动化：为什么选择 Playwright}{8}{subsection.3.5}%
+\contentsline {subsection}{\numberline {3.6}为什么要实现三层浏览器提取策略}{8}{subsection.3.6}%
+\contentsline {subsection}{\numberline {3.7}RAG 与向量库：为什么选择 pgvector}{9}{subsection.3.7}%
+\contentsline {subsection}{\numberline {3.8}为什么内部检索不是“查一下就回答”}{9}{subsection.3.8}%
+\contentsline {section}{\numberline {4}第三轮拷打：系统到底怎么跑，状态怎么流}{9}{section.4}%
+\contentsline {subsection}{\numberline {4.1}从 API 到报告的完整生命周期}{10}{subsection.4.1}%
+\contentsline {subsection}{\numberline {4.2}公开状态与内部运行状态为什么要分开}{10}{subsection.4.2}%
+\contentsline {subsection}{\numberline {4.3}ResearchState 为什么是这个系统的核心}{11}{subsection.4.3}%
+\contentsline {subsection}{\numberline {4.4}Planner 如何生成 DAG，为什么还需要 fallback}{11}{subsection.4.4}%
+\contentsline {subsection}{\numberline {4.5}DAG 的正确性如何保证}{11}{subsection.4.5}%
+\contentsline {subsection}{\numberline {4.6}为什么要先 internal RAG，再决定要不要联网}{12}{subsection.4.6}%
+\contentsline {subsection}{\numberline {4.7}工具节点为什么必须返回显式结果契约}{12}{subsection.4.7}%
+\contentsline {subsection}{\numberline {4.8}Search / Browser / RAG 三类节点如何分工}{12}{subsection.4.8}%
+\contentsline {section}{\numberline {5}第四轮拷打：关键机制是不是你真的做过}{13}{section.5}%
+\contentsline {subsection}{\numberline {5.1}Analyst 为什么单独存在}{13}{subsection.5.1}%
+\contentsline {subsection}{\numberline {5.2}Reflection 为什么不能省掉}{13}{subsection.5.2}%
+\contentsline {subsection}{\numberline {5.3}Reflection 和传统 reviewer 的区别}{13}{subsection.5.3}%
+\contentsline {subsection}{\numberline {5.4}RRF 融合检索为什么合理}{14}{subsection.5.4}%
+\contentsline {subsection}{\numberline {5.5}Checkpointer 的真实价值是什么}{14}{subsection.5.5}%
+\contentsline {subsection}{\numberline {5.6}为什么 SSE 对这个系统重要}{14}{subsection.5.6}%
+\contentsline {section}{\numberline {6}第五轮拷打：性能、成本和资源怎么扛}{14}{section.6}%
+\contentsline {subsection}{\numberline {6.1}为什么并行执行能显著降低时延}{14}{subsection.6.1}%
+\contentsline {subsection}{\numberline {6.2}Token 优化策略}{15}{subsection.6.2}%
+\contentsline {subsection}{\numberline {6.3}数据库优化怎么看}{15}{subsection.6.3}%
+\contentsline {section}{\numberline {7}第六轮拷打：你怎么证明它没胡来}{15}{section.7}%
+\contentsline {subsection}{\numberline {7.1}我会看哪些指标}{16}{subsection.7.1}%
+\contentsline {subsection}{\numberline {7.2}trace 为什么要分成几条线}{16}{subsection.7.2}%
+\contentsline {section}{\numberline {8}第七轮拷打：哪些能吹，哪些不能吹}{16}{section.8}%
+\contentsline {subsection}{\numberline {8.1}当前真实完成度应该怎么诚实表达}{16}{subsection.8.1}%
+\contentsline {subsection}{\numberline {8.2}失败语义为什么是治理第一优先级}{17}{subsection.8.2}%
+\contentsline {subsection}{\numberline {8.3}会话级预算治理现在到了什么程度}{18}{subsection.8.3}%
+\contentsline {subsection}{\numberline {8.4}法证级审计现在到了什么程度}{18}{subsection.8.4}%
+\contentsline {section}{\numberline {9}第八轮拷打：邪恶 Agent 怎么管住}{18}{section.9}%
+\contentsline {subsection}{\numberline {9.1}治理闭环现状判断}{19}{subsection.9.1}%
+\contentsline {subsection}{\numberline {9.2}审批状态源（Approval Source of Truth）}{19}{subsection.9.2}%
+\contentsline {subsection}{\numberline {9.3}为什么外部审批只能是信号，不能是唯一裁决}{20}{subsection.9.3}%
+\contentsline {subsection}{\numberline {9.4}Harness 外挂设计}{20}{subsection.9.4}%
+\contentsline {subsection}{\numberline {9.5}MCP 安全接入原则}{20}{subsection.9.5}%
+\contentsline {subsection}{\numberline {9.6}五类幻觉怎么治理}{21}{subsection.9.6}%
+\contentsline {section}{\numberline {10}第九轮拷打：高压追问怎么接}{21}{section.10}%
+\contentsline {subsection}{\numberline {10.1}为什么选择 LangGraph，而不是直接做多 Agent 对话}{21}{subsection.10.1}%
+\contentsline {subsection}{\numberline {10.2}为什么动作审批的权威源必须是 DB}{21}{subsection.10.2}%
+\contentsline {subsection}{\numberline {10.3}为什么外部审批不能直接作为执行依据}{22}{subsection.10.3}%
+\contentsline {subsection}{\numberline {10.4}为什么要在 LangGraph 外再加 Harness}{22}{subsection.10.4}%
+\contentsline {subsection}{\numberline {10.5}为什么 MCP 必须先过 policy proxy}{22}{subsection.10.5}%
+\contentsline {subsection}{\numberline {10.6}预算治理为什么不能只做软提示}{22}{subsection.10.6}%
+\contentsline {section}{\numberline {11}附录：当前仓库现实、边界与演进路线}{23}{section.11}%
+\contentsline {subsection}{\numberline {11.1}当前已核实的现实结论}{23}{subsection.11.1}%
+\contentsline {subsection}{\numberline {11.2}当前仍存在的关键边界}{23}{subsection.11.2}%
+\contentsline {subsection}{\numberline {11.3}建议的三阶段演进}{23}{subsection.11.3}%
+\contentsline {subsection}{\numberline {11.4}最终的面试总结句}{24}{subsection.11.4}%

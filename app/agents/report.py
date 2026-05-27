@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING, Callable
 from app.config import get_settings
 from app.guardrails import build_guardrail_decision, build_prompt_profile_message, get_research_budget
 from app.graph.state import Citation, Evidence
+from app.llm_client import collect_usage_metrics, create_llm_client, get_llm_model
 
 if TYPE_CHECKING:
     from openai import OpenAI
@@ -88,16 +89,13 @@ class ReportAgent:
         settings = get_settings()
         self.model = settings.llm.model
         self._client: OpenAI | None = None
+        self.last_usage: dict | None = None
 
     @property
     def client(self) -> OpenAI:
         if self._client is None:
-            from openai import OpenAI
-            settings = get_settings()
-            self._client = OpenAI(
-                api_key=settings.llm.api_key,
-                base_url=settings.llm.api_base or "https://api.openai.com/v1",
-            )
+            self._client = create_llm_client()
+            self.model = get_llm_model()
         return self._client
 
     def generate(
@@ -225,11 +223,19 @@ Make sure every factual claim has a [citation:N] reference."""
                 if on_chunk:
                     on_chunk(references_block)
 
+            self.last_usage = collect_usage_metrics(
+                response=None,
+                model=self.model,
+                messages=messages,
+                completion_text=content,
+            )
+
             logger.info(f"Report: generated {len(content)} chars, {len(citations)} citations")
             return content, citations
 
         except Exception as e:
             logger.error(f"Report generation error: {e}")
+            self.last_usage = None
             fallback = self._fallback_report(user_query, evidence_list, citations)
             self._emit_fallback_chunks(fallback, on_chunk)
             return fallback, citations

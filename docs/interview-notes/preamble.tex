@@ -1,0 +1,97 @@
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage{ctex}
+\usepackage{hyperref}
+\usepackage[nameinlink,noabbrev]{cleveref}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage{listings}
+\usepackage{tikz}
+\usepackage{tcolorbox}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{setspace}
+\usepackage{caption}
+
+\usetikzlibrary{positioning,arrows.meta,shapes.geometric,fit}
+\tcbuselibrary{breakable,skins}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue!60!black,
+  urlcolor=blue!60!black,
+  pdftitle={Agentic Deep Research System 面试笔记},
+  pdfauthor={Codex}
+}
+
+\setstretch{1.15}
+\setlength{\parskip}{0.4em}
+\setlength{\parindent}{2em}
+\setlength{\headheight}{15pt}
+\setlength{\emergencystretch}{2em}
+
+\definecolor{codebg}{RGB}{248,248,248}
+\definecolor{darkblue}{RGB}{18,58,98}
+\definecolor{accent}{RGB}{0,98,155}
+\definecolor{warn}{RGB}{176,69,0}
+\definecolor{okgreen}{RGB}{19,110,62}
+
+\lstdefinestyle{deepintel}{
+  backgroundcolor=\color{codebg},
+  basicstyle=\ttfamily\small,
+  breaklines=true,
+  columns=fullflexible,
+  frame=single,
+  framerule=0.3pt,
+  keywordstyle=\color{darkblue}\bfseries,
+  commentstyle=\color{okgreen},
+  stringstyle=\color{warn},
+  showstringspaces=false,
+  tabsize=2,
+  xleftmargin=0.5em,
+  xrightmargin=0.5em
+}
+\lstset{style=deepintel}
+
+\newtcolorbox{qaBox}[1]{
+  breakable,
+  colback=blue!2!white,
+  colframe=accent!70!black,
+  title=#1,
+  fonttitle=\bfseries,
+  arc=1mm
+}
+
+\newtcolorbox{riskBox}[1]{
+  breakable,
+  colback=orange!4!white,
+  colframe=warn!80!black,
+  title=#1,
+  fonttitle=\bfseries,
+  arc=1mm
+}
+
+\newtcolorbox{summaryBox}[1]{
+  breakable,
+  colback=gray!4!white,
+  colframe=black!45,
+  title=#1,
+  fonttitle=\bfseries,
+  arc=1mm
+}
+
+\titleformat{\section}{\Large\bfseries\color{darkblue}}{\thesection}{0.6em}{}
+\titleformat{\subsection}{\large\bfseries\color{darkblue}}{\thesubsection}{0.6em}{}
+\titleformat{\subsubsection}{\normalsize\bfseries\color{darkblue}}{\thesubsubsection}{0.6em}{}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{Agentic Deep Research System}
+\fancyhead[R]{面试笔记}
+\fancyfoot[C]{\thepage}
+
+\newcommand{\term}[1]{\texttt{#1}}
+\newcommand{\deepstrong}[1]{\textbf{#1}}

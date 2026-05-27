@@ -877,6 +877,88 @@ class RAGAgent:
 
 ---
 
+### 6.1.1 当前实现的真实完成度与风险边界
+
+这部分在面试里不要说成“都已经完备上线”，当前更准确的表述是：
+
+- 主工作流已经打通：`planner -> dag_executor -> search/browser/rag -> analyst -> reflection -> replan/report`。
+- 但治理闭环还不完整，尤其是工具失败语义、会话级预算熔断、审批和法证级审计。
+- 所以当前状态更接近“研究型 Agent 原型 + 基础护栏”，不是“高自治生产代理”。
+
+**可以直接这样回答：**
+
+```
+如果按模块有无来看，这套系统的大件基本都有：
+- LangGraph 状态机
+- Planner 生成 DAG
+- Search / Browser / RAG 三类取证 Agent
+- Analyst 分析
+- Reflection 自校验
+- Report 输出
+- SSE Trace 和 Guardrail Trace
+
+但如果按生产治理闭环来看，它还没有完全收口。
+
+我会把它定义为：
+“已经具备自主研究能力，但对失败路由、预算控制、审批和审计还需要补强的 Agent 系统。”
+```
+
+**当前真实完成度判断：**
+
+| 能力项 | 当前状态 | 面试表述建议 |
+|--------|----------|--------------|
+| 主任务生命周期 | ✅ 已实现主链路 | 可以说“已打通” |
+| 失败后重试/终止路由 | ⚠️ 仅部分实现 | 不能说“完整 FSM” |
+| 工具权限控制 | ⚠️ 有白名单和 schema，但没有强隔离 | 只能说“轻量 guardrail” |
+| 工具审计 | ⚠️ 有 trace，但不够法证级 | 不能说“完整审计系统” |
+| 上下文/记忆隔离 | ⚠️ 会话隔离有，膨胀控制不足 | 只能说“有隔离，缺压缩” |
+| Token / 成本控制 | ⚠️ 有预算档位，无硬熔断 | 不能说“严格成本治理” |
+| 轨迹复盘 | ⚠️ 可高层复盘，不可完整重演 | 只能说“具备基础复盘能力” |
+| 高风险审批 | ⚠️ 任务入口有确认门，动作级没有 | 不能说“细粒度审批” |
+| MCP 接入治理 | ❌ 目前未真正接入 | 不能说“已安全支持 MCP” |
+
+**为什么这样描述而不是报喜不报忧：**
+
+- 面试官如果追问失败语义和审计细节，这些缺口很容易暴露。
+- 更稳妥的说法是：主能力已跑通，治理能力正在补成闭环。
+- 这既诚实，也体现你知道“能跑”和“可控上线”是两回事。
+
+---
+
+### 6.1.2 为什么要在 LangGraph 外再加一层 Harness
+
+**Q: 既然已经有 LangGraph 了，为什么还要 Harness？**
+
+这里至少有两个可行方案：
+
+| 方案 | 做法 | 优点 | 缺点 |
+|------|------|------|------|
+| **方案 A：只靠 LangGraph** | 生命周期、重试、审批、恢复都放在图里 | 架构简单，单层编排 | 图会越来越重，审批/预算/恢复不好统一治理 |
+| **方案 B：LangGraph + Harness Supervisor** | LangGraph 负责业务图，Harness 负责任务状态、失败恢复、预算和审批 | 治理边界清晰，适合长任务和高风险 Agent | 多一层状态管理，接入复杂度更高 |
+
+**最终选择：方案 B**
+
+**选择理由：**
+
+```
+LangGraph 适合回答“业务步骤怎么编排”。
+Harness 适合回答“任务失控时怎么刹车、怎么恢复、怎么审批、怎么记账”。
+
+如果把所有治理问题都塞进图里，图会逐渐变成一个难维护的超级状态机。
+更合理的做法是：
+- 图内只管研究逻辑
+- 图外由 Harness 统一做 supervisor
+```
+
+**被否选方案 A 的不足：**
+
+- 工具失败和审批会和业务节点耦合。
+- 会话级 token/cost breaker 很难做到统一。
+- 中断恢复会依赖图内状态，缺少任务级 checkpoint 语义。
+- 接 MCP 后，风险面会继续扩大。
+
+---
+
 ### 6.2 安全考量
 
 **Q: 如何防止 Prompt Injection？如何保护敏感数据？**
@@ -907,6 +989,229 @@ def execute_browser_sandbox(query: str) -> BrowserResult:
 # 用户数据在会话结束后清理
 # Redis 使用 TTL 自动过期
 ```
+
+---
+
+### 6.2.1 当前权限、审批与 MCP 风险判断
+
+**Q: 工具调用现在到底有没有权限控制？接 MCP 后会不会裸奔？**
+
+先拆成两个可行方案：
+
+| 方案 | 做法 | 优点 | 缺点 |
+|------|------|------|------|
+| **方案 A：工具直接暴露给 Agent** | Tool 注册后直接可用 | 接入快，样板少 | 权限面大，审计弱，MCP 风险高 |
+| **方案 B：Policy Proxy + Tool Registry** | 所有工具先过 policy，再决定放行、审批、审计 | 安全边界明确，适合外部工具生态 | 实现复杂，接入成本更高 |
+
+**最终选择：方案 B**
+
+**原因：**
+
+```
+现在项目里的权限控制是“轻量型”：
+- enabled_tools 控制任务可见工具集合
+- validate_tool_invocation 控制参数 schema
+- 高风险 query 可以在任务入口要求用户确认
+
+但这还不是严格意义上的 capability security。
+如果未来把 MCP 工具直接接进来，而不加 policy proxy，
+那就是“协议标准化了，风险也标准化放大了”。
+```
+
+**当前实现能做什么：**
+
+- 限制某次任务能看到哪些工具。
+- 拦截不合法参数。
+- 对高风险请求在入口做人工确认。
+
+**当前实现做不到什么：**
+
+- 不能按工具实例或资源对象做细粒度授权。
+- 不能按域名、路径、租户、数据域做 capability 限制。
+- 不能对每个危险动作做单独审批。
+- 不能证明所有工具输入输出都被完整审计。
+
+**如果未来接入 MCP，我的设计原则是：**
+
+1. MCP Server 默认不信任，先做 allowlist。
+2. MCP Tool 默认只读，不允许写操作直接暴露。
+3. 每个 MCP Tool 必须声明风险等级、资源范围、审批要求。
+4. 所有调用必须带 `decision_id`、`session_id`、`approved_by`、`server_fingerprint`。
+
+---
+
+### 6.2.2 当前最值得正视的 Bug 与设计修复
+
+**Q: 如果让我继续做工程化补强，我会先修什么？**
+
+先给出结论：我会先修“失败语义”，再修“审计”，再补“预算与审批”。
+
+#### Bug 1：工具节点失败后，聚合器可能仍然把节点标成完成
+
+**问题描述：**
+
+- 工具节点内部在异常时会把节点设成 `FAILED` 并递增 `retry_count`。
+- 但聚合器对当前批次节点做了无条件 `DONE` 覆盖。
+- 结果是：失败语义被吞掉，后续路由把它当成功处理。
+
+**为什么这是最高优先级：**
+
+- 这会直接破坏生命周期判断。
+- 它不仅影响重试，也影响最终报告质量。
+- 这是典型的“表面成功，实际失败”的风险。
+
+**可选方案：**
+
+| 方案 | 做法 | 优点 | 缺点 |
+|------|------|------|------|
+| **方案 A：聚合器读 tool_histories 决定状态** | 根据本批次 tool result 更新节点状态 | 逻辑集中，兼容现有返回值 | 依赖 tool_histories 完整性 |
+| **方案 B：工具节点显式返回 per-node outcome** | 每个工具节点返回 `{node_id, status, retryable, error}` | 语义清晰，可扩展 | 需要改 node 与 aggregator 契约 |
+
+**最终选择：方案 B**
+
+**选择理由：**
+
+```
+生命周期判断不能靠“侧信道推断”。
+tool_histories 更适合审计，不适合当唯一状态源。
+节点是否成功，应该由节点显式回传 outcome。
+```
+
+**目标状态机：**
+
+```python
+NodeOutcome = TypedDict("NodeOutcome", {
+    "node_id": str,
+    "status": Literal["success", "retryable_error", "terminal_error"],
+    "retry_count": int,
+    "error": str | None,
+})
+```
+
+```python
+def dag_results_aggregator(state):
+    for outcome in state["node_outcomes"]:
+        node = dag.get_node(outcome["node_id"])
+        if outcome["status"] == "success":
+            node.status = StepStatus.DONE
+        elif outcome["status"] == "retryable_error":
+            node.status = StepStatus.FAILED
+        else:
+            node.status = StepStatus.SKIPPED
+```
+
+**后续路由策略：**
+
+- `retryable_error`：交给外层 Harness 或图内 retry policy。
+- `terminal_error`：标记任务降级或终止。
+- 关键节点失败：禁止直接进入 `analyst/report`。
+
+#### Bug 2：tool_histories 有结构，但没有形成完整审计闭环
+
+**问题描述：**
+
+- 现在有 `agent_trace`、`guardrail_trace`、`tool_histories` 三条线。
+- 但 `tool_histories` 更像运行时累积状态，不是完整持久化审计。
+- 这会导致“知道发生过什么”，但未必能证明“每次调用究竟做了什么”。
+
+**可选方案：**
+
+| 方案 | 做法 | 优点 | 缺点 |
+|------|------|------|------|
+| **方案 A：继续只存 session JSON** | 全塞在 `research_sessions` 一行里 | 简单 | 查询分析差，审计粒度粗 |
+| **方案 B：拆出独立 tool_call_audit 表** | 一次调用一条记录 | 好查、好聚合、好追责 | 表结构和写入逻辑更复杂 |
+
+**最终选择：方案 B**
+
+**建议审计字段：**
+
+```sql
+tool_call_audit(
+  call_id TEXT PRIMARY KEY,
+  session_id UUID,
+  node_id TEXT,
+  agent_type TEXT,
+  tool_name TEXT,
+  args_json JSONB,
+  args_hash TEXT,
+  status TEXT,
+  retry_count INT,
+  result_summary TEXT,
+  result_hash TEXT,
+  error_category TEXT,
+  error_message TEXT,
+  decision_id TEXT,
+  approved_by TEXT,
+  created_at TIMESTAMPTZ,
+  completed_at TIMESTAMPTZ
+)
+```
+
+**为什么不用只保留 trace：**
+
+- trace 适合 UI 展示和过程观察。
+- audit 适合法证、报表和追责。
+- 这两类数据结构目标不同，不应混成一类。
+
+#### Bug 3：当前只有预算档位，没有硬性的 token / cost 熔断
+
+**问题描述：**
+
+- 现在有 `short / medium / long` 预算档位。
+- 但没有真正的会话级 token breaker、成本 breaker、工具调用次数 breaker。
+- 所以“会变贵”能感知，“什么时候停”却没有硬规则。
+
+**可选方案：**
+
+| 方案 | 做法 | 优点 | 缺点 |
+|------|------|------|------|
+| **方案 A：只做软提示** | 接近预算时写 warning | 改动小 | 不能真正止损 |
+| **方案 B：硬熔断 + 优雅降级** | 达到阈值立即切短流程或终止 | 可控，可解释 | 需要统一计量口径 |
+
+**最终选择：方案 B**
+
+**设计建议：**
+
+```python
+SessionBudget = {
+    "max_total_tokens": 120_000,
+    "max_total_cost_usd": 0.5,
+    "max_tool_calls": 30,
+    "max_wall_clock_seconds": 900,
+}
+```
+
+触发熔断后的处理顺序：
+
+1. 先停掉可选 web 扩展步骤。
+2. 再停掉额外重规划循环。
+3. 最后输出“基于当前证据的部分报告”。
+
+#### Bug 4：高风险审批停留在任务入口，不是动作级审批
+
+**问题描述：**
+
+- 现在是 query 命中高风险关键词时，任务入口要求用户确认。
+- 但这不等于“每个危险动作都被审批”。
+- 一旦未来接文件写入、消息发送、MCP 写工具，这个粒度不够。
+
+**设计方向：**
+
+```python
+ToolPolicy = {
+    "browse_webpage": {"risk": "low", "approval": "none"},
+    "knowledge_base_search": {"risk": "low", "approval": "none"},
+    "send_email": {"risk": "high", "approval": "per_call"},
+    "delete_file": {"risk": "critical", "approval": "per_call"},
+}
+```
+
+执行原则：
+
+- 任务级审批：决定“这个任务能不能开始”。
+- 动作级审批：决定“这一次危险工具调用能不能执行”。
+
+两者不能互相替代。
 
 ---
 

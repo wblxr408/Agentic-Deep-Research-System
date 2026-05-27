@@ -167,6 +167,55 @@ CREATE TABLE IF NOT EXISTS tool_metrics (
 CREATE INDEX IF NOT EXISTS idx_tool_metrics_session ON tool_metrics (session_id);
 
 -- ==============================================================
+-- Tool call audit table (for forensic-grade per-call tracing)
+-- ==============================================================
+CREATE TABLE IF NOT EXISTS tool_call_audit (
+    call_id VARCHAR(64) PRIMARY KEY,
+    session_id UUID REFERENCES research_sessions(id) ON DELETE CASCADE,
+    node_id VARCHAR(64),
+    agent_type VARCHAR(50) NOT NULL,
+    tool_name VARCHAR(100) NOT NULL,
+    args_json JSONB DEFAULT '{}',
+    args_hash VARCHAR(64),
+    status VARCHAR(32) NOT NULL,
+    error_category VARCHAR(64),
+    error_message TEXT,
+    retry_count INTEGER DEFAULT 0,
+    result_summary TEXT,
+    result_hash VARCHAR(64),
+    tokens_used INTEGER DEFAULT 0,
+    cost_usd NUMERIC(10, 6) DEFAULT 0,
+    decision_id VARCHAR(100),
+    approved_by VARCHAR(100),
+    server_fingerprint VARCHAR(255),
+    started_at TIMESTAMP WITH TIME ZONE,
+    completed_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_tool_call_audit_session ON tool_call_audit (session_id);
+CREATE INDEX IF NOT EXISTS idx_tool_call_audit_tool ON tool_call_audit (tool_name);
+CREATE INDEX IF NOT EXISTS idx_tool_call_audit_status ON tool_call_audit (status);
+
+-- ==============================================================
+-- Session budget state table (session-level budget source of truth)
+-- ==============================================================
+CREATE TABLE IF NOT EXISTS session_budget_state (
+    session_id UUID PRIMARY KEY REFERENCES research_sessions(id) ON DELETE CASCADE,
+    max_total_tokens INTEGER DEFAULT 0,
+    max_cost_usd NUMERIC(10, 6) DEFAULT 0,
+    max_tool_calls INTEGER DEFAULT 0,
+    max_wall_clock_seconds INTEGER DEFAULT 0,
+    max_retries_per_tool INTEGER DEFAULT 0,
+    used_total_tokens INTEGER DEFAULT 0,
+    used_cost_usd NUMERIC(10, 6) DEFAULT 0,
+    used_tool_calls INTEGER DEFAULT 0,
+    elapsed_wall_clock_seconds INTEGER DEFAULT 0,
+    hard_stop_reason VARCHAR(64),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- ==============================================================
 -- System configuration table (for frontend-configurable settings)
 -- ==============================================================
 CREATE TABLE IF NOT EXISTS system_config (
@@ -230,6 +279,8 @@ async def run_migration(
                 logger.warning("Dropping existing tables (drop_existing=True)")
                 await conn.execute("""
                     DROP TABLE IF EXISTS tool_metrics CASCADE;
+                    DROP TABLE IF EXISTS tool_call_audit CASCADE;
+                    DROP TABLE IF EXISTS session_budget_state CASCADE;
                     DROP TABLE IF EXISTS agent_events CASCADE;
                     DROP TABLE IF EXISTS citations CASCADE;
                     DROP TABLE IF EXISTS research_sessions CASCADE;

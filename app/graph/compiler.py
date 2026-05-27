@@ -52,6 +52,8 @@ from app.graph.state import (
     StepStatus,
     TaskStatus,
     AgentType,
+    NodeOutcome,
+    RuntimeStatus,
     ToolCallRecord,
     ToolInvocationHistory,
     VerificationResult,
@@ -73,8 +75,139 @@ TOOL_NODE_TYPES = {"search", "browser", "rag"}
 WEB_NODE_TYPES = {"search", "browser"}
 
 
-def _research_budget(state: ResearchState) -> dict[str, int]:
+def _research_budget(state: ResearchState) -> dict[str, int | float]:
     return get_research_budget(state.get("output_length") or state.get("session", {}).get("output_length"))
+
+
+def _build_budget_state(state: ResearchState) -> dict[str, Any]:
+    """Compute session-level budget usage and breaker status from runtime state."""
+    configured = dict(_research_budget(state))
+    existing_budget = state.get("budget_state") or {}
+    for key in (
+        "max_total_tokens",
+        "max_cost_usd",
+        "max_tool_calls",
+        "max_wall_clock_seconds",
+        "budget_profile",
+        "estimated",
+    ):
+        if key in existing_budget and existing_budget[key] is not None:
+            configured[key] = existing_budget[key]
+    tool_histories = [
+        history for history in state.get("tool_histories", [])
+        if isinstance(history, dict)
+    ]
+    tool_calls = [
+        call
+        for history in tool_histories
+        for call in history.get("tool_calls", [])
+        if isinstance(call, dict)
+    ]
+    used_total_tokens = sum(int(call.get("tokens_used") or 0) for call in tool_calls)
+    used_cost_usd = round(sum(float(call.get("cost_usd") or 0.0) for call in tool_calls), 6)
+    used_tool_calls = len(tool_calls)
+    if existing_budget.get("used_total_tokens"):
+        used_total_tokens = max(used_total_tokens, int(existing_budget.get("used_total_tokens") or 0))
+    if existing_budget.get("used_cost_usd"):
+        used_cost_usd = max(used_cost_usd, float(existing_budget.get("used_cost_usd") or 0.0))
+    started_at = state.get("created_at") or state.get("session", {}).get("created_at")
+    elapsed_wall_clock_seconds = 0
+    if started_at:
+        try:
+            elapsed_wall_clock_seconds = max(
+                0,
+                int((datetime.utcnow() - datetime.fromisoformat(started_at)).total_seconds()),
+            )
+        except ValueError:
+            elapsed_wall_clock_seconds = 0
+
+    hard_stop_reason = None
+    for key, reason in (
+        ("max_tool_calls", "tool_call_limit"),
+        ("max_total_tokens", "token_limit"),
+        ("max_cost_usd", "cost_limit"),
+        ("max_wall_clock_seconds", "wall_clock_limit"),
+    ):
+        limit = configured.get(key)
+        if limit is None:
+            continue
+        current = {
+            "max_tool_calls": used_tool_calls,
+            "max_total_tokens": used_total_tokens,
+            "max_cost_usd": used_cost_usd,
+            "max_wall_clock_seconds": elapsed_wall_clock_seconds,
+        }[key]
+        if current >= limit:
+            hard_stop_reason = reason
+            break
+
+    warning = False
+    if not hard_stop_reason:
+        warning_checks = (
+            configured.get("max_tool_calls") and used_tool_calls >= int(configured["max_tool_calls"] * 0.8),
+            configured.get("max_total_tokens") and used_total_tokens >= int(configured["max_total_tokens"] * 0.8),
+            configured.get("max_cost_usd") and used_cost_usd >= float(configured["max_cost_usd"]) * 0.8,
+            configured.get("max_wall_clock_seconds") and elapsed_wall_clock_seconds >= int(configured["max_wall_clock_seconds"] * 0.8),
+        )
+        warning = any(bool(check) for check in warning_checks)
+
+    return {
+        **configured,
+        "used_total_tokens": used_total_tokens,
+        "used_cost_usd": used_cost_usd,
+        "used_tool_calls": used_tool_calls,
+        "elapsed_wall_clock_seconds": elapsed_wall_clock_seconds,
+        "hard_stop_reason": hard_stop_reason,
+        "warning": warning,
+    }
+
+
+def _apply_budget_breaker(
+    dag: DAGDefinition,
+    budget_state: dict[str, Any],
+) -> tuple[DAGDefinition, list[str]]:
+    """Skip remaining retrievable nodes once hard budget limits are reached."""
+    if not budget_state.get("hard_stop_reason"):
+        return dag, []
+    skipped_nodes: list[str] = []
+    for node in dag.nodes:
+        if node.node_type not in TOOL_NODE_TYPES:
+            continue
+        if node.status == StepStatus.PENDING:
+            node.status = StepStatus.SKIPPED
+            node.last_error = budget_state["hard_stop_reason"]
+            node.last_error_category = "budget_exceeded"
+            skipped_nodes.append(node.node_id)
+    return dag, skipped_nodes
+
+
+def _apply_llm_usage_to_state(
+    state: ResearchState,
+    agent_name: str,
+    usage: dict[str, Any] | None,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Merge LLM usage into session + budget state and emit a traceable summary."""
+    session = dict(state.get("session", {}))
+    budget_state = dict(state.get("budget_state") or {})
+    if not usage:
+        return session, budget_state
+
+    session["total_tokens"] = int(session.get("total_tokens", 0) or 0) + int(usage.get("total_tokens", 0) or 0)
+    session["total_cost_usd"] = round(
+        float(session.get("total_cost_usd", 0.0) or 0.0) + float(usage.get("cost_usd", 0.0) or 0.0),
+        6,
+    )
+    budget_state["used_total_tokens"] = int(budget_state.get("used_total_tokens", 0) or 0) + int(usage.get("total_tokens", 0) or 0)
+    budget_state["used_cost_usd"] = round(
+        float(budget_state.get("used_cost_usd", 0.0) or 0.0) + float(usage.get("cost_usd", 0.0) or 0.0),
+        6,
+    )
+    budget_state.setdefault("llm_usage", [])
+    budget_state["llm_usage"].append({
+        "agent": agent_name,
+        **usage,
+    })
+    return session, budget_state
 
 
 def _enforce_internal_first_dag(dag: DAGDefinition, user_query: str) -> DAGDefinition:
@@ -112,6 +245,63 @@ def _result_count(node: PlanNode) -> int:
         return 0
     results = node.result.get("results")
     return len(results) if isinstance(results, list) else 0
+
+
+def _classify_error_category(error: str | None) -> str:
+    """Map runtime failures into retryable/terminal governance buckets."""
+    message = (error or "").lower()
+    if any(token in message for token in ("timeout", "timed out")):
+        return "timeout"
+    if any(token in message for token in ("429", "rate limit")):
+        return "upstream_429"
+    if any(token in message for token in ("503", "502", "500", "service unavailable", "bad gateway")):
+        return "upstream_5xx"
+    if any(token in message for token in ("connection", "network", "dns")):
+        return "network"
+    if any(token in message for token in ("database", "db")):
+        return "temporary_db"
+    return "temporary_db"
+
+
+def _is_terminal_error_category(category: str | None) -> bool:
+    return category in {
+        "schema_validation",
+        "permission_denied",
+        "approval_denied",
+        "untrusted_mcp_server",
+        "tool_not_allowed",
+        "domain_blocked",
+        "unsupported_input",
+    }
+
+
+def _make_node_outcome(
+    *,
+    node_id: str,
+    tool_history: dict[str, Any],
+    tool_name: str,
+    status: str,
+    retry_count: int = 0,
+    error_category: str | None = None,
+    error_message: str | None = None,
+    result_count: int = 0,
+    approval_request_id: str | None = None,
+) -> dict[str, Any]:
+    tool_call = (tool_history.get("tool_calls") or [{}])[-1]
+    outcome = NodeOutcome(
+        node_id=node_id,
+        tool_call_id=tool_call.get("call_id"),
+        tool_name=tool_name,
+        status=status,
+        error_category=error_category,
+        error_message=error_message,
+        retry_count=retry_count,
+        tokens_used=int(tool_call.get("tokens_used") or 0),
+        cost_usd=float(tool_call.get("cost_usd") or 0.0),
+        result_count=result_count,
+        approval_request_id=approval_request_id,
+    )
+    return outcome.model_dump()
 
 
 def _skip_pending_web_nodes(dag: DAGDefinition) -> list[str]:
@@ -312,11 +502,13 @@ def planner_node(state: ResearchState) -> dict:
     # 更新会话元数据
     session = state.get("session", {})
     session["updated_at"] = datetime.utcnow().isoformat()
+    session, budget_state = _apply_llm_usage_to_state(state, "planner", agent.last_usage)
 
     return {
         "dag": serialize_dag(dag),
         "status": TaskStatus.RUNNING.value,
         "session": session,
+        "budget_state": budget_state,
         "guardrail_decision": decision.model_dump(),
     }
 
@@ -380,17 +572,58 @@ def dag_results_aggregator(state: ResearchState) -> dict:
 
     dag = deserialize_dag(state["dag"])
     current_nodes = set(state.get("current_executing_nodes", []))
+    latest_outcomes = {
+        outcome["node_id"]: outcome
+        for outcome in state.get("node_outcomes", [])
+        if isinstance(outcome, dict) and outcome.get("node_id") in current_nodes
+    }
 
-    # 更新节点状态为 DONE
+    completed = set(state.get("completed_nodes", []))
+    runtime_status = state.get("runtime_status", RuntimeStatus.RUNNING.value)
+
     for node in dag.nodes:
-        if node.node_id in current_nodes:
+        if node.node_id not in current_nodes:
+            continue
+        outcome = latest_outcomes.get(node.node_id)
+        if not outcome and node.status == StepStatus.DONE:
+            completed.add(node.node_id)
+            continue
+        if not outcome and node.result is not None and node.status != StepStatus.FAILED and not node.waiting_approval:
             node.status = StepStatus.DONE
+            completed.add(node.node_id)
+            continue
+        if not outcome:
+            continue
+        outcome_status = outcome.get("status")
+        node.last_error = outcome.get("error_message")
+        node.last_error_category = outcome.get("error_category")
+        node.waiting_approval = outcome_status == "awaiting_approval"
+        node.terminal_failure = outcome_status == "terminal_error"
+        node.retry_count = max(node.retry_count, int(outcome.get("retry_count") or 0))
 
-    completed = list(set(state.get("completed_nodes", [])) | current_nodes)
+        if outcome_status == "success":
+            node.status = StepStatus.DONE
+            completed.add(node.node_id)
+        elif outcome_status == "skipped":
+            node.status = StepStatus.SKIPPED
+            completed.add(node.node_id)
+        elif outcome_status == "awaiting_approval":
+            node.status = StepStatus.PENDING
+            runtime_status = RuntimeStatus.AWAITING_APPROVAL.value
+        elif outcome_status == "terminal_error":
+            node.status = StepStatus.FAILED
+            runtime_status = RuntimeStatus.TERMINAL_FAILED.value
+        elif outcome_status == "retryable_error":
+            node.status = StepStatus.FAILED
+            if runtime_status not in (RuntimeStatus.AWAITING_APPROVAL.value, RuntimeStatus.TERMINAL_FAILED.value):
+                runtime_status = RuntimeStatus.RETRYABLE_FAILED.value
+
+    completed_list = list(completed)
     retrieval_policy = dict(state.get("retrieval_policy") or {})
     retrieval_policy.setdefault("mode", "internal_first")
     retrieval_policy.setdefault("allow_web_after_rag_hit", bool(state.get("allow_web_after_rag_hit", False)))
     retrieval_policy.setdefault("rag_group", state.get("rag_group"))
+    budget_state = _build_budget_state(state)
 
     rag_hit_count = sum(
         _result_count(node)
@@ -413,7 +646,7 @@ def dag_results_aggregator(state: ResearchState) -> dict:
                 retrieval_policy["web_search_required"] = False
                 retrieval_policy["web_search_reason"] = "rag_hit_user_skipped_web"
                 skipped_web_nodes = _skip_pending_web_nodes(dag)
-                completed = list(set(completed) | set(skipped_web_nodes))
+                completed_list = list(set(completed_list) | set(skipped_web_nodes))
         else:
             retrieval_policy["web_search_required"] = True
             retrieval_policy["web_search_reason"] = "rag_empty_auto_web"
@@ -439,10 +672,40 @@ def dag_results_aggregator(state: ResearchState) -> dict:
             {"retrieval_policy": retrieval_policy},
         ))
 
+    breaker_skipped_nodes: list[str] = []
+    if budget_state.get("warning"):
+        trace.append(_append_trace_event(
+            state,
+            EventType.AGENT_COMPLETE,
+            "budget_guardrail",
+            f"Budget warning: tool_calls={budget_state['used_tool_calls']}, "
+            f"tokens={budget_state['used_total_tokens']}, cost={budget_state['used_cost_usd']}, "
+            f"wall_clock={budget_state['elapsed_wall_clock_seconds']}s",
+            {"budget_state": budget_state},
+        ))
+    if budget_state.get("hard_stop_reason"):
+        dag, breaker_skipped_nodes = _apply_budget_breaker(dag, budget_state)
+        if breaker_skipped_nodes:
+            completed_list = list(set(completed_list) | set(breaker_skipped_nodes))
+        runtime_status = RuntimeStatus.TERMINAL_FAILED.value
+        trace.append(_append_trace_event(
+            state,
+            EventType.AGENT_COMPLETE,
+            "budget_guardrail",
+            f"Budget breaker triggered: {budget_state['hard_stop_reason']}. "
+            f"Skipped {len(breaker_skipped_nodes)} pending tool nodes.",
+            {
+                "budget_state": budget_state,
+                "skipped_nodes": breaker_skipped_nodes,
+            },
+        ))
+
     return {
         "dag": serialize_dag(dag),
-        "completed_nodes": completed,
+        "completed_nodes": completed_list,
         "retrieval_policy": retrieval_policy,
+        "runtime_status": runtime_status,
+        "budget_state": budget_state,
         "agent_trace": trace,
     }
 
@@ -457,11 +720,18 @@ def should_continue_dag(state: ResearchState) -> str:
     """
     dag = deserialize_dag(state["dag"])
     completed = set(state.get("completed_nodes", []))
+    if state.get("pending_approvals"):
+        return "continue"
+    budget_state = state.get("budget_state") or {}
+    if budget_state.get("hard_stop_reason"):
+        return "analyst"
+
     pending = [
         n for n in dag.nodes
         if n.node_type in TOOL_NODE_TYPES
         and n.node_id not in completed
         and n.status != StepStatus.SKIPPED
+        and not getattr(n, "waiting_approval", False)
     ]
 
     if pending:
@@ -500,7 +770,7 @@ def search_node(state: ResearchState) -> dict:
     ]
 
     if not search_nodes:
-        return {"collected_evidence": [], "tool_histories": [], "agent_trace": []}
+        return {"collected_evidence": [], "tool_histories": [], "agent_trace": [], "node_outcomes": []}
 
     trace = [
         _append_trace_event(state, EventType.AGENT_START, "search", f"Executing {len(search_nodes)} search nodes")
@@ -509,6 +779,7 @@ def search_node(state: ResearchState) -> dict:
     agent = SearchAgent()
     all_evidence = []
     tool_histories = []
+    node_outcomes = []
     budget = _research_budget(state)
     max_queries = budget.get("search_max_queries", 4)
     max_results = budget.get("search_max_results", 10)
@@ -529,6 +800,10 @@ def search_node(state: ResearchState) -> dict:
         )
         valid, reason = validate_tool_invocation("duckduckgo_search", {"query": node.query})
         if not valid:
+            node.status = StepStatus.FAILED
+            node.terminal_failure = True
+            node.last_error = reason or "invalid_args"
+            node.last_error_category = "schema_validation"
             _finish_tool_history(tool_history, status="error", error=reason or "invalid_args")
             record_guardrail_event(
                 state,
@@ -538,6 +813,15 @@ def search_node(state: ResearchState) -> dict:
                 metadata={"tool": "duckduckgo_search", "query": node.query},
             )
             tool_histories.append(tool_history)
+            node_outcomes.append(_make_node_outcome(
+                node_id=node.node_id,
+                tool_history=tool_history,
+                tool_name="duckduckgo_search",
+                status="terminal_error",
+                retry_count=node.retry_count,
+                error_category="schema_validation",
+                error_message=reason or "invalid_args",
+            ))
             continue
         # 更新节点状态为 RUNNING
         node.status = StepStatus.RUNNING
@@ -548,10 +832,13 @@ def search_node(state: ResearchState) -> dict:
             node.confidence = 0.9 if results else 0.0
             _finish_tool_history(
                 tool_history,
-                status="success" if results else "error",
+                status="success",
                 result_summary=f"{len(results)} search results",
-                error=None if results else "no_search_results",
             )
+            node.status = StepStatus.DONE
+            node.last_error = None
+            node.last_error_category = None
+            node.terminal_failure = False
 
             # 转换为 Evidence
             for r in results:
@@ -576,9 +863,21 @@ def search_node(state: ResearchState) -> dict:
                     "error": None if results else "no_search_results",
                 },
             ))
+            node_outcomes.append(_make_node_outcome(
+                node_id=node.node_id,
+                tool_history=tool_history,
+                tool_name="duckduckgo_search",
+                status="success",
+                retry_count=node.retry_count,
+                result_count=len(results),
+            ))
         except Exception as e:
             node.status = StepStatus.FAILED
             node.retry_count += 1
+            category = _classify_error_category(str(e))
+            node.last_error = str(e)
+            node.last_error_category = category
+            node.terminal_failure = _is_terminal_error_category(category)
             trace.append(_append_trace_event(
                 state,
                 EventType.TOOL_ERROR,
@@ -587,6 +886,15 @@ def search_node(state: ResearchState) -> dict:
                 {"tool_name": "duckduckgo_search", "status": "error", "error": str(e)},
             ))
             _finish_tool_history(tool_history, status="error", error=str(e))
+            node_outcomes.append(_make_node_outcome(
+                node_id=node.node_id,
+                tool_history=tool_history,
+                tool_name="duckduckgo_search",
+                status="terminal_error" if node.terminal_failure else "retryable_error",
+                retry_count=node.retry_count,
+                error_category=category,
+                error_message=str(e),
+            ))
         tool_histories.append(tool_history)
 
     trace.append(AgentEvent(
@@ -598,6 +906,7 @@ def search_node(state: ResearchState) -> dict:
     return {
         "collected_evidence": [e.model_dump() for e in all_evidence],
         "tool_histories": tool_histories,
+        "node_outcomes": node_outcomes,
         "agent_trace": trace,
     }
 
@@ -628,7 +937,7 @@ def browser_node(state: ResearchState) -> dict:
     ]
 
     if not browser_nodes:
-        return {"collected_evidence": [], "tool_histories": [], "agent_trace": []}
+        return {"collected_evidence": [], "tool_histories": [], "agent_trace": [], "node_outcomes": []}
 
     trace = [
         _append_trace_event(state, EventType.AGENT_START, "browser", f"Executing {len(browser_nodes)} browser nodes")
@@ -637,6 +946,7 @@ def browser_node(state: ResearchState) -> dict:
     agent = BrowserAgent()
     all_evidence = []
     tool_histories = []
+    node_outcomes = []
     budget = _research_budget(state)
     max_results = budget.get("browser_max_results", 2)
 
@@ -656,6 +966,10 @@ def browser_node(state: ResearchState) -> dict:
         )
         valid, reason = validate_tool_invocation("browse_webpage", {"url": node.query, "max_chars": 2000})
         if not valid:
+            node.status = StepStatus.FAILED
+            node.terminal_failure = True
+            node.last_error = reason or "invalid_args"
+            node.last_error_category = "schema_validation"
             _finish_tool_history(tool_history, status="error", error=reason or "invalid_args")
             record_guardrail_event(
                 state,
@@ -665,6 +979,15 @@ def browser_node(state: ResearchState) -> dict:
                 metadata={"tool": "browse_webpage", "url": node.query},
             )
             tool_histories.append(tool_history)
+            node_outcomes.append(_make_node_outcome(
+                node_id=node.node_id,
+                tool_history=tool_history,
+                tool_name="browse_webpage",
+                status="terminal_error",
+                retry_count=node.retry_count,
+                error_category="schema_validation",
+                error_message=reason or "invalid_args",
+            ))
             continue
         node.status = StepStatus.RUNNING
 
@@ -677,6 +1000,10 @@ def browser_node(state: ResearchState) -> dict:
                 status="success",
                 result_summary=f"{len(results)} browser pages",
             )
+            node.status = StepStatus.DONE
+            node.last_error = None
+            node.last_error_category = None
+            node.terminal_failure = False
 
             for r in results:
                 evidence = Evidence(
@@ -693,9 +1020,21 @@ def browser_node(state: ResearchState) -> dict:
                 f"Extracted {len(results)} pages for: {node.query}",
                 {"tool_name": "browse_webpage", "status": "success", "result_summary": f"{len(results)} browser pages"},
             ))
+            node_outcomes.append(_make_node_outcome(
+                node_id=node.node_id,
+                tool_history=tool_history,
+                tool_name="browse_webpage",
+                status="success",
+                retry_count=node.retry_count,
+                result_count=len(results),
+            ))
         except Exception as e:
             node.status = StepStatus.FAILED
             node.retry_count += 1
+            category = _classify_error_category(str(e))
+            node.last_error = str(e)
+            node.last_error_category = category
+            node.terminal_failure = _is_terminal_error_category(category)
             trace.append(_append_trace_event(
                 state,
                 EventType.TOOL_ERROR,
@@ -704,6 +1043,15 @@ def browser_node(state: ResearchState) -> dict:
                 {"tool_name": "browse_webpage", "status": "error", "error": str(e)},
             ))
             _finish_tool_history(tool_history, status="error", error=str(e))
+            node_outcomes.append(_make_node_outcome(
+                node_id=node.node_id,
+                tool_history=tool_history,
+                tool_name="browse_webpage",
+                status="terminal_error" if node.terminal_failure else "retryable_error",
+                retry_count=node.retry_count,
+                error_category=category,
+                error_message=str(e),
+            ))
         tool_histories.append(tool_history)
 
     trace.append(AgentEvent(
@@ -715,6 +1063,7 @@ def browser_node(state: ResearchState) -> dict:
     return {
         "collected_evidence": [e.model_dump() for e in all_evidence],
         "tool_histories": tool_histories,
+        "node_outcomes": node_outcomes,
         "agent_trace": trace,
     }
 
@@ -745,7 +1094,7 @@ def rag_node(state: ResearchState) -> dict:
     ]
 
     if not rag_nodes:
-        return {"collected_evidence": [], "tool_histories": [], "agent_trace": []}
+        return {"collected_evidence": [], "tool_histories": [], "agent_trace": [], "node_outcomes": []}
 
     trace = [
         _append_trace_event(state, EventType.AGENT_START, "rag", f"Executing {len(rag_nodes)} RAG nodes")
@@ -754,6 +1103,7 @@ def rag_node(state: ResearchState) -> dict:
     agent = RAGAgent()
     all_evidence = []
     tool_histories = []
+    node_outcomes = []
     budget = _research_budget(state)
     max_results = budget.get("rag_max_results", 8)
 
@@ -773,6 +1123,10 @@ def rag_node(state: ResearchState) -> dict:
         )
         valid, reason = validate_tool_invocation("knowledge_base_search", {"query": node.query, "top_k": 10})
         if not valid:
+            node.status = StepStatus.FAILED
+            node.terminal_failure = True
+            node.last_error = reason or "invalid_args"
+            node.last_error_category = "schema_validation"
             _finish_tool_history(tool_history, status="error", error=reason or "invalid_args")
             record_guardrail_event(
                 state,
@@ -782,6 +1136,15 @@ def rag_node(state: ResearchState) -> dict:
                 metadata={"tool": "knowledge_base_search", "query": node.query},
             )
             tool_histories.append(tool_history)
+            node_outcomes.append(_make_node_outcome(
+                node_id=node.node_id,
+                tool_history=tool_history,
+                tool_name="knowledge_base_search",
+                status="terminal_error",
+                retry_count=node.retry_count,
+                error_category="schema_validation",
+                error_message=reason or "invalid_args",
+            ))
             continue
         node.status = StepStatus.RUNNING
 
@@ -798,6 +1161,10 @@ def rag_node(state: ResearchState) -> dict:
                 status="success",
                 result_summary=f"{len(results)} rag chunks",
             )
+            node.status = StepStatus.DONE
+            node.last_error = None
+            node.last_error_category = None
+            node.terminal_failure = False
 
             for r in results:
                 evidence = Evidence(
@@ -814,9 +1181,21 @@ def rag_node(state: ResearchState) -> dict:
                 f"Retrieved {len(results)} chunks for: {node.query}",
                 {"tool_name": "knowledge_base_search", "status": "success", "result_summary": f"{len(results)} rag chunks"},
             ))
+            node_outcomes.append(_make_node_outcome(
+                node_id=node.node_id,
+                tool_history=tool_history,
+                tool_name="knowledge_base_search",
+                status="success",
+                retry_count=node.retry_count,
+                result_count=len(results),
+            ))
         except Exception as e:
             node.status = StepStatus.FAILED
             node.retry_count += 1
+            category = _classify_error_category(str(e))
+            node.last_error = str(e)
+            node.last_error_category = category
+            node.terminal_failure = _is_terminal_error_category(category)
             trace.append(_append_trace_event(
                 state,
                 EventType.TOOL_ERROR,
@@ -825,6 +1204,15 @@ def rag_node(state: ResearchState) -> dict:
                 {"tool_name": "knowledge_base_search", "status": "error", "error": str(e)},
             ))
             _finish_tool_history(tool_history, status="error", error=str(e))
+            node_outcomes.append(_make_node_outcome(
+                node_id=node.node_id,
+                tool_history=tool_history,
+                tool_name="knowledge_base_search",
+                status="terminal_error" if node.terminal_failure else "retryable_error",
+                retry_count=node.retry_count,
+                error_category=category,
+                error_message=str(e),
+            ))
         tool_histories.append(tool_history)
 
     trace.append(AgentEvent(
@@ -836,6 +1224,7 @@ def rag_node(state: ResearchState) -> dict:
     return {
         "collected_evidence": [e.model_dump() for e in all_evidence],
         "tool_histories": tool_histories,
+        "node_outcomes": node_outcomes,
         "agent_trace": trace,
     }
 
@@ -944,6 +1333,7 @@ def analyst_node(state: ResearchState) -> dict:
 
     agent = AnalystAgent()
     analysis_text = agent.analyze(state["user_query"], evidence_list)
+    session, budget_state = _apply_llm_usage_to_state(state, "analyst", agent.last_usage)
 
     complete_content = (
         "Analysis complete without external evidence"
@@ -961,6 +1351,8 @@ def analyst_node(state: ResearchState) -> dict:
     return {
         "analysis": analysis_text,
         "evidence_status": evidence_gate.model_dump(),
+        "session": session,
+        "budget_state": budget_state,
         "agent_trace": trace,
     }
 
@@ -994,6 +1386,7 @@ def reflection_node(state: ResearchState) -> dict:
         state["analysis"],
         evidence_list
     )
+    session, budget_state = _apply_llm_usage_to_state(state, "reflection", agent.last_usage)
 
     # 追踪校验结果
     if verification.needs_revision:
@@ -1020,6 +1413,8 @@ def reflection_node(state: ResearchState) -> dict:
     return {
         "verification": verification.model_dump(),
         "revision_needed": verification.needs_revision,
+        "session": session,
+        "budget_state": budget_state,
         "agent_trace": trace,
     }
 
@@ -1034,7 +1429,10 @@ def should_revise(state: ResearchState) -> str:
     """
     revision_count = state.get("revision_count", 0)
     max_revisions = state.get("session", {}).get("max_revisions", 3)
+    budget_state = state.get("budget_state") or {}
 
+    if budget_state.get("hard_stop_reason"):
+        return "generate_report"
     if state.get("revision_needed") and revision_count < max_revisions:
         return "replan"
     return "generate_report"
@@ -1165,12 +1563,12 @@ async def report_node(state: ResearchState) -> dict:
         on_chunk=on_chunk,
         on_citation=on_citation,
     )
+    session, budget_state = _apply_llm_usage_to_state(state, "report", agent.last_usage)
 
     if pending_tasks:
         await asyncio.gather(*pending_tasks)
 
     # 更新会话状态
-    session = state.get("session", {})
     session["status"] = TaskStatus.COMPLETED.value
     session["completed_at"] = datetime.utcnow().isoformat()
 
@@ -1187,6 +1585,7 @@ async def report_node(state: ResearchState) -> dict:
         "citations": [c.model_dump() for c in citations],
         "status": TaskStatus.COMPLETED.value,
         "session": session,
+        "budget_state": budget_state,
         "review_status": {
             "blocked": False,
             **evidence_gate.model_dump(),

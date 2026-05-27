@@ -50,7 +50,7 @@
 
 **当前最明确的 bug / 缺口**
 
-* **RAG** 相关数据库索引实现有 bug：代码用了 **cosine_ops**，而 pgvector/ivfflat 这里应是 **vector_cosine_ops**，见 app/db/connection.py (line 53) 和 app/db/migrate.py (line 38)。
+* 之前担心过 **RAG** 向量索引操作符是否写错，但当前代码实际已经使用 **vector_cosine_ops**，见 app/db/connection.py (line 67) 和 app/db/migrate.py (line 50)。这一项不应再作为现存 bug 对外表述。
 * **Reflection** 失败时默认 **needs_revision=False**，会导致误判通过，见 app/agents/reflection.py (line 212)。
 * **report_chunk** 没有接入真实生成流程，所以“流式报告”名不副实。
 * **tool_histories** 追踪框架存在，但没有完整接线。

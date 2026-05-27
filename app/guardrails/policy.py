@@ -37,7 +37,7 @@ class ResearchLength(str, Enum):
     LONG = "long"
 
 
-RESEARCH_LENGTH_BUDGETS: dict[ResearchLength, dict[str, int]] = {
+RESEARCH_LENGTH_BUDGETS: dict[ResearchLength, dict[str, int | float]] = {
     ResearchLength.SHORT: {
         "report_max_tokens": 3000,
         "search_max_queries": 2,
@@ -45,6 +45,10 @@ RESEARCH_LENGTH_BUDGETS: dict[ResearchLength, dict[str, int]] = {
         "rag_max_results": 4,
         "citation_max": 8,
         "browser_max_results": 1,
+        "max_total_tokens": 20000,
+        "max_cost_usd": 0.20,
+        "max_tool_calls": 6,
+        "max_wall_clock_seconds": 180,
     },
     ResearchLength.MEDIUM: {
         "report_max_tokens": 6000,
@@ -53,6 +57,10 @@ RESEARCH_LENGTH_BUDGETS: dict[ResearchLength, dict[str, int]] = {
         "rag_max_results": 8,
         "citation_max": 15,
         "browser_max_results": 2,
+        "max_total_tokens": 60000,
+        "max_cost_usd": 0.50,
+        "max_tool_calls": 12,
+        "max_wall_clock_seconds": 420,
     },
     ResearchLength.LONG: {
         "report_max_tokens": 12000,
@@ -61,6 +69,10 @@ RESEARCH_LENGTH_BUDGETS: dict[ResearchLength, dict[str, int]] = {
         "rag_max_results": 12,
         "citation_max": 30,
         "browser_max_results": 3,
+        "max_total_tokens": 120000,
+        "max_cost_usd": 1.00,
+        "max_tool_calls": 24,
+        "max_wall_clock_seconds": 900,
     },
 }
 
@@ -75,7 +87,7 @@ def normalize_research_length(value: str | ResearchLength | None) -> ResearchLen
     return ResearchLength.MEDIUM
 
 
-def get_research_budget(value: str | ResearchLength | None) -> dict[str, int]:
+def get_research_budget(value: str | ResearchLength | None) -> dict[str, int | float]:
     length = normalize_research_length(value)
     return dict(RESEARCH_LENGTH_BUDGETS[length])
 

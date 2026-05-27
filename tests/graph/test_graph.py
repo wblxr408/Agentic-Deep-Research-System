@@ -21,12 +21,14 @@ class TestResearchState:
         required_keys = {
             "task_id", "user_query", "created_at", "status", "session",
             "dag", "current_executing_nodes", "completed_nodes",
+            "node_outcomes",
             "tool_histories", "collected_evidence", "verification",
             "search_results", "browser_results", "rag_results", "aggregated_evidence",
             "revision_needed", "revision_count", "analysis",
             "final_report", "citations", "guardrail_decision", "evidence_status",
             "review_status", "user_confirmed", "allow_web_after_rag_hit", "rag_group",
-            "retrieval_policy", "agent_trace", "guardrail_trace", "errors"
+            "retrieval_policy", "runtime_status", "budget_state", "pending_approvals",
+            "agent_trace", "guardrail_trace", "errors"
         }
         assert set(state.keys()) == required_keys
 
@@ -138,6 +140,8 @@ class TestGraphCompilation:
 
         assert len(result["tool_histories"]) == 1
         assert result["tool_histories"][0]["tool_calls"][0]["status"] == "error"
+        assert result["node_outcomes"][0]["status"] == "retryable_error"
+        assert result["node_outcomes"][0]["error_category"] == "temporary_db"
 
     def test_search_node_returns_tool_trace_events(self):
         from unittest.mock import patch
@@ -156,6 +160,47 @@ class TestGraphCompilation:
         event_types = [event["event_type"] for event in result["agent_trace"]]
         assert "tool_start" in event_types
         assert "tool_error" in event_types
+
+    def test_dag_aggregator_keeps_failed_node_failed(self):
+        from app.graph.compiler import dag_results_aggregator
+        from app.graph.state import DAGDefinition, PlanNode, RuntimeStatus, serialize_dag, deserialize_dag
+
+        node = PlanNode(node_id="s1", node_type="search", query="test query")
+        state = create_initial_state("test query", "session-1")
+        state["dag"] = serialize_dag(DAGDefinition(dag_name="test", nodes=[node], edges=[]))
+        state["current_executing_nodes"] = ["s1"]
+        state["node_outcomes"] = [{
+            "node_id": "s1",
+            "tool_call_id": "call-1",
+            "tool_name": "duckduckgo_search",
+            "status": "retryable_error",
+            "error_category": "timeout",
+            "error_message": "request timeout",
+            "retry_count": 1,
+            "tokens_used": 0,
+            "cost_usd": 0.0,
+            "result_count": 0,
+            "approval_request_id": None,
+        }]
+
+        result = dag_results_aggregator(state)
+        planned = deserialize_dag(result["dag"])
+        failed = next(node for node in planned.nodes if node.node_id == "s1")
+
+        assert failed.status == StepStatus.FAILED
+        assert "s1" not in result["completed_nodes"]
+        assert result["runtime_status"] == RuntimeStatus.RETRYABLE_FAILED.value
+
+    def test_should_continue_dag_blocks_on_pending_approval(self):
+        from app.graph.compiler import should_continue_dag
+        from app.graph.state import DAGDefinition, PlanNode, serialize_dag
+
+        node = PlanNode(node_id="s1", node_type="search", query="test query")
+        state = create_initial_state("test query", "session-1")
+        state["dag"] = serialize_dag(DAGDefinition(dag_name="test", nodes=[node], edges=[]))
+        state["pending_approvals"] = [{"approval_id": "ap-1"}]
+
+        assert should_continue_dag(state) == "continue"
 
     def test_execute_tool_batch_includes_dag_payload(self):
         from app.graph.compiler import execute_tool_batch
@@ -232,6 +277,99 @@ class TestGraphCompilation:
 
         assert web.status == StepStatus.PENDING
         assert result["retrieval_policy"]["web_search_required"] is True
+
+    def test_dag_aggregator_triggers_budget_breaker_on_tool_call_limit(self):
+        from app.graph.compiler import dag_results_aggregator
+        from app.graph.state import DAGDefinition, PlanNode, RuntimeStatus, serialize_dag, deserialize_dag
+
+        current = PlanNode(node_id="r1", node_type="rag", query="internal")
+        current.result = {"results": [{"content": "hit"}]}
+        pending = PlanNode(node_id="s1", node_type="search", query="web", depends_on=["r1"])
+        state = create_initial_state("test query", "session-1")
+        state["dag"] = serialize_dag(DAGDefinition(dag_name="test", nodes=[current, pending], edges=[]))
+        state["current_executing_nodes"] = ["r1"]
+        state["tool_histories"] = [
+            {
+                "agent_type": "search",
+                "tool_calls": [
+                    {
+                        "call_id": "call-1",
+                        "tool_name": "duckduckgo_search",
+                        "status": "success",
+                        "tokens_used": 0,
+                        "cost_usd": 0.0,
+                    }
+                ],
+            },
+            {
+                "agent_type": "rag",
+                "tool_calls": [
+                    {
+                        "call_id": "call-2",
+                        "tool_name": "knowledge_base_search",
+                        "status": "success",
+                        "tokens_used": 0,
+                        "cost_usd": 0.0,
+                    }
+                ],
+            },
+        ]
+        state["budget_state"] = {"max_tool_calls": 2, "max_wall_clock_seconds": 9999}
+
+        result = dag_results_aggregator(state)
+        planned = deserialize_dag(result["dag"])
+        skipped = next(node for node in planned.nodes if node.node_id == "s1")
+
+        assert result["budget_state"]["hard_stop_reason"] == "tool_call_limit"
+        assert result["runtime_status"] == RuntimeStatus.TERMINAL_FAILED.value
+        assert skipped.status == StepStatus.SKIPPED
+        assert "s1" in result["completed_nodes"]
+
+    def test_should_continue_dag_exits_on_budget_hard_stop(self):
+        from app.graph.compiler import should_continue_dag
+        from app.graph.state import DAGDefinition, PlanNode, serialize_dag
+
+        node = PlanNode(node_id="s1", node_type="search", query="test query")
+        state = create_initial_state("test query", "session-1")
+        state["dag"] = serialize_dag(DAGDefinition(dag_name="test", nodes=[node], edges=[]))
+        state["budget_state"] = {"hard_stop_reason": "tool_call_limit"}
+
+        assert should_continue_dag(state) == "analyst"
+
+    def test_should_revise_blocked_by_budget_hard_stop(self):
+        from app.graph.compiler import should_revise
+
+        state = {
+            "revision_needed": True,
+            "revision_count": 0,
+            "budget_state": {"hard_stop_reason": "tool_call_limit"},
+            "session": {"max_revisions": 3},
+        }
+
+        assert should_revise(state) == "generate_report"
+
+    def test_apply_llm_usage_to_state_updates_session_and_budget(self):
+        from app.graph.compiler import _apply_llm_usage_to_state
+
+        state = create_initial_state("test query", "session-1")
+        session, budget_state = _apply_llm_usage_to_state(
+            state,
+            "planner",
+            {
+                "prompt_tokens": 100,
+                "completion_tokens": 40,
+                "total_tokens": 140,
+                "cost_usd": 0.0012,
+                "estimated": False,
+                "model": "gpt-4o-mini",
+            },
+        )
+
+        assert session["total_tokens"] == 140
+        assert session["total_cost_usd"] == 0.0012
+        assert budget_state["used_total_tokens"] == 140
+        assert budget_state["used_cost_usd"] == 0.0012
+        assert budget_state["llm_usage"][0]["agent"] == "planner"
 
 
 if __name__ == "__main__":

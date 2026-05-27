@@ -1,0 +1,20 @@
+\begin{tikzpicture}[
+  node distance=9mm and 10mm,
+  box/.style={draw, rounded corners, align=center, minimum width=26mm, minimum height=9mm},
+  flow/.style={-Latex, thick}
+]
+\node[box] (api) {HTTP API};
+\node[box, right=of api] (runner) {Runner / Supervisor};
+\node[box, below=of runner] (graph) {LangGraph};
+\node[box, right=of runner] (harness) {Harness Files\\tasks / progress / lease};
+\node[box, right=of graph] (redis) {Redis Checkpointer};
+\node[box, below=of redis] (db) {PostgreSQL};
+
+\draw[flow] (api) -- (runner);
+\draw[flow] (runner) -- (graph);
+\draw[flow] (runner) -- (harness);
+\draw[flow] (graph) -- (redis);
+\draw[flow] (graph) -- (db);
+\draw[flow] (harness) -- (db);
+\draw[flow] (harness.west) |- node[pos=0.25, right, font=\scriptsize]{resume / retry} (runner.south);
+\end{tikzpicture}

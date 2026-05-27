@@ -1,0 +1,18 @@
+\begin{tikzpicture}[
+  node distance=8mm and 8mm,
+  box/.style={draw, rounded corners, align=center, minimum width=24mm, minimum height=9mm},
+  flow/.style={-Latex, thick}
+]
+\node[box] (action) {Action Request};
+\node[box, right=of action] (db) {Approval DB\\(source of truth)};
+\node[box, above right=of db] (external) {External Approval\\Slack / Jira / OA};
+\node[box, below right=of db] (harness) {Harness Approval\\signal only};
+\node[box, right=of db] (aggregate) {ApprovalAggregate\\\term{can\_execute(action)}};
+\node[box, right=of aggregate] (exec) {Execute Action};
+
+\draw[flow] (action) -- (db);
+\draw[flow] (external) -- node[above, font=\scriptsize]{webhook/callback} (db);
+\draw[flow] (harness) -- node[below, font=\scriptsize]{approved/rejected} (db);
+\draw[flow] (db) -- (aggregate);
+\draw[flow] (aggregate) -- (exec);
+\end{tikzpicture}

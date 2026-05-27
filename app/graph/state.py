@@ -87,6 +87,18 @@ class TaskStatus(str, Enum):
     PAUSED = "paused"        # 暂停（等待人工介入）
 
 
+class RuntimeStatus(str, Enum):
+    """细粒度运行时状态，用于治理闭环和兼容映射。"""
+    PENDING = "pending"
+    APPROVED = "approved"
+    RUNNING = "running"
+    AWAITING_APPROVAL = "awaiting_approval"
+    RETRYABLE_FAILED = "retryable_failed"
+    TERMINAL_FAILED = "terminal_failed"
+    COMPLETED = "completed"
+    CANCELED = "canceled"
+
+
 class PageType(str, Enum):
     """浏览器提取的页面类型（主题 3 工具设计）"""
     NEWS_ARTICLE = "news_article"
@@ -136,6 +148,13 @@ class PlanNode(BaseModel):
     result: dict | None = None
     # 置信度
     confidence: float = 0.0
+    # 最近一次错误
+    last_error: str | None = None
+    last_error_category: str | None = None
+    # 是否为终止性失败
+    terminal_failure: bool = False
+    # 是否等待审批
+    waiting_approval: bool = False
 
     # ===== 向后兼容字段 =====
     # 兼容旧的 PlanStep 的字段名
@@ -316,6 +335,21 @@ class ToolInvocationHistory(BaseModel):
     @property
     def total_duration_ms(self) -> int:
         return sum(tc.duration_ms or 0 for tc in self.tool_calls)
+
+
+class NodeOutcome(BaseModel):
+    """单个 DAG 工具节点的执行结果。"""
+    node_id: str
+    tool_call_id: str | None = None
+    tool_name: str
+    status: Literal["success", "retryable_error", "terminal_error", "awaiting_approval", "skipped"]
+    error_category: str | None = None
+    error_message: str | None = None
+    retry_count: int = 0
+    tokens_used: int = 0
+    cost_usd: float = 0.0
+    result_count: int = 0
+    approval_request_id: str | None = None
 
 
 # ==============================================================
@@ -561,6 +595,7 @@ class ResearchState(TypedDict):
     dag: dict | None                # DAGDefinition (序列化)
     current_executing_nodes: list[str]  # 当前执行的节点
     completed_nodes: list[str]        # 已完成节点
+    node_outcomes: Annotated[list[dict], merge_lists]
 
     # ===== 主题 3: 工具调用历史 =====
     tool_histories: Annotated[list[dict], merge_lists]  # ToolInvocationHistory[]
@@ -640,6 +675,9 @@ class ResearchState(TypedDict):
     allow_web_after_rag_hit: bool
     rag_group: str | None
     retrieval_policy: dict | None
+    runtime_status: str
+    budget_state: dict | None
+    pending_approvals: Annotated[list[dict], merge_lists]
 
     # ===== 可观测性 =====
     agent_trace: Annotated[list[dict], merge_lists]
@@ -679,6 +717,7 @@ def create_initial_state(
         dag=None,
         current_executing_nodes=[],
         completed_nodes=[],
+        node_outcomes=[],
 
         tool_histories=[],
         collected_evidence=[],
@@ -701,6 +740,9 @@ def create_initial_state(
         allow_web_after_rag_hit=False,
         rag_group=None,
         retrieval_policy=None,
+        runtime_status=RuntimeStatus.PENDING.value,
+        budget_state=None,
+        pending_approvals=[],
 
         agent_trace=[],
         guardrail_trace=[],
@@ -754,6 +796,7 @@ __all__ = [
     "AgentType",
     "StepStatus",
     "TaskStatus",
+    "RuntimeStatus",
     "PageType",
     "VerificationDimension",
     "PlanNode",
@@ -762,6 +805,7 @@ __all__ = [
     "DAGDefinition",
     "ToolCallRecord",
     "ToolInvocationHistory",
+    "NodeOutcome",
     "SessionMetadata",
     "ClaimEvidence",
     "HallucinatedClaim",
