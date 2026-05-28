@@ -619,7 +619,7 @@ class BrowserAgent:
 
         except Exception as e:
             logger.error(f"Browser Use failed for {query_or_url}: {e}")
-            return self._fallback_result(query_or_url)
+            return self._fallback_result(query_or_url, error_message=str(e))
         finally:
             await page.close()
 
@@ -788,7 +788,7 @@ class BrowserAgent:
         result = "\n\n".join(parts)
         return result[:max_chars]
 
-    def _fallback_result(self, url: str) -> BrowserResult:
+    def _fallback_result(self, url: str, error_message: str | None = None) -> BrowserResult:
         """提取失败时的降级结果。"""
         return BrowserResult(
             url=url,
@@ -799,6 +799,7 @@ class BrowserAgent:
             extraction_level="snippet",
             tokens_estimate=0,
             citation=url,
+            error_message=error_message,
         )
 
     # ==============================================================

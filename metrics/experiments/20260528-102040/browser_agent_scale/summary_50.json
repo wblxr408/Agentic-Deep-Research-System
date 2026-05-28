@@ -1,0 +1,70 @@
+{
+  "summary": {
+    "total_extractions": 50,
+    "successful": 40,
+    "failed": 10,
+    "success_rate": 0.8,
+    "avg_duration_ms": 10.58,
+    "p95_duration_ms": 11,
+    "avg_compression_ratio": 0.24024193395983157,
+    "avg_analysis_confidence": 0.7624000000000001,
+    "avg_analysis_confidence_success_only": 0.8700000000000001
+  },
+  "browser_use_steps": {
+    "open": {
+      "attempts": 50,
+      "success": 40,
+      "success_rate": 0.8,
+      "avg_duration_ms": 446.5
+    },
+    "scroll": {
+      "attempts": 50,
+      "success": 50,
+      "success_rate": 1.0,
+      "avg_scrolls": 3.9
+    },
+    "extract": {
+      "attempts": 50,
+      "success": 40,
+      "success_rate": 0.8,
+      "avg_duration_ms": 10.58
+    },
+    "analyze": {
+      "attempts": 50,
+      "success": 40,
+      "success_rate": 0.8,
+      "avg_confidence": 0.7624000000000001
+    }
+  },
+  "by_page_type": {
+    "article": {
+      "count": 40,
+      "success": 40,
+      "failed": 0,
+      "avg_duration_ms": 10.675,
+      "avg_compression": 0.24024193395983157
+    },
+    "landing": {
+      "count": 10,
+      "success": 0,
+      "failed": 10,
+      "avg_duration_ms": 10.2
+    }
+  },
+  "by_extraction_level": {
+    "deep": {
+      "count": 20,
+      "success": 20
+    },
+    "skim": {
+      "count": 30,
+      "success": 20
+    }
+  },
+  "pool_stats": {
+    "total_launches": 50,
+    "total_crashes": 3,
+    "concurrent_current": 0,
+    "concurrent_peak": 1
+  }
+}

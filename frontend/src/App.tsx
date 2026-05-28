@@ -14,6 +14,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import ResearchDashboard from './components/ResearchDashboard'
 import LLMConfigPanel from './components/LLMConfigPanel'
 import DocumentManager from './components/DocumentManager'
+import SkillManager from './components/SkillManager'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -233,7 +234,7 @@ function FeaturesSection() {
  * MAIN APP
  * ============================================================ */
 function App() {
-  const [view, setView] = useState<'home' | 'research' | 'settings' | 'documents'>('home')
+  const [view, setView] = useState<'home' | 'research' | 'settings' | 'documents' | 'skills'>('home')
 
   const handleExplore = useCallback(() => {
     setView('research')
@@ -251,6 +252,10 @@ function App() {
     setView('documents')
   }, [])
 
+  const handleOpenSkills = useCallback(() => {
+    setView('skills')
+  }, [])
+
   return (
     <QueryClientProvider client={queryClient}>
       <div className="min-h-screen bg-white">
@@ -264,7 +269,7 @@ function App() {
         {view === 'home' && (
           <>
             <HeroSection onExplore={handleExplore} onDemo={handleExplore} />
-            <QuickLinks onOpenResearch={handleExplore} onOpenDocuments={handleOpenDocuments} />
+            <QuickLinks onOpenResearch={handleExplore} onOpenDocuments={handleOpenDocuments} onOpenSkills={handleOpenSkills} />
             <FeaturesSection />
             {/* Footer */}
             <footer className="border-t border-xmgray-100 py-8 text-center">
@@ -292,15 +297,21 @@ function App() {
             <DocumentManager />
           </main>
         )}
+
+        {view === 'skills' && (
+          <main className="pt-14">
+            <SkillManager />
+          </main>
+        )}
       </div>
     </QueryClientProvider>
   )
 }
 
-function QuickLinks({ onOpenResearch, onOpenDocuments }: { onOpenResearch: () => void; onOpenDocuments: () => void }) {
+function QuickLinks({ onOpenResearch, onOpenDocuments, onOpenSkills }: { onOpenResearch: () => void; onOpenDocuments: () => void; onOpenSkills: () => void }) {
   return (
     <section className="max-w-6xl mx-auto px-6 md:px-8 pb-20">
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-3">
         <button className="card p-6 text-left hover:border-xmgray-200" onClick={onOpenResearch}>
           <p className="text-sm text-xmgray-400">研究</p>
           <h3 className="mt-2 text-xl font-semibold text-xmgray-900">开始新研究</h3>
@@ -310,6 +321,11 @@ function QuickLinks({ onOpenResearch, onOpenDocuments }: { onOpenResearch: () =>
           <p className="text-sm text-xmgray-400">知识库</p>
           <h3 className="mt-2 text-xl font-semibold text-xmgray-900">管理内部资料源</h3>
           <p className="mt-2 text-sm text-xmgray-500">上传、分组、修改、删除与 chunk 预览。</p>
+        </button>
+        <button className="card p-6 text-left hover:border-xmgray-200" onClick={onOpenSkills}>
+          <p className="text-sm text-xmgray-400">Skill</p>
+          <h3 className="mt-2 text-xl font-semibold text-xmgray-900">管理技能体系</h3>
+          <p className="mt-2 text-sm text-xmgray-500">上传、编辑、热更新与运行时接入。</p>
         </button>
       </div>
     </section>

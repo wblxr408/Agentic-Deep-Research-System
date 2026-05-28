@@ -1,0 +1,62 @@
+{
+  "summary": {
+    "total_extractions": 2,
+    "successful": 1,
+    "failed": 1,
+    "success_rate": 0.5,
+    "avg_duration_ms": 10.0,
+    "p95_duration_ms": 10,
+    "avg_compression_ratio": 0.225
+  },
+  "browser_use_steps": {
+    "open": {
+      "attempts": 2,
+      "success": 1,
+      "success_rate": 0.5,
+      "avg_duration_ms": 660.0
+    },
+    "scroll": {
+      "attempts": 2,
+      "success": 2,
+      "success_rate": 1.0,
+      "avg_scrolls": 2.5
+    },
+    "extract": {
+      "attempts": 2,
+      "success": 1,
+      "success_rate": 0.5,
+      "avg_duration_ms": 0.0
+    },
+    "analyze": {
+      "attempts": 2,
+      "success": 1,
+      "success_rate": 0.5,
+      "avg_confidence": 0.6
+    }
+  },
+  "by_page_type": {
+    "unknown": {
+      "count": 2,
+      "success": 1,
+      "failed": 1,
+      "avg_duration_ms": 10.0,
+      "avg_compression": 0.225
+    }
+  },
+  "by_extraction_level": {
+    "deep": {
+      "count": 1,
+      "success": 1
+    },
+    "skim": {
+      "count": 1,
+      "success": 0
+    }
+  },
+  "pool_stats": {
+    "total_launches": 2,
+    "total_crashes": 1,
+    "concurrent_current": 0,
+    "concurrent_peak": 1
+  }
+}

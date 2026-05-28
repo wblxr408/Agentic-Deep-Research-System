@@ -16,8 +16,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 
 from app.config import get_settings
-from app.api import research_router, health_router, config_router, documents_router
+from app.api import research_router, health_router, config_router, documents_router, skills_router
 from app.db.connection import init_db, close_db
+from app.skills import get_skill_registry
 
 # ==============================================================
 # Structured Logging Setup
@@ -60,6 +61,7 @@ async def lifespan(app: FastAPI):
     # Startup
     try:
         await init_db()
+        await get_skill_registry().load()
         logger.info("Database initialized")
     except Exception as e:
         logger.error("Database initialization failed", error=str(e))
@@ -111,6 +113,7 @@ def create_app() -> FastAPI:
     app.include_router(research_router)
     app.include_router(config_router)
     app.include_router(documents_router)
+    app.include_router(skills_router)
 
     # Root endpoint
     @app.get("/")

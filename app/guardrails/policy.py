@@ -49,6 +49,7 @@ RESEARCH_LENGTH_BUDGETS: dict[ResearchLength, dict[str, int | float]] = {
         "max_cost_usd": 0.20,
         "max_tool_calls": 6,
         "max_wall_clock_seconds": 180,
+        "max_retries_per_tool": 1,
     },
     ResearchLength.MEDIUM: {
         "report_max_tokens": 6000,
@@ -61,6 +62,7 @@ RESEARCH_LENGTH_BUDGETS: dict[ResearchLength, dict[str, int | float]] = {
         "max_cost_usd": 0.50,
         "max_tool_calls": 12,
         "max_wall_clock_seconds": 420,
+        "max_retries_per_tool": 2,
     },
     ResearchLength.LONG: {
         "report_max_tokens": 12000,
@@ -73,6 +75,7 @@ RESEARCH_LENGTH_BUDGETS: dict[ResearchLength, dict[str, int | float]] = {
         "max_cost_usd": 1.00,
         "max_tool_calls": 24,
         "max_wall_clock_seconds": 900,
+        "max_retries_per_tool": 3,
     },
 }
 
@@ -158,6 +161,8 @@ class ToolInvocationSpec(BaseModel):
     args_schema: dict[str, Any] = Field(default_factory=dict)
     readonly: bool = True
     requires_confirmation: bool = False
+    risk_level: RiskLevel = RiskLevel.LOW
+    mcp_server_id: str | None = None
 
 
 TOOL_SPECS: dict[str, ToolInvocationSpec] = {
@@ -181,6 +186,7 @@ TOOL_SPECS: dict[str, ToolInvocationSpec] = {
             "required": ["url"],
             "additionalProperties": False,
         },
+        risk_level=RiskLevel.LOW,
     ),
     "knowledge_base_search": ToolInvocationSpec(
         tool_name="knowledge_base_search",
@@ -194,8 +200,28 @@ TOOL_SPECS: dict[str, ToolInvocationSpec] = {
             "required": ["query"],
             "additionalProperties": False,
         },
+        risk_level=RiskLevel.LOW,
     ),
 }
+
+
+def should_require_action_approval(
+    *,
+    tool_name: str,
+    decision: GuardrailDecision | None,
+    readonly: bool = True,
+    server_id: str | None = None,
+) -> tuple[bool, str | None]:
+    spec = TOOL_SPECS.get(tool_name)
+    if spec and spec.requires_confirmation:
+        return True, "tool_requires_confirmation"
+    if decision and decision.risk_level == RiskLevel.HIGH:
+        return True, "high_risk_task"
+    if not readonly:
+        return True, "write_operation_requires_approval"
+    if server_id:
+        return True, "unknown_mcp_server_requires_approval"
+    return False, None
 
 
 def build_guardrail_decision(query: str, *, user_confirmed: bool = False) -> GuardrailDecision:

@@ -229,6 +229,10 @@ class BrowserAgentMetricsCollector:
                 status="running",
                 started_at=datetime.utcnow().isoformat(),
             )
+        else:
+            # OPEN/SCROLL may have created a placeholder entry; extraction should
+            # refine it with the actual page classification.
+            self._extractions[extraction_id].page_type = page_type
         self._step_stats["extract"]["attempts"] += 1
         return extraction_id
 
@@ -272,6 +276,7 @@ class BrowserAgentMetricsCollector:
 
         self._pool_stats["concurrent_current"] = max(0, self._pool_stats["concurrent_current"] - 1)
         self._step_stats["extract"]["success"] += 1 if status == "success" else 0
+        self._step_stats["extract"]["total_duration_ms"] += ext.duration_ms or 0
 
         self._persist_extraction(ext)
         logger.info(
@@ -332,6 +337,14 @@ class BrowserAgentMetricsCollector:
             e.compression_ratio for e in self._extractions.values()
             if e.compression_ratio > 0
         ]
+        analysis_confidences = [
+            e.analyze_confidence for e in self._extractions.values()
+            if e.analyze_confidence > 0
+        ]
+        success_confidences = [
+            e.analyze_confidence for e in self._extractions.values()
+            if e.status == "success" and e.analyze_confidence > 0
+        ]
 
         # By page type
         by_page_type: dict[str, dict] = {}
@@ -381,6 +394,12 @@ class BrowserAgentMetricsCollector:
                 ),
                 "avg_compression_ratio": (
                     sum(compression_ratios) / len(compression_ratios) if compression_ratios else 0
+                ),
+                "avg_analysis_confidence": (
+                    sum(analysis_confidences) / len(analysis_confidences) if analysis_confidences else 0
+                ),
+                "avg_analysis_confidence_success_only": (
+                    sum(success_confidences) / len(success_confidences) if success_confidences else 0
                 ),
             },
             "browser_use_steps": self._build_step_summary(),

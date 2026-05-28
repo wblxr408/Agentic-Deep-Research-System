@@ -2,6 +2,7 @@
 Tests for the research graph workflow.
 """
 
+from datetime import datetime, timedelta
 import pytest
 from app.graph.state import ResearchState, create_initial_state, StepStatus, PlanStep
 from app.graph.compiler import compile_research_graph, should_revise
@@ -26,8 +27,9 @@ class TestResearchState:
             "search_results", "browser_results", "rag_results", "aggregated_evidence",
             "revision_needed", "revision_count", "analysis",
             "final_report", "citations", "guardrail_decision", "evidence_status",
-            "review_status", "user_confirmed", "allow_web_after_rag_hit", "rag_group",
-            "retrieval_policy", "runtime_status", "budget_state", "pending_approvals",
+            "review_status", "failure_memory", "user_confirmed", "allow_web_after_rag_hit", "rag_group",
+            "retrieval_policy", "runtime_status", "budget_state", "pending_approvals", "output_length",
+            "skill_context",
             "agent_trace", "guardrail_trace", "errors"
         }
         assert set(state.keys()) == required_keys
@@ -92,7 +94,7 @@ class TestGraphCompilation:
         graph = compile_research_graph()
         nodes = set(graph.builder.nodes)
         required_nodes = {
-            "planner", "search", "browser", "rag",
+            "planner", "search", "browser", "rag", "mcp", "approval_reviewer",
             "analyst", "reflection", "report"
         }
         assert required_nodes.issubset(nodes)
@@ -161,6 +163,34 @@ class TestGraphCompilation:
         assert "tool_start" in event_types
         assert "tool_error" in event_types
 
+    def test_browser_node_treats_fallback_error_as_retryable_failure(self):
+        from unittest.mock import patch
+
+        from app.graph.compiler import browser_node
+        from app.graph.state import BrowserResult, DAGDefinition, PlanNode, serialize_dag
+
+        node = PlanNode(node_type="browser", query="https://example.com")
+        state = create_initial_state("test query", "session-1")
+        state["dag"] = serialize_dag(DAGDefinition(dag_name="test", nodes=[node], edges=[]))
+        state["executing_nodes"] = [node.node_id]
+
+        with patch("app.agents.browser.BrowserAgent.execute_browse", return_value=[
+            BrowserResult(
+                url="https://example.com",
+                title="https://example.com",
+                extracted_content="",
+                citations=[],
+                extraction_level="snippet",
+                citation="https://example.com",
+                error_message="navigation timeout",
+            )
+        ]):
+            result = browser_node(state)
+
+        assert result["tool_histories"][0]["tool_calls"][0]["status"] == "error"
+        assert result["node_outcomes"][0]["status"] == "retryable_error"
+        assert result["node_outcomes"][0]["error_category"] == "timeout"
+
     def test_dag_aggregator_keeps_failed_node_failed(self):
         from app.graph.compiler import dag_results_aggregator
         from app.graph.state import DAGDefinition, PlanNode, RuntimeStatus, serialize_dag, deserialize_dag
@@ -191,6 +221,103 @@ class TestGraphCompilation:
         assert "s1" not in result["completed_nodes"]
         assert result["runtime_status"] == RuntimeStatus.RETRYABLE_FAILED.value
 
+    def test_dag_executor_requeues_retryable_failed_node_under_limit(self):
+        from app.graph.compiler import dag_executor_node
+        from app.graph.state import DAGDefinition, PlanNode, serialize_dag, deserialize_dag
+
+        node = PlanNode(node_id="s1", node_type="search", query="retry query")
+        node.status = StepStatus.FAILED
+        node.retry_count = 1
+        node.last_error_category = "timeout"
+        state = create_initial_state("test query", "session-1")
+        state["dag"] = serialize_dag(DAGDefinition(dag_name="test", nodes=[node], edges=[]))
+        state["budget_state"] = {"max_retries_per_tool": 2}
+
+        result = dag_executor_node(state)
+        planned = deserialize_dag(result["dag"])
+        retried = next(item for item in planned.nodes if item.node_id == "s1")
+
+        assert retried.status == StepStatus.PENDING
+        assert result["current_executing_nodes"] == ["s1"]
+
+    def test_dag_executor_defers_retry_until_backoff_expires(self):
+        from app.graph.compiler import dag_executor_node
+        from app.graph.state import DAGDefinition, PlanNode, serialize_dag
+
+        node = PlanNode(node_id="s1", node_type="search", query="retry query")
+        node.status = StepStatus.FAILED
+        node.retry_count = 1
+        node.last_error_category = "timeout"
+        state = create_initial_state("test query", "session-1")
+        state["dag"] = serialize_dag(DAGDefinition(dag_name="test", nodes=[node], edges=[]))
+        state["budget_state"] = {"max_retries_per_tool": 2}
+        state["failure_memory"] = {
+            "records": [{
+                "node_type": "search",
+                "query": "retry query",
+                "last_error_category": "timeout",
+                "retry_count": 1,
+                "repeat_blocked": False,
+                "next_retry_at": (datetime.utcnow() + timedelta(seconds=30)).isoformat(),
+                "backoff_seconds": 30,
+            }],
+            "max_retries_per_tool": 2,
+            "repeat_blocked_nodes": [],
+        }
+
+        result = dag_executor_node(state)
+
+        assert result["current_executing_nodes"] == []
+        assert result["agent_trace"][0]["agent"] == "retry_scheduler"
+
+    def test_dag_executor_does_not_retry_terminal_or_exhausted_node(self):
+        from app.graph.compiler import dag_executor_node
+        from app.graph.state import DAGDefinition, PlanNode, serialize_dag, deserialize_dag
+
+        node = PlanNode(node_id="s1", node_type="search", query="bad query")
+        node.status = StepStatus.FAILED
+        node.retry_count = 2
+        node.last_error_category = "schema_validation"
+        node.terminal_failure = True
+        state = create_initial_state("test query", "session-1")
+        state["dag"] = serialize_dag(DAGDefinition(dag_name="test", nodes=[node], edges=[]))
+        state["budget_state"] = {"max_retries_per_tool": 2}
+
+        result = dag_executor_node(state)
+        assert result["current_executing_nodes"] == []
+
+    def test_dag_aggregator_builds_failure_memory(self):
+        from app.graph.compiler import dag_results_aggregator
+        from app.graph.state import DAGDefinition, PlanNode, serialize_dag
+
+        node = PlanNode(node_id="s1", node_type="search", query="retry query")
+        state = create_initial_state("test query", "session-1")
+        state["dag"] = serialize_dag(DAGDefinition(dag_name="test", nodes=[node], edges=[]))
+        state["current_executing_nodes"] = ["s1"]
+        state["node_outcomes"] = [{
+            "node_id": "s1",
+            "tool_call_id": "call-1",
+            "tool_name": "duckduckgo_search",
+            "status": "retryable_error",
+            "error_category": "timeout",
+            "error_message": "request timeout",
+            "retry_count": 1,
+            "tokens_used": 0,
+            "cost_usd": 0.0,
+            "result_count": 0,
+            "approval_request_id": None,
+        }]
+        state["budget_state"] = {"max_retries_per_tool": 2}
+
+        result = dag_results_aggregator(state)
+        memory = result["failure_memory"]
+
+        assert memory["records"][0]["node_type"] == "search"
+        assert memory["records"][0]["retry_count"] == 1
+        assert memory["records"][0]["repeat_blocked"] is False
+        assert memory["records"][0]["backoff_seconds"] == 2
+        assert memory["records"][0]["next_retry_at"] is not None
+
     def test_should_continue_dag_blocks_on_pending_approval(self):
         from app.graph.compiler import should_continue_dag
         from app.graph.state import DAGDefinition, PlanNode, serialize_dag
@@ -200,7 +327,108 @@ class TestGraphCompilation:
         state["dag"] = serialize_dag(DAGDefinition(dag_name="test", nodes=[node], edges=[]))
         state["pending_approvals"] = [{"approval_id": "ap-1"}]
 
+        assert should_continue_dag(state) == "approval_reviewer"
+
+    def test_should_continue_dag_keeps_retryable_backoff_node_in_loop(self):
+        from app.graph.compiler import should_continue_dag
+        from app.graph.state import DAGDefinition, PlanNode, serialize_dag
+
+        node = PlanNode(node_id="s1", node_type="search", query="retry query")
+        node.status = StepStatus.FAILED
+        node.retry_count = 1
+        node.last_error_category = "timeout"
+        state = create_initial_state("test query", "session-1")
+        state["dag"] = serialize_dag(DAGDefinition(dag_name="test", nodes=[node], edges=[]))
+        state["failure_memory"] = {
+            "records": [{
+                "node_type": "search",
+                "query": "retry query",
+                "last_error_category": "timeout",
+                "retry_count": 1,
+                "repeat_blocked": False,
+                "next_retry_at": (datetime.utcnow() + timedelta(seconds=30)).isoformat(),
+                "backoff_seconds": 30,
+            }],
+            "max_retries_per_tool": 2,
+            "repeat_blocked_nodes": [],
+        }
+
         assert should_continue_dag(state) == "continue"
+
+    def test_approval_reviewer_sets_paused_runtime(self):
+        from app.graph.compiler import approval_reviewer_node
+
+        state = create_initial_state("test query", "session-1")
+        state["pending_approvals"] = [{"approval_id": "ap-1", "status": "pending"}]
+
+        result = approval_reviewer_node(state)
+        assert result["runtime_status"] == "awaiting_approval"
+        assert result["status"] == "paused"
+
+    def test_replan_node_regenerates_dag_with_failure_hints(self):
+        from unittest.mock import patch
+
+        from app.graph.compiler import replan_node
+        from app.graph.state import DAGDefinition, PlanNode, serialize_dag, deserialize_dag
+
+        old_node = PlanNode(node_id="s1", node_type="search", query="old query")
+        new_node = PlanNode(node_id="s2", node_type="rag", query="new query")
+        state = create_initial_state("test query", "session-1")
+        state["dag"] = serialize_dag(DAGDefinition(dag_name="old", nodes=[old_node], edges=[]))
+        state["failure_memory"] = {
+            "records": [{
+                "node_type": "search",
+                "query": "old query",
+                "last_error_category": "timeout",
+                "retry_count": 2,
+                "repeat_blocked": True,
+            }],
+            "max_retries_per_tool": 2,
+            "repeat_blocked_nodes": ["s1"],
+        }
+
+        with patch("app.agents.planner.PlannerAgent.create_dag", return_value=DAGDefinition(dag_name="new", nodes=[new_node], edges=[])) as mock_create:
+            result = replan_node(state)
+
+        planned = deserialize_dag(result["dag"])
+        assert planned.dag_name == "new"
+        assert any(node.node_type == "rag" for node in planned.nodes)
+        assert result["completed_nodes"] == []
+        assert "Known failures:" in mock_create.call_args.kwargs["planning_hints"]
+
+    @pytest.mark.asyncio
+    async def test_mcp_node_blocks_untrusted_server(self):
+        from unittest.mock import AsyncMock, patch
+
+        from app.graph.compiler import mcp_node
+        from app.graph.state import DAGDefinition, PlanNode, serialize_dag
+
+        node = PlanNode(node_id="m1", node_type="mcp", query="unknown:write_tool")
+        state = create_initial_state("test query", "session-1")
+        state["dag"] = serialize_dag(DAGDefinition(dag_name="test", nodes=[node], edges=[]))
+        state["executing_nodes"] = [node.node_id]
+
+        class FakeConn:
+            async def fetchrow(self, *args, **kwargs):
+                return None
+
+            def acquire(self):
+                return self
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, exc_type, exc, tb):
+                return None
+
+        class FakePool:
+            def acquire(self):
+                return FakeConn()
+
+        with patch("app.governance.mcp.get_db_pool", AsyncMock(return_value=FakePool())):
+            result = await mcp_node(state)
+
+        assert result["node_outcomes"][0]["status"] == "terminal_error"
 
     def test_execute_tool_batch_includes_dag_payload(self):
         from app.graph.compiler import execute_tool_batch
@@ -218,6 +446,55 @@ class TestGraphCompilation:
         payload = sends[0].arg
         assert "dag" in payload
         assert payload["executing_nodes"] == [node.node_id]
+
+    def test_execute_tool_batch_respects_skill_tool_allowlist(self):
+        from app.graph.compiler import execute_tool_batch
+        from app.graph.state import DAGDefinition, PlanNode, serialize_dag
+
+        search = PlanNode(node_id="s1", node_type="search", query="search query")
+        browser = PlanNode(node_id="b1", node_type="browser", query="browse query")
+        rag = PlanNode(node_id="r1", node_type="rag", query="rag query")
+        state = create_initial_state("test query", "session-1")
+        state["dag"] = serialize_dag(DAGDefinition(dag_name="test", nodes=[search, browser, rag], edges=[]))
+        state["current_executing_nodes"] = [search.node_id, browser.node_id, rag.node_id]
+        state["guardrail_decision"] = {"enabled_tools": ["search", "browser", "rag"]}
+        state["skill_context"] = {"effective_tool_allowlist": ["rag"]}
+
+        sends = execute_tool_batch(state)
+
+        assert len(sends) == 1
+        assert sends[0].node == "rag"
+        assert sends[0].arg["current_executing_nodes"] == ["r1"]
+
+    def test_planner_node_passes_skill_prompt_and_hints(self):
+        from unittest.mock import patch
+
+        from app.graph.compiler import planner_node
+        from app.graph.state import DAGDefinition, PlanNode
+
+        search_node_only = PlanNode(node_id="s1", node_type="search", query="test query")
+        dag = DAGDefinition(dag_name="test", nodes=[search_node_only], edges=[])
+        state = create_initial_state("test query", "session-1")
+        state["skill_context"] = {
+            "effective_prompt_sections": {
+                "overview": "Finance domain context.",
+                "prompt": "Prioritize earnings materials.",
+                "constraints": "Avoid browser unless filings are required.",
+            },
+            "effective_agent_hints": {
+                "planner": ["Prefer earnings, guidance, and filings."],
+            },
+        }
+
+        with patch("app.agents.planner.PlannerAgent.create_dag", return_value=dag) as mock_create:
+            planner_node(state)
+
+        assert mock_create.call_args.kwargs["skill_prompt"] == (
+            "Overview:\nFinance domain context.\n\n"
+            "Prompt:\nPrioritize earnings materials.\n\n"
+            "Constraints:\nAvoid browser unless filings are required."
+        )
+        assert mock_create.call_args.kwargs["planner_hints"] == ["Prefer earnings, guidance, and filings."]
 
     def test_planner_enforces_internal_rag_before_search(self):
         from unittest.mock import patch

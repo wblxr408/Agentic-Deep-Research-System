@@ -38,6 +38,7 @@ from __future__ import annotations
 
 import asyncio
 from datetime import datetime
+from datetime import timedelta
 import time
 from typing import Any
 
@@ -69,10 +70,41 @@ from app.guardrails import (
     normalize_research_length,
     is_tool_allowed,
     record_guardrail_event,
+    should_require_action_approval,
 )
+from app.governance import McpPolicyProxy, McpToolRequest
 
-TOOL_NODE_TYPES = {"search", "browser", "rag"}
+TOOL_NODE_TYPES = {"search", "browser", "rag", "mcp"}
 WEB_NODE_TYPES = {"search", "browser"}
+
+
+def _skill_context(state: ResearchState) -> dict[str, Any]:
+    return dict(state.get("skill_context") or state.get("session", {}).get("skill_context") or {})
+
+
+def _skill_prompt(state: ResearchState) -> str:
+    context = _skill_context(state)
+    parts: list[str] = []
+    prompt_sections = context.get("effective_prompt_sections") or {}
+    for key in ("overview", "prompt", "constraints"):
+        value = prompt_sections.get(key)
+        if isinstance(value, str) and value.strip():
+            parts.append(f"{key.capitalize()}:\n{value.strip()}")
+    return "\n\n".join(parts).strip()
+
+
+def _agent_skill_hints(state: ResearchState, agent_name: str) -> list[str]:
+    context = _skill_context(state)
+    hints = (context.get("effective_agent_hints") or {}).get(agent_name) or []
+    return [item for item in hints if isinstance(item, str) and item.strip()]
+
+
+def _effective_tool_allowlist(state: ResearchState, decision: dict[str, Any]) -> set[str]:
+    skill_tools = set((_skill_context(state).get("effective_tool_allowlist") or []))
+    decision_tools = set(decision.get("enabled_tools", ["search", "browser", "rag"]))
+    if skill_tools:
+        return decision_tools.intersection(skill_tools)
+    return decision_tools
 
 
 def _research_budget(state: ResearchState) -> dict[str, int | float]:
@@ -210,6 +242,149 @@ def _apply_llm_usage_to_state(
     return session, budget_state
 
 
+def _node_identifier(node: PlanNode) -> str:
+    return f"{node.node_type}:{node.query.strip().lower()}"
+
+
+def _build_failure_memory(state: ResearchState, dag: DAGDefinition) -> dict[str, Any]:
+    """Summarize failures so retries and replanning can avoid repeating mistakes."""
+    budget = dict(_research_budget(state))
+    max_retries = int(
+        (state.get("budget_state") or {}).get("max_retries_per_tool")
+        or budget.get("max_retries_per_tool")
+        or 2
+    )
+    records: dict[str, dict[str, Any]] = {}
+    repeated_terminal_nodes: list[str] = []
+
+    for node in dag.nodes:
+        if node.node_type not in TOOL_NODE_TYPES:
+            continue
+        key = _node_identifier(node)
+        record = records.setdefault(key, {
+            "node_type": node.node_type,
+            "query": node.query,
+            "last_error_category": None,
+            "last_error": None,
+            "retry_count": 0,
+            "terminal_failure": False,
+            "repeat_blocked": False,
+            "next_retry_at": None,
+            "backoff_seconds": 0,
+        })
+        previous_retry_count = int(record.get("retry_count") or 0)
+        record["last_error_category"] = node.last_error_category or record["last_error_category"]
+        record["last_error"] = node.last_error or record["last_error"]
+        record["retry_count"] = max(previous_retry_count, int(node.retry_count or 0))
+        record["terminal_failure"] = bool(record["terminal_failure"] or node.terminal_failure)
+        if node.status == StepStatus.FAILED and node.last_error_category and not node.terminal_failure:
+            existing_next_retry_at = record.get("next_retry_at")
+            if not existing_next_retry_at or previous_retry_count != int(node.retry_count or 0):
+                next_retry_at, backoff_seconds = _compute_next_retry_at(
+                    node.last_error_category,
+                    int(node.retry_count or 0),
+                )
+                record["next_retry_at"] = next_retry_at
+                record["backoff_seconds"] = backoff_seconds
+        if record["terminal_failure"] or record["retry_count"] >= max_retries:
+            record["repeat_blocked"] = True
+            repeated_terminal_nodes.append(node.node_id)
+
+    return {
+        "records": list(records.values()),
+        "max_retries_per_tool": max_retries,
+        "repeat_blocked_nodes": sorted(set(repeated_terminal_nodes)),
+    }
+
+
+def _format_failure_memory_notes(failure_memory: dict[str, Any] | None) -> str:
+    """Convert failure memory into concise planner hints."""
+    if not failure_memory:
+        return ""
+    records = failure_memory.get("records") or []
+    notable = [
+        record for record in records
+        if record.get("repeat_blocked") or record.get("retry_count", 0) > 0
+    ]
+    if not notable:
+        return ""
+    lines = [
+        "Avoid repeating known failed tool patterns from this session.",
+        "Known failures:",
+    ]
+    for record in notable[:8]:
+        lines.append(
+            f"- {record.get('node_type')} | {record.get('query')} | "
+            f"error={record.get('last_error_category') or 'unknown'} | "
+            f"retries={record.get('retry_count', 0)} | "
+            f"repeat_blocked={bool(record.get('repeat_blocked'))} | "
+            f"next_retry_at={record.get('next_retry_at')}"
+        )
+    lines.append("Prefer alternative tools or narrower queries when a pattern is repeat_blocked.")
+    return "\n".join(lines)
+
+
+def _should_retry_node(
+    node: PlanNode,
+    budget_state: dict[str, Any],
+    failure_memory: dict[str, Any] | None,
+) -> tuple[bool, str | None]:
+    """Decide whether a failed node should be retried automatically."""
+    if node.terminal_failure:
+        return False, "terminal_failure"
+    if node.status != StepStatus.FAILED:
+        return False, "not_failed"
+    if node.last_error_category is None:
+        return False, "missing_error_category"
+
+    max_retries = int(
+        budget_state.get("max_retries_per_tool")
+        or _research_budget({"output_length": None}).get("max_retries_per_tool")
+        or 2
+    )
+    if int(node.retry_count or 0) >= max_retries:
+        return False, "max_retries_reached"
+
+    record = None
+    for item in (failure_memory or {}).get("records", []):
+        if item.get("node_type") == node.node_type and item.get("query") == node.query:
+            record = item
+            break
+    if record and record.get("repeat_blocked"):
+        return False, "repeat_blocked"
+
+    retryable_categories = {"timeout", "upstream_429", "upstream_5xx", "network", "temporary_db"}
+    if node.last_error_category not in retryable_categories:
+        return False, "non_retryable_category"
+    if record and record.get("next_retry_at"):
+        try:
+            if datetime.utcnow() < datetime.fromisoformat(str(record["next_retry_at"])):
+                return False, "backoff_active"
+        except ValueError:
+            pass
+    return True, None
+
+
+def _base_backoff_seconds(error_category: str | None) -> int:
+    mapping = {
+        "timeout": 2,
+        "network": 2,
+        "temporary_db": 2,
+        "upstream_5xx": 3,
+        "upstream_429": 5,
+    }
+    return mapping.get(error_category or "", 2)
+
+
+def _compute_next_retry_at(error_category: str | None, retry_count: int) -> tuple[str, int]:
+    """Return ISO timestamp + seconds for exponential backoff."""
+    base = _base_backoff_seconds(error_category)
+    exponent = max(0, retry_count - 1)
+    backoff_seconds = min(base * (2 ** exponent), 60)
+    next_retry_at = datetime.utcnow() + timedelta(seconds=backoff_seconds)
+    return next_retry_at.isoformat(), backoff_seconds
+
+
 def _enforce_internal_first_dag(dag: DAGDefinition, user_query: str) -> DAGDefinition:
     """Ensure every web retrieval node runs only after internal RAG has been checked."""
     rag_nodes = [node for node in dag.nodes if node.node_type == "rag"]
@@ -302,6 +477,26 @@ def _make_node_outcome(
         approval_request_id=approval_request_id,
     )
     return outcome.model_dump()
+
+
+def _make_approval_request(
+    *,
+    node_id: str,
+    tool_name: str,
+    reason: str,
+    request_payload: dict[str, Any],
+    risk_level: str = "high",
+) -> dict[str, Any]:
+    return {
+        "approval_id": f"ap-{node_id}-{tool_name}-{int(time.time() * 1000)}",
+        "node_id": node_id,
+        "tool_name": tool_name,
+        "risk_level": risk_level,
+        "reason": reason,
+        "request_payload": request_payload,
+        "status": "pending",
+        "requested_at": datetime.utcnow().isoformat(),
+    }
 
 
 def _skip_pending_web_nodes(dag: DAGDefinition) -> list[str]:
@@ -481,7 +676,13 @@ def planner_node(state: ResearchState) -> dict:
 
     # 调用 Planner Agent 生成 DAG
     agent = PlannerAgent()
-    dag: DAGDefinition = agent.create_dag(state["user_query"])
+    planning_hints = _format_failure_memory_notes(state.get("failure_memory"))
+    dag: DAGDefinition = agent.create_dag(
+        state["user_query"],
+        planning_hints=planning_hints or None,
+        skill_prompt=_skill_prompt(state) or None,
+        planner_hints=_agent_skill_hints(state, "planner"),
+    )
     dag = _enforce_internal_first_dag(dag, state["user_query"])
     decision = build_guardrail_decision(state["user_query"], user_confirmed=state.get("user_confirmed", False))
     record_guardrail_event(
@@ -510,6 +711,8 @@ def planner_node(state: ResearchState) -> dict:
         "session": session,
         "budget_state": budget_state,
         "guardrail_decision": decision.model_dump(),
+        "failure_memory": state.get("failure_memory"),
+        "skill_context": _skill_context(state),
     }
 
 
@@ -531,10 +734,29 @@ def dag_executor_node(state: ResearchState) -> dict:
 
     dag = deserialize_dag(state["dag"])
     execution_order = dag.get_executable_order()
+    budget_state = _build_budget_state(state)
+    failure_memory = state.get("failure_memory")
 
     # 当前批次节点
     all_completed = set(state.get("completed_nodes", []))
     current_batch = []
+    deferred_retries: list[dict[str, Any]] = []
+
+    for node in dag.nodes:
+        if node.node_type not in TOOL_NODE_TYPES:
+            continue
+        should_retry, reason = _should_retry_node(node, budget_state, failure_memory)
+        if should_retry:
+            node.status = StepStatus.PENDING
+        elif reason == "backoff_active":
+            for item in (failure_memory or {}).get("records", []):
+                if item.get("node_type") == node.node_type and item.get("query") == node.query:
+                    deferred_retries.append({
+                        "node_id": node.node_id,
+                        "next_retry_at": item.get("next_retry_at"),
+                        "backoff_seconds": item.get("backoff_seconds", 0),
+                    })
+                    break
 
     for batch in execution_order:
         # 找出当前批次中未完成的节点
@@ -549,8 +771,30 @@ def dag_executor_node(state: ResearchState) -> dict:
 
     if not current_batch:
         # 所有节点都已执行完成
+        if deferred_retries:
+            next_retry_at = min(
+                (
+                    datetime.fromisoformat(item["next_retry_at"])
+                    for item in deferred_retries
+                    if item.get("next_retry_at")
+                ),
+                default=None,
+            )
+            if next_retry_at is not None:
+                delay_seconds = max(0.0, min((next_retry_at - datetime.utcnow()).total_seconds(), 5.0))
+                if delay_seconds > 0:
+                    time.sleep(delay_seconds)
         emit_event(state, EventType.AGENT_COMPLETE, "dag_executor", "All DAG nodes completed")
-        return {"current_executing_nodes": [], "agent_trace": []}
+        trace = []
+        if deferred_retries:
+            trace.append(_append_trace_event(
+                state,
+                EventType.AGENT_COMPLETE,
+                "retry_scheduler",
+                f"Deferred {len(deferred_retries)} retryable node(s) by exponential backoff.",
+                {"deferred_retries": deferred_retries},
+            ))
+        return {"current_executing_nodes": [], "agent_trace": trace}
 
     emit_event(
         state, EventType.AGENT_START, "dag_executor",
@@ -558,7 +802,17 @@ def dag_executor_node(state: ResearchState) -> dict:
     )
 
     return {
+        "dag": serialize_dag(dag),
         "current_executing_nodes": current_batch,
+        "agent_trace": [
+            _append_trace_event(
+                state,
+                EventType.AGENT_COMPLETE,
+                "retry_scheduler",
+                f"Deferred {len(deferred_retries)} retryable node(s) by exponential backoff.",
+                {"deferred_retries": deferred_retries},
+            ),
+        ] if deferred_retries else [],
     }
 
 
@@ -700,12 +954,23 @@ def dag_results_aggregator(state: ResearchState) -> dict:
             },
         ))
 
+    failure_memory = _build_failure_memory(state, dag)
+    if failure_memory.get("records"):
+        trace.append(_append_trace_event(
+            state,
+            EventType.AGENT_COMPLETE,
+            "failure_memory",
+            f"Captured {len(failure_memory['records'])} failure memory records",
+            {"failure_memory": failure_memory},
+        ))
+
     return {
         "dag": serialize_dag(dag),
         "completed_nodes": completed_list,
         "retrieval_policy": retrieval_policy,
         "runtime_status": runtime_status,
         "budget_state": budget_state,
+        "failure_memory": failure_memory,
         "agent_trace": trace,
     }
 
@@ -721,7 +986,7 @@ def should_continue_dag(state: ResearchState) -> str:
     dag = deserialize_dag(state["dag"])
     completed = set(state.get("completed_nodes", []))
     if state.get("pending_approvals"):
-        return "continue"
+        return "approval_reviewer"
     budget_state = state.get("budget_state") or {}
     if budget_state.get("hard_stop_reason"):
         return "analyst"
@@ -734,9 +999,45 @@ def should_continue_dag(state: ResearchState) -> str:
         and not getattr(n, "waiting_approval", False)
     ]
 
+    deferred_retry_exists = False
+    failure_memory = state.get("failure_memory") or {}
+    records = failure_memory.get("records") or []
     if pending:
+        for node in pending:
+            if node.status != StepStatus.FAILED:
+                deferred_retry_exists = True
+                break
+            for record in records:
+                if record.get("node_type") == node.node_type and record.get("query") == node.query:
+                    if record.get("next_retry_at") and not record.get("repeat_blocked"):
+                        deferred_retry_exists = True
+                        break
+            if deferred_retry_exists:
+                break
+
+    if deferred_retry_exists:
         return "continue"
     return "analyst"
+
+
+def approval_reviewer_node(state: ResearchState) -> dict:
+    """Independent reviewer branch for action-level approvals."""
+    from app.graph.state import AgentEvent
+
+    pending = [
+        approval for approval in state.get("pending_approvals", [])
+        if isinstance(approval, dict) and approval.get("status", "pending") == "pending"
+    ]
+    trace = [AgentEvent(
+        agent="approval_reviewer",
+        event_type="agent_complete",
+        content=f"Paused for {len(pending)} approval request(s)",
+    ).model_dump()]
+    return {
+        "runtime_status": RuntimeStatus.AWAITING_APPROVAL.value,
+        "status": TaskStatus.PAUSED.value,
+        "agent_trace": trace,
+    }
 
 
 # ==============================================================
@@ -823,6 +1124,41 @@ def search_node(state: ResearchState) -> dict:
                 error_message=reason or "invalid_args",
             ))
             continue
+        require_approval, approval_reason = should_require_action_approval(
+            tool_name="duckduckgo_search",
+            decision=state.get("guardrail_decision") and build_guardrail_decision(
+                state["user_query"],
+                user_confirmed=state.get("user_confirmed", False),
+            ),
+            readonly=True,
+        )
+        if require_approval:
+            approval = _make_approval_request(
+                node_id=node.node_id,
+                tool_name="duckduckgo_search",
+                reason=approval_reason or "action_requires_approval",
+                request_payload={"query": node.query},
+            )
+            node.waiting_approval = True
+            _finish_tool_history(tool_history, status="error", error=approval["reason"])
+            tool_histories.append(tool_history)
+            node_outcomes.append(_make_node_outcome(
+                node_id=node.node_id,
+                tool_history=tool_history,
+                tool_name="duckduckgo_search",
+                status="awaiting_approval",
+                retry_count=node.retry_count,
+                error_category="approval_required",
+                error_message=approval["reason"],
+                approval_request_id=approval["approval_id"],
+            ))
+            return {
+                "collected_evidence": [e.model_dump() for e in all_evidence],
+                "tool_histories": tool_histories,
+                "node_outcomes": node_outcomes,
+                "pending_approvals": [approval],
+                "agent_trace": trace,
+            }
         # 更新节点状态为 RUNNING
         node.status = StepStatus.RUNNING
 
@@ -989,10 +1325,52 @@ def browser_node(state: ResearchState) -> dict:
                 error_message=reason or "invalid_args",
             ))
             continue
+        require_approval, approval_reason = should_require_action_approval(
+            tool_name="browse_webpage",
+            decision=state.get("guardrail_decision") and build_guardrail_decision(
+                state["user_query"],
+                user_confirmed=state.get("user_confirmed", False),
+            ),
+            readonly=True,
+        )
+        if require_approval:
+            approval = _make_approval_request(
+                node_id=node.node_id,
+                tool_name="browse_webpage",
+                reason=approval_reason or "action_requires_approval",
+                request_payload={"url": node.query, "max_chars": 2000},
+            )
+            node.waiting_approval = True
+            _finish_tool_history(tool_history, status="error", error=approval["reason"])
+            tool_histories.append(tool_history)
+            node_outcomes.append(_make_node_outcome(
+                node_id=node.node_id,
+                tool_history=tool_history,
+                tool_name="browse_webpage",
+                status="awaiting_approval",
+                retry_count=node.retry_count,
+                error_category="approval_required",
+                error_message=approval["reason"],
+                approval_request_id=approval["approval_id"],
+            ))
+            return {
+                "collected_evidence": [e.model_dump() for e in all_evidence],
+                "tool_histories": tool_histories,
+                "node_outcomes": node_outcomes,
+                "pending_approvals": [approval],
+                "agent_trace": trace,
+            }
         node.status = StepStatus.RUNNING
 
         try:
             results = agent.execute_browse(node.query)
+            browser_error = next(
+                (result.error_message for result in results if getattr(result, "error_message", None)),
+                None,
+            )
+            has_content = any((result.extracted_content or "").strip() for result in results)
+            if browser_error and not has_content:
+                raise RuntimeError(browser_error)
             node.result = {"results": [r.model_dump() for r in results]}
             node.confidence = 0.85 if results else 0.0
             _finish_tool_history(
@@ -1146,6 +1524,41 @@ def rag_node(state: ResearchState) -> dict:
                 error_message=reason or "invalid_args",
             ))
             continue
+        require_approval, approval_reason = should_require_action_approval(
+            tool_name="knowledge_base_search",
+            decision=state.get("guardrail_decision") and build_guardrail_decision(
+                state["user_query"],
+                user_confirmed=state.get("user_confirmed", False),
+            ),
+            readonly=True,
+        )
+        if require_approval:
+            approval = _make_approval_request(
+                node_id=node.node_id,
+                tool_name="knowledge_base_search",
+                reason=approval_reason or "action_requires_approval",
+                request_payload={"query": node.query, "top_k": 10},
+            )
+            node.waiting_approval = True
+            _finish_tool_history(tool_history, status="error", error=approval["reason"])
+            tool_histories.append(tool_history)
+            node_outcomes.append(_make_node_outcome(
+                node_id=node.node_id,
+                tool_history=tool_history,
+                tool_name="knowledge_base_search",
+                status="awaiting_approval",
+                retry_count=node.retry_count,
+                error_category="approval_required",
+                error_message=approval["reason"],
+                approval_request_id=approval["approval_id"],
+            ))
+            return {
+                "collected_evidence": [e.model_dump() for e in all_evidence],
+                "tool_histories": tool_histories,
+                "node_outcomes": node_outcomes,
+                "pending_approvals": [approval],
+                "agent_trace": trace,
+            }
         node.status = StepStatus.RUNNING
 
         try:
@@ -1250,7 +1663,7 @@ def execute_tool_batch(state: ResearchState) -> list[Send]:
 
     dag = deserialize_dag(state["dag"])
     decision = state.get("guardrail_decision") or {}
-    enabled_tools = set(decision.get("enabled_tools", ["search", "browser", "rag"]))
+    enabled_tools = _effective_tool_allowlist(state, decision)
     sends = []
 
     # 子节点在 LangGraph 中接收到的是 Send payload，不一定包含完整 state。
@@ -1272,7 +1685,7 @@ def execute_tool_batch(state: ResearchState) -> list[Send]:
             continue
 
         # 根据节点类型分发
-        if node.node_type in ("search", "browser", "rag") and node.node_type in enabled_tools:
+        if node.node_type in ("search", "browser", "rag", "mcp") and node.node_type in enabled_tools:
             sends.append(Send(node.node_type, {
                 **node_payload,
                 "executing_nodes": [node_id],
@@ -1332,7 +1745,12 @@ def analyst_node(state: ResearchState) -> dict:
         }
 
     agent = AnalystAgent()
-    analysis_text = agent.analyze(state["user_query"], evidence_list)
+    analysis_text = agent.analyze(
+        state["user_query"],
+        evidence_list,
+        skill_prompt=_skill_prompt(state) or None,
+        analyst_hints=_agent_skill_hints(state, "analyst"),
+    )
     session, budget_state = _apply_llm_usage_to_state(state, "analyst", agent.last_usage)
 
     complete_content = (
@@ -1384,7 +1802,9 @@ def reflection_node(state: ResearchState) -> dict:
     verification: VerificationResult = agent.reflect(
         state["user_query"],
         state["analysis"],
-        evidence_list
+        evidence_list,
+        skill_prompt=_skill_prompt(state) or None,
+        reflection_hints=_agent_skill_hints(state, "reflection"),
     )
     session, budget_state = _apply_llm_usage_to_state(state, "reflection", agent.last_usage)
 
@@ -1451,11 +1871,19 @@ def replan_node(state: ResearchState) -> dict:
     session["revision_count"] = revision_count
     session["updated_at"] = datetime.utcnow().isoformat()
 
-    # 重置 DAG 执行状态
-    dag = deserialize_dag(state["dag"])
-    for node in dag.nodes:
-        if node.status in (StepStatus.PENDING, StepStatus.FAILED):
-            node.status = StepStatus.PENDING
+    from app.agents.planner import PlannerAgent
+
+    failure_memory = state.get("failure_memory")
+    planning_hints = _format_failure_memory_notes(failure_memory)
+    agent = PlannerAgent()
+    dag = agent.create_dag(
+        state["user_query"],
+        planning_hints=planning_hints or None,
+        skill_prompt=_skill_prompt(state) or None,
+        planner_hints=_agent_skill_hints(state, "planner"),
+    )
+    dag = _enforce_internal_first_dag(dag, state["user_query"])
+    session, budget_state = _apply_llm_usage_to_state(state, "replan", agent.last_usage)
 
     from app.observability.trace import emit_event, EventType
     emit_event(
@@ -1471,6 +1899,9 @@ def replan_node(state: ResearchState) -> dict:
         "current_executing_nodes": [],
         "collected_evidence": [],
         "analysis": "",
+        "node_outcomes": [],
+        "failure_memory": failure_memory,
+        "budget_state": budget_state,
     }
 
 
@@ -1560,6 +1991,8 @@ async def report_node(state: ResearchState) -> dict:
         evidence_list=evidence_list,
         reflection=verification,
         output_length=state.get("output_length") or state.get("session", {}).get("output_length"),
+        skill_prompt=_skill_prompt(state) or None,
+        report_hints=_agent_skill_hints(state, "report"),
         on_chunk=on_chunk,
         on_citation=on_citation,
     )
@@ -1632,6 +2065,7 @@ def compile_research_graph() -> StateGraph:
     builder.add_node("planner", planner_node)
     builder.add_node("dag_executor", dag_executor_node)
     builder.add_node("dag_aggregator", dag_results_aggregator)
+    builder.add_node("approval_reviewer", approval_reviewer_node)
     builder.add_node("analyst", analyst_node)
     builder.add_node("reflection", reflection_node)
     builder.add_node("replan", replan_node)
@@ -1641,6 +2075,7 @@ def compile_research_graph() -> StateGraph:
     builder.add_node("search", search_node)
     builder.add_node("browser", browser_node)
     builder.add_node("rag", rag_node)
+    builder.add_node("mcp", mcp_node)
 
     # === 边定义 ===
     # 入口
@@ -1653,13 +2088,14 @@ def compile_research_graph() -> StateGraph:
     builder.add_conditional_edges(
         "dag_executor",
         execute_tool_batch,
-        ["search", "browser", "rag"],
+        ["search", "browser", "rag", "mcp"],
     )
 
     # 工具节点 → 结果聚合
     builder.add_edge("search", "dag_aggregator")
     builder.add_edge("browser", "dag_aggregator")
     builder.add_edge("rag", "dag_aggregator")
+    builder.add_edge("mcp", "dag_aggregator")
 
     # 结果聚合 → 判断是否继续 DAG 或进入分析
     builder.add_conditional_edges(
@@ -1667,9 +2103,12 @@ def compile_research_graph() -> StateGraph:
         should_continue_dag,
         {
             "continue": "dag_executor",  # 继续执行下一批节点
+            "approval_reviewer": "approval_reviewer",
             "analyst": "analyst",         # DAG 全部完成，进入分析
         },
     )
+
+    builder.add_edge("approval_reviewer", END)
 
     # 分析 → 反思
     builder.add_edge("analyst", "reflection")
@@ -1707,3 +2146,95 @@ def compile_research_graph() -> StateGraph:
         checkpointer = MemorySaver()
 
     return builder.compile(checkpointer=checkpointer)
+async def mcp_node(state: ResearchState) -> dict:
+    """MCP tool node guarded by McpPolicyProxy."""
+    from app.graph.state import AgentEvent
+    from app.observability.trace import EventType
+
+    dag = deserialize_dag(state["dag"])
+    executing_nodes = state.get("executing_nodes", state.get("current_executing_nodes", []))
+    mcp_nodes = [n for n in dag.nodes if n.node_id in executing_nodes and n.node_type == "mcp"]
+    if not mcp_nodes:
+        return {"collected_evidence": [], "tool_histories": [], "agent_trace": [], "node_outcomes": []}
+
+    proxy = McpPolicyProxy()
+    trace = [
+        _append_trace_event(state, EventType.AGENT_START, "mcp", f"Executing {len(mcp_nodes)} MCP nodes")
+    ]
+    tool_histories = []
+    node_outcomes = []
+    for node in mcp_nodes:
+        tool_history = _make_tool_history(
+            agent_type=AgentType.BROWSER,
+            tool_name="mcp_proxy",
+            task_id=state.get("task_id"),
+            query=node.query,
+        )
+        request = McpToolRequest(
+            session_id=state.get("task_id"),
+            decision_id=None,
+            tool_name=node.query.split(":", 1)[-1] if ":" in node.query else node.query,
+            requested_args={"query": node.query},
+            server_id=node.query.split(":", 1)[0] if ":" in node.query else "default",
+        )
+        result = await proxy.invoke(request)
+        if result.status == "awaiting_approval":
+            approval = result.approval_request or _make_approval_request(
+                node_id=node.node_id,
+                tool_name=request.tool_name,
+                reason="mcp_write_requires_approval",
+                request_payload={"server_id": request.server_id, "args": request.requested_args},
+            )
+            _finish_tool_history(tool_history, status="error", error=approval["reason"])
+            tool_histories.append(tool_history)
+            node_outcomes.append(_make_node_outcome(
+                node_id=node.node_id,
+                tool_history=tool_history,
+                tool_name=request.tool_name,
+                status="awaiting_approval",
+                retry_count=node.retry_count,
+                error_category="approval_required",
+                error_message=approval["reason"],
+                approval_request_id=approval["approval_id"],
+            ))
+            return {
+                "tool_histories": tool_histories,
+                "node_outcomes": node_outcomes,
+                "pending_approvals": [approval],
+                "agent_trace": trace,
+            }
+        if result.status == "terminal_error":
+            _finish_tool_history(tool_history, status="error", error=result.error_message or result.error_category or "mcp_error")
+            tool_histories.append(tool_history)
+            node_outcomes.append(_make_node_outcome(
+                node_id=node.node_id,
+                tool_history=tool_history,
+                tool_name=request.tool_name,
+                status="terminal_error",
+                retry_count=node.retry_count,
+                error_category=result.error_category,
+                error_message=result.error_message,
+            ))
+            continue
+        _finish_tool_history(tool_history, status="success", result_summary=result.result_summary or "mcp success")
+        tool_history["tool_calls"][-1]["server_fingerprint"] = result.server_fingerprint
+        tool_histories.append(tool_history)
+        node_outcomes.append(_make_node_outcome(
+            node_id=node.node_id,
+            tool_history=tool_history,
+            tool_name=request.tool_name,
+            status="success",
+            retry_count=node.retry_count,
+            result_count=1 if result.payload is not None else 0,
+        ))
+        trace.append(AgentEvent(
+            agent="mcp",
+            event_type="tool_complete",
+            content=f"MCP tool {request.tool_name} succeeded",
+        ).model_dump())
+    return {
+        "collected_evidence": [],
+        "tool_histories": tool_histories,
+        "node_outcomes": node_outcomes,
+        "agent_trace": trace,
+    }

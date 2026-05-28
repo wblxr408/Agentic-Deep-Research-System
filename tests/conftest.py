@@ -350,6 +350,14 @@ def mock_settings(monkeypatch: pytest.MonkeyPatch) -> None:
         rag = MockRAGSettings()
         browser = MockBrowserSettings()
         api = MockAPISettings()
+        skills = type("MockSkillSettings", (), {
+            "match_top_k": 5,
+            "coarse_candidate_floor": 12,
+            "broad_fallback_limit": 32,
+            "content_l1_cache_size": 64,
+            "match_cache_ttl": 900,
+            "content_cache_ttl": 1800,
+        })()
         sse_enabled = True
         observability_enabled = True
 

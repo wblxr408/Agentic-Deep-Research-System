@@ -33,6 +33,7 @@ __all__ = [
     "is_tool_allowed",
     "record_guardrail_event",
     "validate_tool_invocation",
+    "should_require_action_approval",
 ]
 
 
@@ -48,6 +49,7 @@ def __getattr__(name: str) -> Any:
         "is_tool_allowed",
         "normalize_research_length",
         "record_guardrail_event",
+        "should_require_action_approval",
         "validate_tool_invocation",
     }:
         from app.guardrails import policy

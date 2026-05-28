@@ -29,8 +29,32 @@ interface ResearchResult {
     source_type: string
   }> | Record<string, unknown> | null
   agent_trace: unknown[]
+  skill_context?: {
+    auto_matched_skill_ids?: string[]
+    manually_enabled_skill_ids?: string[]
+    manually_disabled_skill_ids?: string[]
+    effective_skill_ids?: string[]
+    effective_tool_allowlist?: string[]
+    match_results?: Array<{
+      skill_id: string
+      slug: string
+      name: string
+      reason: string
+      priority: number
+      allowed_tools: string[]
+    }>
+  }
   created_at: string
   completed_at: string | null
+}
+
+interface SkillItem {
+  id: string
+  name: string
+  slug: string
+  description: string
+  enabled: boolean
+  allowed_tools: string[]
 }
 
 interface ResearchDashboardProps {
@@ -45,10 +69,21 @@ function ResearchDashboard({ onBack }: ResearchDashboardProps) {
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null)
   const [isStreaming, setIsStreaming] = useState(false)
   const [sessionStatus, setSessionStatus] = useState<string | null>(null)
+  const [enabledSkillIds, setEnabledSkillIds] = useState<string[]>([])
+  const [disabledSkillIds, setDisabledSkillIds] = useState<string[]>([])
   const inputRef = useRef<HTMLInputElement>(null)
 
   // SSE for real-time updates
   const { events, status: sseStatus, error: sseError, clearEvents } = useSSE(activeSessionId)
+
+  const { data: skillsData } = useQuery<{ items: SkillItem[] }>({
+    queryKey: ['skills'],
+    queryFn: async () => {
+      const res = await fetch('/api/v1/skills')
+      if (!res.ok) throw new Error('Failed to fetch skills')
+      return res.json()
+    },
+  })
 
   // Focus input on mount
   useEffect(() => {
@@ -78,6 +113,8 @@ function ResearchDashboard({ onBack }: ResearchDashboardProps) {
           allow_web_after_rag_hit: allowWebAfterRagHit,
           rag_group: ragGroup.trim() || null,
           output_length: outputLength,
+          enabled_skill_ids: enabledSkillIds,
+          disabled_skill_ids: disabledSkillIds,
         }),
       })
       if (!res.ok) throw new Error('Failed to start research')
@@ -138,7 +175,7 @@ function ResearchDashboard({ onBack }: ResearchDashboardProps) {
   const handleStart = useCallback(() => {
     if (query.trim().length < 5) return
     startMutation.mutate(query.trim())
-  }, [query, startMutation, allowWebAfterRagHit, ragGroup, outputLength])
+  }, [query, startMutation, allowWebAfterRagHit, ragGroup, outputLength, enabledSkillIds, disabledSkillIds])
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
@@ -160,6 +197,12 @@ function ResearchDashboard({ onBack }: ResearchDashboardProps) {
 
   const displayReport = streamedReport || result?.report || ''
   const normalizedCitations = Array.isArray(result?.citations) ? result.citations : []
+  const effectiveSkillIds = result?.skill_context?.effective_skill_ids || []
+  const autoMatchedSkillIds = result?.skill_context?.auto_matched_skill_ids || []
+  const effectiveTools = result?.skill_context?.effective_tool_allowlist || []
+  const matchedSkills = result?.skill_context?.match_results || []
+  const manuallyEnabledSkillIds = result?.skill_context?.manually_enabled_skill_ids || []
+  const manuallyDisabledSkillIds = result?.skill_context?.manually_disabled_skill_ids || []
   const showConfirmationState = sessionStatus === 'pending_confirmation'
   const hasVisibleEvents = events.some((event: SSEvent) => event.type !== 'connected')
   const isConnectingStream = isStreaming && (sseStatus === 'connecting' || sseStatus === 'connected') && !hasVisibleEvents
@@ -287,6 +330,47 @@ function ResearchDashboard({ onBack }: ResearchDashboardProps) {
                   {option.label}
                 </button>
               ))}
+            </div>
+            <div className="mt-4 rounded-2xl border border-xmgray-100 bg-xmgray-50/60 p-4">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-xs font-medium text-xmgray-600">Session Skills</span>
+                <span className="text-[11px] text-xmgray-400">自动匹配 + 手动覆盖</span>
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {skillsData?.items.filter(skill => skill.enabled).map(skill => {
+                  const manuallyEnabled = enabledSkillIds.includes(skill.id)
+                  const manuallyDisabled = disabledSkillIds.includes(skill.id)
+                  const stateLabel = manuallyDisabled ? '已禁用' : manuallyEnabled ? '已启用' : '自动'
+                  return (
+                    <div key={skill.id} className="rounded-xl border border-xmgray-200 bg-white px-3 py-2">
+                      <div className="text-sm text-xmgray-700">{skill.name}</div>
+                      <div className="mt-2 flex gap-2">
+                        <button
+                          type="button"
+                          className={`tag text-[11px] ${manuallyEnabled ? 'bg-xm-50 text-xm-700 border-xm-100' : ''}`}
+                          onClick={() => {
+                            setDisabledSkillIds(prev => prev.filter(id => id !== skill.id))
+                            setEnabledSkillIds(prev => prev.includes(skill.id) ? prev.filter(id => id !== skill.id) : [...prev, skill.id])
+                          }}
+                        >
+                          启用
+                        </button>
+                        <button
+                          type="button"
+                          className={`tag text-[11px] ${manuallyDisabled ? 'bg-red-50 text-red-600 border-red-100' : ''}`}
+                          onClick={() => {
+                            setEnabledSkillIds(prev => prev.filter(id => id !== skill.id))
+                            setDisabledSkillIds(prev => prev.includes(skill.id) ? prev.filter(id => id !== skill.id) : [...prev, skill.id])
+                          }}
+                        >
+                          禁用
+                        </button>
+                        <span className="text-[11px] text-xmgray-400 self-center">{stateLabel}</span>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
             </div>
             <p className="mt-2 text-[11px] text-xmgray-400">
               不勾选时：内部 RAG 有结果就只用内部证据；内部为空才自动联网。
@@ -445,9 +529,80 @@ function ResearchDashboard({ onBack }: ResearchDashboardProps) {
                 {normalizedCitations.length > 0 && (
                   <span className="tag text-[11px]">{normalizedCitations.length} 条引用</span>
                 )}
+                {effectiveSkillIds.length > 0 && (
+                  <span className="tag text-[11px]">{effectiveSkillIds.length} 个 skill 生效</span>
+                )}
               </div>
             </div>
             <div className="p-6 min-h-[500px] max-h-[680px] overflow-y-auto">
+              {(effectiveSkillIds.length > 0 || effectiveTools.length > 0) && (
+                <div className="mb-5 rounded-2xl border border-xmgray-100 bg-xmgray-50/70 p-4">
+                  <div className="text-sm font-medium text-xmgray-700">当前 Session Skill 上下文</div>
+                  {effectiveSkillIds.length > 0 && (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {effectiveSkillIds.map(skillId => {
+                        const skill = skillsData?.items.find(item => item.id === skillId)
+                        const autoMatched = autoMatchedSkillIds.includes(skillId)
+                        return (
+                          <span key={skillId} className="tag text-[11px]">
+                            {skill?.name || skillId}
+                            {autoMatched ? ' · auto' : ' · manual'}
+                          </span>
+                        )
+                      })}
+                    </div>
+                  )}
+                  {effectiveTools.length > 0 && (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {effectiveTools.map(tool => (
+                        <span key={tool} className="tag-orange text-[11px]">{tool}</span>
+                      ))}
+                    </div>
+                  )}
+                  {matchedSkills.length > 0 && (
+                    <div className="mt-4 space-y-2">
+                      {matchedSkills.map(match => {
+                        const skill = skillsData?.items.find(item => item.id === match.skill_id)
+                        return (
+                          <div key={match.skill_id} className="rounded-xl border border-xmgray-100 bg-white px-3 py-3">
+                            <div className="flex items-center justify-between gap-3">
+                              <div>
+                                <div className="text-sm font-medium text-xmgray-700">{skill?.name || match.name}</div>
+                                <div className="mt-1 text-[11px] text-xmgray-400">
+                                  {match.reason} · priority {match.priority}
+                                </div>
+                              </div>
+                              <span className="tag text-[11px]">auto match</span>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                  {(manuallyEnabledSkillIds.length > 0 || manuallyDisabledSkillIds.length > 0) && (
+                    <div className="mt-4 grid gap-3 md:grid-cols-2">
+                      <div className="rounded-xl border border-xmgray-100 bg-white px-3 py-3">
+                        <div className="text-xs font-medium text-xmgray-600">手动启用</div>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {manuallyEnabledSkillIds.length > 0 ? manuallyEnabledSkillIds.map(skillId => {
+                            const skill = skillsData?.items.find(item => item.id === skillId)
+                            return <span key={skillId} className="tag text-[11px]">{skill?.name || skillId}</span>
+                          }) : <span className="text-[11px] text-xmgray-400">无</span>}
+                        </div>
+                      </div>
+                      <div className="rounded-xl border border-xmgray-100 bg-white px-3 py-3">
+                        <div className="text-xs font-medium text-xmgray-600">手动禁用</div>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {manuallyDisabledSkillIds.length > 0 ? manuallyDisabledSkillIds.map(skillId => {
+                            const skill = skillsData?.items.find(item => item.id === skillId)
+                            return <span key={skillId} className="tag text-[11px]">{skill?.name || skillId}</span>
+                          }) : <span className="text-[11px] text-xmgray-400">无</span>}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
               <ReportPreview
                 report={displayReport}
                 citations={normalizedCitations}

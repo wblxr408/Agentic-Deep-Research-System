@@ -146,6 +146,13 @@ class TestBrowserAgent:
         assert result.extracted_content == ""
         assert len(result.citations) == 0
 
+    def test_fallback_result_preserves_error_message(self):
+        from app.agents.browser import BrowserAgent
+
+        agent = BrowserAgent()
+        result = agent._fallback_result("https://failed.com", error_message="navigation timeout")
+        assert result.error_message == "navigation timeout"
+
 
 class TestRAGAgent:
     def test_rag_agent_import(self):

@@ -120,6 +120,8 @@ class ReportAgent:
         evidence_list: list[Evidence],
         reflection: dict | None,
         output_length: str | None = None,
+        skill_prompt: str | None = None,
+        report_hints: list[str] | None = None,
         on_chunk: Callable[[str], None] | None = None,
         on_citation: Callable[[Citation], None] | None = None,
     ) -> tuple[str, list[Citation]]:
@@ -139,6 +141,13 @@ class ReportAgent:
         decision = build_guardrail_decision(user_query)
         budget = get_research_budget(output_length)
         system_prompt = f"{build_prompt_profile_message(decision, user_query)}\n\n{self.SYSTEM_PROMPT}"
+        if skill_prompt:
+            system_prompt = f"{system_prompt}\n\n## Active Skill Context\n{skill_prompt.strip()}"
+        if report_hints:
+            system_prompt = (
+                f"{system_prompt}\n\n## Report Skill Instructions\n"
+                + "\n".join(f"- {item}" for item in report_hints if item and item.strip())
+            )
         system_prompt += (
             f"\n\n输出长度要求：{output_length or 'medium'}。"
             f"请优先控制在约 {budget['report_max_tokens']} tokens 内。"

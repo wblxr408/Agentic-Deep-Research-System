@@ -109,6 +109,8 @@ Be strict but fair. Flag real hallucinations but don't over-flag.
         user_query: str,
         analysis: str,
         evidence_list: list[Evidence],
+        skill_prompt: str | None = None,
+        reflection_hints: list[str] | None = None,
     ) -> ReflectionResult:
         """
         Perform reflection on the analysis.
@@ -124,6 +126,13 @@ Be strict but fair. Flag real hallucinations but don't over-flag.
         logger.info(f"Reflection: validating analysis ({len(analysis)} chars, {len(evidence_list)} evidence items)")
         decision = build_guardrail_decision(user_query)
         system_prompt = f"{build_prompt_profile_message(decision, user_query)}\n\n{self.SYSTEM_PROMPT}"
+        if skill_prompt:
+            system_prompt = f"{system_prompt}\n\n## Active Skill Context\n{skill_prompt.strip()}"
+        if reflection_hints:
+            system_prompt = (
+                f"{system_prompt}\n\n## Reflection Skill Instructions\n"
+                + "\n".join(f"- {item}" for item in reflection_hints if item and item.strip())
+            )
 
         formatted_evidence = self._format_evidence(evidence_list)
 

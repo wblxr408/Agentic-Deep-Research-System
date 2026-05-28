@@ -130,7 +130,7 @@ class PlanNode(BaseModel):
     """
     node_id: str = Field(default_factory=lambda: f"n{uuid.uuid4().hex[:6]}")
     # 节点类型：对应工具驱动中的 Agent 类型
-    node_type: Literal["search", "browser", "rag", "analyst", "reflection", "report"] | None = None
+    node_type: Literal["search", "browser", "rag", "mcp", "analyst", "reflection", "report"] | None = None
     # 该节点要执行的具体查询
     query: str = ""
     # 依赖的前置节点（只有在这些节点完成后才能执行）
@@ -446,6 +446,7 @@ class BrowserResult(BaseModel):
     # 兼容 browser.py 传入的字段
     extraction_level: str = "skim"  # snippet | skim | deep
     citation: str | None = None  # 单条引用文本
+    error_message: str | None = None
 
 
 class RAGResult(BaseModel):
@@ -619,6 +620,7 @@ class ResearchState(TypedDict):
     guardrail_decision: dict | None
     evidence_status: dict | None
     review_status: dict | None
+    failure_memory: dict | None
     user_confirmed: bool
 
     # ===== 可观测性 =====
@@ -671,6 +673,7 @@ class ResearchState(TypedDict):
     guardrail_decision: dict | None
     evidence_status: dict | None
     review_status: dict | None
+    failure_memory: dict | None
     user_confirmed: bool
     allow_web_after_rag_hit: bool
     rag_group: str | None
@@ -678,6 +681,8 @@ class ResearchState(TypedDict):
     runtime_status: str
     budget_state: dict | None
     pending_approvals: Annotated[list[dict], merge_lists]
+    output_length: str
+    skill_context: dict | None
 
     # ===== 可观测性 =====
     agent_trace: Annotated[list[dict], merge_lists]
@@ -736,6 +741,7 @@ def create_initial_state(
         guardrail_decision=None,
         evidence_status=None,
         review_status=None,
+        failure_memory=None,
         user_confirmed=False,
         allow_web_after_rag_hit=False,
         rag_group=None,
@@ -743,6 +749,8 @@ def create_initial_state(
         runtime_status=RuntimeStatus.PENDING.value,
         budget_state=None,
         pending_approvals=[],
+        output_length="medium",
+        skill_context=None,
 
         agent_trace=[],
         guardrail_trace=[],

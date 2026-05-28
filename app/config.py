@@ -113,6 +113,28 @@ class APISettings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="API_")
 
 
+class HarnessSettings(BaseSettings):
+    """Harness supervisor state configuration."""
+
+    state_root: str = Field(default="./data/harness")
+    worker_id: str = Field(default="worker-1")
+
+    model_config = SettingsConfigDict(env_prefix="HARNESS_")
+
+
+class SkillSettings(BaseSettings):
+    """Skill matching/runtime settings."""
+
+    match_top_k: int = Field(default=5, ge=1, le=20)
+    coarse_candidate_floor: int = Field(default=12, ge=1, le=200)
+    broad_fallback_limit: int = Field(default=32, ge=1, le=500)
+    content_l1_cache_size: int = Field(default=128, ge=8, le=2048)
+    match_cache_ttl: int = Field(default=900, ge=30, le=86400)
+    content_cache_ttl: int = Field(default=1800, ge=30, le=86400)
+
+    model_config = SettingsConfigDict(env_prefix="SKILLS_")
+
+
 class Settings(BaseSettings):
     """Root configuration aggregating all sub-settings."""
 
@@ -123,6 +145,8 @@ class Settings(BaseSettings):
     rag: RAGSettings = Field(default_factory=RAGSettings)
     browser: BrowserSettings = Field(default_factory=BrowserSettings)
     api: APISettings = Field(default_factory=APISettings)
+    harness: HarnessSettings = Field(default_factory=HarnessSettings)
+    skills: SkillSettings = Field(default_factory=SkillSettings)
 
     # Global flags
     sse_enabled: bool = Field(default=True)

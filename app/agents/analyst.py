@@ -62,7 +62,13 @@ Return a JSON object with these fields:
             self.model = get_llm_model()
         return self._client
 
-    def analyze(self, user_query: str, evidence_list: list[Evidence]) -> str:
+    def analyze(
+        self,
+        user_query: str,
+        evidence_list: list[Evidence],
+        skill_prompt: str | None = None,
+        analyst_hints: list[str] | None = None,
+    ) -> str:
         """
         Generate analysis from collected evidence.
 
@@ -76,6 +82,13 @@ Return a JSON object with these fields:
         logger.info(f"Analyst: analyzing {len(evidence_list)} evidence items")
         decision = build_guardrail_decision(user_query)
         system_prompt = f"{build_prompt_profile_message(decision, user_query)}\n\n{self.SYSTEM_PROMPT}"
+        if skill_prompt:
+            system_prompt = f"{system_prompt}\n\n## Active Skill Context\n{skill_prompt.strip()}"
+        if analyst_hints:
+            system_prompt = (
+                f"{system_prompt}\n\n## Analyst Skill Instructions\n"
+                + "\n".join(f"- {item}" for item in analyst_hints if item and item.strip())
+            )
         if not evidence_list and not decision.reject_if_no_evidence:
             system_prompt += (
                 "\n\n当前没有检索到外部证据。你可以基于模型已有知识回答简单事实问题，"

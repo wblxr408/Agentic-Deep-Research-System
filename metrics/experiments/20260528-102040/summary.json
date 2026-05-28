@@ -1,0 +1,1094 @@
+{
+  "langgraph_workflow": {
+    "workflows": {
+      "wf-session-1": {
+        "workflow_id": "wf-session-1",
+        "session_id": "wf-session-1",
+        "user_query": "Compare LLM browser agents",
+        "started_at": "2026-05-28T02:20:40.701481",
+        "ended_at": "2026-05-28T02:20:40.764673",
+        "duration_ms": 63,
+        "status": "completed",
+        "revision_count": 1,
+        "node_executions": {
+          "planner": {
+            "started_at": "2026-05-28T02:20:40.701481",
+            "status": "success",
+            "ended_at": "2026-05-28T02:20:40.711990",
+            "duration_ms": 10,
+            "error": null
+          },
+          "search": {
+            "started_at": "2026-05-28T02:20:40.711990",
+            "status": "success",
+            "ended_at": "2026-05-28T02:20:40.722533",
+            "duration_ms": 10,
+            "error": null
+          },
+          "browser": {
+            "started_at": "2026-05-28T02:20:40.722533",
+            "status": "success",
+            "ended_at": "2026-05-28T02:20:40.733067",
+            "duration_ms": 10,
+            "error": null
+          },
+          "rag": {
+            "started_at": "2026-05-28T02:20:40.733067",
+            "status": "success",
+            "ended_at": "2026-05-28T02:20:40.743608",
+            "duration_ms": 10,
+            "error": null
+          },
+          "analyst": {
+            "started_at": "2026-05-28T02:20:40.743608",
+            "status": "success",
+            "ended_at": "2026-05-28T02:20:40.754155",
+            "duration_ms": 10,
+            "error": null
+          }
+        },
+        "state_updates": 5,
+        "checkpoint_count": 1,
+        "edge_transitions": 5,
+        "conditional_branches": 1,
+        "fan_outs": 1,
+        "error_message": null
+      },
+      "wf-session-2": {
+        "workflow_id": "wf-session-2",
+        "session_id": "wf-session-2",
+        "user_query": "Investigate MCP tool risks",
+        "started_at": "2026-05-28T02:20:40.765193",
+        "ended_at": "2026-05-28T02:20:40.796988",
+        "duration_ms": 31,
+        "status": "failed",
+        "revision_count": 0,
+        "node_executions": {
+          "planner": {
+            "started_at": "2026-05-28T02:20:40.765193",
+            "status": "success",
+            "ended_at": "2026-05-28T02:20:40.776255",
+            "duration_ms": 11,
+            "error": null
+          },
+          "search": {
+            "started_at": "2026-05-28T02:20:40.776255",
+            "status": "error",
+            "ended_at": "2026-05-28T02:20:40.786810",
+            "duration_ms": 10,
+            "error": "upstream timeout"
+          }
+        },
+        "state_updates": 2,
+        "checkpoint_count": 1,
+        "edge_transitions": 2,
+        "conditional_branches": 1,
+        "fan_outs": 0,
+        "error_message": "search timeout"
+      }
+    },
+    "summary": {
+      "total_workflows": 2,
+      "completed_workflows": 1,
+      "failed_workflows": 1,
+      "completed": 1,
+      "failed": 1,
+      "success_rate": 0.5,
+      "avg_duration_ms": 47.0,
+      "p95_duration_ms": 63,
+      "p99_duration_ms": 63,
+      "avg_revision_count": 0.5,
+      "avg_state_updates": 3.5,
+      "avg_fan_outs": 0.5,
+      "node_stats": {
+        "planner": {
+          "count": 2,
+          "errors": 0,
+          "total_duration_ms": 21,
+          "avg_duration_ms": 10.5,
+          "error_rate": 0.0
+        },
+        "search": {
+          "count": 2,
+          "errors": 1,
+          "total_duration_ms": 20,
+          "avg_duration_ms": 10.0,
+          "error_rate": 0.5
+        },
+        "browser": {
+          "count": 1,
+          "errors": 0,
+          "total_duration_ms": 10,
+          "avg_duration_ms": 10.0,
+          "error_rate": 0.0
+        },
+        "rag": {
+          "count": 1,
+          "errors": 0,
+          "total_duration_ms": 10,
+          "avg_duration_ms": 10.0,
+          "error_rate": 0.0
+        },
+        "analyst": {
+          "count": 1,
+          "errors": 0,
+          "total_duration_ms": 10,
+          "avg_duration_ms": 10.0,
+          "error_rate": 0.0
+        }
+      }
+    }
+  },
+  "research_dag": {
+    "dags": {
+      "dag-exp-1": {
+        "dag_id": "dag-exp-1",
+        "dag_name": "research-comparison",
+        "generated_at": "2026-05-28T02:20:40.800280",
+        "node_count": 5,
+        "edge_count": 5,
+        "depth": 3,
+        "node_types": {
+          "planner": 1,
+          "rag": 1,
+          "search": 1,
+          "browser": 1,
+          "analyst": 1
+        },
+        "execution_order": [
+          [
+            "n1"
+          ],
+          [
+            "n2",
+            "n3"
+          ],
+          [
+            "n4"
+          ],
+          [
+            "n5"
+          ]
+        ],
+        "parallel_batches": 4,
+        "status": "completed",
+        "execution_records": [
+          {
+            "node_id": "n1",
+            "node_type": "planner",
+            "started_at": "2026-05-28T02:20:40.800280",
+            "ended_at": "2026-05-28T02:20:40.800280",
+            "duration_ms": 120,
+            "status": "success",
+            "confidence": 0.9,
+            "error": null
+          },
+          {
+            "node_id": "n2",
+            "node_type": "rag",
+            "started_at": "2026-05-28T02:20:40.800280",
+            "ended_at": "2026-05-28T02:20:40.800280",
+            "duration_ms": 80,
+            "status": "success",
+            "confidence": 0.85,
+            "error": null
+          },
+          {
+            "node_id": "n3",
+            "node_type": "search",
+            "started_at": "2026-05-28T02:20:40.800280",
+            "ended_at": "2026-05-28T02:20:40.800280",
+            "duration_ms": 200,
+            "status": "success",
+            "confidence": 0.8,
+            "error": null
+          },
+          {
+            "node_id": "n4",
+            "node_type": "browser",
+            "started_at": "2026-05-28T02:20:40.800280",
+            "ended_at": "2026-05-28T02:20:40.800280",
+            "duration_ms": 320,
+            "status": "success",
+            "confidence": 0.75,
+            "error": null
+          },
+          {
+            "node_id": "n5",
+            "node_type": "analyst",
+            "started_at": "2026-05-28T02:20:40.800280",
+            "ended_at": "2026-05-28T02:20:40.800280",
+            "duration_ms": 140,
+            "status": "success",
+            "confidence": 0.88,
+            "error": null
+          }
+        ],
+        "plan_coverage_score": 0.92
+      },
+      "dag-exp-2": {
+        "dag_id": "dag-exp-2",
+        "dag_name": "mcp-safety-check",
+        "generated_at": "2026-05-28T02:20:40.801280",
+        "node_count": 4,
+        "edge_count": 3,
+        "depth": 3,
+        "node_types": {
+          "planner": 1,
+          "rag": 1,
+          "search": 1,
+          "browser": 1
+        },
+        "execution_order": [
+          [
+            "n1"
+          ],
+          [
+            "n2",
+            "n3"
+          ],
+          [
+            "n4"
+          ]
+        ],
+        "parallel_batches": 3,
+        "status": "failed",
+        "execution_records": [
+          {
+            "node_id": "n1",
+            "node_type": "planner",
+            "started_at": "2026-05-28T02:20:40.801280",
+            "ended_at": "2026-05-28T02:20:40.801280",
+            "duration_ms": 100,
+            "status": "success",
+            "confidence": 0.87,
+            "error": null
+          },
+          {
+            "node_id": "n2",
+            "node_type": "rag",
+            "started_at": "2026-05-28T02:20:40.801280",
+            "ended_at": "2026-05-28T02:20:40.801280",
+            "duration_ms": 70,
+            "status": "success",
+            "confidence": 0.82,
+            "error": null
+          },
+          {
+            "node_id": "n3",
+            "node_type": "search",
+            "started_at": "2026-05-28T02:20:40.801280",
+            "ended_at": "2026-05-28T02:20:40.801280",
+            "duration_ms": 180,
+            "status": "success",
+            "confidence": 0.79,
+            "error": null
+          },
+          {
+            "node_id": "n4",
+            "node_type": "browser",
+            "started_at": "2026-05-28T02:20:40.801280",
+            "ended_at": "2026-05-28T02:20:40.801280",
+            "duration_ms": 350,
+            "status": "error",
+            "confidence": 0.4,
+            "error": "navigation timeout"
+          }
+        ],
+        "plan_coverage_score": 0.61
+      }
+    },
+    "summary": {
+      "total_dags": 2,
+      "completed_dags": 2,
+      "avg_node_count": 4.5,
+      "avg_edge_count": 4.0,
+      "avg_depth": 3.0,
+      "avg_parallel_batches": 3.5,
+      "parallelism_factor": 1.2857142857142858,
+      "node_type_distribution": {
+        "planner": 2,
+        "rag": 2,
+        "search": 2,
+        "browser": 2,
+        "analyst": 1
+      },
+      "node_success_by_type": {
+        "planner": {
+          "total": 2,
+          "success": 2,
+          "success_rate": 1.0
+        },
+        "rag": {
+          "total": 2,
+          "success": 2,
+          "success_rate": 1.0
+        },
+        "search": {
+          "total": 2,
+          "success": 2,
+          "success_rate": 1.0
+        },
+        "browser": {
+          "total": 2,
+          "success": 1,
+          "success_rate": 0.5
+        },
+        "analyst": {
+          "total": 1,
+          "success": 1,
+          "success_rate": 1.0
+        }
+      },
+      "avg_plan_coverage": 0.765
+    }
+  },
+  "multi_agent": {
+    "tool_calls": {
+      "call-1": {
+        "call_id": "call-1",
+        "agent_type": "search",
+        "tool_name": "duckduckgo_search",
+        "started_at": "2026-05-28T02:20:40.804279",
+        "ended_at": "2026-05-28T02:20:40.815298",
+        "duration_ms": 11,
+        "status": "success",
+        "result_summary": "3 urls",
+        "error": null,
+        "cost_usd": 0.001,
+        "tokens_used": 120
+      },
+      "call-2": {
+        "call_id": "call-2",
+        "agent_type": "browser",
+        "tool_name": "open_page",
+        "started_at": "2026-05-28T02:20:40.815298",
+        "ended_at": "2026-05-28T02:20:40.825818",
+        "duration_ms": 10,
+        "status": "timeout",
+        "result_summary": null,
+        "error": "navigation timeout",
+        "cost_usd": 0.003,
+        "tokens_used": 0
+      },
+      "call-3": {
+        "call_id": "call-3",
+        "agent_type": "rag",
+        "tool_name": "retrieve_chunks",
+        "started_at": "2026-05-28T02:20:40.825818",
+        "ended_at": "2026-05-28T02:20:40.835927",
+        "duration_ms": 10,
+        "status": "success",
+        "result_summary": "6 chunks",
+        "error": null,
+        "cost_usd": 0.0005,
+        "tokens_used": 80
+      },
+      "call-4": {
+        "call_id": "call-4",
+        "agent_type": "analyst",
+        "tool_name": "synthesize",
+        "started_at": "2026-05-28T02:20:40.835927",
+        "ended_at": "2026-05-28T02:20:40.846446",
+        "duration_ms": 10,
+        "status": "error",
+        "result_summary": null,
+        "error": "schema mismatch",
+        "cost_usd": 0.002,
+        "tokens_used": 240
+      }
+    },
+    "collaborations": [
+      {
+        "collaboration_id": "collab-eb9e305d",
+        "collaboration_type": "parallel",
+        "agents": [
+          "search",
+          "rag"
+        ],
+        "started_at": "2026-05-28T02:20:40.846446",
+        "ended_at": "2026-05-28T02:20:40.846446",
+        "duration_ms": 210,
+        "success": true
+      },
+      {
+        "collaboration_id": "collab-32750043",
+        "collaboration_type": "fan_out",
+        "agents": [
+          "planner",
+          "search",
+          "browser",
+          "rag"
+        ],
+        "started_at": "2026-05-28T02:20:40.846446",
+        "ended_at": "2026-05-28T02:20:40.846446",
+        "duration_ms": 250,
+        "success": true
+      },
+      {
+        "collaboration_id": "collab-042962d9",
+        "collaboration_type": "fan_in",
+        "agents": [
+          "search",
+          "browser",
+          "rag",
+          "analyst"
+        ],
+        "started_at": "2026-05-28T02:20:40.846446",
+        "ended_at": "2026-05-28T02:20:40.846446",
+        "duration_ms": 130,
+        "success": false
+      }
+    ],
+    "sessions": {
+      "session-1": {
+        "session_id": "session-1",
+        "total_tool_calls": 0,
+        "successful_calls": 0,
+        "failed_calls": 0,
+        "total_cost_usd": 0.0,
+        "total_tokens": 0,
+        "agent_stats": {
+          "search": {
+            "calls": 1,
+            "successes": 1,
+            "failures": 0,
+            "total_duration_ms": 110,
+            "avg_duration_ms": 110.0,
+            "success_rate": 1.0
+          },
+          "browser": {
+            "calls": 1,
+            "successes": 0,
+            "failures": 1,
+            "total_duration_ms": 400,
+            "avg_duration_ms": 400.0,
+            "success_rate": 0.0
+          },
+          "rag": {
+            "calls": 1,
+            "successes": 1,
+            "failures": 0,
+            "total_duration_ms": 70,
+            "avg_duration_ms": 70.0,
+            "success_rate": 1.0
+          },
+          "analyst": {
+            "calls": 1,
+            "successes": 0,
+            "failures": 1,
+            "total_duration_ms": 150,
+            "avg_duration_ms": 150.0,
+            "success_rate": 0.0
+          }
+        }
+      }
+    },
+    "summary": {
+      "total_tool_calls": 4,
+      "success_count": 2,
+      "error_count": 1,
+      "timeout_count": 1,
+      "success_rate": 0.5,
+      "error_rate": 0.25,
+      "timeout_rate": 0.25,
+      "avg_duration_ms": 10.25,
+      "p95_duration_ms": 11,
+      "total_cost_usd": 0.006500000000000001,
+      "total_tokens": 440,
+      "agent_stats": {
+        "search": {
+          "total": 1,
+          "success": 1,
+          "error": 0,
+          "timeout": 0,
+          "total_duration_ms": 11,
+          "total_cost": 0.001,
+          "total_tokens": 120,
+          "success_rate": 1.0,
+          "avg_duration_ms": 11.0
+        },
+        "browser": {
+          "total": 1,
+          "success": 0,
+          "error": 0,
+          "timeout": 1,
+          "total_duration_ms": 10,
+          "total_cost": 0.003,
+          "total_tokens": 0,
+          "success_rate": 0.0,
+          "avg_duration_ms": 10.0
+        },
+        "rag": {
+          "total": 1,
+          "success": 1,
+          "error": 0,
+          "timeout": 0,
+          "total_duration_ms": 10,
+          "total_cost": 0.0005,
+          "total_tokens": 80,
+          "success_rate": 1.0,
+          "avg_duration_ms": 10.0
+        },
+        "analyst": {
+          "total": 1,
+          "success": 0,
+          "error": 1,
+          "timeout": 0,
+          "total_duration_ms": 10,
+          "total_cost": 0.002,
+          "total_tokens": 240,
+          "success_rate": 0.0,
+          "avg_duration_ms": 10.0
+        }
+      },
+      "collaboration_types": {
+        "parallel": 1,
+        "fan_out": 1,
+        "fan_in": 1
+      }
+    }
+  },
+  "stateful_agent": {
+    "checkpoints": {
+      "ckpt-1": {
+        "checkpoint_id": "ckpt-1",
+        "session_id": "session-state-1",
+        "created_at": "2026-05-28T02:20:40.848959",
+        "size_bytes": 2048,
+        "duration_ms": 18,
+        "status": "success",
+        "error": null
+      },
+      "ckpt-2": {
+        "checkpoint_id": "ckpt-2",
+        "session_id": "session-state-1",
+        "created_at": "2026-05-28T02:20:40.848959",
+        "size_bytes": 0,
+        "duration_ms": null,
+        "status": "restored",
+        "error": null
+      },
+      "ckpt-3": {
+        "checkpoint_id": "ckpt-3",
+        "session_id": "session-state-2",
+        "created_at": "2026-05-28T02:20:40.859940",
+        "size_bytes": 1024,
+        "duration_ms": 12,
+        "status": "success",
+        "error": null
+      }
+    },
+    "sessions": {
+      "session-state-1": {
+        "session_id": "session-state-1",
+        "user_query": "Long running budgeted research",
+        "created_at": "2026-05-28T02:20:40.848959",
+        "ended_at": "2026-05-28T02:20:40.859940",
+        "status": "completed",
+        "checkpoint_count": 2,
+        "revival_count": 1,
+        "error_count": 0,
+        "data_loss": false
+      },
+      "session-state-2": {
+        "session_id": "session-state-2",
+        "user_query": "Approval gated workflow recovery",
+        "created_at": "2026-05-28T02:20:40.859940",
+        "ended_at": "2026-05-28T02:20:40.870962",
+        "status": "failed",
+        "checkpoint_count": 1,
+        "revival_count": 1,
+        "error_count": 1,
+        "data_loss": true
+      }
+    },
+    "failures": [
+      {
+        "failure_id": "fail-cfc92af1",
+        "session_id": "session-state-1",
+        "failure_type": "crash",
+        "detected_at": "2026-05-28T02:20:40.848959",
+        "recovered_at": "2026-05-28T02:20:40.848959",
+        "recovered": true,
+        "data_loss": false,
+        "recovery_duration_ms": 420
+      },
+      {
+        "failure_id": "fail-9c26e7c1",
+        "session_id": "session-state-2",
+        "failure_type": "timeout",
+        "detected_at": "2026-05-28T02:20:40.859940",
+        "recovered_at": null,
+        "recovered": false,
+        "data_loss": true,
+        "recovery_duration_ms": 900
+      }
+    ],
+    "summary": {
+      "total_checkpoints": 3,
+      "checkpoint_save_count": 2,
+      "checkpoint_save_error_rate": 0.0,
+      "avg_checkpoint_duration_ms": 15.0,
+      "avg_checkpoint_size_bytes": 1536.0,
+      "active_sessions": 0,
+      "total_sessions": 2,
+      "avg_session_duration_s": 0.0,
+      "max_session_duration_s": 0,
+      "session_isolation_rate": 0.5,
+      "total_failures": 2,
+      "failure_recovery_rate": 0.5,
+      "data_loss_rate": 0.5,
+      "avg_recovery_duration_ms": 660.0
+    }
+  },
+  "reflection_agent": {
+    "reflections": [
+      {
+        "session_id": "reflect-1",
+        "total_claims": 12,
+        "verified_claims": 10,
+        "hallucinated_claims": 1,
+        "conflicts": 1,
+        "factuality_score": 0.88,
+        "consistency_score": 0.82,
+        "completeness_score": 0.79,
+        "citation_coverage": 0.83,
+        "overall_confidence": 0.84,
+        "needs_revision": true,
+        "revision_count": 1,
+        "evaluated_at": "2026-05-28T02:20:40.872972"
+      },
+      {
+        "session_id": "reflect-2",
+        "total_claims": 8,
+        "verified_claims": 8,
+        "hallucinated_claims": 0,
+        "conflicts": 0,
+        "factuality_score": 0.94,
+        "consistency_score": 0.9,
+        "completeness_score": 0.86,
+        "citation_coverage": 0.91,
+        "overall_confidence": 0.92,
+        "needs_revision": false,
+        "revision_count": 0,
+        "evaluated_at": "2026-05-28T02:20:40.874972"
+      }
+    ],
+    "revisions": [
+      {
+        "session_id": "reflect-1",
+        "revision_number": 1,
+        "triggered_by": "hallucination",
+        "success": true,
+        "new_confidence": 0.9,
+        "attempts": 1
+      }
+    ],
+    "summary": {
+      "total_reflections": 2,
+      "total_claims_analyzed": 20,
+      "verified_claims": 18,
+      "hallucinated_claims": 1,
+      "hallucination_rate": 0.05,
+      "conflicts_detected": 1,
+      "revision_trigger_rate": 0.5,
+      "avg_revisions_per_workflow": 0.5,
+      "factuality_score_avg": 0.9099999999999999,
+      "consistency_score_avg": 0.86,
+      "completeness_score_avg": 0.825,
+      "citation_coverage_avg": 0.87,
+      "overall_confidence_avg": 0.88,
+      "confidence_p95": 0.92,
+      "total_revisions": 1,
+      "successful_revisions": 1,
+      "revision_success_rate": 1.0
+    },
+    "hallucination_by_severity": {
+      "high": 0,
+      "medium": 1,
+      "low": 0
+    },
+    "hallucination_details": [
+      {
+        "session_id": "reflect-1",
+        "claim": "provider always returns usage",
+        "severity": "medium",
+        "reason": "not always true",
+        "suggested_action": "mark estimated",
+        "evaluated_at": "2026-05-28T02:20:40.874972"
+      }
+    ]
+  },
+  "observability": {
+    "connections": [
+      {
+        "session_id": "obs-1",
+        "started_at": "2026-05-28T02:20:40.876971",
+        "ended_at": "2026-05-28T02:20:40.887988",
+        "duration_ms": 11,
+        "events_sent": 3,
+        "bytes_sent": 420
+      },
+      {
+        "session_id": "obs-2",
+        "started_at": "2026-05-28T02:20:40.887988",
+        "ended_at": "2026-05-28T02:20:40.898717",
+        "duration_ms": 10,
+        "events_sent": 1,
+        "bytes_sent": 90
+      }
+    ],
+    "events": [
+      {
+        "session_id": "obs-1",
+        "event_type": "thought",
+        "size_bytes": 120,
+        "timestamp": "2026-05-28T02:20:40.876971"
+      },
+      {
+        "session_id": "obs-1",
+        "event_type": "tool_call",
+        "size_bytes": 220,
+        "timestamp": "2026-05-28T02:20:40.876971"
+      },
+      {
+        "session_id": "obs-1",
+        "event_type": "approval",
+        "size_bytes": 80,
+        "timestamp": "2026-05-28T02:20:40.876971"
+      },
+      {
+        "session_id": "obs-2",
+        "event_type": "trace",
+        "size_bytes": 90,
+        "timestamp": "2026-05-28T02:20:40.887988"
+      }
+    ],
+    "summary": {
+      "total_connections": 2,
+      "total_events_published": 4,
+      "avg_events_per_connection": 2.0
+    }
+  },
+  "research_quality": {
+    "reports": [
+      {
+        "session_id": "quality-1",
+        "query": "Compare harness and langgraph",
+        "total_claims": 15,
+        "verified_claims": 13,
+        "hallucinated_claims": 1,
+        "citation_count": 11,
+        "plan_coverage": 0.87,
+        "avg_confidence": 0.84,
+        "recorded_at": "2026-05-28T02:20:40.900252"
+      },
+      {
+        "session_id": "quality-2",
+        "query": "MCP governance review",
+        "total_claims": 10,
+        "verified_claims": 8,
+        "hallucinated_claims": 1,
+        "citation_count": 7,
+        "plan_coverage": 0.74,
+        "avg_confidence": 0.79,
+        "recorded_at": "2026-05-28T02:20:40.900252"
+      }
+    ],
+    "summary": {
+      "total_reports": 2,
+      "avg_claims": 12.5,
+      "avg_verified_claims": 10.5,
+      "avg_hallucinated_claims": 1.0,
+      "avg_citation_count": 9.0,
+      "avg_plan_coverage": 0.8049999999999999,
+      "avg_confidence": 0.815
+    }
+  },
+  "browser_agent": {
+    "summary": {
+      "total_extractions": 2,
+      "successful": 1,
+      "failed": 1,
+      "success_rate": 0.5,
+      "avg_duration_ms": 10.5,
+      "p95_duration_ms": 11,
+      "avg_compression_ratio": 0.225,
+      "avg_analysis_confidence": 0.6,
+      "avg_analysis_confidence_success_only": 0.88
+    },
+    "browser_use_steps": {
+      "open": {
+        "attempts": 2,
+        "success": 1,
+        "success_rate": 0.5,
+        "avg_duration_ms": 660.0
+      },
+      "scroll": {
+        "attempts": 2,
+        "success": 2,
+        "success_rate": 1.0,
+        "avg_scrolls": 2.5
+      },
+      "extract": {
+        "attempts": 2,
+        "success": 1,
+        "success_rate": 0.5,
+        "avg_duration_ms": 10.5
+      },
+      "analyze": {
+        "attempts": 2,
+        "success": 1,
+        "success_rate": 0.5,
+        "avg_confidence": 0.6
+      }
+    },
+    "by_page_type": {
+      "article": {
+        "count": 1,
+        "success": 1,
+        "failed": 0,
+        "avg_duration_ms": 11.0,
+        "avg_compression": 0.225
+      },
+      "landing": {
+        "count": 1,
+        "success": 0,
+        "failed": 1,
+        "avg_duration_ms": 10.0
+      }
+    },
+    "by_extraction_level": {
+      "deep": {
+        "count": 1,
+        "success": 1
+      },
+      "skim": {
+        "count": 1,
+        "success": 0
+      }
+    },
+    "pool_stats": {
+      "total_launches": 2,
+      "total_crashes": 1,
+      "concurrent_current": 0,
+      "concurrent_peak": 1
+    }
+  },
+  "browser_agent_scale": {
+    "20": {
+      "summary": {
+        "total_extractions": 20,
+        "successful": 16,
+        "failed": 4,
+        "success_rate": 0.8,
+        "avg_duration_ms": 10.6,
+        "p95_duration_ms": 11,
+        "avg_compression_ratio": 0.2432410607129413,
+        "avg_analysis_confidence": 0.7615,
+        "avg_analysis_confidence_success_only": 0.866875
+      },
+      "browser_use_steps": {
+        "open": {
+          "attempts": 20,
+          "success": 16,
+          "success_rate": 0.8,
+          "avg_duration_ms": 448.25
+        },
+        "scroll": {
+          "attempts": 20,
+          "success": 20,
+          "success_rate": 1.0,
+          "avg_scrolls": 3.9
+        },
+        "extract": {
+          "attempts": 20,
+          "success": 16,
+          "success_rate": 0.8,
+          "avg_duration_ms": 10.6
+        },
+        "analyze": {
+          "attempts": 20,
+          "success": 16,
+          "success_rate": 0.8,
+          "avg_confidence": 0.7615
+        }
+      },
+      "by_page_type": {
+        "article": {
+          "count": 16,
+          "success": 16,
+          "failed": 0,
+          "avg_duration_ms": 10.5,
+          "avg_compression": 0.2432410607129413
+        },
+        "landing": {
+          "count": 4,
+          "success": 0,
+          "failed": 4,
+          "avg_duration_ms": 11.0
+        }
+      },
+      "by_extraction_level": {
+        "deep": {
+          "count": 8,
+          "success": 8
+        },
+        "skim": {
+          "count": 12,
+          "success": 8
+        }
+      },
+      "pool_stats": {
+        "total_launches": 20,
+        "total_crashes": 1,
+        "concurrent_current": 0,
+        "concurrent_peak": 1
+      },
+      "sample_count": 20
+    },
+    "50": {
+      "summary": {
+        "total_extractions": 50,
+        "successful": 40,
+        "failed": 10,
+        "success_rate": 0.8,
+        "avg_duration_ms": 10.58,
+        "p95_duration_ms": 11,
+        "avg_compression_ratio": 0.24024193395983157,
+        "avg_analysis_confidence": 0.7624000000000001,
+        "avg_analysis_confidence_success_only": 0.8700000000000001
+      },
+      "browser_use_steps": {
+        "open": {
+          "attempts": 50,
+          "success": 40,
+          "success_rate": 0.8,
+          "avg_duration_ms": 446.5
+        },
+        "scroll": {
+          "attempts": 50,
+          "success": 50,
+          "success_rate": 1.0,
+          "avg_scrolls": 3.9
+        },
+        "extract": {
+          "attempts": 50,
+          "success": 40,
+          "success_rate": 0.8,
+          "avg_duration_ms": 10.58
+        },
+        "analyze": {
+          "attempts": 50,
+          "success": 40,
+          "success_rate": 0.8,
+          "avg_confidence": 0.7624000000000001
+        }
+      },
+      "by_page_type": {
+        "article": {
+          "count": 40,
+          "success": 40,
+          "failed": 0,
+          "avg_duration_ms": 10.675,
+          "avg_compression": 0.24024193395983157
+        },
+        "landing": {
+          "count": 10,
+          "success": 0,
+          "failed": 10,
+          "avg_duration_ms": 10.2
+        }
+      },
+      "by_extraction_level": {
+        "deep": {
+          "count": 20,
+          "success": 20
+        },
+        "skim": {
+          "count": 30,
+          "success": 20
+        }
+      },
+      "pool_stats": {
+        "total_launches": 50,
+        "total_crashes": 3,
+        "concurrent_current": 0,
+        "concurrent_peak": 1
+      },
+      "sample_count": 50
+    },
+    "100": {
+      "summary": {
+        "total_extractions": 100,
+        "successful": 80,
+        "failed": 20,
+        "success_rate": 0.8,
+        "avg_duration_ms": 10.35,
+        "p95_duration_ms": 11,
+        "avg_compression_ratio": 0.23381159915465138,
+        "avg_analysis_confidence": 0.764,
+        "avg_analysis_confidence_success_only": 0.8700000000000001
+      },
+      "browser_use_steps": {
+        "open": {
+          "attempts": 100,
+          "success": 80,
+          "success_rate": 0.8,
+          "avg_duration_ms": 447.1
+        },
+        "scroll": {
+          "attempts": 100,
+          "success": 100,
+          "success_rate": 1.0,
+          "avg_scrolls": 3.9
+        },
+        "extract": {
+          "attempts": 100,
+          "success": 80,
+          "success_rate": 0.8,
+          "avg_duration_ms": 10.35
+        },
+        "analyze": {
+          "attempts": 100,
+          "success": 80,
+          "success_rate": 0.8,
+          "avg_confidence": 0.764
+        }
+      },
+      "by_page_type": {
+        "article": {
+          "count": 80,
+          "success": 80,
+          "failed": 0,
+          "avg_duration_ms": 10.3,
+          "avg_compression": 0.23381159915465138
+        },
+        "landing": {
+          "count": 20,
+          "success": 0,
+          "failed": 20,
+          "avg_duration_ms": 10.55
+        }
+      },
+      "by_extraction_level": {
+        "deep": {
+          "count": 40,
+          "success": 40
+        },
+        "skim": {
+          "count": 60,
+          "success": 40
+        }
+      },
+      "pool_stats": {
+        "total_launches": 100,
+        "total_crashes": 7,
+        "concurrent_current": 0,
+        "concurrent_peak": 1
+      },
+      "sample_count": 100
+    }
+  }
+}

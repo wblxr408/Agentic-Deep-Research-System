@@ -411,6 +411,8 @@ class TestResearchResultNormalization:
                 "decision_id": None,
                 "approved_by": None,
                 "server_fingerprint": None,
+                "usage_source": "provider",
+                "estimated": False,
                 "started_at": SimpleNamespace(isoformat=lambda: "2026-05-27T00:00:00"),
                 "completed_at": SimpleNamespace(isoformat=lambda: "2026-05-27T00:00:01"),
                 "created_at": SimpleNamespace(isoformat=lambda: "2026-05-27T00:00:02"),
@@ -448,6 +450,8 @@ class TestResearchResultNormalization:
         assert response[0].tool_name == "duckduckgo_search"
         assert response[0].args_json == {"query": "openai"}
         assert response[0].retry_count == 1
+        assert response[0].usage_source == "provider"
+        assert response[0].estimated is False
 
 
 class TestGraphCompilation:
@@ -759,8 +763,18 @@ class TestAPIEndpoints:
                 return FakeConn()
 
         background_tasks = SimpleNamespace(tasks=[], add_task=lambda *args, **kwargs: None)
+        fake_registry = SimpleNamespace(
+            resolve_for_session=AsyncMock(return_value=SimpleNamespace(as_dict=lambda: {
+                "effective_tool_allowlist": ["search", "rag"],
+                "effective_skill_ids": [],
+                "resolved_skills": [],
+                "effective_prompt_sections": {},
+                "effective_agent_hints": {},
+            }))
+        )
 
-        with patch("app.api.research.get_db_pool", AsyncMock(return_value=FakePool())):
+        with patch("app.api.research.get_db_pool", AsyncMock(return_value=FakePool())), \
+                patch("app.api.research.get_skill_registry", return_value=fake_registry):
             response = await create_research(
                 ResearchRequest(query="请研究中国 AI Agent 市场格局"),
                 background_tasks,
@@ -769,3 +783,59 @@ class TestAPIEndpoints:
         assert response.status == "running"
         assert response.budget["max_tool_calls"] == 12
         assert response.budget["max_wall_clock_seconds"] == 420
+        assert response.skill_context["effective_tool_allowlist"] == ["search", "rag"]
+
+    @pytest.mark.asyncio
+    async def test_create_research_passes_skill_scope_and_overrides_to_registry(self):
+        from app.api.research import create_research, ResearchRequest
+
+        class FakeConn:
+            async def execute(self, *args, **kwargs):
+                return "OK"
+
+            def acquire(self):
+                return self
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, exc_type, exc, tb):
+                return None
+
+        class FakePool:
+            def acquire(self):
+                return FakeConn()
+
+        background_tasks = SimpleNamespace(tasks=[], add_task=lambda *args, **kwargs: None)
+        fake_registry = SimpleNamespace(
+            resolve_for_session=AsyncMock(return_value=SimpleNamespace(as_dict=lambda: {
+                "effective_tool_allowlist": ["rag"],
+                "effective_skill_ids": ["skill-1"],
+                "resolved_skills": [],
+                "effective_prompt_sections": {"prompt": "Use internal finance heuristics."},
+                "effective_agent_hints": {"planner": ["Prefer earnings materials."]},
+            }))
+        )
+
+        request = ResearchRequest(
+            query="请研究中国 AI Agent 产业链中的财报与融资情况",
+            enabled_skill_ids=["skill-1"],
+            disabled_skill_ids=["skill-2"],
+            skill_tenant_id="tenant-a",
+            skill_project_id="project-a",
+        )
+
+        with patch("app.api.research.get_db_pool", AsyncMock(return_value=FakePool())), \
+                patch("app.api.research.get_skill_registry", return_value=fake_registry):
+            response = await create_research(request, background_tasks)
+
+        fake_registry.resolve_for_session.assert_awaited_once_with(
+            query=request.query,
+            manually_enabled_skill_ids=["skill-1"],
+            manually_disabled_skill_ids=["skill-2"],
+            tenant_id="tenant-a",
+            project_id="project-a",
+        )
+        assert response.status == "running"
+        assert response.skill_context["effective_skill_ids"] == ["skill-1"]
+        assert response.skill_context["effective_tool_allowlist"] == ["rag"]

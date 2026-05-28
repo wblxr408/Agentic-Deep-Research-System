@@ -111,6 +111,7 @@ async def init_db() -> asyncpg.Pool:
                 user_query TEXT NOT NULL,
                 status VARCHAR(20) DEFAULT 'pending',
                 research_plan JSONB DEFAULT '[]',
+                skill_context JSONB DEFAULT '{}',
                 guardrail_decision JSONB DEFAULT NULL,
                 guardrail_trace JSONB DEFAULT '[]',
                 evidence_status JSONB DEFAULT NULL,
@@ -125,6 +126,10 @@ async def init_db() -> asyncpg.Pool:
                 updated_at TIMESTAMP DEFAULT NOW(),
                 completed_at TIMESTAMP
             )
+        """)
+        await conn.execute("""
+            ALTER TABLE research_sessions
+            ADD COLUMN IF NOT EXISTS skill_context JSONB DEFAULT '{}'
         """)
 
         await conn.execute("""
@@ -165,6 +170,8 @@ async def init_db() -> asyncpg.Pool:
                 decision_id VARCHAR(100),
                 approved_by VARCHAR(100),
                 server_fingerprint VARCHAR(255),
+                usage_source VARCHAR(32) DEFAULT 'provider',
+                estimated BOOLEAN DEFAULT FALSE,
                 started_at TIMESTAMP,
                 completed_at TIMESTAMP,
                 created_at TIMESTAMP DEFAULT NOW()
@@ -195,8 +202,141 @@ async def init_db() -> asyncpg.Pool:
                 used_tool_calls INTEGER DEFAULT 0,
                 elapsed_wall_clock_seconds INTEGER DEFAULT 0,
                 hard_stop_reason VARCHAR(64),
+                estimated_usage_count INTEGER DEFAULT 0,
                 updated_at TIMESTAMP DEFAULT NOW()
             )
+        """)
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS approval_requests (
+                approval_id VARCHAR(64) PRIMARY KEY,
+                session_id UUID REFERENCES research_sessions(id) ON DELETE CASCADE,
+                node_id VARCHAR(64),
+                tool_name VARCHAR(100) NOT NULL,
+                risk_level VARCHAR(20) DEFAULT 'high',
+                reason TEXT,
+                request_payload_json JSONB DEFAULT '{}',
+                status VARCHAR(20) DEFAULT 'pending',
+                requested_at TIMESTAMP DEFAULT NOW(),
+                resolved_at TIMESTAMP,
+                resolved_by VARCHAR(100),
+                comment TEXT
+            )
+        """)
+        await conn.execute("""
+            CREATE INDEX IF NOT EXISTS idx_approval_requests_session
+            ON approval_requests (session_id)
+        """)
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS session_runtime_state (
+                session_id UUID PRIMARY KEY REFERENCES research_sessions(id) ON DELETE CASCADE,
+                runtime_status VARCHAR(50) NOT NULL,
+                public_status VARCHAR(20) NOT NULL,
+                current_batch_json JSONB DEFAULT '[]',
+                retryable_failure_count INTEGER DEFAULT 0,
+                terminal_failure_reason TEXT,
+                pending_approval_count INTEGER DEFAULT 0,
+                checkpoint_seq INTEGER DEFAULT 0,
+                last_checkpoint_ref TEXT,
+                last_heartbeat_at TIMESTAMP DEFAULT NOW(),
+                harness_state_version INTEGER DEFAULT 1
+            )
+        """)
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS mcp_server_registry (
+                server_id VARCHAR(100) PRIMARY KEY,
+                transport VARCHAR(50) NOT NULL,
+                endpoint TEXT NOT NULL,
+                trust_status VARCHAR(20) DEFAULT 'untrusted',
+                allowed_tools_json JSONB DEFAULT '[]',
+                read_only_default BOOLEAN DEFAULT TRUE,
+                secret_policy_json JSONB DEFAULT '{}',
+                fingerprint VARCHAR(255) NOT NULL,
+                created_at TIMESTAMP DEFAULT NOW(),
+                updated_at TIMESTAMP DEFAULT NOW()
+            )
+        """)
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS system_config (
+                config_key VARCHAR(50) PRIMARY KEY,
+                config_data JSONB NOT NULL DEFAULT '{}',
+                description TEXT,
+                created_at TIMESTAMP DEFAULT NOW(),
+                updated_at TIMESTAMP DEFAULT NOW()
+            )
+        """)
+        await conn.execute("""
+            CREATE INDEX IF NOT EXISTS idx_system_config_key
+            ON system_config (config_key)
+        """)
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS skills (
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                markdown_content TEXT NOT NULL,
+                metadata_json JSONB NOT NULL DEFAULT '{}',
+                is_deleted BOOLEAN DEFAULT FALSE,
+                created_at TIMESTAMP DEFAULT NOW(),
+                updated_at TIMESTAMP DEFAULT NOW()
+            )
+        """)
+        await conn.execute("""
+            CREATE INDEX IF NOT EXISTS idx_skills_updated_at
+            ON skills (updated_at DESC)
+        """)
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS skill_meta (
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                slug VARCHAR(120) NOT NULL UNIQUE,
+                name VARCHAR(120) NOT NULL,
+                description TEXT NOT NULL,
+                current_version INTEGER NOT NULL DEFAULT 1,
+                enabled BOOLEAN DEFAULT TRUE,
+                priority INTEGER DEFAULT 100,
+                tags_json JSONB DEFAULT '[]',
+                keywords_json JSONB DEFAULT '[]',
+                trigger_patterns_json JSONB DEFAULT '[]',
+                allowed_tools_json JSONB DEFAULT '[]',
+                agent_hints_json JSONB DEFAULT '{}',
+                domain VARCHAR(100),
+                tenant_id VARCHAR(100),
+                project_id VARCHAR(100),
+                scope VARCHAR(20) DEFAULT 'global',
+                coarse_terms_json JSONB DEFAULT '[]',
+                metadata_json JSONB DEFAULT '{}',
+                is_deleted BOOLEAN DEFAULT FALSE,
+                created_at TIMESTAMP DEFAULT NOW(),
+                updated_at TIMESTAMP DEFAULT NOW()
+            )
+        """)
+        await conn.execute("""
+            CREATE INDEX IF NOT EXISTS idx_skill_meta_updated_at
+            ON skill_meta (updated_at DESC)
+        """)
+        await conn.execute("""
+            CREATE INDEX IF NOT EXISTS idx_skill_meta_enabled
+            ON skill_meta (enabled, is_deleted, priority DESC)
+        """)
+        await conn.execute("""
+            CREATE INDEX IF NOT EXISTS idx_skill_meta_scope
+            ON skill_meta (scope, tenant_id, project_id)
+        """)
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS skill_content (
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                skill_id UUID REFERENCES skill_meta(id) ON DELETE CASCADE,
+                version INTEGER NOT NULL,
+                markdown_content TEXT NOT NULL,
+                body TEXT NOT NULL,
+                overview TEXT DEFAULT '',
+                prompt TEXT DEFAULT '',
+                constraints TEXT DEFAULT '',
+                content_hash VARCHAR(64),
+                created_at TIMESTAMP DEFAULT NOW(),
+                UNIQUE(skill_id, version)
+            )
+        """)
+        await conn.execute("""
+            CREATE INDEX IF NOT EXISTS idx_skill_content_skill_version
+            ON skill_content (skill_id, version DESC)
         """)
 
     _db_pool = pool

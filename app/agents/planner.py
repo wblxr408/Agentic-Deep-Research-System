@@ -72,6 +72,7 @@ Choose the appropriate agent for each step:
 - `search`: Quick factual lookups, statistics, market data, news
 - `browser`: Deep research, full article reading, official sources, dynamic pages
 - `rag`: Querying existing knowledge base, background context, prior reports
+- `mcp`: Trusted external MCP tools behind policy proxy
 - `analyst`: (auto-assigned) Synthesis and analysis after data collection
 
 ### Research Dimensions
@@ -214,7 +215,13 @@ Return a JSON object with dag_name, nodes, and edges."""
 
         raise json.JSONDecodeError("unable to extract JSON object", content, 0)
 
-    def create_dag(self, query: str) -> DAGDefinition:
+    def create_dag(
+        self,
+        query: str,
+        planning_hints: str | None = None,
+        skill_prompt: str | None = None,
+        planner_hints: list[str] | None = None,
+    ) -> DAGDefinition:
         """
         Generate a research DAG for the given query.
 
@@ -233,10 +240,21 @@ Return a JSON object with dag_name, nodes, and edges."""
             return self._fact_lookup_dag(query)
 
         system_prompt = f"{build_prompt_profile_message(decision, query)}\n\n{self.SYSTEM_PROMPT}"
+        if skill_prompt:
+            system_prompt = f"{system_prompt}\n\n## Active Skill Context\n{skill_prompt.strip()}"
+
+        user_prompt = self.USER_TEMPLATE.format(query=query)
+        if planning_hints:
+            user_prompt = f"{user_prompt}\n\nSession Planning Hints:\n{planning_hints}"
+        if planner_hints:
+            user_prompt = (
+                f"{user_prompt}\n\nPlanner Skill Instructions:\n"
+                + "\n".join(f"- {item}" for item in planner_hints if item and item.strip())
+            )
 
         messages = [
             {"role": "system", "content": system_prompt},
-            {"role": "user", "content": self.USER_TEMPLATE.format(query=query)},
+            {"role": "user", "content": user_prompt},
         ]
 
         try:
@@ -300,7 +318,7 @@ Return a JSON object with dag_name, nodes, and edges."""
             node_data.setdefault("timeout_seconds", 300)
 
             # Validate node_type
-            if node_data["node_type"] not in ("search", "browser", "rag", "analyst", "reflection", "report"):
+            if node_data["node_type"] not in ("search", "browser", "rag", "mcp", "analyst", "reflection", "report"):
                 node_data["node_type"] = "search"
 
             try:

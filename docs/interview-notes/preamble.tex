@@ -20,9 +20,12 @@
 \tcbuselibrary{breakable,skins}
 
 \hypersetup{
+  unicode=true,
   colorlinks=true,
   linkcolor=blue!60!black,
   urlcolor=blue!60!black,
+  bookmarksnumbered=true,
+  plainpages=false,
   pdftitle={Agentic Deep Research System 面试笔记},
   pdfauthor={Codex}
 }
@@ -78,6 +81,15 @@
   breakable,
   colback=gray!4!white,
   colframe=black!45,
+  title=#1,
+  fonttitle=\bfseries,
+  arc=1mm
+}
+
+\newtcolorbox{analysisBox}[1]{
+  breakable,
+  colback=teal!3!white,
+  colframe=teal!55!black,
   title=#1,
   fonttitle=\bfseries,
   arc=1mm

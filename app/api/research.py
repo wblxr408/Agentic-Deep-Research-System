@@ -28,6 +28,9 @@ from app.graph.state import create_initial_state, ResearchState, RuntimeStatus, 
 from app.observability.sse_manager import get_sse_manager
 from app.db.connection import get_db_pool
 from app.db.json import dumps_json
+from app.governance import RuntimePersistence, HarnessSupervisor
+from app.governance.runtime import normalize_tool_audit_rows, public_status_from_runtime
+from app.skills import get_skill_registry
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/research", tags=["research"])
@@ -107,63 +110,17 @@ def _normalize_citations(value: Any) -> list[dict[str, Any]]:
     return []
 
 
-def _stable_json_hash(value: Any) -> str | None:
-    """Return a stable sha256 hash for JSON-serializable payloads."""
-    if value is None:
-        return None
-    payload = dumps_json(value)
-    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
-
-
 def _normalize_tool_audit_rows(
     session_id: str,
     tool_histories: list[dict[str, Any]],
     node_outcomes: list[dict[str, Any]],
 ) -> list[tuple[Any, ...]]:
-    """Flatten runtime tool histories into forensic audit rows."""
-    outcomes_by_call_id: dict[str, dict[str, Any]] = {}
-    for outcome in node_outcomes:
-        if not isinstance(outcome, dict):
-            continue
-        call_id = outcome.get("tool_call_id")
-        if call_id:
-            outcomes_by_call_id[str(call_id)] = outcome
-
-    rows: list[tuple[Any, ...]] = []
-    for history in tool_histories:
-        if not isinstance(history, dict):
-            continue
-        agent_type = history.get("agent_type")
-        for call in history.get("tool_calls", []):
-            if not isinstance(call, dict):
-                continue
-            call_id = str(call.get("call_id") or f"call-{uuid.uuid4().hex[:12]}")
-            outcome = outcomes_by_call_id.get(call_id, {})
-            args_json = call.get("args") or {}
-            result_summary = call.get("result_summary")
-            rows.append((
-                call_id,
-                session_id,
-                outcome.get("node_id"),
-                agent_type,
-                call.get("tool_name"),
-                dumps_json(args_json),
-                _stable_json_hash(args_json),
-                call.get("status") or "pending",
-                outcome.get("error_category"),
-                outcome.get("error_message") or call.get("error"),
-                int(outcome.get("retry_count") or 0),
-                result_summary,
-                _stable_json_hash(result_summary),
-                int(call.get("tokens_used") or outcome.get("tokens_used") or 0),
-                float(call.get("cost_usd") or outcome.get("cost_usd") or 0.0),
-                None,
-                None,
-                None,
-                call.get("started_at"),
-                call.get("completed_at"),
-            ))
-    return rows
+    """Backward-compatible wrapper around governance runtime normalization."""
+    return normalize_tool_audit_rows(
+        session_id=session_id,
+        tool_histories=tool_histories,
+        node_outcomes=node_outcomes,
+    )
 
 
 # ==============================================================
@@ -189,6 +146,24 @@ class ResearchRequest(BaseModel):
         default="medium",
         description="Output length: short, medium, long.",
     )
+    enabled_skill_ids: list[str] = Field(
+        default_factory=list,
+        description="Explicitly enable selected skill IDs for this session.",
+    )
+    disabled_skill_ids: list[str] = Field(
+        default_factory=list,
+        description="Explicitly disable selected skill IDs for this session.",
+    )
+    skill_tenant_id: str | None = Field(
+        default=None,
+        max_length=100,
+        description="Optional tenant scope for skill resolution.",
+    )
+    skill_project_id: str | None = Field(
+        default=None,
+        max_length=100,
+        description="Optional project scope for skill resolution.",
+    )
 
 
 class ResearchStatus(BaseModel):
@@ -212,6 +187,7 @@ class ResearchResponse(BaseModel):
     requires_confirmation: bool = False
     output_length: str = "medium"
     budget: dict[str, int | float] = Field(default_factory=dict)
+    skill_context: dict[str, Any] = Field(default_factory=dict)
 
 
 class ToolCallAuditRecord(BaseModel):
@@ -234,9 +210,32 @@ class ToolCallAuditRecord(BaseModel):
     decision_id: str | None = None
     approved_by: str | None = None
     server_fingerprint: str | None = None
+    usage_source: str | None = None
+    estimated: bool = False
     started_at: str | None = None
     completed_at: str | None = None
     created_at: str | None = None
+
+
+class ApprovalRequestRecord(BaseModel):
+    approval_id: str
+    session_id: str
+    node_id: str | None = None
+    tool_name: str
+    risk_level: str
+    reason: str | None = None
+    request_payload_json: dict[str, Any] = Field(default_factory=dict)
+    status: str
+    requested_at: str | None = None
+    resolved_at: str | None = None
+    resolved_by: str | None = None
+    comment: str | None = None
+
+
+class ApprovalActionRequest(BaseModel):
+    action: str = Field(..., pattern="^(approve|reject)$")
+    approved_by: str = Field(..., min_length=1, max_length=100)
+    comment: str | None = Field(default=None, max_length=1000)
 
 
 # ==============================================================
@@ -315,6 +314,13 @@ async def create_research(
     decision = build_guardrail_decision(request.query, user_confirmed=request.user_confirmed)
     output_length = normalize_research_length(request.output_length)
     budget = get_research_budget(output_length)
+    skill_context = (await get_skill_registry().resolve_for_session(
+        query=request.query,
+        manually_enabled_skill_ids=request.enabled_skill_ids,
+        manually_disabled_skill_ids=request.disabled_skill_ids,
+        tenant_id=request.skill_tenant_id,
+        project_id=request.skill_project_id,
+    )).as_dict()
 
     logger.info(f"Creating research session: {session_id}, query: {request.query[:50]}")
 
@@ -334,8 +340,8 @@ async def create_research(
             """
             INSERT INTO research_sessions (id, user_query, status, guardrail_decision, guardrail_trace,
                                            evidence_status, review_status, prompt_profile, prompt_template,
-                                           enabled_tools, created_at, updated_at)
-            VALUES ($1::uuid, $2, $3, $4::jsonb, $5::jsonb, $6::jsonb, $7::jsonb, $8, $9, $10::jsonb, $11, $11)
+                                           enabled_tools, skill_context, created_at, updated_at)
+            VALUES ($1::uuid, $2, $3, $4::jsonb, $5::jsonb, $6::jsonb, $7::jsonb, $8, $9, $10::jsonb, $11::jsonb, $12, $12)
             ON CONFLICT (id) DO UPDATE SET
                 user_query = $2,
                 status = $3,
@@ -346,7 +352,8 @@ async def create_research(
                 prompt_profile = $8,
                 prompt_template = $9,
                 enabled_tools = $10::jsonb,
-                updated_at = $11
+                skill_context = $11::jsonb,
+                updated_at = $12
             """,
             session_id,
             request.query,
@@ -357,7 +364,8 @@ async def create_research(
             dumps_json(review_status),
             decision.prompt_profile.value,
             compose_guardrail_prompt(request.query, decision),
-            dumps_json(decision.enabled_tools),
+            dumps_json(skill_context.get("effective_tool_allowlist") or decision.enabled_tools),
+            dumps_json(skill_context),
             datetime.utcnow(),
         )
 
@@ -369,6 +377,7 @@ async def create_research(
             requires_confirmation=True,
             output_length=output_length.value,
             budget=budget,
+            skill_context=skill_context,
         )
 
     # Start background execution
@@ -381,6 +390,7 @@ async def create_research(
         allow_web_after_rag_hit=request.allow_web_after_rag_hit,
         rag_group=request.rag_group,
         output_length=output_length.value,
+        skill_context=skill_context,
     )
 
     return ResearchResponse(
@@ -390,6 +400,7 @@ async def create_research(
         requires_confirmation=False,
         output_length=output_length.value,
         budget=budget,
+        skill_context=skill_context,
     )
 
 
@@ -451,6 +462,7 @@ async def get_research_result(session_id: str):
         row = await conn.fetchrow(
             """
             SELECT id, user_query, status, final_report, citations, agent_trace, review_status, created_at, completed_at
+                 , skill_context
             FROM research_sessions
             WHERE id = $1::uuid
             """,
@@ -482,6 +494,7 @@ async def get_research_result(session_id: str):
         "citations": citations,
         "agent_trace": row["agent_trace"],
         "tool_audit_summary": review_status.get("tool_audit_summary", {}),
+        "skill_context": row.get("skill_context") or {},
         "created_at": row["created_at"].isoformat(),
         "completed_at": row["completed_at"].isoformat() if row["completed_at"] else None,
     }
@@ -504,7 +517,7 @@ async def get_research_tool_calls(session_id: str):
             SELECT call_id, session_id, node_id, agent_type, tool_name,
                    args_json, args_hash, status, error_category, error_message,
                    retry_count, result_summary, result_hash, tokens_used, cost_usd,
-                   decision_id, approved_by, server_fingerprint,
+                   decision_id, approved_by, server_fingerprint, usage_source, estimated,
                    started_at, completed_at, created_at
             FROM tool_call_audit
             WHERE session_id = $1::uuid
@@ -534,11 +547,141 @@ async def get_research_tool_calls(session_id: str):
             decision_id=row["decision_id"],
             approved_by=row["approved_by"],
             server_fingerprint=row["server_fingerprint"],
+            usage_source=row["usage_source"],
+            estimated=bool(row["estimated"]),
             started_at=row["started_at"].isoformat() if row["started_at"] else None,
             completed_at=row["completed_at"].isoformat() if row["completed_at"] else None,
             created_at=row["created_at"].isoformat() if row["created_at"] else None,
         ))
     return result
+
+
+@router.get("/{session_id}/approvals", response_model=list[ApprovalRequestRecord])
+async def get_research_approvals(session_id: str):
+    """Get approval requests for a research session."""
+    pool = await get_db_pool()
+    async with pool.acquire() as conn:
+        session_exists = await conn.fetchrow(
+            "SELECT id FROM research_sessions WHERE id = $1::uuid",
+            session_id,
+        )
+        if not session_exists:
+            raise HTTPException(status_code=404, detail="Session not found")
+        rows = await conn.fetch(
+            """
+            SELECT approval_id, session_id, node_id, tool_name, risk_level, reason,
+                   request_payload_json, status, requested_at, resolved_at, resolved_by, comment
+            FROM approval_requests
+            WHERE session_id = $1::uuid
+            ORDER BY requested_at ASC, approval_id ASC
+            """,
+            session_id,
+        )
+    return [
+        ApprovalRequestRecord(
+            approval_id=row["approval_id"],
+            session_id=str(row["session_id"]),
+            node_id=row["node_id"],
+            tool_name=row["tool_name"],
+            risk_level=row["risk_level"],
+            reason=row["reason"],
+            request_payload_json=row["request_payload_json"] or {},
+            status=row["status"],
+            requested_at=row["requested_at"].isoformat() if row["requested_at"] else None,
+            resolved_at=row["resolved_at"].isoformat() if row["resolved_at"] else None,
+            resolved_by=row["resolved_by"],
+            comment=row["comment"],
+        )
+        for row in rows
+    ]
+
+
+@router.post("/{session_id}/approvals/{approval_id}")
+async def resolve_research_approval(
+    session_id: str,
+    approval_id: str,
+    request: ApprovalActionRequest,
+):
+    """Resolve an approval request and persist decision for harness-driven resume."""
+    pool = await get_db_pool()
+    approval_payload: dict[str, Any] | None = None
+    async with pool.acquire() as conn:
+        approval = await conn.fetchrow(
+            """
+            SELECT approval_id, session_id, status, request_payload_json
+            FROM approval_requests
+            WHERE approval_id = $1 AND session_id = $2::uuid
+            """,
+            approval_id,
+            session_id,
+        )
+        if not approval:
+            raise HTTPException(status_code=404, detail="Approval request not found")
+        if approval["status"] not in {"pending", "awaiting_approval"}:
+            raise HTTPException(status_code=409, detail="Approval request already resolved")
+        resolved_status = "approved" if request.action == "approve" else "rejected"
+        await conn.execute(
+            """
+            UPDATE approval_requests
+            SET status = $1,
+                resolved_at = $2,
+                resolved_by = $3,
+                comment = $4
+            WHERE approval_id = $5 AND session_id = $6::uuid
+            """,
+            resolved_status,
+            datetime.utcnow(),
+            request.approved_by,
+            request.comment,
+            approval_id,
+            session_id,
+        )
+        approval_payload = approval["request_payload_json"] or {}
+    if resolved_status == "approved":
+        harness = HarnessSupervisor(get_settings().harness.state_root)
+        task = harness.get_task(session_id)
+        checkpoint = ((task or {}).get("checkpoint") or {})
+        state_snapshot = checkpoint.get("state_snapshot")
+        if isinstance(state_snapshot, dict):
+            pending = []
+            for item in state_snapshot.get("pending_approvals", []):
+                if not isinstance(item, dict):
+                    continue
+                if item.get("approval_id") == approval_id:
+                    item = {
+                        **item,
+                        "status": "approved",
+                        "resolved_at": datetime.utcnow().isoformat(),
+                        "resolved_by": request.approved_by,
+                        "comment": request.comment,
+                    }
+                pending.append(item)
+            state_snapshot["pending_approvals"] = [
+                item for item in pending
+                if item.get("status") not in {"approved", "rejected"}
+            ]
+            state_snapshot["runtime_status"] = RuntimeStatus.RUNNING.value
+            graph = compile_research_graph()
+            config = {"configurable": {"thread_id": session_id}}
+            graph.update_state(config, state_snapshot, as_node="approval_resume")
+            asyncio.create_task(
+                run_research_workflow(
+                    session_id=session_id,
+                    query=state_snapshot.get("user_query", ""),
+                    max_revision=int(state_snapshot.get("session", {}).get("max_revisions", 3) or 3),
+                    user_confirmed=bool(state_snapshot.get("user_confirmed", False)),
+                    allow_web_after_rag_hit=bool(state_snapshot.get("allow_web_after_rag_hit", False)),
+                    rag_group=state_snapshot.get("rag_group"),
+                    output_length=state_snapshot.get("output_length", "medium"),
+                )
+            )
+    return {
+        "approval_id": approval_id,
+        "session_id": session_id,
+        "status": resolved_status,
+        "approved_by": request.approved_by,
+        "request_payload": approval_payload,
+    }
 
 
 # ==============================================================
@@ -553,6 +696,7 @@ async def run_research_workflow(
     allow_web_after_rag_hit: bool = False,
     rag_group: str | None = None,
     output_length: str = "medium",
+    skill_context: dict[str, Any] | None = None,
 ):
     """
     Execute the LangGraph research workflow in background.
@@ -564,6 +708,9 @@ async def run_research_workflow(
     4. Saves final results to the database
     """
     sse = get_sse_manager()
+    runtime_persistence = RuntimePersistence()
+    harness = HarnessSupervisor(get_settings().harness.state_root)
+    settings = get_settings()
 
     try:
         # Emit start event
@@ -592,9 +739,10 @@ async def run_research_workflow(
             "web_search_reason": None,
         }
         state["session"]["prompt_profile"] = decision.prompt_profile.value
-        state["session"]["enabled_tools"] = decision.enabled_tools
+        state["session"]["enabled_tools"] = skill_context.get("effective_tool_allowlist") or decision.enabled_tools
         state["session"]["prompt_template"] = compose_guardrail_prompt(query, decision)
         state["runtime_status"] = RuntimeStatus.RUNNING.value
+        state["skill_context"] = skill_context or {}
         state["budget_state"] = {
             "budget_profile": output_length,
             "estimated": True,
@@ -606,6 +754,27 @@ async def run_research_workflow(
             "hard_stop_reason": None,
             "warning": False,
         }
+        state["session"]["harness_state_version"] = 1
+        state["session"]["checkpoint_seq"] = 0
+        state["session"]["skill_context"] = skill_context or {}
+        await runtime_persistence.persist_runtime_snapshot(
+            session_id=session_id,
+            state=state,
+            current_batch=[],
+            checkpoint_ref=None,
+        )
+        harness.upsert_task(
+            session_id=session_id,
+            public_status="running",
+            runtime_status=RuntimeStatus.RUNNING.value,
+            budget=state["budget_state"],
+            current_batch=[],
+            checkpoint_seq=0,
+            pending_approval_id=None,
+            used_total_tokens=0,
+            used_cost_usd=0.0,
+            worker_id=settings.harness.worker_id,
+        )
 
         # Compile graph
         graph = compile_research_graph()
@@ -645,6 +814,44 @@ async def run_research_workflow(
                                 "key": key,
                                 "value": str(value)[:500] if value else "",
                             })
+                checkpoint_state = accumulated_state if accumulated_state else last_chunk
+                checkpoint_runtime = checkpoint_state.get("runtime_status", RuntimeStatus.RUNNING.value)
+                checkpoint_batch = checkpoint_state.get("current_executing_nodes", [])
+                checkpoint_ref = None
+                try:
+                    snapshot = graph.get_state(config)
+                    checkpoint_ref = getattr(snapshot, "config", None)
+                except Exception:
+                    checkpoint_ref = None
+                checkpoint_seq = int(checkpoint_state.get("session", {}).get("checkpoint_seq", 0) or 0) + 1
+                checkpoint_state.setdefault("session", {})
+                checkpoint_state["session"]["checkpoint_seq"] = checkpoint_seq
+                await runtime_persistence.persist_runtime_snapshot(
+                    session_id=session_id,
+                    state=checkpoint_state,
+                    current_batch=checkpoint_batch,
+                    checkpoint_ref=str(checkpoint_ref) if checkpoint_ref is not None else None,
+                )
+                pending_approvals = checkpoint_state.get("pending_approvals", [])
+                pending_approval_id = None
+                if pending_approvals:
+                    latest = pending_approvals[-1]
+                    if isinstance(latest, dict):
+                        pending_approval_id = latest.get("approval_id")
+                harness.upsert_task(
+                    session_id=session_id,
+                    public_status=public_status_from_runtime(checkpoint_runtime),
+                    runtime_status=checkpoint_runtime,
+                    budget=dict(checkpoint_state.get("budget_state") or {}),
+                    current_batch=checkpoint_batch,
+                    checkpoint_seq=checkpoint_seq,
+                    pending_approval_id=pending_approval_id,
+                    used_total_tokens=int((checkpoint_state.get("budget_state") or {}).get("used_total_tokens", 0) or 0),
+                    used_cost_usd=float((checkpoint_state.get("budget_state") or {}).get("used_cost_usd", 0.0) or 0.0),
+                    last_error={"category": checkpoint_state.get("review_status", {}).get("last_error_category")},
+                    worker_id=settings.harness.worker_id,
+                    state_snapshot=checkpoint_state,
+                )
 
         # Determine final state
         # Use accumulated state, with fallback to last chunk
@@ -670,7 +877,7 @@ async def run_research_workflow(
                 pending_approval_count = len(final_state.get("pending_approvals", []))
                 runtime_status = final_state.get("runtime_status", final_state.get("status", TaskStatus.COMPLETED.value))
                 review_status = dict(final_state.get("review_status") or {})
-                tool_audit_rows = _normalize_tool_audit_rows(
+                tool_audit_rows = normalize_tool_audit_rows(
                     session_id=session_id,
                     tool_histories=tool_histories,
                     node_outcomes=final_state.get("node_outcomes", []),
@@ -777,10 +984,6 @@ async def run_research_workflow(
                         "DELETE FROM citations WHERE session_id = $1::uuid",
                         session_id,
                     )
-                    await conn.execute(
-                        "DELETE FROM tool_call_audit WHERE session_id = $1::uuid",
-                        session_id,
-                    )
                     if citations:
                         await conn.executemany(
                             """
@@ -832,21 +1035,64 @@ async def run_research_workflow(
                                 decision_id,
                                 approved_by,
                                 server_fingerprint,
+                                usage_source,
+                                estimated,
                                 started_at,
                                 completed_at
                             )
                             VALUES (
                                 $1, $2::uuid, $3, $4, $5, $6::jsonb, $7, $8, $9, $10,
-                                $11, $12, $13, $14, $15, $16, $17, $18, $19, $20
+                                $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22
                             )
+                            ON CONFLICT (call_id) DO UPDATE SET
+                                node_id = EXCLUDED.node_id,
+                                agent_type = EXCLUDED.agent_type,
+                                tool_name = EXCLUDED.tool_name,
+                                args_json = EXCLUDED.args_json,
+                                args_hash = EXCLUDED.args_hash,
+                                status = EXCLUDED.status,
+                                error_category = EXCLUDED.error_category,
+                                error_message = EXCLUDED.error_message,
+                                retry_count = EXCLUDED.retry_count,
+                                result_summary = EXCLUDED.result_summary,
+                                result_hash = EXCLUDED.result_hash,
+                                tokens_used = EXCLUDED.tokens_used,
+                                cost_usd = EXCLUDED.cost_usd,
+                                decision_id = EXCLUDED.decision_id,
+                                approved_by = EXCLUDED.approved_by,
+                                server_fingerprint = EXCLUDED.server_fingerprint,
+                                usage_source = EXCLUDED.usage_source,
+                                estimated = EXCLUDED.estimated,
+                                started_at = EXCLUDED.started_at,
+                                completed_at = EXCLUDED.completed_at
                             """,
                             tool_audit_rows,
                         )
+                await runtime_persistence.persist_runtime_snapshot(
+                    session_id=session_id,
+                    state=final_state,
+                    current_batch=final_state.get("current_executing_nodes", []),
+                    checkpoint_ref="final",
+                )
+                harness.upsert_task(
+                    session_id=session_id,
+                    public_status=final_state.get("status", public_status_from_runtime(runtime_status)),
+                    runtime_status=runtime_status,
+                    budget=session_budget_state,
+                    current_batch=final_state.get("current_executing_nodes", []),
+                    checkpoint_seq=int(final_state.get("session", {}).get("checkpoint_seq", 0) or 0),
+                    pending_approval_id=None,
+                    used_total_tokens=int(session_budget_state.get("used_total_tokens", 0) or 0),
+                    used_cost_usd=float(session_budget_state.get("used_cost_usd", 0.0) or 0.0),
+                    worker_id=settings.harness.worker_id,
+                    state_snapshot=final_state,
+                )
+                harness.clear_active_if_idle()
 
         # Emit completion
         await sse.publish(session_id, "done", {
             "session_id": session_id,
-            "status": "completed",
+            "status": final_state.get("status", "completed") if final_state else "completed",
             "timestamp": datetime.utcnow().isoformat(),
         })
 
@@ -875,6 +1121,18 @@ async def run_research_workflow(
                     datetime.utcnow(),
                     session_id,
                 )
+            harness.upsert_task(
+                session_id=session_id,
+                public_status="failed",
+                runtime_status=RuntimeStatus.TERMINAL_FAILED.value,
+                budget={},
+                current_batch=[],
+                checkpoint_seq=0,
+                pending_approval_id=None,
+                last_error={"category": "workflow_error", "message": str(e)},
+                worker_id=settings.harness.worker_id,
+                state_snapshot=None,
+            )
         except Exception as db_error:
             # FIX: Log the error instead of silently swallowing
             logger.error(
