@@ -777,6 +777,32 @@ Faithfulness 和 Answer Relevancy 不能混着说。Faithfulness 关注答案是
 先拿 50 个真实用户问题，再为每个问题标出“标准应该找到哪份资料”（gold doc）。然后看系统前 10 个候选里有没有这份资料、它排在第几位，专业点说就是用业务 query + gold doc 跑 Hit@K / Recall@K 和 MRR。我的判断是：没有自家测试集的 embedding 选型，本质上只是换模型抽盲盒。MTEB / C-MTEB 只能做第一轮粗筛，把候选从几十个砍到三五个；最终选择必须由业务测试集定。
 \end{summaryBox}
 
+\begin{figure}[htbp]
+\centering
+\tikzset{
+  evstep/.style={rectangle, rounded corners, draw=darkblue, line width=0.8pt,
+             fill=blue!4, text width=2.55cm, minimum height=1.9cm,
+             align=center, inner sep=4pt},
+  evnum/.style={circle, fill=orange!85!black, text=white, font=\bfseries\footnotesize,
+            inner sep=1.4pt, minimum size=1.4em},
+  evarr/.style={-{Stealth[length=2.2mm]}, line width=0.9pt, draw=orange!85!black},
+}
+\begin{tikzpicture}[font=\small]
+\node[evstep] (s1) {业务 query\\$+$\\gold doc 绑定};
+\node[evstep, right=1.0cm of s1] (s2) {三件套核心指标\\Hit@K / Recall@K\\/ MRR};
+\node[evstep, right=1.0cm of s2] (s3) {五类 query 分组\\同义 / 缩写 / 跨语言\\/ 数字 / 长句};
+\node[evstep, right=1.0cm of s3] (s4) {失败样例 trace\\Hit\,=\,0 单独捞出\\定位病灶};
+\node[evnum] at (s1.north west) {1};
+\node[evnum] at (s2.north west) {2};
+\node[evnum] at (s3.north west) {3};
+\node[evnum] at (s4.north west) {4};
+\draw[evarr] (s1) -- (s2);
+\draw[evarr] (s2) -- (s3);
+\draw[evarr] (s3) -- (s4);
+\end{tikzpicture}
+\caption{最小 embedding eval 的四步：绑定 gold doc、跑三件套指标、按五类 query 分组、再对失败样例做 trace}
+\end{figure}
+
 \begin{analysisBox}{为什么不能只看榜单，也不能只“换更大的模型”}
 MTEB 测的是“通用考试题”，而你的系统面对的是“公司自己的题”：内部工单、合同、代码库、客服记录。公开榜单靠前的模型换到法务 PDF、内部缩写场景上，Top-10 命中率反而可能掉十几个点。“换更大的模型”同样靠不住——不同领域上 text-embedding-3-large、Voyage、bge-m3 这类模型的胜负关系是交叉的，把“大等于准”当标准，恰好跳过了最关键的一步：它在你的资料库里到底找不找得到正确资料。
 
@@ -811,6 +837,47 @@ Query 类型 & Recall@10 & MRR & 诊断方向 \\
 \bottomrule
 \end{tabularx}
 \end{center}
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[font=\small]
+  % axis scale: 1.0 recall -> 5cm
+  \def\H{5}
+  \def\bw{0.42} % bar width
+  \def\gp{2.2}  % group pitch
+  % y axis + gridlines
+  \draw[->] (-0.4,0) -- (0,0) -- (0,\H+0.5);
+  \foreach \y in {0,0.2,0.4,0.6,0.8,1.0}{
+    \draw[gray!30] (0,\y*\H) -- (5*\gp+0.2,\y*\H);
+    \node[left, gray!60, font=\scriptsize] at (-0.05,\y*\H) {\y};
+  }
+  \node[rotate=90, anchor=south, font=\scriptsize] at (-0.7,\H/2) {Recall@10};
+  % groups: name / baseline / hybrid
+  \foreach \i/\name/\base/\hyb in {
+    0/同义改写/0.72/0.76,
+    1/缩写术语/0.34/0.82,
+    2/跨语言/0.68/0.71,
+    3/数字代码/0.28/0.75,
+    4/长 query/0.61/0.64}{
+    \pgfmathsetmacro\x{\i*\gp+0.5}
+    % baseline bar (gray)
+    \filldraw[fill=gray!45, draw=gray!60]
+      (\x,0) rectangle (\x+\bw,\base*\H);
+    \node[above, font=\scriptsize, gray!55] at (\x+\bw/2,\base*\H) {\base};
+    % hybrid bar (orange)
+    \filldraw[fill=orange!85!black, draw=orange!90!black]
+      (\x+\bw+0.08,0) rectangle (\x+2*\bw+0.08,\hyb*\H);
+    \node[above, font=\scriptsize, orange!85!black] at (\x+1.5*\bw+0.08,\hyb*\H) {\hyb};
+    \node[below, font=\scriptsize] at (\x+\bw+0.04,0) {\name};
+  }
+  % legend
+  \filldraw[fill=gray!45, draw=gray!60] (0.3,\H+0.15) rectangle (0.6,\H+0.45);
+  \node[right, font=\scriptsize] at (0.65,\H+0.3) {基线（仅换 embedding）};
+  \filldraw[fill=orange!85!black, draw=orange!90!black] (4.2,\H+0.15) rectangle (4.5,\H+0.45);
+  \node[right, font=\scriptsize] at (4.55,\H+0.3) {混合方案（$+$ rerank）};
+\end{tikzpicture}
+\caption{仅换 embedding vs hybrid$+$rerank：按 query 类型分组的 Recall@10 对比。缩写术语与数字代码两类收益最大（$+0.48$、$+0.47$），同义改写几乎无差别——印证“分类型对症下药”而非笼统换大模型。}
+\end{figure}
 
 \begin{summaryBox}{为什么术语和数字代码要走 hybrid，而不只是换 embedding}
 内部缩写、产品型号、订单号不像自然语言，更像精确字符，比如 SKU-X1932、ORD20260418，纯语义检索反而不可靠，关键词检索更稳。更值得做的是 hybrid：语义搜索找一批、关键词搜索找一批，合并后再 rerank。一份匿名复盘可以印证方向：仅换 embedding，整体 Recall@10 从 0.74 到 0.78；加关键词兜底 + 重排后整体 0.74 到 0.91，缩写类从 0.34 拉到 0.82。这不是公开基准，只说明诊断方向——收益最大的恰恰是缩写类和数字代码类。
