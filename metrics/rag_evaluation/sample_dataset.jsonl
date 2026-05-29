@@ -1,0 +1,5 @@
+{"question_id":"q1","query":"差旅报销限额是多少","query_type":"synonym","expected_chunk_ids":["EXP-03"],"ground_truth_answer":"差旅报销限额见《差旅报销管理办法》第三条。","top_k":10}
+{"question_id":"q2","query":"SKU-X1932 下架了吗","query_type":"abbreviation","expected_chunk_ids":["TKT-1102"],"ground_truth_answer":"SKU-X1932 已下架。","top_k":10}
+{"question_id":"q3","query":"How to handle LOGISTICS_TIMEOUT error","query_type":"cross_lingual","expected_chunk_ids":["LOG-07"],"ground_truth_answer":"LOGISTICS_TIMEOUT 表示物流回调超时，按 LOG-07 处理。","top_k":10}
+{"question_id":"q4","query":"ORD20260418 这个订单为什么一直没发货","query_type":"numeric_code","expected_chunk_ids":["ORD-22"],"ground_truth_answer":"订单 ORD20260418 因缺货延迟发货。","top_k":10}
+{"question_id":"q5","query":"我上周提交的那个工单怎么到现在都还没有人回复我啊","query_type":"long_query","expected_chunk_ids":["FAQ-11"],"ground_truth_answer":"工单回复时效见 FAQ-11。","top_k":10}

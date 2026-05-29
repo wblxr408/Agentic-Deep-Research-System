@@ -411,6 +411,7 @@ class TestResearchResultNormalization:
                 "decision_id": None,
                 "approved_by": None,
                 "server_fingerprint": None,
+                "safety_json": {"source": "harness_tool_layer", "audited": True},
                 "usage_source": "provider",
                 "estimated": False,
                 "started_at": SimpleNamespace(isoformat=lambda: "2026-05-27T00:00:00"),
@@ -450,6 +451,7 @@ class TestResearchResultNormalization:
         assert response[0].tool_name == "duckduckgo_search"
         assert response[0].args_json == {"query": "openai"}
         assert response[0].retry_count == 1
+        assert response[0].safety_json == {"source": "harness_tool_layer", "audited": True}
         assert response[0].usage_source == "provider"
         assert response[0].estimated is False
 
@@ -549,6 +551,212 @@ class TestMetricsCollectors:
 
         metrics = collector.get_metrics()
         assert metrics["summary"]["total_reports"] == 1
+
+    def test_rag_evaluation_metrics_collector(self):
+        """Test layered RAG evaluation metrics collector."""
+        from metrics.rag_evaluation.collector import RAGEvaluationCollector
+
+        collector = RAGEvaluationCollector(storage_path="metrics/test_rag_eval/data")
+        collector.record_retrieval_eval(
+            question_id="q1",
+            query="What is RAG evaluation?",
+            expected_chunk_ids=["chunk-2"],
+            retrieved_chunk_ids=["chunk-9", "chunk-2", "chunk-4"],
+            top_k=3,
+        )
+        collector.record_generation_eval(
+            question_id="q1",
+            query="What is RAG evaluation?",
+            answer="RAG evaluation should separate retrieval from generation.",
+            faithfulness=0.92,
+            answer_relevancy=0.89,
+            context_recall=0.81,
+            context_precision=0.78,
+            judge_model="gpt-4o-mini",
+        )
+
+        metrics = collector.get_metrics()
+        assert metrics["retrieval"]["summary"]["total_queries"] == 1
+        assert metrics["retrieval"]["summary"]["hit_rate"] == 1.0
+        assert metrics["retrieval"]["summary"]["mrr"] == 0.5
+        assert metrics["generation"]["summary"]["total_answers"] == 1
+        assert metrics["generation"]["summary"]["faithfulness_avg"] == 0.92
+        assert metrics["generation"]["summary"]["answer_relevancy_avg"] == 0.89
+
+    def test_rag_offline_evaluator_uses_real_retrieval_interface(self):
+        """Test offline evaluator against a retrieval runner interface."""
+        from types import SimpleNamespace
+
+        from app.rag.evaluation import RAGEvalExample, RAGOfflineEvaluator
+        from metrics.rag_evaluation.collector import RAGEvaluationCollector
+
+        class FakeRetrievalRunner:
+            def execute_retrieval(self, query: str, context: str = "", group: str | None = None):
+                return [
+                    SimpleNamespace(chunk_id="chunk-9", content="irrelevant"),
+                    SimpleNamespace(chunk_id="chunk-2", content="relevant"),
+                ]
+
+        collector = RAGEvaluationCollector(storage_path="metrics/test_rag_eval_runner/data")
+        evaluator = RAGOfflineEvaluator(
+            retrieval_runner=FakeRetrievalRunner(),
+            collector=collector,
+        )
+        metrics = evaluator.evaluate_dataset(
+            [
+                RAGEvalExample(
+                    question_id="q1",
+                    query="How do we evaluate RAG?",
+                    expected_chunk_ids=["chunk-2"],
+                    top_k=5,
+                )
+            ],
+            run_generation_eval=False,
+        )
+
+        assert metrics["retrieval"]["summary"]["total_queries"] == 1
+        assert metrics["retrieval"]["summary"]["hit_rate"] == 1.0
+        assert metrics["retrieval"]["summary"]["mrr"] == 0.5
+
+    def test_rag_offline_evaluator_generation_uses_generated_answer_and_context_metrics(self):
+        """Test generation evaluation uses the system-generated answer and computes context metrics."""
+        from types import SimpleNamespace
+
+        from app.rag.evaluation import RAGEvalExample, RAGOfflineEvaluator
+        from metrics.rag_evaluation.collector import RAGEvaluationCollector
+
+        class FakeRetrievalRunner:
+            def execute_retrieval(self, query: str, context: str = "", group: str | None = None):
+                return [
+                    SimpleNamespace(chunk_id="chunk-1", content="ctx1", metadata={"title": "Doc1"}),
+                    SimpleNamespace(chunk_id="chunk-3", content="ctx3", metadata={"title": "Doc3"}),
+                    SimpleNamespace(chunk_id="chunk-2", content="ctx2", metadata={"title": "Doc2"}),
+                ]
+
+        class FakeAnswerGenerator:
+            def generate_answer(self, query: str, retrieved_results: list[SimpleNamespace]) -> str:
+                return f"generated answer for {query} with {len(retrieved_results)} contexts"
+
+        class FakeEvaluator(RAGOfflineEvaluator):
+            def _judge_generation(self, *, query: str, retrieved_contexts: list[str], answer: str):
+                assert answer.startswith("generated answer")
+                return {
+                    "faithfulness": 0.91,
+                    "answer_relevancy": 0.88,
+                    "context_recall": None,
+                    "context_precision": None,
+                }
+
+        collector = RAGEvaluationCollector(storage_path="metrics/test_rag_eval_generation/data")
+        evaluator = FakeEvaluator(
+            retrieval_runner=FakeRetrievalRunner(),
+            answer_generator=FakeAnswerGenerator(),
+            collector=collector,
+        )
+        metrics = evaluator.evaluate_dataset(
+            [
+                RAGEvalExample(
+                    question_id="q2",
+                    query="How is RAG graded?",
+                    expected_chunk_ids=["chunk-1", "chunk-2"],
+                    ground_truth_answer="gold answer",
+                    top_k=3,
+                )
+            ],
+            run_generation_eval=True,
+        )
+
+        summary = metrics["generation"]["summary"]
+        assert summary["total_answers"] == 1
+        assert summary["faithfulness_avg"] == 0.91
+        assert summary["answer_relevancy_avg"] == 0.88
+        assert summary["context_recall_avg"] == 1.0
+        assert round(summary["context_precision_avg"], 4) == round((1.0 + (2 / 3)) / 2, 4)
+
+    def test_rag_retrieval_summary_reports_recall_at_k(self):
+        """Retrieval summary exposes recall@k alongside hit_rate / mrr."""
+        from metrics.rag_evaluation.collector import RAGEvaluationCollector
+
+        collector = RAGEvaluationCollector(storage_path="metrics/test_rag_eval/data")
+        # 1 of 2 gold chunks retrieved within top_k -> recall 0.5, hit 1.0.
+        collector.record_retrieval_eval(
+            question_id="q1",
+            query="multi gold query",
+            expected_chunk_ids=["chunk-1", "chunk-2"],
+            retrieved_chunk_ids=["chunk-9", "chunk-2", "chunk-4"],
+            top_k=3,
+        )
+        summary = collector.get_metrics()["retrieval"]["summary"]
+        assert summary["hit_rate"] == 1.0
+        assert summary["recall_at_k"] == 0.5
+
+    def test_rag_retrieval_groups_by_query_type_and_traces_failures(self):
+        """Per-query-type breakdown isolates weak categories; failures are traced."""
+        from metrics.rag_evaluation.collector import RAGEvaluationCollector
+
+        collector = RAGEvaluationCollector(storage_path="metrics/test_rag_eval/data")
+        # synonym query hits at rank 1
+        collector.record_retrieval_eval(
+            question_id="q1",
+            query="差旅报销限额是多少",
+            expected_chunk_ids=["EXP-03"],
+            retrieved_chunk_ids=["EXP-03", "EXP-09"],
+            top_k=10,
+            query_type="synonym",
+        )
+        # numeric_code query misses entirely -> failure
+        collector.record_retrieval_eval(
+            question_id="q2",
+            query="ORD20260418 为什么没发货",
+            expected_chunk_ids=["ORD-22"],
+            retrieved_chunk_ids=["ORD-01", "ORD-07"],
+            top_k=10,
+            query_type="numeric_code",
+        )
+
+        retrieval = collector.get_metrics()["retrieval"]
+        by_type = retrieval["by_query_type"]
+
+        assert by_type["synonym"]["hit_rate"] == 1.0
+        assert by_type["synonym"]["mrr"] == 1.0
+        assert by_type["numeric_code"]["hit_rate"] == 0.0
+        assert by_type["numeric_code"]["recall_at_k"] == 0.0
+
+        failures = retrieval["failures"]
+        assert len(failures) == 1
+        assert failures[0]["question_id"] == "q2"
+        assert failures[0]["query_type"] == "numeric_code"
+
+    def test_rag_offline_evaluator_threads_query_type(self):
+        """The evaluator carries each example's query_type into per-type metrics."""
+        from types import SimpleNamespace
+
+        from app.rag.evaluation import RAGEvalExample, RAGOfflineEvaluator
+        from metrics.rag_evaluation.collector import RAGEvaluationCollector
+
+        class FakeRetrievalRunner:
+            def execute_retrieval(self, query: str, context: str = "", group: str | None = None):
+                return [SimpleNamespace(chunk_id="chunk-1", content="ctx")]
+
+        collector = RAGEvaluationCollector(storage_path="metrics/test_rag_eval_runner/data")
+        evaluator = RAGOfflineEvaluator(
+            retrieval_runner=FakeRetrievalRunner(),
+            collector=collector,
+        )
+        metrics = evaluator.evaluate_dataset(
+            [
+                RAGEvalExample(
+                    question_id="q1",
+                    query="缩写术语 query",
+                    expected_chunk_ids=["chunk-1"],
+                    top_k=10,
+                    query_type="abbreviation",
+                )
+            ],
+            run_generation_eval=False,
+        )
+        assert "abbreviation" in metrics["retrieval"]["by_query_type"]
+        assert metrics["retrieval"]["by_query_type"]["abbreviation"]["hit_rate"] == 1.0
 
 
 class TestEdgeRouting:

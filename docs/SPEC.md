@@ -643,14 +643,13 @@ for claim in analysis.claims:
 #### 2.5.7 设计决策
 
 ```
-问：为什么不使用 RAGAS 或其他评估框架？
-答：RAGAS 是事后评估框架，用于评估已生成的 RAG 系统。
-    本系统需要：
-    1. 实时校验（在生成过程中）
-    2. 可干预（校验失败 → 重规划）
-    3. 可解释（每个声明的置信度来源）
-    这些需要内置的 Reflection Agent，而非外部评估。
-    Reflection Agent 本质上是"Agent 版本的单元测试"。
+问：为什么不只用 RAGAS，而还要保留 Reflection Agent？
+答：两者解决的是不同层的问题。
+    1. RAGAS 适合离线评估，用来跑基准集，衡量检索层和生成层的整体质量。
+    2. Reflection Agent 适合在线运行时校验，用来决定当前会话是否需要重规划。
+    3. 前者回答“系统总体表现怎样”，后者回答“这次执行要不要拦下来重做”。
+    所以这里不是二选一，而是离线评估用 RAGAS / Hit@K / MRR，
+    在线治理继续用 Reflection 的 citation_coverage / overall_confidence / needs_revision。
 ```
 
 ---
@@ -909,7 +908,46 @@ deepintel/
 | | 置信度准确性 | 预测 vs 实际 >0.7 | 事后标注对比 |
 | | 重规划效率 | ≤3 次达成质量 | 循环计数 |
 
-### 6.2 综合评分
+### 6.2 RAG 分层评估
+
+RAG 评估建议拆成两层，而不是把所有问题都归到最终答案质量。
+
+**第一层：检索层评估**
+
+- `Hit@K`：Top-K 结果里是否命中正确 chunk，回答“找到没”（单 gold doc 场景）。
+- `Recall@K`：Top-K 里召回了多少比例的正确 chunk，回答“找全没”（多 gold doc 场景）。
+- `MRR`：正确 chunk 排在第几名，回答“多快找到的”。
+- `Context Recall`：回答问题所需信息是否被检索结果覆盖完全。
+- `Context Precision`：检索结果里相关内容是否排在靠前位置。
+
+这一层主要用于定位 embedding、chunking、多路召回和 rerank 的问题。
+
+**第二层：生成层评估**
+
+- `Faithfulness`：答案是否忠实于检索到的上下文，主要看幻觉。
+- `Answer Relevancy`：答案是否真正回答了用户问题，主要看是否跑题。
+
+这一层可结合 RAGAS 一类 LLM-as-a-Judge 框架做离线抽样评估。
+
+**Embedding 选型与按 query 类型分组诊断**
+
+Embedding 选型不能只看 MTEB / C-MTEB 榜单。榜单测的是通用题，企业 RAG 面对的是内部工单、合同、代码库、客服记录这类“公司自己的题”，公开榜单靠前的模型换到内部语料上命中率可能明显回落。因此榜单只做第一轮粗筛（把候选砍到三五个），最终选择必须由业务测试集决定：
+
+- 用 50 条真实 query + 标注 gold doc 作为最小起步集，每条标 1\~3 篇标准资料，跑通后再扩到 200。
+- 判断顺序固定为：先看 `Hit@K` / `Recall@K`（找不找得到），再看 `MRR`（排得靠不靠前），最后看失败集中在哪类问题。
+- 给每条 query 打类型标签，按类型聚合 `Recall@10`，让弱项一眼可见。重点覆盖五类“麻烦问题”：同义改写、缩写术语、跨语言、数字代码、长 query。
+- 失败样例（Hit 为 0）单独 trace 出来，区分是切分不对、模型不认识内部词，还是 gold doc 标错。
+
+工程落地：`RAGEvalExample.query_type` 把类型带进每条样本，`RAGEvaluationCollector` 的 `record_retrieval_eval` 同时记录 `hit` / `recall_at_k` / `reciprocal_rank`，`get_metrics()` 返回 `summary`（整体）、`by_query_type`（分组诊断）与 `failures`（失败 trace）。典型结论是分类型对症下药——缩写与数字代码加 BM25 / 关键词精确兜底，长 query 加 rerank，同义改写先不动——而不是笼统地“换更大的 embedding”。
+
+### 6.3 在线与离线的分工
+
+- 离线评估：`Hit@K`、`Recall@K`、`MRR`、`Context Recall`、`Context Precision`、`Faithfulness`、`Answer Relevancy`（其中检索层指标支持 `by_query_type` 分组与 `failures` trace）
+- 在线验收：点击率、转人工率、引用覆盖率、整体置信度、重规划触发率
+
+离线指标负责快速定位问题在哪一层，线上指标负责验证真实用户效果是否改善。
+
+### 6.4 综合评分
 
 | 维度 | 权重 |
 |------|------|
@@ -921,4 +959,4 @@ deepintel/
 
 ---
 
-*文档版本：v2.0 | 最后更新：2026-05-12 | 架构核心：5 大主题*
+*文档版本：v2.1 | 最后更新：2026-05-29 | 架构核心：5 大主题*
