@@ -170,12 +170,17 @@ async def init_db() -> asyncpg.Pool:
                 decision_id VARCHAR(100),
                 approved_by VARCHAR(100),
                 server_fingerprint VARCHAR(255),
+                safety_json JSONB DEFAULT '{}',
                 usage_source VARCHAR(32) DEFAULT 'provider',
                 estimated BOOLEAN DEFAULT FALSE,
                 started_at TIMESTAMP,
                 completed_at TIMESTAMP,
                 created_at TIMESTAMP DEFAULT NOW()
             )
+        """)
+        await conn.execute("""
+            ALTER TABLE tool_call_audit
+            ADD COLUMN IF NOT EXISTS safety_json JSONB DEFAULT '{}'
         """)
         await conn.execute("""
             CREATE INDEX IF NOT EXISTS idx_tool_call_audit_session

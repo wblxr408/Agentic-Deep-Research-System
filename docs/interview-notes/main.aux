@@ -47,30 +47,44 @@
 \@writefile{toc}{\contentsline {subsection}{\numberline {6.3}数据库优化怎么看}{25}{subsection.6.3}\protected@file@percent }
 \@writefile{toc}{\contentsline {section}{\numberline {7}第六轮拷打：你怎么证明它没胡来}{25}{section.7}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {7.1}我会看哪些指标}{26}{subsection.7.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {7.2}trace 为什么要分成几条线}{26}{subsection.7.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {8}第七轮拷打：哪些能吹，哪些不能吹}{27}{section.8}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {8.1}当前真实完成度应该怎么诚实表达}{27}{subsection.8.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {8.2}失败语义为什么是治理第一优先级}{28}{subsection.8.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {8.3}会话级预算治理现在到了什么程度}{29}{subsection.8.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {8.4}法证级审计现在到了什么程度}{30}{subsection.8.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {9}第八轮拷打：邪恶 Agent 怎么管住}{31}{section.9}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {9.1}治理闭环现状判断}{31}{subsection.9.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {9.2}审批状态源（Approval Source of Truth）}{32}{subsection.9.2}\protected@file@percent }
-\@writefile{lol}{\contentsline {lstlisting}{\numberline {5}{\ignorespaces ApprovalAggregate 的建议最小字段}}{33}{lstlisting.5}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {9.3}为什么外部审批只能是信号，不能是唯一裁决}{33}{subsection.9.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {9.4}Harness 外挂设计}{33}{subsection.9.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {9.5}MCP 安全接入原则}{34}{subsection.9.5}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {9.6}五类幻觉怎么治理}{35}{subsection.9.6}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {10}第九轮拷打：高压追问怎么接}{35}{section.10}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {10.1}为什么选择 LangGraph，而不是直接做多 Agent 对话}{36}{subsection.10.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {10.2}为什么动作审批的权威源必须是 DB}{36}{subsection.10.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {10.3}为什么外部审批不能直接作为执行依据}{36}{subsection.10.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {10.4}为什么要在 LangGraph 外再加 Harness}{37}{subsection.10.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {10.5}为什么 MCP 必须先过 policy proxy}{37}{subsection.10.5}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {10.6}预算治理为什么不能只做软提示}{37}{subsection.10.6}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {11}附录：当前仓库现实、边界与演进路线}{38}{section.11}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {11.1}当前已核实的现实结论}{38}{subsection.11.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {11.2}当前仍存在的关键边界}{39}{subsection.11.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {11.3}建议的三阶段演进}{39}{subsection.11.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {11.4}最终的面试总结句}{39}{subsection.11.4}\protected@file@percent }
-\gdef \@abspage@last{43}
+\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces RAG 两层评估框架：离线先拆检索层与生成层，线上再看业务验收指标}}{26}{figure.caption.1}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces Hit@K vs MRR：Hit 看“有没有找到”，MRR 看“找到得有多靠前”}}{27}{figure.caption.2}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces Faithfulness vs Answer Relevancy：忠实于资料不等于回答了用户问题}}{28}{figure.caption.3}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces RAG 指标诊断与优化映射：不同指标低，对应不同病灶和优化方向}}{29}{figure.caption.4}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {5}{\ignorespaces 离线快速迭代、线上最终验收、两者互相校准}}{29}{figure.caption.5}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {6}{\ignorespaces RAG 指标总表：指标所属层级、衡量对象与低分时的优先排查方向}}{30}{figure.caption.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.2}Embedding 怎么评估，光看 MTEB 榜单行不行}{30}{subsection.7.2}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {7}{\ignorespaces 最小 embedding eval 的四步：绑定 gold doc、跑三件套指标、按五类 query 分组、再对失败样例做 trace}}{31}{figure.caption.7}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {8}{\ignorespaces 仅换 embedding vs hybrid$+$rerank：按 query 类型分组的 Recall@10 对比。缩写术语与数字代码两类收益最大（$+0.48$、$+0.47$），同义改写几乎无差别——印证“分类型对症下药”而非笼统换大模型。}}{32}{figure.caption.8}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.3}trace 为什么要分成几条线}{33}{subsection.7.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {8}第七轮拷打：哪些能吹，哪些不能吹}{34}{section.8}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {8.1}当前真实完成度应该怎么诚实表达}{34}{subsection.8.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {8.2}失败语义为什么是治理第一优先级}{35}{subsection.8.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {8.3}会话级预算治理现在到了什么程度}{36}{subsection.8.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {8.4}法证级审计现在到了什么程度}{37}{subsection.8.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {9}第八轮拷打：邪恶 Agent 怎么管住}{38}{section.9}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {9.1}治理闭环现状判断}{38}{subsection.9.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {9.2}审批状态源（Approval Source of Truth）}{39}{subsection.9.2}\protected@file@percent }
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {5}{\ignorespaces ApprovalAggregate 的建议最小字段}}{40}{lstlisting.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {9.3}为什么外部审批只能是信号，不能是唯一裁决}{40}{subsection.9.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {9.4}Harness 外挂设计}{40}{subsection.9.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {9.5}MCP 安全接入原则}{41}{subsection.9.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {9.6}为什么 Agent 调工具时更容易出事}{42}{subsection.9.6}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {9}{\ignorespaces 概率性推理 vs 确定性规则：安全不能押在“模型大概率不会出错”上}}{42}{figure.caption.9}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {9.7}Harness 工具层怎么挡住越权和带毒参数}{43}{subsection.9.7}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {10}{\ignorespaces 先控权限，再验参数，受控执行，统一兜底}}{43}{figure.caption.10}\protected@file@percent }
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {6}{\ignorespaces Harness 工具层统一输出结构示意}}{44}{lstlisting.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {9.8}五类幻觉怎么治理}{45}{subsection.9.8}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {10}第九轮拷打：高压追问怎么接}{45}{section.10}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {10.1}为什么选择 LangGraph，而不是直接做多 Agent 对话}{46}{subsection.10.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {10.2}为什么动作审批的权威源必须是 DB}{46}{subsection.10.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {10.3}为什么外部审批不能直接作为执行依据}{46}{subsection.10.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {10.4}为什么要在 LangGraph 外再加 Harness}{47}{subsection.10.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {10.5}为什么 MCP 必须先过 policy proxy}{47}{subsection.10.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {10.6}预算治理为什么不能只做软提示}{47}{subsection.10.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {11}附录：当前仓库现实、边界与演进路线}{48}{section.11}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {11.1}当前已核实的现实结论}{48}{subsection.11.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {11.2}当前仍存在的关键边界}{49}{subsection.11.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {11.3}建议的三阶段演进}{49}{subsection.11.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {11.4}最终的面试总结句}{49}{subsection.11.4}\protected@file@percent }
+\gdef \@abspage@last{53}

@@ -210,6 +210,7 @@ class ToolCallAuditRecord(BaseModel):
     decision_id: str | None = None
     approved_by: str | None = None
     server_fingerprint: str | None = None
+    safety_json: dict[str, Any] = Field(default_factory=dict)
     usage_source: str | None = None
     estimated: bool = False
     started_at: str | None = None
@@ -517,7 +518,7 @@ async def get_research_tool_calls(session_id: str):
             SELECT call_id, session_id, node_id, agent_type, tool_name,
                    args_json, args_hash, status, error_category, error_message,
                    retry_count, result_summary, result_hash, tokens_used, cost_usd,
-                   decision_id, approved_by, server_fingerprint, usage_source, estimated,
+                   decision_id, approved_by, server_fingerprint, safety_json, usage_source, estimated,
                    started_at, completed_at, created_at
             FROM tool_call_audit
             WHERE session_id = $1::uuid
@@ -547,6 +548,7 @@ async def get_research_tool_calls(session_id: str):
             decision_id=row["decision_id"],
             approved_by=row["approved_by"],
             server_fingerprint=row["server_fingerprint"],
+            safety_json=row["safety_json"] or {},
             usage_source=row["usage_source"],
             estimated=bool(row["estimated"]),
             started_at=row["started_at"].isoformat() if row["started_at"] else None,
@@ -1035,6 +1037,7 @@ async def run_research_workflow(
                                 decision_id,
                                 approved_by,
                                 server_fingerprint,
+                                safety_json,
                                 usage_source,
                                 estimated,
                                 started_at,
@@ -1042,7 +1045,7 @@ async def run_research_workflow(
                             )
                             VALUES (
                                 $1, $2::uuid, $3, $4, $5, $6::jsonb, $7, $8, $9, $10,
-                                $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22
+                                $11, $12, $13, $14, $15, $16, $17, $18, $19::jsonb, $20, $21, $22, $23
                             )
                             ON CONFLICT (call_id) DO UPDATE SET
                                 node_id = EXCLUDED.node_id,
@@ -1061,6 +1064,7 @@ async def run_research_workflow(
                                 decision_id = EXCLUDED.decision_id,
                                 approved_by = EXCLUDED.approved_by,
                                 server_fingerprint = EXCLUDED.server_fingerprint,
+                                safety_json = EXCLUDED.safety_json,
                                 usage_source = EXCLUDED.usage_source,
                                 estimated = EXCLUDED.estimated,
                                 started_at = EXCLUDED.started_at,

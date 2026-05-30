@@ -1,0 +1,1 @@
+{"question_id": "q2", "query": "How is RAG graded?", "answer": "generated answer for How is RAG graded? with 3 contexts", "faithfulness": 0.91, "answer_relevancy": 0.88, "ground_truth_answer": "gold answer", "context_recall": 1.0, "context_precision": 0.8333333333333333, "judge_model": "gpt-4o-mini", "recorded_at": "2026-05-29T10:29:39.216456"}

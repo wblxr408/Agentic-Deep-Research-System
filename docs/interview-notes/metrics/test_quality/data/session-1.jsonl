@@ -1,0 +1,1 @@
+{"session_id": "session-1", "query": "Test query", "total_claims": 10, "verified_claims": 9, "hallucinated_claims": 1, "citation_count": 8, "plan_coverage": 0.9, "avg_confidence": 0.85, "recorded_at": "2026-05-29T10:29:39.194462"}

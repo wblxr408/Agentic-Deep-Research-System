@@ -612,6 +612,10 @@ def _make_tool_history(
                 "task_id": task_id,
                 "query": query,
             },
+            safety_json={
+                "source": "harness_tool_layer",
+                "audited": True,
+            },
             status="running",
         )],
     )
@@ -652,6 +656,16 @@ def _finish_tool_history(
         tool_call["result_summary"] = result_summary[:200]
     if error is not None:
         tool_call["error"] = error
+
+
+def _update_tool_safety(history: dict[str, Any], **metadata: Any) -> None:
+    """Merge structured safety metadata into the current tool call audit record."""
+    tool_call = history["tool_calls"][-1]
+    safety = dict(tool_call.get("safety_json") or {})
+    for key, value in metadata.items():
+        if value is not None:
+            safety[key] = value
+    tool_call["safety_json"] = safety
 
 
 # ==============================================================
@@ -1105,6 +1119,7 @@ def search_node(state: ResearchState) -> dict:
             node.terminal_failure = True
             node.last_error = reason or "invalid_args"
             node.last_error_category = "schema_validation"
+            _update_tool_safety(tool_history, schema_validated=False, sanitized_error=True)
             _finish_tool_history(tool_history, status="error", error=reason or "invalid_args")
             record_guardrail_event(
                 state,
@@ -1140,6 +1155,12 @@ def search_node(state: ResearchState) -> dict:
                 request_payload={"query": node.query},
             )
             node.waiting_approval = True
+            _update_tool_safety(
+                tool_history,
+                schema_validated=True,
+                approval_required=True,
+                sanitized_error=True,
+            )
             _finish_tool_history(tool_history, status="error", error=approval["reason"])
             tool_histories.append(tool_history)
             node_outcomes.append(_make_node_outcome(
@@ -1171,6 +1192,7 @@ def search_node(state: ResearchState) -> dict:
                 status="success",
                 result_summary=f"{len(results)} search results",
             )
+            _update_tool_safety(tool_history, schema_validated=True)
             node.status = StepStatus.DONE
             node.last_error = None
             node.last_error_category = None
@@ -1306,6 +1328,7 @@ def browser_node(state: ResearchState) -> dict:
             node.terminal_failure = True
             node.last_error = reason or "invalid_args"
             node.last_error_category = "schema_validation"
+            _update_tool_safety(tool_history, schema_validated=False, sanitized_error=True)
             _finish_tool_history(tool_history, status="error", error=reason or "invalid_args")
             record_guardrail_event(
                 state,
@@ -1341,6 +1364,12 @@ def browser_node(state: ResearchState) -> dict:
                 request_payload={"url": node.query, "max_chars": 2000},
             )
             node.waiting_approval = True
+            _update_tool_safety(
+                tool_history,
+                schema_validated=True,
+                approval_required=True,
+                sanitized_error=True,
+            )
             _finish_tool_history(tool_history, status="error", error=approval["reason"])
             tool_histories.append(tool_history)
             node_outcomes.append(_make_node_outcome(
@@ -1378,6 +1407,7 @@ def browser_node(state: ResearchState) -> dict:
                 status="success",
                 result_summary=f"{len(results)} browser pages",
             )
+            _update_tool_safety(tool_history, schema_validated=True)
             node.status = StepStatus.DONE
             node.last_error = None
             node.last_error_category = None
@@ -1505,6 +1535,7 @@ def rag_node(state: ResearchState) -> dict:
             node.terminal_failure = True
             node.last_error = reason or "invalid_args"
             node.last_error_category = "schema_validation"
+            _update_tool_safety(tool_history, schema_validated=False, sanitized_error=True)
             _finish_tool_history(tool_history, status="error", error=reason or "invalid_args")
             record_guardrail_event(
                 state,
@@ -1540,6 +1571,12 @@ def rag_node(state: ResearchState) -> dict:
                 request_payload={"query": node.query, "top_k": 10},
             )
             node.waiting_approval = True
+            _update_tool_safety(
+                tool_history,
+                schema_validated=True,
+                approval_required=True,
+                sanitized_error=True,
+            )
             _finish_tool_history(tool_history, status="error", error=approval["reason"])
             tool_histories.append(tool_history)
             node_outcomes.append(_make_node_outcome(
@@ -1574,6 +1611,7 @@ def rag_node(state: ResearchState) -> dict:
                 status="success",
                 result_summary=f"{len(results)} rag chunks",
             )
+            _update_tool_safety(tool_history, schema_validated=True)
             node.status = StepStatus.DONE
             node.last_error = None
             node.last_error_category = None
@@ -2185,6 +2223,12 @@ async def mcp_node(state: ResearchState) -> dict:
                 reason="mcp_write_requires_approval",
                 request_payload={"server_id": request.server_id, "args": request.requested_args},
             )
+            _update_tool_safety(
+                tool_history,
+                approval_required=True,
+                sanitized_error=True,
+                read_only_default=False,
+            )
             _finish_tool_history(tool_history, status="error", error=approval["reason"])
             tool_histories.append(tool_history)
             node_outcomes.append(_make_node_outcome(
@@ -2204,6 +2248,11 @@ async def mcp_node(state: ResearchState) -> dict:
                 "agent_trace": trace,
             }
         if result.status == "terminal_error":
+            _update_tool_safety(
+                tool_history,
+                sanitized_error=True,
+                redaction_applied=result.redaction_applied,
+            )
             _finish_tool_history(tool_history, status="error", error=result.error_message or result.error_category or "mcp_error")
             tool_histories.append(tool_history)
             node_outcomes.append(_make_node_outcome(
@@ -2217,6 +2266,12 @@ async def mcp_node(state: ResearchState) -> dict:
             ))
             continue
         _finish_tool_history(tool_history, status="success", result_summary=result.result_summary or "mcp success")
+        _update_tool_safety(
+            tool_history,
+            schema_validated=True,
+            redaction_applied=result.redaction_applied,
+            server_trusted=True,
+        )
         tool_history["tool_calls"][-1]["server_fingerprint"] = result.server_fingerprint
         tool_histories.append(tool_history)
         node_outcomes.append(_make_node_outcome(

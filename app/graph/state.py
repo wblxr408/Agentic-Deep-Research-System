@@ -295,6 +295,8 @@ class ToolCallRecord(BaseModel):
     status: Literal["pending", "running", "success", "error", "timeout"] = "pending"
     # 结果摘要
     result_summary: str | None = None
+    # 安全治理元数据（来源、脱敏、审批等）
+    safety_json: dict[str, Any] = Field(default_factory=dict)
     # 错误信息
     error: str | None = None
     # 成本

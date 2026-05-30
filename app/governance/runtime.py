@@ -87,6 +87,7 @@ def normalize_tool_audit_rows(
             outcome = outcomes_by_call_id.get(call_id, {})
             args_json = call.get("args") or {}
             result_summary = call.get("result_summary")
+            safety_json = call.get("safety_json") or {}
             usage_source = "provider"
             estimated = False
             if call.get("usage_estimated") or outcome.get("usage_estimated"):
@@ -111,6 +112,7 @@ def normalize_tool_audit_rows(
                 call.get("decision_id"),
                 call.get("approved_by"),
                 call.get("server_fingerprint"),
+                dumps_json(safety_json),
                 usage_source,
                 estimated,
                 call.get("started_at"),
@@ -309,6 +311,7 @@ class RuntimePersistence:
                             decision_id,
                             approved_by,
                             server_fingerprint,
+                            safety_json,
                             usage_source,
                             estimated,
                             started_at,
@@ -316,7 +319,7 @@ class RuntimePersistence:
                         )
                         VALUES (
                             $1, $2::uuid, $3, $4, $5, $6::jsonb, $7, $8, $9, $10,
-                            $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22
+                            $11, $12, $13, $14, $15, $16, $17, $18, $19::jsonb, $20, $21, $22, $23
                         )
                         ON CONFLICT (call_id) DO UPDATE SET
                             node_id = EXCLUDED.node_id,
@@ -335,6 +338,7 @@ class RuntimePersistence:
                             decision_id = EXCLUDED.decision_id,
                             approved_by = EXCLUDED.approved_by,
                             server_fingerprint = EXCLUDED.server_fingerprint,
+                            safety_json = EXCLUDED.safety_json,
                             usage_source = EXCLUDED.usage_source,
                             estimated = EXCLUDED.estimated,
                             started_at = EXCLUDED.started_at,

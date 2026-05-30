@@ -319,6 +319,13 @@ FRONTEND_PORT=5173
 
 ```bash
 pytest
+
+如果 Windows 上直接执行 `python` / `pytest` 遇到启动器异常，优先使用项目虚拟环境：
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest
+.\scripts\test.ps1
+```
 cd frontend
 npm run build
 ```
