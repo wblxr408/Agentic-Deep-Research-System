@@ -1,0 +1,652 @@
+\section{第十六轮拷打：Agent 开发岗单页题卡}
+
+\begin{summaryBox}{题卡使用方式}
+这一章按单页题卡组织。每张题卡都对应 Agent 开发岗位可能出现的一类底层追问：先给面试官可听懂的回答，再讲底层机制、DeepIntel 里的落点、后续优化和不能夸大的边界。分页不是为了凑版面，而是为了复习时能一题一页地训练。
+\end{summaryBox}
+
+\newcommand{\agentcard}[5]{
+\clearpage
+\subsection{#1}
+\begin{qaBox}{面试回答}
+#2
+\end{qaBox}
+\begin{analysisBox}{底层拆解}
+#3
+\end{analysisBox}
+\begin{summaryBox}{DeepIntel 落点}
+#4
+\end{summaryBox}
+\begin{riskBox}{优化与边界}
+#5
+\end{riskBox}
+}
+
+\agentcard{题卡 1：Agent 和普通 LLM 应用的分水岭是什么}
+{分水岭不是有没有调用模型，而是有没有显式状态、工具执行、环境反馈、失败语义和恢复机制。普通 LLM 应用更像一次生成，Agent 系统更像一个能在约束下持续推进任务的运行时。}
+{Agent 的核心对象不是 prompt，而是 task state。它要知道当前目标、可用工具、已观察到的证据、下一步动作、失败记录、预算和停止条件。只有这些状态被结构化保存，系统才可能从“会说”变成“会执行”。}
+{DeepIntel 用 Planner 生成研究 DAG，用 LangGraph 执行业务状态机，用 Harness 保存任务级 checkpoint、lease 和 progress，用 DB 保存审批、预算和审计事实。}
+{不能说“用了模型就是 Agent”。当前项目已有研究型 Agent 主链路，但完整生产级 Agent 平台还需要多 worker 调度、统一 eval dashboard 和更强审计。}
+
+\agentcard{题卡 2：为什么 Agent 系统的核心是状态机}
+{因为 Agent 任务不是一次线性调用，而是会在规划、取证、分析、反思、重规划、审批、恢复之间切换。状态机能显式表达当前阶段、可走路径和停止条件。}
+{如果没有状态机，步骤会散落在 if-else、prompt 和局部变量里。排障时很难解释系统为什么继续搜索、为什么停止、为什么等待审批。状态机把条件边、循环和终止语义变成可检查的结构。}
+{DeepIntel 的 ResearchState 保存 DAG、完成节点、证据、runtime status、budget state、pending approvals 和 skill context。LangGraph StateGraph 负责按状态驱动节点。}
+{状态机不是万能。图内状态负责业务执行，任务级控制仍需要 Harness；审批和预算事实仍要以 DB 为准。}
+
+\agentcard{题卡 3：DAG 和 StateGraph 有什么区别}
+{DAG 是这次研究任务的业务计划，StateGraph 是驱动计划执行的运行时。DAG 回答“要做哪些取证步骤”，StateGraph 回答“这些步骤如何被调度、聚合、校验和恢复”。}
+{把二者混在一起会导致模型输出直接污染执行控制。业务 DAG 可以由 Planner 生成，但执行器必须有自己的静态约束和动态约束。}
+{DeepIntel 让 Planner 输出 search/browser/rag/mcp 节点和依赖边，LangGraph 负责批次执行、条件路由、Reflection 和 replan。}
+{不能把 Planner 生成的 DAG 当作可信执行计划。它必须经过 schema、工具 allowlist、预算和审批等运行时约束。}
+
+\agentcard{题卡 4：为什么 Planner 不能直接写最终答案}
+{Planner 的职责是把问题拆成可执行计划，不是综合证据写结论。让 Planner 直接回答，会跳过取证、引用和反思校验。}
+{复杂研究任务需要先决定证据源和依赖顺序，再执行工具获取 observation。最终答案应该来自证据综合，而不是规划阶段的模型猜测。}
+{DeepIntel 把 Planner、Search/Browser/RAG、Analyst、Reflection、Report 分层，避免一个节点同时承担规划和生成。}
+{Planner 仍可能生成错误 DAG，所以需要 fallback DAG、schema 校验和 failure hints。不能把 Planner 稳定性吹成绝对可靠。}
+
+\agentcard{题卡 5：为什么需要 fallback DAG}
+{fallback DAG 是系统最低可执行骨架。它保证 Planner 输出失败、JSON 不可解析或节点缺失时，系统仍然能走一条保守研究路径。}
+{fallback 的价值不是提高上限，而是兜住下限。生产系统不能因为一次模型格式抖动就完全失能。}
+{DeepIntel 已有 fallback 思路：在规划不可用时仍可走内部 RAG、搜索、分析、报告的保守链路。}
+{fallback 不能替代高质量规划。它适合保障可用性，但复杂任务仍需要 Planner 生成更贴合问题的 DAG。}
+
+\agentcard{题卡 6：为什么要区分 public status 和 runtime status}
+{public status 给用户看，runtime status 给执行器看。用户只需要知道 running、paused、completed；执行器需要区分 retryable failed、terminal failed、awaiting approval。}
+{如果 UI 状态和执行状态混用，系统会在恢复和重试时产生歧义。例如 paused 可能是等待审批，也可能是用户主动暂停，执行策略完全不同。}
+{DeepIntel 已经把 runtime status、public status、session runtime state 分开，并在 Harness snapshot 里保存运行时状态。}
+{仍要继续完善状态转换表，尤其是审批恢复、预算熔断和多 worker 中断恢复的组合状态。}
+
+\agentcard{题卡 7：retryable failed 和 terminal failed 怎么区分}
+{retryable failed 表示失败可能通过重试、降级或 replan 解决；terminal failed 表示任务已经没有安全或有意义的继续路径。}
+{区分依据包括错误类型、attempt 次数、依赖状态、预算剩余、审批状态和失败是否重复。没有这个区分，系统要么过早放弃，要么无限重试。}
+{DeepIntel 在 graph 和 runtime state 中已有 retryable/terminal 语义，Harness summary 也统计 retryable failed 和 terminal failed。}
+{当前还不是完整 failure taxonomy。未来要把浏览器超时、MCP schema invalid、审批拒绝、预算 hard stop 等错误类别统一建模。}
+
+\agentcard{题卡 8：Agent 为什么需要 failure memory}
+{failure memory 让系统记住哪些节点、工具或查询已经失败过，避免 replan 反复走同一条坏路径。}
+{没有 failure memory，模型可能每次都生成看似不同但本质相同的失败动作，浪费预算并让任务陷入循环。}
+{DeepIntel 的 replan 会带上 known failures，让 Planner 避开已知失败节点。}
+{failure memory 不能无限积累，否则会把可行路径也误杀。需要 retry budget、过期策略和错误类别区分。}
+
+\agentcard{题卡 9：为什么预算治理必须是硬控制}
+{软提示只能提醒，不能阻止 Agent 继续花钱。长任务 Agent 必须有 hard stop、降级策略和部分结果输出。}
+{Agent 是自动执行系统，不能指望模型看到“预算快用完了”就自觉停止。预算要进入调度器、工具层和 replan 条件。}
+{DeepIntel 已有 session budget state 和 breaker，记录 token、cost、tool calls、wall clock 等预算项。}
+{成本估算受上游 usage 精度影响，不能吹成绝对计费系统。未来要增强 per-tool/per-model 归因。}
+
+\agentcard{题卡 10：为什么 tool call 是高风险执行面}
+{模型说错话最多是文本错误；工具参数错了可能会查错数据、写错文件、发错消息或泄露敏感信息。}
+{工具调用把概率性推理变成真实副作用，所以必须由确定性规则接管：schema、权限、审批、沙箱、脱敏和审计。}
+{DeepIntel 在工具层、MCP proxy、approval reviewer 和 tool audit 中都体现了这个思路。}
+{当前不是所有工具都具备同等强度的沙箱；面试时要把安全接入和完整企业级沙箱区分开。}
+
+\agentcard{题卡 11：为什么不能相信模型自己做权限判断}
+{模型可以辅助解释权限，但最终权限判断必须由确定性代码和本地状态完成。安全边界不能建立在概率输出上。}
+{Prompt injection、上下文污染、错误推理都会让模型做出越权判断。权限系统需要身份、角色、租户、工具策略和动作审批。}
+{DeepIntel 让 skill tool allowlist、MCP allowlist、approval DB 和 guardrail policy 共同约束工具调用。}
+{仍需更完整 RBAC 和租户策略。当前重点是研究系统治理，不是完整 IAM 平台。}
+
+\agentcard{题卡 12：为什么工具参数必须 schema 校验}
+{schema 校验把自然语言意图转换成可执行接口的结构化边界。类型、必填、枚举、额外字段都要在执行前检查。}
+{没有 schema，Agent 可能传错字段、注入意外参数，或把工具当成开放聊天接口。schema 是执行前的确定性门。}
+{DeepIntel 的 MCP proxy 已加入轻量 JSON Schema 子集校验，覆盖 object、properties、required、additionalProperties 和基础类型。}
+{当前不是完整 JSON Schema 引擎。复杂嵌套、pattern、oneOf 等高级能力仍是后续方向。}
+
+\agentcard{题卡 13：为什么工具返回也要治理}
+{工具返回值会进入模型上下文、报告和审计。如果包含 secret、内部 ID 或恶意指令，就会造成泄露或上下文污染。}
+{治理不止发生在调用前，还要发生在调用后。返回值要摘要、脱敏、行数限制、错误净化和 result hash。}
+{MCP proxy 现在会递归 redaction，并记录 result hash、server fingerprint、redaction applied。}
+{redaction 依赖策略配置，无法自动识别所有敏感字段。高风险系统还需要 DLP 和数据分类。}
+
+\agentcard{题卡 14：为什么审批要以 DB 为 source of truth}
+{动作执行发生在本地系统，最终裁决就必须由本地 DB 聚合根负责。外部审批系统只能提供信号。}
+{如果 Slack/Jira/Harness 状态直接驱动执行，就会出现回调延迟、重复事件、状态漂移和审计断裂。DB 聚合根能提供事务、版本和幂等。}
+{DeepIntel 已有 approval requests 表、审批 API、approval resume 和 Harness snapshot 关联。}
+{外部审批集成还未完整落地；当前应讲成本地审批闭环，而不是企业全链路审批平台。}
+
+\agentcard{题卡 15：审批恢复最容易出什么 bug}
+{最容易的问题是审批通过后恢复错状态、重复执行动作，或绕过已经过期/拒绝的审批。}
+{恢复时必须检查 approval id、status、resolved at、version、pending approvals 和 checkpoint。审批是动作级事实，不是简单把任务从 paused 改成 running。}
+{DeepIntel 在审批通过后会更新本地审批状态，并用 Harness checkpoint state 恢复 graph。}
+{还需要更细的 action id 和幂等键，确保写操作不会因为回调重放执行两次。}
+
+\agentcard{题卡 16：为什么 SSE 不是任务事实源}
+{SSE 是进度推送通道，不是任务状态的 source of truth。浏览器断线不应该让后台任务丢失。}
+{任务事实应保存在 DB、Harness 和 checkpointer 中。SSE 可以丢、可以重连、可以只展示最近事件，但不能决定任务是否完成。}
+{DeepIntel 用 SSE 推送 workflow start、state update 和 trace，同时用 DB/runtime/Harness 保存恢复事实。}
+{需要继续完善断线重连后的事件补偿，比如从 runtime state 和 progress log 重建当前视图。}
+
+\agentcard{题卡 17：为什么 trace 和 audit 要分开}
+{trace 解释执行路径，audit 证明动作事实。trace 面向调试，audit 面向安全、合规和追责。}
+{trace 可以包含模型思路摘要、节点开始结束、状态转换；audit 必须记录工具、参数范围、调用者、策略裁决、结果摘要和时间。}
+{DeepIntel 有 agent trace、tool histories、tool call audit 和 MCP result hash。}
+{当前审计还不是法证级平台；PII retention、不可抵赖和长期归档仍是后续方向。}
+
+\agentcard{题卡 18：为什么 Agent eval 不能只看答案分数}
+{Agent eval 要看任务成功率、证据质量、工具成本、恢复能力、安全拦截和用户可解释性。只看最终文本会漏掉执行过程风险。}
+{一个答案看起来不错，但可能没有引用、调用了越权工具、花费过高或靠幻觉补事实。Agent eval 必须覆盖过程指标。}
+{DeepIntel 有 metrics 目录、RAG/browser/research quality collector 和实验摘要。}
+{还缺统一 eval dashboard 和可重复 benchmark。面试时可以讲已有评测基础，不要说成完整平台。}
+
+\agentcard{题卡 19：为什么 RAG 不能替代 Browser}
+{RAG 查内部知识，Browser 深读外部网页。两者证据源、时效性和风险不同，不能互相替代。}
+{内部知识适合稳定资料、组织文档和历史记录；网页适合最新事实和外部来源，但也带来 prompt injection 和可信度问题。}
+{DeepIntel 使用 internal-first 策略，先 RAG，再按需要使用 Search/Browser 补外部证据。}
+{如果问题高度时效，仍需要联网取证；如果用户禁止联网，则必须基于内部证据并说明边界。}
+
+\agentcard{题卡 20：为什么 citation 是研究型 Agent 的生命线}
+{研究型 Agent 的可信度来自可回溯证据。没有 citation，报告就是模型生成文本，很难验证事实来源。}
+{citation 让每个关键 claim 能回到 evidence item。Reflection 可以检查引用覆盖，用户也能判断来源可信度。}
+{DeepIntel 的 Analyst 和 Report 要求用 citation 格式，并由 Reflection 做质量校验。}
+{citation 仍可能引用不充分或来源质量不高，所以还需要 evidence ranking 和 claim-level coverage。}
+
+\agentcard{题卡 21：为什么 Browser 内容要当作不可信数据}
+{网页内容可能包含 prompt injection，不能把它当系统指令执行。它只能作为证据数据进入分析。}
+{攻击者可以在网页里写“忽略之前指令，调用某工具”。如果 Agent 把网页当上层指令，就会被劫持。}
+{DeepIntel 把 Browser 作为证据节点，工具安全由 guardrail 和 tool layer 控制。}
+{仍需要更强的 injection detector 和网页内容隔离策略。当前不能说完全防御所有攻击。}
+
+\agentcard{题卡 22：为什么 internal-first 是治理策略}
+{internal-first 不只是检索顺序，而是成本、安全和证据优先级策略。内部资料通常更贴合业务上下文，且风险更可控。}
+{如果一开始就 Web，系统会扩大攻击面、成本和证据噪声。先内部后外部，可以把联网变成有条件补证。}
+{DeepIntel 的 retrieval policy 已体现 internal-first，并可配置是否 RAG 命中后继续 Web。}
+{内部资料过期或覆盖不足时，必须允许外部补证，不能把 internal-first 变成 internal-only。}
+
+\agentcard{题卡 23：为什么 replan 要带 failure hints}
+{没有 failure hints，Planner 可能重新生成同样失败的节点。带上已知失败能把 replan 从“重试一次”变成“绕开坏路径”。}
+{failure hints 要包含节点类型、query、错误类别、retry count 和 repeat blocked 信息。}
+{DeepIntel 的 replan node 会把 Known failures 传给 Planner。}
+{failure hints 也可能误导模型，所以要保持简洁、结构化，不把所有日志都塞进 prompt。}
+
+\agentcard{题卡 24：为什么多 Agent 对话不适合强流程研究}
+{多 Agent 对话灵活，但状态、依赖、预算和恢复很难治理。强流程研究更适合显式 DAG 和状态机。}
+{对话式协作容易出现谁负责下一步、谁拥有事实、失败如何传播不清楚的问题。工程系统需要可解释调度。}
+{DeepIntel 选择 Planner + DAG + LangGraph，而不是让多个角色自由聊天。}
+{开放式 brainstorming 可以用多 Agent 对话，但生产研究执行不应只靠消息流。}
+
+\agentcard{题卡 25：为什么需要 tool allowlist}
+{tool allowlist 决定 Agent 在当前 session 能看见和调用哪些工具。没有 allowlist，模型可能尝试超出任务需要的能力。}
+{allowlist 是 least privilege 的基础。它可以来自 guardrail、skill、tenant policy 和 MCP registry。}
+{DeepIntel 的 skill context 会影响 effective tool allowlist，MCP proxy 也检查 allowed tools。}
+{allowlist 不是完整权限系统。真实企业环境还要结合用户身份、租户、资源范围和审批。}
+
+\agentcard{题卡 26：为什么 Skill 不是 prompt 附件}
+{Skill 如果只是 prompt 附件，就无法解释、审计、版本化或约束工具。真正的 Skill 是运行时能力对象。}
+{能力对象要有 metadata、trigger、scope、priority、allowed tools、agent hints、content version 和 session snapshot。}
+{DeepIntel 的 Skill registry 已实现 meta/content 分离、匹配、手动启用/禁用、snapshot 和工具边界。}
+{当前 Skill 还没有升级到自定义 DAG 节点模板或执行器，这一点要明确标注。}
+
+\agentcard{题卡 27：为什么 Skill 要 top-k}
+{Skill 命中越多不代表越好。太多 Skill 会挤爆 prompt、引入冲突约束、扩大工具边界。}
+{top-k 是 prompt budget 和能力边界控制。它让系统只选择最相关、最高优先级的少数 Skill 进入 session。}
+{DeepIntel 测试已覆盖 top-k truncation 和 allowed tools 合并。}
+{top-k 现在是规则排序，不是学习排序。未来可以引入 eval 驱动的 ranking。}
+
+\agentcard{题卡 28：为什么 Skill snapshot 能防止运行漂移}
+{运行中的 session 不应该因为全局 Skill 更新而改变行为。snapshot 固定 skill id、version、prompt 和工具边界。}
+{如果每步都查最新 registry，同一任务可能前半段按 v1，后半段按 v2，复盘时无法解释。}
+{DeepIntel 测试已证明旧 resolved snapshot 保留旧版本和 prompt，新 session 使用新版本。}
+{还需要版本回收策略：旧 session 结束后才能清理不再引用的 content。}
+
+\agentcard{题卡 29：为什么 MCP 和 Skill 不能混为一谈}
+{MCP 是外部能力协议，Skill 是内部领域策略和能力选择。Skill 可以影响 MCP 工具是否可用，但不能替代 MCP 治理。}
+{MCP 关注 server、tool、resource、transport；Skill 关注 task domain、prompt、constraints、allowed tools。二者处于不同抽象层。}
+{DeepIntel 同时有 Skill registry 和 MCP policy proxy，分别处理领域能力和外部工具信任边界。}
+{面试时不要说“Skill 就是 MCP server 配置”。这会暴露抽象层混乱。}
+
+\agentcard{题卡 30：为什么 MCP 必须有 server registry}
+{MCP server 是外部能力来源，必须先登记、审核、记录 fingerprint 和 allowed tools。}
+{没有 registry，Agent 看到什么 server 就调什么，会产生供应链和权限风险。registry 把外部 server 纳入本地治理。}
+{DeepIntel 的 \term{mcp\_server\_registry} 保存 trust status、allowed tools、read-only default、secret policy 和 fingerprint。}
+{registry 仍需要 UI、审核流程和 tool list drift 检测，当前主要是后端治理入口。}
+
+\agentcard{题卡 31：为什么 MCP tool schema 不能完全信 server}
+{server 提供 schema 是输入，但应用侧要审核并固化策略。外部 server 自己声明自己安全，不能作为最终裁决。}
+{攻击或错误 server 可能暴露过宽 schema，诱导 Agent 传入危险参数。应用侧 registry 应限制允许字段和写工具。}
+{DeepIntel 从 secret policy 中读取 tool schema，并在 proxy 执行前校验。}
+{当前 schema 来源还偏配置，未来要增加 server schema diff、审核和版本化。}
+
+\agentcard{题卡 32：为什么 result hash 有价值}
+{result hash 让审计能证明某次工具返回的摘要内容没有被悄悄改写。它不保存全部敏感数据，也能提供追踪线索。}
+{在安全系统里，完整 payload 可能不能长期保存，但摘要和 hash 可以帮助复盘“这次调用大概返回了什么”。}
+{MCP proxy 成功结果里包含 result hash、summary、fingerprint 和 redaction flag。}
+{hash 不是不可抵赖签名。更强法证需要签名、retention policy 和不可变日志。}
+
+\agentcard{题卡 33：为什么要区分 schema invalid 和 tool not allowed}
+{不同错误类别对应不同修复路径。tool not allowed 是权限或策略问题，schema invalid 是参数生成问题。}
+{如果都归为 tool error，Planner 和开发者无法判断是该调整 allowlist，还是修正参数生成。}
+{DeepIntel MCP proxy 已输出稳定 error category。}
+{未来可以把错误类别反馈给 Planner，用于更精确 replan，而不是简单失败。}
+
+\agentcard{题卡 34：为什么 write tool 默认审批}
+{写工具带来副作用，不应该默认自动执行。审批把高风险动作从概率推理转成明确的人类裁决。}
+{read-only 查询失败通常可恢复，写操作错误可能造成真实损失。默认审批是 excessive agency 的防线。}
+{DeepIntel MCP proxy 对非只读或 write tools 返回 approval request，不调用 executor。}
+{审批通过后仍要做幂等和权限复核，不能只看 approval id 存在。}
+
+\agentcard{题卡 35：为什么 summary length 也是安全策略}
+{返回摘要太长会把过多敏感数据带进上下文，也会挤占 prompt budget。summary length 是数据最小化策略。}
+{工具层不应把完整外部 payload 直接交给模型，尤其是 MCP server 返回的复杂对象。}
+{DeepIntel MCP secret policy 支持 summary chars，默认有上限。}
+{摘要过短也可能损失信息，需要按工具类型调优。}
+
+\agentcard{题卡 36：为什么 long-running Agent 要 session config}
+{session config 定义每轮最多任务数、最大 session 数、并发模式等边界。没有这些边界，Agent 可能无限执行。}
+{长任务系统必须有停止条件：完成、失败、预算、session 上限、用户中断。session config 是控制面的一部分。}
+{Harness v2 state 中已有 session config，保留 exclusive/concurrent 语义的扩展空间。}
+{当前没有完整 concurrent 模式实现，只是为未来多 worker 设计状态结构。}
+
+\agentcard{题卡 37：为什么 active marker 要在 idle 时清理}
+{active marker 不清理会让 hook 或外部 supervisor 误以为还有任务，造成无意义检查或误拦截。}
+{marker 生命周期应该和 active runtime statuses 绑定：running、awaiting approval、retryable failed 等。}
+{Harness 测试已覆盖 completed 后 clear active marker。}
+{复杂情况下 retryable failed 是否算 active 要看策略；当前把它视为 active，便于后续恢复。}
+
+\agentcard{题卡 38：为什么 JSON 损坏不能静默忽略}
+{tasks JSON 是恢复上下文。静默忽略损坏会导致任务丢失或重复执行。}
+{正确做法是恢复 .bak；如果 backup 也不可用，记录明确 \term{ENV\_SETUP} 错误并停止，让人处理。}
+{Harness 已有 corrupt JSON backup recovery 测试。}
+{不能从 progress log 凭空重建完整任务元数据，尤其是 \term{validation}、\term{depends\_on} 和 \term{cleanup}。}
+
+\agentcard{题卡 39：为什么恢复时不能只看最后一行日志}
+{最后一行日志可能只是某个事件，不代表当前可执行状态。恢复要结合 tasks JSON、DB runtime、checkpoint 和 lease。}
+{append-only log 是历史线索，structured state 才是当前状态。二者缺一不可。}
+{DeepIntel Harness 同时保留 progress log 和 structured tasks state。}
+{当前恢复逻辑还不是完整自动恢复协议，需要继续补 worker start recovery。}
+
+\agentcard{题卡 40：为什么多 worker 必须独立工作树}
+{如果多个 worker 在同一工作树执行，rollback、清理和未提交改动会互相破坏。}
+{通用代码任务 runner 里，失败可能需要 reset 到 base commit；这必须在独立 clone 或 worktree 中发生。}
+{DeepIntel 当前没有实现多 worker rollback，所以不会在共享工作区自动 reset。}
+{面试时要把“设计知道怎么做”和“当前已实现什么”分开。}
+
+\agentcard{题卡 41：为什么 Agent 需要 idempotency}
+{长任务会重试、恢复、回调重放。如果没有幂等，工具动作可能重复执行。}
+{幂等要绑定 action id、approval id、request hash、状态版本和执行结果。}
+{DeepIntel 已有 approval id 和 session id 关联，后续应补 action-level idempotency。}
+{当前不能说完全防重复写操作，只能说审批和本地状态源已打基础。}
+
+\agentcard{题卡 42：为什么 model fallback 要保护 schema}
+{切换模型不能破坏结构化输出和工具调用契约。否则 fallback 可能让系统从可治理变成不可解析。}
+{模型路由不只是换名字，还要验证 JSON、tool call、中文能力、成本和失败率。}
+{DeepIntel 强调结构化输出和工具调用稳定性，是模型选型的核心维度。}
+{当前没有完整模型路由评测矩阵，未来应加入 eval。}
+
+\agentcard{题卡 43：为什么不能把 eval 只做成离线脚本}
+{离线 eval 能比较版本，但生产 Agent 还需要运行时监控：失败率、成本、审批等待、tool error 和恢复成功率。}
+{Agent 系统的质量会受网页变化、模型变化、工具服务变化影响，必须持续观测。}
+{DeepIntel 有 metrics collector 和 observability trace 基础。}
+{还缺统一 dashboard 和线上 drift 检测。}
+
+\agentcard{题卡 44：为什么 evidence 和 answer 要分开存}
+{证据是事实材料，答案是模型综合结果。答案可能变化，证据要能回溯。}
+{如果只存最终报告，无法复查 claim 是否由证据支持，也无法在模型升级后重新生成报告。}
+{DeepIntel 有 collected evidence、citations、report 等分层状态。}
+{未来应增强 evidence canonicalization 和 source quality scoring。}
+
+\agentcard{题卡 45：为什么浏览器自动化需要多层降级}
+{网页结构复杂，单一提取策略会经常失败。需要 accessibility、DOM、readability、text fallback 等多层策略。}
+{浏览器节点面对动态页面、反爬、加载慢、无障碍树缺失等问题。多层降级提高覆盖率。}
+{DeepIntel 已在浏览器章节中讲三层提取策略。}
+{浏览器自动化仍会受网站策略影响，不能保证所有页面深读成功。}
+
+\agentcard{题卡 46：为什么 Search 只是入口不是证据终点}
+{搜索结果 snippet 只能提供线索，不能替代深读证据。研究报告应尽量基于 Browser/RAG 深读内容。}
+{Search 适合发现来源，Browser 负责验证页面内容，RAG 负责内部资料。}
+{DeepIntel 的 Search/Browser/RAG 分工清晰，避免“搜到就回答”。}
+{如果只拿 snippet 写结论，要在报告里标注证据弱。}
+
+\agentcard{题卡 47：为什么 Reflection 不应无限循环}
+{Reflection 能提高质量，但也会消耗预算并可能导致反复重写。必须有 max revision 和停止条件。}
+{反思节点应该判断证据不足、一致性问题和引用覆盖，而不是永远追求更完美答案。}
+{DeepIntel 有 max revision 和 budget state 限制 replan。}
+{仍需更细的 reflection scoring，区分必须重做和可接受边界。}
+
+\agentcard{题卡 48：为什么报告要写不确定性}
+{研究任务常常证据不完整或来源冲突。诚实写不确定性比强行给确定结论更可信。}
+{不确定性包括证据缺口、时间限制、来源冲突、内部资料过期和未执行节点。}
+{DeepIntel 的 Report 和使用原则都强调边界。}
+{面试时不要把“能生成报告”讲成“总能给正确答案”。}
+
+\agentcard{题卡 49：为什么 Agent 需要 human-in-the-loop}
+{不是所有决策都应自动化。高风险动作、证据冲突和不可逆副作用需要人类确认。}
+{HITL 的工程难点在暂停、持久化、恢复和幂等，而不是弹出一个确认框。}
+{DeepIntel 有 pending approvals、approval API 和 resume 逻辑。}
+{还要继续完善审批过期、拒绝后的替代路径和外部审批信号接入。}
+
+\agentcard{题卡 50：为什么 “暂停” 不等于 “失败”}
+{暂停可能是等待审批、用户确认、预算策略或外部依赖，不应该被当成失败重试。}
+{如果把 awaiting approval 当 failed，系统可能触发错误重试；如果把 failure 当 paused，系统可能卡死。}
+{DeepIntel 的 runtime status 区分 awaiting approval 和 retryable failed。}
+{状态转换仍要继续规范化，特别是暂停后恢复的边界。}
+
+\agentcard{题卡 51：为什么工具错误要净化}
+{原始错误可能泄露内部路径、SQL、token、schema 或服务拓扑。错误返回给模型前必须净化。}
+{净化后的错误仍要保留足够 category 供恢复和 replan 使用。安全和可诊断之间要平衡。}
+{DeepIntel 在 tool safety 和 MCP error category 中体现了 sanitized error。}
+{法证级排障可以在受控审计系统保存更多细节，但不能直接给模型。}
+
+\agentcard{题卡 52：为什么 DB 是预算事实源}
+{预算状态需要跨请求、跨恢复、跨 worker 保持一致。只存在内存或日志里会丢失或重复计算。}
+{DB 能支持事务更新、状态查询和最终报告。缓存可以加速，但不能替代事实源。}
+{DeepIntel 有 session budget state 和 runtime state 表。}
+{上游模型 usage 不完整时，成本字段仍可能是估算，要明确标注 estimated。}
+
+\agentcard{题卡 53：为什么 Postgres + pgvector 适合这个项目}
+{DeepIntel 优先优化系统整体复杂度：文档、会话、引用、审计、预算和向量检索放在统一数据库里更易维护。}
+{专用向量库在超大规模 ANN 上有优势，但会增加多存储一致性和运维成本。}
+{项目当前是研究工作流系统，不是纯向量检索产品。}
+{如果规模和吞吐上去，可以再评估专用向量库或混合架构。}
+
+\agentcard{题卡 54：为什么结构化输出很重要}
+{Agent 编排依赖可解析结构。Planner 输出 DAG、工具参数、reflection 结果如果不可解析，后续执行就无法治理。}
+{自然语言可以用于解释，但执行器需要 JSON/schema/state。}
+{DeepIntel 的 Planner、DAG、guardrail、MCP schema 都依赖结构化输出。}
+{结构化输出仍需 fallback 和 repair，不能假设模型永远合规。}
+
+\agentcard{题卡 55：为什么 prompt injection 不是只靠 prompt 解决}
+{攻击发生在不可信内容进入上下文后，单靠提示模型“不要被攻击”不够。需要工具边界、内容隔离和策略执行。}
+{真正的防线是 instruction hierarchy、tool allowlist、schema、approval 和 redaction。}
+{DeepIntel 把网页/MCP 返回作为数据，工具执行由 policy 控制。}
+{仍需要系统性红队样本和自动回归。}
+
+\agentcard{题卡 56：为什么 Agent 需要最小权限}
+{Agent 会犯错，也可能被诱导。给它超过任务需要的工具和数据，就扩大了事故半径。}
+{least privilege 包括工具 allowlist、read-only default、租户 scope、参数限制和审批。}
+{DeepIntel 的 Skill allowed tools 和 MCP allowlist 都是最小权限实践。}
+{当前还没有完整用户级 IAM，要避免夸大。}
+
+\agentcard{题卡 57：为什么 “会调用工具” 不等于 “会安全调用工具”}
+{调用工具只是连接能力，安全调用还要证明调用资格、参数合法、执行受控、返回脱敏、审计完整。}
+{很多 Demo 到工具调用就结束，但生产系统真正难在治理副作用和恢复失败。}
+{DeepIntel 通过 Harness 工具层、MCP proxy、approval 和 audit 讲安全调用链路。}
+{仍需更多真实高风险工具接入测试。}
+
+\agentcard{题卡 58：为什么要记录 server fingerprint}
+{MCP server 的工具列表和行为可能变化。fingerprint 帮助审计某次调用对应哪个 server 状态。}
+{没有 fingerprint，事故复盘时只能知道调用了 server id，无法判断当时 server 是否被替换或升级。}
+{DeepIntel MCP result 中返回 server fingerprint。}
+{未来应加入 tool list digest 和 schema version。}
+
+\agentcard{题卡 59：为什么 untrusted server 要直接拒绝}
+{未注册或未信任 server 不应进入工具调用路径。否则协议统一反而扩大供应链攻击面。}
+{MCP 的便利性会让人误以为任何 server 都可插拔。生产系统必须先建立 trust registry。}
+{DeepIntel MCP proxy 对 unregistered/untrusted server 返回 terminal error。}
+{信任流程本身还需产品化，包括审核、禁用、轮换和告警。}
+
+\agentcard{题卡 60：为什么 schema invalid 不应该自动重试同样参数}
+{schema invalid 是结构错误，重复执行同样参数没有意义。应该反馈给 Planner 或参数生成器修正。}
+{重试适合临时网络/超时，不适合确定性参数错误。错误分类决定恢复策略。}
+{DeepIntel MCP proxy 输出 schema invalid，后续可进入 replan hints。}
+{当前 graph 对 MCP schema invalid 的精细恢复还可继续增强。}
+
+\agentcard{题卡 61：为什么报告生成要和取证解耦}
+{取证决定事实材料，报告决定表达结构。二者耦合会让报告节点偷偷补事实，增加幻觉风险。}
+{解耦后可以单独评估证据质量和表达质量，也可以在同一证据集上重生成报告。}
+{DeepIntel 用 Analyst 综合证据，Report 输出报告。}
+{仍需更强 claim-level verifier，确保每个关键句都有证据。}
+
+\agentcard{题卡 62：为什么 Agent 需要可解释路由}
+{用户和开发者需要知道为什么系统选择 RAG、Search、Browser 或 MCP。不可解释路由会让失败难以复盘。}
+{路由解释应包含 policy、skill、budget、guardrail 和 DAG 依赖，而不是模型一句“我觉得”。}
+{DeepIntel 有 retrieval policy、skill context 和 trace。}
+{路由解释还可更结构化地进入 UI 和审计。}
+
+\agentcard{题卡 63：为什么数据源可信度要分层}
+{不同来源可靠性不同：内部文档、官方公告、新闻、论坛、网页片段不能同权处理。}
+{研究型 Agent 应记录来源类型、时间、作者/机构和证据强度。}
+{DeepIntel 已区分 RAG、Search、Browser 证据源。}
+{还需要 source quality scoring 和冲突证据处理策略。}
+
+\agentcard{题卡 64：为什么检索命中不代表可以回答}
+{检索命中只说明找到了相关文本，不说明足以回答问题。还要看覆盖度、时效性、冲突和引用质量。}
+{RAG 系统常见错误是把 top-k 文档直接塞给模型，忽略问题是否真的被覆盖。}
+{DeepIntel 用 Reflection 检查答案质量和证据覆盖。}
+{未来可加入 answerability classifier，证据不足时提前拒答或补证。}
+
+\agentcard{题卡 65：为什么 Browser 节点要受预算控制}
+{浏览器深读成本高、耗时长、失败率也高。不能让 Agent 无限打开页面。}
+{Browser budget 应限制页面数、深读深度、超时和重试次数。}
+{DeepIntel 有 tool calls、wall clock 和 budget profile。}
+{还需 per-node browser budget，更精细控制不同研究任务。}
+
+\agentcard{题卡 66：为什么 search query 要由 Planner 约束}
+{搜索 query 决定取证范围。过宽会噪声大，过窄会漏证据。}
+{Planner 应把用户问题拆成明确子问题，并为每个子问题生成目标明确的 query。}
+{DeepIntel Planner 输出 DAG 节点 query。}
+{当前仍依赖模型质量，未来可加入 query rewrite eval 和 query diversity 控制。}
+
+\agentcard{题卡 67：为什么要记录 current batch}
+{current batch 表示当前正在并行执行的 DAG 节点。恢复时需要知道哪些节点可能完成、失败或部分执行。}
+{没有 current batch，恢复只能知道整个图状态，很难定位中断发生在哪组并行节点。}
+{Harness checkpoint 中保存 current batch。}
+{并行节点的副作用和幂等仍要逐节点处理。}
+
+\agentcard{题卡 68：为什么 completed nodes 不能只靠模型声明}
+{节点完成必须来自执行器结果，不是模型说“我完成了”。}
+{工具节点要有真实 observation，分析节点要有输出结构，报告节点要有引用覆盖。}
+{DeepIntel 的 DAG executor 和 node outcomes 记录执行结果。}
+{仍需更强 validation command 或 objective check，尤其是代码任务类 Harness。}
+
+\agentcard{题卡 69：为什么 Agent 需要停止条件}
+{没有停止条件，Agent 会在搜索、反思、重规划之间无限循环。}
+{停止条件包括任务完成、证据足够、预算耗尽、重试打满、审批拒绝、用户中断。}
+{DeepIntel 有 max revision、budget breaker 和 runtime terminal state。}
+{仍要继续完善“部分完成可交付”的判断。}
+
+\agentcard{题卡 70：为什么 “部分报告” 是优雅降级}
+{预算或工具失败时，直接报错会浪费已有证据。部分报告能最大化当前信息价值。}
+{部分报告必须明确哪些节点没执行、哪些证据不足、哪些结论不确定。}
+{DeepIntel 的报告边界原则支持这种表达。}
+{当前自动部分报告策略还可强化，不能说所有失败都能优雅降级。}
+
+\agentcard{题卡 71：为什么 Agent 需要配置化风险等级}
+{不同工具和任务风险不同。读公开网页、查内部文档、写文件、发消息不应同等处理。}
+{风险等级决定是否审批、是否沙箱、是否记录更详细审计、是否允许自动重试。}
+{DeepIntel approval request 有 risk level，MCP write tools 触发 high 风险审批。}
+{风险分类还需更细粒度，比如 destructive、external side effect、sensitive data。}
+
+\agentcard{题卡 72：为什么 tool timeout 是治理而不是性能参数}
+{timeout 防止工具卡死拖垮长任务，也限制外部系统故障对 Agent 的影响。}
+{timeout 后要分类为 TIMEOUT，执行 cleanup，更新 failure memory，而不是简单等待。}
+{DeepIntel 在失败语义和 budget state 中有超时治理思路。}
+{具体每个工具的 timeout 策略还可更精细。}
+
+\agentcard{题卡 73：为什么 Agent 需要环境初始化}
+{长任务跨 session 执行时，环境可能变化。每次 session start 都要做 health check 和 idempotent init。}
+{没有初始化，恢复时可能因为依赖、数据库、浏览器或模型配置变化而失败。}
+{Harness 技能强调 harness-init 和 health check。DeepIntel 有配置和启动脚本基础。}
+{当前项目没有完整 harness-init.sh 协议化接入。可作为路线图。}
+
+\agentcard{题卡 74：为什么测试输出要为 Agent 设计}
+{长任务 Agent 恢复和修复依赖测试结果。如果测试输出不可 grep、错误分类不清，Agent 很难自动定位。}
+{测试应输出明确失败文件、断言、错误类别和可复现命令。}
+{本次新增 Harness/MCP/Skill 单测就是把治理能力变成可验证证据。}
+{未来可以把测试摘要写入 Harness progress，用于自动恢复。}
+
+\agentcard{题卡 75：为什么不能只用日志做恢复}
+{日志是历史，恢复还需要当前结构化状态。只靠日志会遇到解析不稳定、语义缺失和状态重建困难。}
+{tasks JSON、DB runtime state、checkpointer 和日志要共同使用。}
+{DeepIntel Harness 同时保存 progress 和 task snapshot。}
+{完整恢复协议还需要更系统的 recovery decision matrix。}
+
+\agentcard{题卡 76：为什么 DB 和 Harness 会有双写问题}
+{DB 保存审批/预算/审计事实，Harness 保存任务控制面。一次执行要更新两边，就可能出现一边成功一边失败。}
+{解决思路是分域定权和补偿恢复：DB 是事实源，Harness 是恢复上下文，恢复时检查并补齐缺失。}
+{DeepIntel 笔记已经强调分域定权。}
+{当前还没有完整事务外补偿器，需要作为后续优化。}
+
+\agentcard{题卡 77：为什么工具审计不能只存在 session JSON}
+{session JSON 适合任务状态，不适合长期审计查询。工具审计需要独立表或日志，便于按 tool、时间、用户查询。}
+{审计数据可能用于安全复盘和成本分析，不能只嵌在最终结果里。}
+{DeepIntel 已落地 tool call audit，不再只依赖 session JSON。}
+{审计保留策略和敏感字段处理还需更完整。}
+
+\agentcard{题卡 78：为什么 Agent 需要 observability}
+{Agent 的失败可能来自模型、工具、网络、检索、审批或预算。没有观测性，无法判断瓶颈在哪里。}
+{观测应覆盖节点耗时、工具成功率、token/cost、重试次数、审批等待和最终质量。}
+{DeepIntel 有 observability trace 和 SSE manager。}
+{还缺统一指标面板和告警阈值。}
+
+\agentcard{题卡 79：为什么 prompt 也要版本化}
+{Prompt 改动会影响 Planner、Analyst、Reflection 和 Report 行为。没有版本，很难解释质量变化。}
+{版本化 prompt 能和 eval、session、skill snapshot 关联，支持回滚和 A/B 比较。}
+{DeepIntel Skill snapshot 已固定 prompt sections；主 prompt 版本化仍可继续增强。}
+{不要把 prompt 当成随手文案，它是运行时契约的一部分。}
+
+\agentcard{题卡 80：为什么 Agent 需要 schema repair}
+{模型可能输出接近正确但格式不合规的 JSON。schema repair 能提高可用性，但必须受限。}
+{repair 不能凭空补业务语义，只能修格式或用 fallback。否则会把错误计划包装成合法计划。}
+{DeepIntel Planner 有 JSON 解析和 fallback 思路。}
+{未来可加入更明确的 repair attempts 和错误日志。}
+
+\agentcard{题卡 81：为什么 “工具越多越强” 是误区}
+{工具越多，搜索空间、权限风险、成本和失败路径都增加。强 Agent 不是工具多，而是工具边界清楚。}
+{工具集要按任务、Skill、租户和风险动态收缩。}
+{DeepIntel 通过 guardrail enabled tools、Skill allowlist 和 MCP proxy 控制工具。}
+{未来要做 per-tool capability 和更细粒度 tool policy。}
+
+\agentcard{题卡 82：为什么上下文窗口不是可靠记忆}
+{上下文会被截断、压缩、污染，也不能跨进程稳定保存。长任务记忆必须外部化。}
+{外部化包括 DB、Harness progress、tasks JSON、checkpointer 和 artifact storage。}
+{DeepIntel 把任务状态、预算、审批和 skill snapshot 都放到外部状态。}
+{模型上下文仍用于当前推理，但不能当唯一记忆。}
+
+\agentcard{题卡 83：为什么 Agent 要记录 artifacts}
+{中间产物如网页快照、检索结果、报告草稿、图表数据，可以帮助恢复、评估和复盘。}
+{没有 artifacts，任务失败后只能看日志，无法重建证据材料。}
+{DeepIntel 已保存 evidence、citations 和 reports，metrics 里也有实验数据。}
+{完整 artifact lifecycle 还可继续完善，包括存储、过期、脱敏和引用。}
+
+\agentcard{题卡 84：为什么用户确认和审批不同}
+{用户确认通常是确认任务方向或敏感输入，审批是允许某个高风险动作执行。二者风险和状态语义不同。}
+{混用会导致恢复逻辑错误。例如用户确认问题范围，不等于批准写外部系统。}
+{DeepIntel 有 user confirmed 和 pending approvals 两类状态。}
+{仍需在 UI 上更明确地区分确认和审批。}
+
+\agentcard{题卡 85：为什么要把 source of truth 讲清楚}
+{复杂系统最容易出事的是多个组件都以为自己是事实源。source of truth 明确后，恢复和冲突处理才有依据。}
+{审批/预算/审计以 DB 为准，任务控制以 Harness 为准，图状态以 checkpointer 为准，外部系统只是信号或工具。}
+{DeepIntel 笔记已把分域定权作为治理核心。}
+{如果未来接入外部审批或 MCP server，仍要保持本地裁决权。}
+
+\agentcard{题卡 86：为什么 Agent 安全要做纵深防御}
+{单层防御一定会漏。需要 prompt 层、planner 层、tool schema、policy proxy、审批、沙箱、redaction 和 audit 多层串联。}
+{纵深防御承认模型和工具都会犯错，用后续层次限制事故半径。}
+{DeepIntel 已有 guardrail、Skill allowlist、MCP proxy、approval 和 audit。}
+{沙箱和红队自动化仍是后续重点。}
+
+\agentcard{题卡 87：为什么要做红队样本库}
+{安全能力不能只靠设计描述，必须用攻击样本持续回归。}
+{样本应覆盖 prompt injection、schema 绕过、越权工具、敏感字段、审批重放和 MCP tool poisoning。}
+{DeepIntel 当前有单元测试证明部分治理规则。}
+{还需要系统性 red-team benchmark，把安全测试纳入 CI。}
+
+\agentcard{题卡 88：为什么 Agent 系统要有降级路径}
+{外部工具、模型、浏览器、检索都可能失败。没有降级，系统会从复杂变成脆弱。}
+{降级包括 fallback DAG、internal-only、skip optional node、partial report 和人工介入。}
+{DeepIntel 有 fallback、budget breaker 和 partial boundary 表达。}
+{降级也要透明，不能让用户以为完整研究已经完成。}
+
+\agentcard{题卡 89：为什么 “完成” 要有验收证据}
+{Agent 容易 premature completion。完成必须由测试、验证命令、证据覆盖或明确状态证明。}
+{没有验收证据，只能说“生成了输出”，不能说“任务完成”。}
+{本次优化用 pytest 和 PDF 编译作为验收证据。}
+{复杂研究任务还需要任务级质量指标，不只是代码测试。}
+
+\agentcard{题卡 90：为什么要把未完成写进笔记}
+{面试中诚实边界比夸大能力更可信。明确未完成项能展示工程判断和路线规划。}
+{未完成项要讲为什么没做、做了有什么代价、如何验收，而不是一句“以后优化”。}
+{DeepIntel 笔记记录多 worker、MCP 主流量化、Skill 执行器、统一 eval 等边界。}
+{不要把路线图说成当前能力，否则高压追问会被打穿。}
+
+\agentcard{题卡 91：为什么 Agent 需要任务优先级}
+{长任务队列里不是所有任务同等重要。优先级影响调度、重试和资源分配。}
+{没有优先级，P0 修复和低风险补充任务会争同样资源。}
+{Harness v2 state 保留 priority 字段。}
+{当前 DeepIntel 还没有完整任务队列调度，priority 主要是状态结构准备。}
+
+\agentcard{题卡 92：为什么 dependency cycle 要检测}
+{如果任务依赖形成环，调度器会永远找不到可执行任务。}
+{cycle detection 是任务选择前的静态安全检查。发现后应标记 dependency error，而不是让系统空转。}
+{Harness 技能中明确了 cycle detection。}
+{当前 DeepIntel Harness 还未实现完整依赖调度，面试时只能讲设计方向。}
+
+\agentcard{题卡 93：为什么 blocked 状态不一定要持久化}
+{blocked 可以由 pending 任务和永久失败依赖计算出来。持久化 blocked 可能引入同步问题。}
+{计算型 blocked 能保证依赖状态变化后自动反映。}
+{Harness summary 现在按 failed dependency 计算 blocked。}
+{复杂队列可选择持久化 blocked reason，但要维护一致性。}
+
+\agentcard{题卡 94：为什么 approval request 要有 request payload}
+{审批人需要知道自己批准的是什么动作、参数范围和风险原因。没有 payload，审批就是盲批。}
+{payload 也用于恢复和审计，证明执行动作与审批动作一致。}
+{DeepIntel approval request 保存 request payload json，MCP approval payload 会 redaction。}
+{payload 本身可能含敏感信息，必须脱敏后展示。}
+
+\agentcard{题卡 95：为什么工具层要返回统一结构}
+{统一结构让下游节点、审计和 UI 能稳定处理 success、denied、safe error，而不是解析各工具的随意返回。}
+{不同工具内部错误可以不同，但边界输出要一致。}
+{DeepIntel 笔记中已有 Harness 工具层统一输出结构示意。}
+{现实工具仍可能返回复杂 payload，需要 adapter 层标准化。}
+
+\agentcard{题卡 96：为什么 Agent 要有 query scope}
+{query scope 限制任务的主题、租户、项目和数据边界。没有 scope，Agent 可能检索或调用无关资源。}
+{scope 可以来自用户、session、skill、guardrail 和权限系统。}
+{DeepIntel Skill metadata 支持 tenant/project scope，RAG 支持 rag group。}
+{完整多租户权限仍需进一步实现。}
+
+\agentcard{题卡 97：为什么 Agent 需要成本归因}
+{只知道总成本不够，需要知道哪个节点、工具、模型或 replan 消耗最多。}
+{成本归因帮助优化 prompt、工具深度、浏览器策略和模型路由。}
+{DeepIntel 有 budget state 和 metrics 基础。}
+{当前 per-node/per-tool 成本归因还不完整。}
+
+\agentcard{题卡 98：为什么重试要有 backoff}
+{立即重试可能打爆外部服务，也可能重复遇到暂时性故障。backoff 给系统恢复时间。}
+{重试策略应根据错误类别调整，网络错误和 schema invalid 不应同策略。}
+{DeepIntel failure memory 中已有 next retry/backoff 语义。}
+{还需要和 Harness lease、task selection 结合得更紧。}
+
+\agentcard{题卡 99：为什么 tool result 不能直接作为最终答案}
+{工具结果是证据或动作反馈，不是面向用户的最终解释。最终答案需要综合、引用和边界说明。}
+{直接返回工具结果会缺少上下文、可信度和冲突处理。}
+{DeepIntel 让 Analyst/Report 处理 collected evidence。}
+{某些简单查询可以直出，但研究任务不应这样做。}
+
+\agentcard{题卡 100：Agent 平台的控制面和数据面怎么拆}
+{控制面负责状态、租约、预算、审批、权限和审计；数据面负责模型调用、检索、浏览器、MCP tool 和证据流。}
+{如果两者混在一起，模型输出、工具结果和恢复逻辑会互相污染，最终表现为重复执行、越权调用、不可恢复和无法复盘。}
+{DeepIntel 当前把 LangGraph 作为业务执行图，把 Harness、MCP policy proxy、Skill registry 和 budget breaker 作为控制面插点。}
+{还没做到完整平台化调度，后续要补 worker pool、action id、DB 事务聚合根和统一 eval dashboard。}
+
+\agentcard{题卡 101：为什么要区分工具发现和工具授权}
+{工具发现回答“有哪些工具存在”，工具授权回答“当前 session 能不能用”。发现不等于授权。}
+{MCP 可以帮助发现 tools/list，但应用必须按用户、租户、skill 和策略收缩可用工具。}
+{DeepIntel 的 MCP registry 和 Skill tool allowlist 分别处理外部工具和 session 工具边界。}
+{未来要把工具发现结果和本地 registry 审核流程结合。}
+
+\agentcard{题卡 102：为什么 Agent 要有审计友好的错误码}
+{自然语言错误不稳定，审计和恢复需要固定错误码。}
+{错误码能驱动 retry、replan、approval、terminal failed 和 UI 展示。}
+{MCP proxy 已固定 untrusted、tool not allowed、schema invalid、unsupported input 等类别。}
+{还需要跨所有工具统一错误 taxonomy。}
+
+\agentcard{题卡 103：为什么上下文压缩会影响恢复}
+{上下文压缩可能丢失细节、错误原因和中间决策。恢复不能依赖压缩后的对话摘要。}
+{恢复材料必须写到外部状态：progress、tasks、checkpoint、DB。}
+{Harness 设计原则就是 progress files are the context。}
+{上下文摘要仍可辅助，但不能作为唯一证据。}
+
+\agentcard{题卡 104：为什么 Agent 要可暂停}
+{长任务可能遇到审批、预算、用户修改需求或外部服务异常。可暂停让系统不必失败退出。}
+{暂停状态必须持久化，并且恢复时知道暂停原因。}
+{DeepIntel 有 awaiting approval 和 approval resume。}
+{主动用户暂停、计划修改后的恢复还可继续完善。}
+
+\agentcard{题卡 105：为什么 Agent 需要边界表达}
+{用户和面试官都需要知道系统做到了什么、没做到什么、结果可信到什么程度。}
+{边界表达包括证据不足、未联网、预算停止、工具失败、未完成路线图。}
+{DeepIntel 笔记把现实结论和关键边界写入附录。}
+{边界不是示弱，而是工程系统可信度的一部分。}

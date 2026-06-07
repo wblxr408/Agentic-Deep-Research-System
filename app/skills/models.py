@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 ALLOWED_SKILL_TOOLS = {"search", "browser", "rag", "mcp"}
@@ -74,6 +74,19 @@ class SkillMetadata(BaseModel):
             return None
         cleaned = value.strip().lower()
         return cleaned or None
+
+    @model_validator(mode="after")
+    def validate_scope_binding(self) -> "SkillMetadata":
+        if self.scope == "global" and (self.tenant_id or self.project_id):
+            raise ValueError("global skill must not set tenant_id or project_id")
+        if self.scope == "tenant":
+            if not self.tenant_id:
+                raise ValueError("tenant scoped skill must set tenant_id")
+            if self.project_id:
+                raise ValueError("tenant scoped skill must not set project_id")
+        if self.scope == "project" and (not self.tenant_id or not self.project_id):
+            raise ValueError("project scoped skill must set tenant_id and project_id")
+        return self
 
 
 class SkillContentRecord(BaseModel):

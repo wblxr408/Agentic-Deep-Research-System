@@ -1,1 +1,0 @@
-{"question_id": "q2", "query": "How is RAG graded?", "top_k": 3, "expected_chunk_ids": ["chunk-1", "chunk-2"], "retrieved_chunk_ids": ["chunk-1", "chunk-3", "chunk-2"], "hit": 1.0, "recall_at_k": 1.0, "reciprocal_rank": 1.0, "first_relevant_rank": 1, "recorded_at": "2026-05-29T10:29:39.215458", "query_type": "unlabeled"}

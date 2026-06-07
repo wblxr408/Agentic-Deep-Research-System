@@ -321,7 +321,7 @@ if ($Mode -eq "docker") {
 
     $backendLog = Join-Path $repoRoot "backend.local.log"
     $frontendLog = Join-Path $repoRoot "frontend.local.log"
-    $requiredModules = @("asyncpg", "fastapi", "uvicorn", "sse_starlette", "structlog", "pydantic", "redis", "openai", "langgraph")
+    $requiredModules = @("asyncpg", "fastapi", "uvicorn", "sse_starlette", "structlog", "pydantic", "redis", "openai", "langgraph", "torch", "sentence_transformers", "transformers", "accelerate", "playwright")
     $missingModules = @()
     foreach ($module in $requiredModules) {
         if (-not (Test-ModuleInstalled -PythonExe $pythonExe -ModuleName $module)) {
@@ -354,7 +354,7 @@ if ($Mode -eq "docker") {
         $pythonExe = $venvPython
     }
 
-    $startupChecks = @("asyncpg", "fastapi", "uvicorn", "sse_starlette", "structlog", "pydantic", "redis", "openai", "langgraph")
+    $startupChecks = @("asyncpg", "fastapi", "uvicorn", "sse_starlette", "structlog", "pydantic", "redis", "openai", "langgraph", "torch", "sentence_transformers", "transformers", "accelerate", "playwright")
     $stillMissing = @()
     foreach ($module in $startupChecks) {
         if (-not (Test-ModuleInstalled -PythonExe $pythonExe -ModuleName $module)) {

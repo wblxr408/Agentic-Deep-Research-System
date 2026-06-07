@@ -1,1 +1,0 @@
-{"question_id": "q1", "query": "What is RAG evaluation?", "answer": "RAG evaluation should separate retrieval from generation.", "faithfulness": 0.92, "answer_relevancy": 0.89, "ground_truth_answer": null, "context_recall": 0.81, "context_precision": 0.78, "judge_model": "gpt-4o-mini", "recorded_at": "2026-05-29T10:29:39.202457"}

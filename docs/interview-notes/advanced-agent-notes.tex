@@ -1,0 +1,808 @@
+\section{第十轮拷打：优化记录总表与实施证据}
+
+\begin{summaryBox}{这一章为什么必须单独写}
+这一章不是为了显得内容多，而是为了把“设计想法、代码落地、测试证据、面试话术、未完成边界”放在同一个地方。面试里最怕的不是不会讲概念，而是把设计稿讲成生产能力。这里的表格就是为了防止这个问题：每一项都必须能回答“现在到底做到哪一步，证据是什么，没做到的边界在哪里”。
+\end{summaryBox}
+
+\begin{riskBox}{真实性原则}
+本章的状态只有三类：\term{已落地}、\term{设计已定}、\term{未完成}。\term{已落地}必须有代码或测试证据；\term{设计已定}表示方案已经明确但代码还没完整接入；\term{未完成}表示面试时只能讲路线图，不能讲成当前能力。
+\end{riskBox}
+
+\begin{longtable}{>{\bfseries}p{0.16\textwidth}p{0.18\textwidth}p{0.16\textwidth}p{0.25\textwidth}p{0.17\textwidth}}
+\toprule
+主题 & 当前状态 & 证据 & 面试表达 & 边界 \\
+\midrule
+\endfirsthead
+\toprule
+主题 & 当前状态 & 证据 & 面试表达 & 边界 \\
+\midrule
+\endhead
+Harness v2 状态 & 已落地 & \term{app/governance/harness.py}，\term{tests/governance/test\_harness.py} & Harness 不再只是最小快照器，已经有 v2 state、session config、backup、lease 和 summary。 & 仍不是完整分布式调度平台。 \\
+Harness 原子写入与状态锁 & 已落地 & \term{harness-tasks.json.bak}、\term{.harness-state.lock} 测试 & 长任务状态文件写入必须避免半写入；写前备份、临时文件、原子替换和轻量 transaction lock 是最低治理线。 & 仍不是完整多 worker scheduler。 \\
+Harness JSON 恢复 & 已落地 & corrupt JSON backup recovery 测试 & state 文件是恢复上下文，损坏时必须有明确恢复路径，不能静默失败。 & backup 也损坏时会停止，不能自动重建任务语义。 \\
+Harness active marker & 已落地 & marker 创建和 idle 清理测试 & active marker 用来区分 harness 是否接管任务生命周期，避免无任务时 hook 误触发。 & marker 不是租约锁，不能替代 worker coordination。 \\
+Harness lease & 已落地 & expired lease 测试 & lease 解决“谁正在做”的事实问题；没有 lease，恢复时无法区分正常执行和中断。 & 还没有多 worker 抢租约和工作目录隔离。 \\
+Harness summary 与依赖校验 & 已落地 & summary、cycle、blocked propagation 测试 & supervisor 必须能给出任务总览，并在循环依赖或失败依赖阻塞时显式标记 terminal failed。 & 依赖校验是安全网，不是完整任务调度器。 \\
+MCP allowlist & 已落地 & \term{McpPolicyProxy} 与 untrusted/tool 测试 & MCP 只解决协议，不解决信任；server 和 tool 必须先 allowlist。 & Planner 还未默认大量生成 MCP 节点。 \\
+MCP schema 校验 & 已落地 & nested schema 与 array item 测试 & tool inputSchema 是执行前最后一道结构化约束，不能只靠模型理解参数；当前已覆盖 object、array、enum、required 和 additionalProperties 子集。 & 仍不是完整 JSON Schema 引擎。 \\
+MCP 写操作审批 & 已落地 & write tool approval 与 raw args hash 测试 & 非只读或写工具必须返回 approval request；approval id 要绑定真实参数指纹，避免不同写入意图复用旧审批。 & 审批最终裁决仍要落到本地 DB 聚合根。 \\
+MCP redaction 与稳定审计 hash & 已落地 & configured redaction keys、stable result hash 测试 & MCP 返回值进入上下文前必须递归脱敏，并记录稳定 result hash 与 fingerprint；hash 不应受字典字段顺序影响。 & redaction key 需要随业务补充。 \\
+Skill scope 保护 & 已落地 & scope metadata binding 与 manual enable scope 测试 & 手动启用不能绕过 tenant/project scope；metadata 也必须强约束 global/tenant/project 字段绑定。 & 还没有独立的企业级 RBAC UI。 \\
+Skill top-k & 已落地 & top-k truncation 测试 & Skill 不是匹配越多越好，最终进入 prompt 的能力必须有上限。 & top-k 仍是规则配置，不是学习排序。 \\
+Skill snapshot & 已落地 & resolved snapshot version 测试 & session 必须绑定 skill version 和 prompt snapshot，避免运行中行为漂移。 & 还没有版本回收生命周期管理 UI。 \\
+Agent tracing & 设计已定 & 现有 agent trace 与 tool histories & 面试时讲 tracing 是为了解释“为什么走到这里”，不是为了展示日志很多。 & 仍需更完整的 trace correlation。 \\
+Agent eval & 设计已定 & metrics 目录与 RAG/browser collectors & Agent eval 要同时看任务成功、证据质量、工具成本和恢复能力。 & 尚未形成统一 eval dashboard。 \\
+多 worker Harness & 未完成 & 无完整调度测试 & 多 worker 需要 state lock、lease、独立 worktree、rollback 隔离，不是简单开多个进程。 & 当前只能讲路线图。 \\
+Skill 自定义执行器 & 未完成 & 无 DAG node template 实现 & Skill 当前影响 prompt 和工具边界；更高阶是自定义节点模板与执行策略。 & 面试不能说已经具备。 \\
+MCP 主流量化 & 未完成 & Planner 仍不大量生成 MCP 节点 & 当前 MCP 是安全接入通路；主业务默认流量仍以 search/browser/rag 为主。 & 需要更多 server registry 和 planner policy。 \\
+\bottomrule
+\end{longtable}
+
+\section{第十一轮拷打：Harness 每一处细节怎么拆}
+
+\begin{summaryBox}{一句话定位 Harness}
+Harness 是长任务 Agent 的任务级控制面。它不替代 LangGraph 的业务编排，也不替代数据库的审批、预算和审计事实源；它负责把跨上下文、跨进程、可恢复、可重试、可诊断的任务状态从短生命周期请求里抽出来。
+\end{summaryBox}
+
+\subsection{为什么 Harness 不是“再加一个日志文件”}
+\begin{analysisBox}{核心判断}
+如果一个 Agent 任务能在一次请求、一次上下文窗口、一次进程生命周期里完成，那么普通日志和内存状态可能够用。但深度研究任务不是这样：它会搜索、浏览、RAG、分析、反思、重规划，还可能等待审批、遇到预算熔断、发生浏览器超时、跨上下文恢复。此时日志不是附属物，任务状态也不是 UI 展示字段；它们是下一次执行能不能继续的事实依据。
+
+Harness 的价值就在这里：它把“任务现在在哪里、谁在执行、执行到哪个 checkpoint、失败是否可重试、等待哪个审批、预算用了多少、最近一次错误是什么”这些信息外置成可读取的控制面。这样当 agent 上下文被压缩、服务重启、worker 中断时，系统不是靠口头回忆恢复，而是读取 state file、progress log 和 DB runtime state 重新判断。
+\end{analysisBox}
+
+\subsection{Progress file 为什么是 append-only}
+\begin{qaBox}{面试回答}
+progress file 必须 append-only，因为它承担的是审计和恢复线索，而不是当前状态视图。当前状态可以覆盖写，但历史动作不能覆盖写；否则一旦恢复失败，你无法知道是哪个 worker、哪个 checkpoint、哪个错误分类导致了当前状态。
+\end{qaBox}
+
+\begin{analysisBox}{深入分析}
+append-only 的价值不是“日志看起来完整”，而是能建立事件序列。长任务系统里很多 bug 不是静态状态能解释的，比如任务从 running 变成 retryable failed，再变成 running，最后又 awaiting approval。只看最终 JSON，你只能知道它现在暂停了；看 progress file，你才能知道中间经历了几次重试、是否发生 rollback、是否重复进入同一个失败分支。
+
+这也是为什么日志格式要 grep-friendly。错误类型、session id、task id、checkpoint 和 category 要在同一行，而不是散在多行自然语言里。面试官如果追问“为什么标准化日志格式”，答案不是方便人看，而是方便 agent 和脚本恢复时快速定位。
+\end{analysisBox}
+
+\subsection{Tasks JSON 为什么是 structured state}
+\begin{qaBox}{面试回答}
+progress file 负责事件历史，tasks JSON 负责当前可执行状态。恢复时真正驱动决策的是 tasks JSON：哪些任务 pending，哪些 in progress，哪些 failed 但可重试，哪些 blocked，哪个 worker 持有 lease，checkpoint 在哪里。
+\end{qaBox}
+
+\begin{analysisBox}{字段拆解}
+最小可用的 tasks JSON 至少要有六类字段。第一类是身份字段，例如 task id、title、priority。第二类是生命周期字段，例如 status、runtime status、attempts、max attempts、completed at。第三类是依赖字段，例如 depends on，用来判断 blocked propagation。第四类是恢复字段，例如 started at commit、checkpoint、state snapshot。第五类是 worker 字段，例如 claimed by、lease expires at、last heartbeat。第六类是验证字段，例如 validation command、timeout 和 on failure cleanup。
+
+DeepIntel 当前的 Harness 更偏研究 session supervisor，所以它把 checkpoint、budget、pending approval 和 state snapshot 作为主要状态；这和通用 harness 技能里的 validation command 语义不同。面试时要讲清楚：项目里的 Harness 是研究任务控制面，不是通用 CI runner。
+\end{analysisBox}
+
+\subsection{Active marker 的意义}
+\begin{qaBox}{面试回答}
+active marker 是开关，不是锁。它的作用是告诉 hook 或外部 supervisor：“当前目录有 harness 任务需要接管”。没有 marker 时相关 hook 应该 no-op，避免普通项目操作被 harness 误拦截。
+\end{qaBox}
+
+\begin{analysisBox}{容易混淆的点}
+active marker 不能替代 lease，也不能替代 lock。marker 回答“有没有 harness 任务处于活跃状态”，lease 回答“这个任务现在由谁执行”，lock 回答“谁能修改共享状态文件”。这三个问题不同，不能用一个文件同时解决。面试时把这三个概念拆开，会比简单说“有个 .harness-active 文件”可信得多。
+\end{analysisBox}
+
+\subsection{Lease 为什么是长任务 Agent 的核心字段}
+\begin{qaBox}{面试回答}
+lease 解决的是所有权和超时恢复。没有 lease，新 session 看到一个 in progress 任务时无法判断它是仍在运行，还是上一个 worker 已经死掉。lease 过期后才有资格进入恢复逻辑，否则并发 worker 会互相踩状态。
+\end{qaBox}
+
+\begin{analysisBox}{租约设计的三个细节}
+第一，lease 必须有稳定 worker id，不能只靠进程号。进程号在容器、重启和不同机器上都不稳定，worker id 至少要能解释“哪个执行者认领了任务”。第二，lease 必须续约，而不是只在开始时写一次。长任务执行过程中每个 checkpoint 都应更新 heartbeat，否则一个正常运行但耗时很长的任务会被误判为 stale。第三，lease 过期只代表可以恢复，不代表可以无脑覆盖。恢复前仍要检查 checkpoint、DB runtime state、pending approval 和最近错误。
+\end{analysisBox}
+
+\subsection{为什么恢复边界不能只靠 LangGraph checkpointer}
+\begin{qaBox}{面试回答}
+LangGraph checkpointer 保存的是图内状态快照；Harness 负责的是任务级控制决策。checkpointer 能告诉你图走到哪里，不能单独告诉你是否还有预算、审批是否通过、worker 租约是否过期、是否应该重试或终止。
+\end{qaBox}
+
+\begin{analysisBox}{职责边界}
+把恢复问题全部交给 checkpointer，会漏掉任务级语义。比如一个节点已经写入 checkpoint，但它等待审批；如果恢复时只从 checkpoint 继续跑，而不查本地审批聚合，就可能绕过人工确认。再比如浏览器节点失败三次，checkpoint 里可能记录了失败结果，但是否还有 retry budget、是否需要 rollback、是否应该进入 terminal failed，是 supervisor 的判断。
+
+所以更稳的架构是：checkpointer 负责“状态在哪里”，Harness 负责“能不能继续、从哪里继续、由谁继续”，DB 负责“审批、预算、审计的事实源”。三者叠加才是完整恢复，不是某一个组件包打天下。
+\end{analysisBox}
+
+\subsection{Rollback 为什么不能随便做}
+\begin{riskBox}{高风险点}
+通用 harness 技能里会提到失败后 \term{git reset --hard} 和 \term{git clean -fd}。这是对隔离工作树的任务 runner 才安全。DeepIntel 当前是在共享工作区里协作，不能把这种 rollback 当作默认行为，否则可能删除用户改动。
+\end{riskBox}
+
+\begin{analysisBox}{面试表达}
+正确表达是：rollback 需要满足两个条件。第一，任务必须运行在独立工作树或独立 clone 里，避免清理其他 worker 或用户改动。第二，任务开始时必须记录 base commit，失败后验证这个 commit 仍存在。没有这两个条件，自动 rollback 就不是安全恢复，而是破坏性操作。
+
+这也是为什么当前项目里更适合把 Harness 定位成 session supervisor，而不是完全自动化代码任务 runner。它能记录 checkpoint、lease、预算和审批状态，但不会在共享工作区里随意 reset。
+\end{analysisBox}
+
+\subsection{Dependency 与 blocked propagation}
+\begin{qaBox}{面试回答}
+依赖传播解决的是“下游任务是否还有意义”。如果一个 P0 任务永久失败，依赖它的任务应该被标记 blocked 或 failed with dependency reason，而不是一直 pending 让 worker 反复挑选。
+\end{qaBox}
+
+\begin{analysisBox}{工程意义}
+没有 blocked propagation 的任务队列会出现假进度：pending 数量看起来还有很多，但其中大部分永远不能执行。成熟的 supervisor 要能区分“还没轮到的 pending”和“因为上游失败永远不能跑的 blocked”。这个区别不仅影响调度，也影响面试里对系统可靠性的解释。
+\end{analysisBox}
+
+\subsection{Stats 为什么是恢复协议的一部分}
+\begin{qaBox}{面试回答}
+stats 不只是 UI 汇总，它是每个 session 结束时对任务状态的一次结构化结算。它让下一次恢复能快速知道 completed、failed、pending、blocked、attempts、checkpoint 的整体分布。
+\end{qaBox}
+
+\begin{analysisBox}{为什么要写进 progress}
+stats 写进 progress file 的好处是可审计。即使 tasks JSON 后续被更新，你仍能看到每个 session 结束时的全局状态。这对于长任务尤其重要，因为问题常常不是某一个 task 错了，而是“系统什么时候开始进入大量 retryable failed、什么时候出现 blocked、什么时候 session count 打满”。
+\end{analysisBox}
+
+\subsection{Harness 面试追问清单}
+\begin{longtable}{>{\bfseries}p{0.22\textwidth}p{0.72\textwidth}}
+\toprule
+追问 & 稳妥回答 \\
+\midrule
+\endfirsthead
+\toprule
+追问 & 稳妥回答 \\
+\midrule
+\endhead
+为什么不把 Harness 放进 LangGraph 图里？ & 因为图表达业务执行，Harness 表达任务级控制。把 lease、审批、预算、恢复都塞进图，会让图变成混杂控制器。 \\
+progress 和 tasks 为什么要分两个文件？ & 一个是事件历史，一个是当前状态。历史要 append-only，当前状态要可覆盖、可恢复、可查询。 \\
+lease 过期后能直接接管吗？ & 不能直接覆盖。过期只代表有资格恢复，还要检查 checkpoint、DB runtime state、pending approval 和最近错误。 \\
+为什么 active marker 不是锁？ & marker 只表达 harness 是否活跃，不表达谁持有状态写权限，也不表达任务所有权。 \\
+多 worker 最难在哪里？ & 难在共享状态锁、任务租约、独立工作树、rollback 隔离和幂等提交，不是多开几个进程。 \\
+checkpoint 和 snapshot 有什么区别？ & checkpoint 是恢复点，snapshot 是当时的完整状态材料。checkpoint 更偏指针，snapshot 更偏事实内容。 \\
+为什么 premature completion 是大风险？ & Agent 容易把“完成了一部分步骤”误报成“目标已完成”。结构化 task criteria 和 validation 是防线。 \\
+验证命令缺失怎么办？ & 不能宣布 completed。应该记录 CONFIG 错误并停止，避免没有客观校验的完成。 \\
+JSON 损坏怎么办？ & 先恢复 .bak；没有有效备份就停止。不能从日志凭空重建 validation、depends on 和 cleanup。 \\
+为什么日志要 grep-friendly？ & 因为恢复和排障时需要脚本快速筛 ERROR、SESSION、CHECKPOINT、RECOVERY，而不是靠人读散文。 \\
+\bottomrule
+\end{longtable}
+
+\section{第十二轮拷打：MCP 协议与治理怎么讲深}
+
+\begin{summaryBox}{一句话定位 MCP}
+MCP 是外部能力接入协议，不是安全治理系统。它让 client 和 server 用统一方式描述资源、提示和工具，但“该不该信任这个 server、该不该允许这个 tool、参数是否合法、返回值是否脱敏、写操作是否需要审批”仍然是应用自己的责任。
+\end{summaryBox}
+
+\subsection{MCP 的三层结构}
+\begin{analysisBox}{协议层、传输层、治理层}
+第一层是消息层，核心是 JSON-RPC 2.0。无论本地 stdio 还是远程 Streamable HTTP，本质都是 client 发 method、params、id，server 回 result 或 error。第二层是传输层，本地常见 stdio，远程推荐 Streamable HTTP。第三层是治理层，这一层不是 MCP 自动提供的，而是 DeepIntel 通过 \term{McpPolicyProxy} 补上的。
+
+面试时不要把这三层混在一起。说“我们用了 MCP，所以安全”是不严谨的；更准确的说法是“我们按 MCP 接入外部能力，但所有调用先经过 policy proxy 做 server trust、tool allowlist、schema、审批和 redaction”。
+\end{analysisBox}
+
+\subsection{为什么 JSON-RPC 适合 MCP}
+\begin{qaBox}{面试回答}
+JSON-RPC 适合 MCP，是因为它轻量、跨语言、可读、调试成本低。MCP server 可能用 Python、TypeScript、Go 或其他语言写，JSON-RPC 给它们一个共同的调用结构。
+\end{qaBox}
+
+\begin{analysisBox}{不是因为先进，而是因为合适}
+协议设计的价值不总是越复杂越好。MCP 的核心诉求是让模型应用发现和调用工具，而不是构建一个重型微服务网关。JSON-RPC 的 method、params、result、error 已经足够表达 tools/list、tools/call、resources/read 这类交互。它不像 REST 那样把语义拆到 URL 和 HTTP verb，也不像 gRPC 那样需要 IDL 和二进制协议，对 agent 工具生态来说门槛更低。
+\end{analysisBox}
+
+\subsection{stdio 与 Streamable HTTP 怎么比较}
+\begin{longtable}{>{\bfseries}p{0.18\textwidth}p{0.24\textwidth}p{0.24\textwidth}p{0.24\textwidth}}
+\toprule
+维度 & stdio & Streamable HTTP & 面试落点 \\
+\midrule
+\endfirsthead
+\toprule
+维度 & stdio & Streamable HTTP & 面试落点 \\
+\midrule
+\endhead
+部署位置 & 本地子进程 & 远程服务 & 本地工具优先 stdio，企业共享能力更适合 HTTP。 \\
+暴露面 & 无网络端口 & 有网络入口 & HTTP 必须认真做 auth、trust 和 rate limit。 \\
+调试 & 看 stdin/stdout & 看 HTTP 请求与 SSE 流 & 都是 JSON-RPC，消息层不变。 \\
+扩缩容 & 依赖本地进程 & 可放到服务侧扩展 & 远程 server 更适合团队共享。 \\
+安全风险 & 本地文件/进程权限 & 网络、身份、租户、跨域 & 不同传输有不同治理重点。 \\
+\bottomrule
+\end{longtable}
+
+\subsection{Tool inputSchema 为什么必须落到执行前}
+\begin{qaBox}{面试回答}
+inputSchema 是 Agent 工具调用从自然语言走向真实执行的第一道确定性边界。模型可以理解错参数，但 schema 不能跟着理解错；参数不符合 type、required、enum、additionalProperties，就不应该执行。
+\end{qaBox}
+
+\begin{analysisBox}{DeepIntel 的实现边界}
+当前项目实现的是轻量 JSON Schema 子集，覆盖 object、properties、required、additionalProperties、基础类型和 enum。这个选择是有意的：它足以挡住大多数错误参数和意外字段，又不会引入完整 schema 引擎的复杂度。面试时可以说“当前是工程上足够用的 schema 子集，不是完整 JSON Schema 解释器”。
+\end{analysisBox}
+
+\subsection{为什么 tool annotations 不能当安全依据}
+\begin{riskBox}{关键风险}
+MCP server 可能给 tool 标注 read-only、destructive、open-world 等信息，但这些 annotation 只能作为提示，不能作为最终安全裁决。因为 server 本身就是外部信任边界的一部分，不能让它自己声明自己安全，然后应用就无条件相信。
+\end{riskBox}
+
+\begin{analysisBox}{正确做法}
+正确做法是应用侧维护 registry：server 是否 trusted、允许哪些 tools、哪些 tools 是 write tools、是否 read-only default、需要哪些 approval。server 提供的 schema 和 annotation 可以进入 registry 审核流程，但最终执行时要以本地 registry 为准。这和审批系统的 source of truth 原则是一致的：外部提供信号，本地做裁决。
+\end{analysisBox}
+
+\subsection{MCP authorization 怎么回答}
+\begin{qaBox}{面试回答}
+远程 MCP 不能只靠“知道 endpoint”来调用，必须有 authorization。规范层面会涉及 OAuth 语义，但工程落地时还要做 server registry、token 管理、scope、租户隔离和审计。授权解决“你是谁”，policy proxy 解决“你能做什么、这次参数能不能执行”。
+\end{qaBox}
+
+\begin{analysisBox}{授权和治理的区别}
+Authorization 不是全部治理。一个用户有权访问某个 MCP server，不代表他可以调用这个 server 的所有工具；有权调用某个工具，也不代表任意参数都合法；参数合法，也不代表返回值可以原样进入模型上下文。面试里要把这条链路拆开：身份认证、工具授权、参数校验、审批、执行、返回脱敏、审计。
+\end{analysisBox}
+
+\subsection{MCP 面试追问清单}
+\begin{longtable}{>{\bfseries}p{0.22\textwidth}p{0.72\textwidth}}
+\toprule
+追问 & 稳妥回答 \\
+\midrule
+\endfirsthead
+\toprule
+追问 & 稳妥回答 \\
+\midrule
+\endhead
+MCP 是不是等于工具治理？ & 不是。MCP 是协议，治理要在应用侧做 policy proxy。 \\
+为什么不用直连 MCP tool？ & 直连会丢失 server trust、tool allowlist、schema、审批和 redaction。 \\
+MCP 底层消息是什么？ & JSON-RPC 2.0，method、params、id、result/error。 \\
+本地 MCP 为什么常用 stdio？ & 配置简单、延迟低、没有网络暴露面，适合本地工具。 \\
+远程为什么用 Streamable HTTP？ & 单端点承接请求和响应，需要流式时返回 SSE，比双端点 SSE 更简单。 \\
+inputSchema 怎么用？ & 执行前校验参数结构，不通过就返回 schema invalid。 \\
+写工具怎么处理？ & 默认需要 approval request，本地审批聚合通过后才执行。 \\
+返回值为什么要 redaction？ & MCP server 返回可能含 token、内部 ID、secret，进入上下文前必须脱敏。 \\
+server fingerprint 有什么用？ & 审计时证明调用的是哪个 server 版本或实例，避免 tool list 漂移无法追责。 \\
+Planner 为什么还没大量生成 MCP 节点？ & 当前 MCP 是安全接入通路，主流量仍以 search/browser/rag 为主，MCP 主流量化是后续演进。 \\
+\bottomrule
+\end{longtable}
+
+\section{第十三轮拷打：Agent 开发岗位底层能力}
+
+\begin{summaryBox}{岗位视角}
+Agent 开发岗位不是只会写 prompt。真正会被追问的是运行时、状态、工具、权限、检索、评测、成本、观测和失败恢复。下面按平台基础设施、应用/RAG研究、安全治理三条线拆。
+\end{summaryBox}
+
+\subsection{平台基础设施线}
+\begin{longtable}{>{\bfseries}p{0.24\textwidth}p{0.30\textwidth}p{0.38\textwidth}}
+\toprule
+底层问题 & 应该掌握什么 & DeepIntel 怎么讲 \\
+\midrule
+\endfirsthead
+\toprule
+底层问题 & 应该掌握什么 & DeepIntel 怎么讲 \\
+\midrule
+\endhead
+运行时状态 & state machine、checkpoint、thread id、resume & ResearchState 是业务状态，Harness 是任务级状态，DB 是事实状态。 \\
+并发调度 & DAG batch、fan-out、join、依赖 & Planner 产 DAG，LangGraph 按可执行批次分发 Search/Browser/RAG。 \\
+长任务恢复 & checkpoint、lease、heartbeat、retry budget & Harness 记录 lease、checkpoint 和 progress，避免上下文丢失后无法恢复。 \\
+工具执行 & tool schema、timeout、sandbox、error category & 工具调用先过确定性规则，再进入真实资源。 \\
+HITL & interrupt、approval、resume、idempotency & 动作审批以 DB 为权威源，外部系统只是信号。 \\
+观测性 & trace id、span、tool history、event stream & SSE 推进 UI，tool history 和 audit 解释每次调用。 \\
+成本控制 & token budget、tool calls、wall clock、hard stop & session budget state 和 breaker 控制长任务膨胀。 \\
+错误语义 & retryable vs terminal vs awaiting approval & runtime status 和 public status 分离，避免 UI 状态污染执行语义。 \\
+存储设计 & session、checkpoint、audit、budget、skill meta/content & PostgreSQL 保持事实源，Redis/缓存只做加速。 \\
+扩展边界 & plugin、skill、MCP、custom nodes & Skill 是领域能力层，MCP 是外部工具协议，二者不是同一层。 \\
+\bottomrule
+\end{longtable}
+
+\subsection{应用/RAG 研究线}
+\begin{longtable}{>{\bfseries}p{0.24\textwidth}p{0.30\textwidth}p{0.38\textwidth}}
+\toprule
+底层问题 & 应该掌握什么 & DeepIntel 怎么讲 \\
+\midrule
+\endfirsthead
+\toprule
+底层问题 & 应该掌握什么 & DeepIntel 怎么讲 \\
+\midrule
+\endhead
+Query decomposition & 子问题、依赖、证据源选择 & Planner 不是写答案，而是生成可执行研究 DAG。 \\
+Hybrid retrieval & BM25、vector、rerank、metadata filter & RAG 负责内部证据，不替代 Web 取证。 \\
+Citation grounding & evidence id、claim attribution、coverage & Report 必须用 citation 回溯证据，Reflection 检查覆盖率。 \\
+Browser extraction & accessibility、DOM、readability、fallback & Browser 节点不是简单抓 HTML，而是多策略提取。 \\
+Research quality & faithfulness、answer relevance、coverage & 质量评估要看证据充分性，不只看文风。 \\
+Replanning & failure hints、known bad paths、budget & Reflection 不通过时进入 replan，但受预算和失败记忆约束。 \\
+Internal-first & 内部资料优先、web 补充 & DeepIntel 默认 internal-first，避免一上来就联网扩大成本和风险。 \\
+Report synthesis & structure、引用、冲突证据、边界 & Analyst 综合，Report 输出，边界和不确定性要写明。 \\
+Eval dataset & query set、expected evidence、metrics & metrics 目录已有实验基础，但统一 dashboard 未完成。 \\
+成本/质量权衡 & top-k、depth、browser budget、model choice & 研究深度不是无限扩张，要有 budget profile。 \\
+\bottomrule
+\end{longtable}
+
+\subsection{安全治理线}
+\begin{longtable}{>{\bfseries}p{0.24\textwidth}p{0.30\textwidth}p{0.38\textwidth}}
+\toprule
+底层问题 & 应该掌握什么 & DeepIntel 怎么讲 \\
+\midrule
+\endfirsthead
+\toprule
+底层问题 & 应该掌握什么 & DeepIntel 怎么讲 \\
+\midrule
+\endhead
+Prompt injection & instruction hierarchy、untrusted content、tool boundary & 浏览网页和 MCP 返回都属于不可信内容，不能让其改写系统策略。 \\
+Excessive agency & least privilege、approval、read-only default & 高风险工具默认审批，MCP 非只读不直接执行。 \\
+Data leakage & redaction、tenant scope、row limit & MCP 和 tool result 进入上下文前要脱敏，Skill scope 不能越权。 \\
+Tool poisoning & server trust、tool allowlist、schema drift & MCP server 必须 registry 审核，fingerprint 进入审计。 \\
+Supply chain & dependency、MCP server provenance、skill content & Skill 和 MCP 都是扩展面，需要版本和来源管理。 \\
+Auditability & who/what/why/result hash & 工具调用必须记录调用者、参数范围、结果摘要、是否被拦。 \\
+Sandbox & filesystem、network、CPU/memory、timeout & 真正有副作用的工具要在受限环境里跑。 \\
+Approval SOT & DB aggregate、external signal、idempotency & 外部审批不能直接驱动执行，本地 DB 是最终裁决。 \\
+Policy testing & unit tests、red-team cases、regression & 安全规则要用确定性测试证明，不靠 prompt 承诺。 \\
+Incident response & pause、revoke、rollback、forensics & 当前有暂停/审批/审计基础，但全量法证平台未完成。 \\
+\bottomrule
+\end{longtable}
+
+\subsection{Agent 岗高压题库：平台基础设施}
+\begin{enumerate}[leftmargin=2em]
+  \item 如果 LangGraph 已经有 checkpoint，为什么还要 Harness？回答时强调图内状态与任务级控制面不同。
+  \item 任务恢复时先看 DB、Harness 还是 checkpointer？回答时讲三者职责：DB 是事实，Harness 是控制，checkpointer 是图状态。
+  \item 多 worker 怎么避免抢同一个任务？回答 lease、state transaction lock、独立工作树。
+  \item 为什么不能在共享仓库里自动 \term{git reset --hard}？回答 rollback 隔离和用户改动保护。
+  \item retryable failed 和 terminal failed 怎么区分？回答错误类别、attempt budget、依赖传播。
+  \item 为什么 public status 和 runtime status 要分开？回答 UI 友好状态不能污染执行语义。
+  \item budget breaker 是软提示还是硬控制？回答必须是硬熔断加优雅降级。
+  \item 工具超时算模型失败还是工具失败？回答是工具执行失败，进入 tool error category。
+  \item Trace 和 audit 有什么区别？Trace 解释流程，audit 证明动作事实。
+  \item Session snapshot 为什么要版本化？避免恢复时状态结构不兼容。
+  \item 如果 checkpoint 存在但 approval 已过期怎么办？不能继续执行，必须重新进入审批或终止。
+  \item 如何防止 Agent 伪造 tool result？Observation 必须来自工具层真实返回。
+  \item 长任务怎么判断完成？不能靠模型说完成，要靠任务 criteria 和验证。
+  \item SSE 断了任务是否停止？不应该，SSE 是交互通道，不是任务事实源。
+  \item 如果 DB 写入成功但 Harness 写入失败怎么办？要记录错误并在恢复时以 DB 事实为准补偿。
+  \item 为什么任务状态不能只放 Redis？Redis 适合缓存，不适合唯一事实源。
+  \item 什么是 idempotency key？用于避免审批回调、工具执行或状态更新重复生效。
+  \item 如何设计 stop/resume？stop 改 runtime state，resume 读取 checkpoint 和 harness snapshot。
+  \item 如何做 model fallback？fallback 不能破坏结构化输出 schema 和工具调用契约。
+  \item Agent 失败后如何生成部分报告？基于已有证据输出，并标注覆盖不足和未执行节点。
+  \item 为什么 orchestration 不是 prompt engineering？因为它处理状态、依赖、恢复和副作用。
+  \item 如何把任务拆成 DAG？节点是可执行取证动作，边表达依赖，不是自然语言段落。
+  \item 什么情况下 replan？Reflection 发现证据不足、失败路径重复、原 DAG 不可达。
+  \item 如何限制 replan 膨胀？max revision、budget、known failures 和 node cap。
+  \item 如果 worker 死在工具执行中怎么办？lease 过期后恢复，检查副作用审计和 checkpoint。
+\end{enumerate}
+
+\subsection{Agent 岗高压题库：应用与 RAG}
+\begin{enumerate}[leftmargin=2em]
+  \item Deep Research 和普通 RAG 的核心差异是什么？回答任务状态机 vs 上下文增强回答。
+  \item 为什么 internal-first？回答成本、安全和内部证据优先级。
+  \item BM25 和向量检索怎么互补？BM25 抓关键词，向量抓语义。
+  \item 为什么还要 rerank？召回集合和最终上下文选择不是同一个问题。
+  \item citation 怎么保证可信？证据 id、引用覆盖、claim 对齐和 reflection。
+  \item 网页内容怎么防 prompt injection？网页是证据，不是指令。
+  \item Browser 提取失败如何降级？accessibility、readability、raw text、snippet fallback。
+  \item 证据冲突怎么办？不强行合并，报告冲突来源和可信度。
+  \item RAG 命中后还要不要 Web？看任务类型、证据时效性和用户允许策略。
+  \item 如何评价研究报告？faithfulness、coverage、answer relevance、citation precision。
+  \item 为什么不能只看 BLEU/ROUGE？研究任务更关注事实和证据，不是字面重合。
+  \item 如何构建 eval dataset？按任务类型、证据源、难度、时间敏感性分层。
+  \item 如何处理时间敏感问题？必须重新取证，不能靠模型记忆。
+  \item 如何减少 hallucination？证据优先、拒答、引用、reflection、工具真实 observation。
+  \item Planner 输出 JSON 失败怎么办？schema 校验、repair、fallback DAG。
+  \item fallback DAG 会不会太死？它是最低可执行骨架，不是替代高级规划。
+  \item 什么是 evidence coverage？关键 claim 是否都有证据支持。
+  \item 如何避免检索上下文过长？top-k、rerank、摘要、chunk budget。
+  \item 报告应该输出多长？由 budget profile 和任务复杂度控制。
+  \item 为什么 Analyst 和 Report 分开？分析是证据综合，报告是表达和引用组织。
+  \item Reflection 是否会增加成本？会，所以要受 revision budget 控制。
+  \item 搜索结果不可靠怎么办？多源交叉、来源评级、Browser 深读。
+  \item 内部资料过期怎么办？标注时间，必要时 Web 补证。
+  \item 如何处理用户给的错误前提？先校正前提，再回答条件化结论。
+  \item 什么时候不应该联网？用户禁止、内部证据足够、风险或预算不允许。
+\end{enumerate}
+
+\subsection{Agent 岗高压题库：安全治理}
+\begin{enumerate}[leftmargin=2em]
+  \item Prompt injection 的本质是什么？不可信内容试图越权改变上层指令。
+  \item 为什么 tool schema 比 prompt 安全？schema 是确定性约束，prompt 是概率性引导。
+  \item MCP tool 为什么默认不可信？server 是外部边界，tool list 可能漂移。
+  \item read-only default 有什么意义？把副作用作为例外，而不是默认。
+  \item 写操作审批如何防重复执行？approval id、action id、DB version、幂等键。
+  \item 为什么外部审批只能是信号？最终执行发生在本地系统，本地 DB 必须裁决。
+  \item 数据脱敏在哪做？进入模型上下文和审计前都要做。
+  \item 如果 redaction 漏了怎么办？补充 policy key、回归测试、审计影响范围。
+  \item 如何防止 skill 越权？scope 过滤、manual enable 不绕过、session snapshot。
+  \item Skill 内容是不是也可能被投毒？是，所以要版本、来源、启用状态和审核。
+  \item Agent 能不能直接写 SQL？不应该，应该走参数化模板和受控 DB 接口。
+  \item 错误信息为什么要净化？原始错误可能泄露 schema、路径、secret 或内部拓扑。
+  \item 审计日志要记录什么？调用者、tool、参数摘要、结果 hash、策略裁决、时间。
+  \item 如何处理高风险工具？默认隐藏或只读，必要时审批和沙箱。
+  \item 什么是 excessive agency？Agent 被授予超出任务需要的权限和自主性。
+  \item 如何限制 excessive agency？least privilege、budget、approval、tool allowlist。
+  \item MCP authorization 和 allowlist 区别？auth 证明身份，allowlist 限制能力。
+  \item 如何做红队测试？注入、越权、敏感字段、schema 绕过、审批重放。
+  \item 安全策略失败时返回什么？稳定 safe error，不暴露内部细节。
+  \item 为什么不能相信模型自我审查？模型审查是辅助，执行面必须确定性控制。
+  \item Tool result 能不能带指令？可以出现文本，但应作为数据处理，不能提升为指令。
+  \item 多租户下最大风险是什么？数据越界和 skill/tool scope 漂移。
+  \item 如何处理删除或更新的 skill？新 session 不再匹配，旧 session 继续使用版本 snapshot。
+  \item 审批过期怎么办？执行前检查本地状态和 expiry，过期则拒绝或重新申请。
+  \item 如何解释“安全不是阻碍能力”？治理让能力在可控边界内扩大，否则工具越多风险越大。
+\end{enumerate}
+
+\section{第十四轮拷打：Skill 体系深挖}
+
+\begin{summaryBox}{一句话定位 Skill}
+Skill 是领域能力的系统级扩展点，不是多拼一段 prompt。它要能被发现、匹配、启用、禁用、版本化、审计，并能影响 Planner、Agent hints 和工具 allowlist。
+\end{summaryBox}
+
+\subsection{为什么 Markdown + YAML frontmatter}
+\begin{qaBox}{面试回答}
+frontmatter 承载机器可校验字段，Markdown body 承载人类可编辑说明。这比纯 prompt 可治理，比纯 JSON/YAML 更适合人维护。
+\end{qaBox}
+
+\begin{analysisBox}{字段拆解}
+frontmatter 至少要包含 name、slug、description、version、enabled、priority、trigger patterns、allowed tools、agent hints、tags、keywords、scope。body 里可以有 overview、prompt、constraints。这样 registry 能用 metadata 做匹配和治理，Agent 能用 body 做领域行为调整。
+\end{analysisBox}
+
+\subsection{Progressive disclosure 在 Skill 里的含义}
+\begin{qaBox}{面试回答}
+Progressive disclosure 不是 UI 折叠，而是计算和上下文逐步展开：启动只加载 meta，匹配时先粗筛候选，命中后再加载 content，最终只把 top-k skill 的摘要和约束进入 session snapshot。
+\end{qaBox}
+
+\begin{analysisBox}{为什么这很重要}
+如果启动时加载所有 skill 正文，冷启动慢；如果匹配时对所有正文做复杂规则，延迟高；如果最终把所有命中 skill 都塞进 prompt，模型上下文失控。所以成熟设计必须把 meta、content、matching、resolved snapshot 分层。这也是 DeepIntel 当前 registry 的核心价值。
+\end{analysisBox}
+
+\subsection{Scope 为什么不能被 manual enable 绕过}
+\begin{riskBox}{风险}
+如果用户手动启用可以绕过 tenant/project scope，那么 skill 就会成为权限绕过入口。比如另一个租户的财务分析 skill 可能携带工具 allowlist 或内部提示，不能因为手动启用就进入当前 session。
+\end{riskBox}
+
+\begin{qaBox}{当前状态}
+当前测试已经覆盖 manual enable 不绕过 scope。这一点面试时可以讲成已落地能力：手动操作是 preference，不是 authorization。
+\end{qaBox}
+
+\subsection{Snapshot 为什么是 Skill 运行时的关键}
+\begin{analysisBox}{深入分析}
+Skill 更新、禁用、删除是常见操作。如果运行中的 session 每一步都回查全局 registry，那么同一个任务可能前半段用 v1 prompt，后半段突然用 v2 prompt，行为漂移且难以解释。resolved skill snapshot 的价值是把 skill id、version、matched reason、prompt sections、agent hints、allowed tools 固化到 session。
+
+这样新 session 可以使用新版本，旧 session 继续使用旧版本。面试时要强调这不是缓存小优化，而是运行时一致性设计。
+\end{analysisBox}
+
+\subsection{Skill 和 MCP 的关系}
+\begin{qaBox}{回答}
+Skill 和 MCP 不在同一层。Skill 描述“这个任务应该采用什么领域策略、提示、工具边界”；MCP 描述“外部 server 暴露了哪些资源和工具”。Skill 可以影响 MCP tool 是否进入 allowlist，但不能替代 MCP 的 server trust 和 schema 校验。
+\end{qaBox}
+
+\subsection{Skill 面试追问清单}
+\begin{longtable}{>{\bfseries}p{0.22\textwidth}p{0.72\textwidth}}
+\toprule
+追问 & 稳妥回答 \\
+\midrule
+\endfirsthead
+\toprule
+追问 & 稳妥回答 \\
+\midrule
+\endhead
+Skill 和 prompt 有什么区别？ & Prompt 是文本，Skill 是可注册、可匹配、可审计、可约束工具的系统对象。 \\
+为什么需要 version？ & 防止更新导致运行中 session 行为漂移。 \\
+为什么要 top-k？ & 防止 prompt 膨胀和工具边界过宽。 \\
+manual enable 是不是最高优先级？ & 不是。manual enable 不能绕过 scope 和权限。 \\
+allowed tools 怎么合并？ & 对有效 skill 做有序去重，形成 session tool allowlist。 \\
+trigger pattern 失败怎么办？ & 还有 keywords、tags、coarse terms 和 manual enable；但不应全量正文扫描。 \\
+Skill 删除后旧 session 怎么办？ & 新 session 不再匹配，旧 session 使用 snapshot，等待版本回收。 \\
+Skill 能不能定义 DAG 节点？ & 当前未完成；这是后续从提示层升级到执行模板层的方向。 \\
+Skill 内容会不会被投毒？ & 会，所以要来源、版本、启用状态、审核和 scope。 \\
+为什么 meta/content 分离？ & meta 快速匹配，content 延迟加载，降低冷启动和上下文成本。 \\
+\bottomrule
+\end{longtable}
+
+\section{第十五轮拷打：优化路线图怎么讲不虚}
+
+\begin{summaryBox}{路线图原则}
+路线图不是许愿池。每一项都要说明为什么现在没做、做了要解决什么问题、会引入什么成本、怎么验收。
+\end{summaryBox}
+
+\begin{longtable}{>{\bfseries}p{0.18\textwidth}p{0.24\textwidth}p{0.24\textwidth}p{0.26\textwidth}}
+\toprule
+路线项 & 解决的问题 & 代价 & 验收标准 \\
+\midrule
+\endfirsthead
+\toprule
+路线项 & 解决的问题 & 代价 & 验收标准 \\
+\midrule
+\endhead
+多 worker Harness & 长任务并行吞吐和中断恢复 & lock、lease、独立工作树、冲突恢复 & 两个 worker 不会抢同一任务，失败 rollback 不影响彼此。 \\
+MCP Planner 主流量化 & 让外部能力进入业务 DAG & server registry、tool schema、planner policy & Planner 能生成受 allowlist 控制的 MCP 节点。 \\
+Skill DAG 模板 & 让领域能力影响执行结构 & 模板校验、节点权限、版本兼容 & Skill 可声明节点模板且通过 schema 验证。 \\
+统一 eval dashboard & 比较质量、成本、恢复能力 & 指标标准化、数据采样、可视化 & 每次实验输出 quality/cost/recovery 三类指标。 \\
+法证级审计 & 事故复盘和合规证明 & 存储成本、PII 脱敏、retention policy & 能按 session/action 重建工具调用链。 \\
+外部审批集成 & 贴合企业流程 & 回调幂等、状态漂移、权限同步 & Slack/Jira 只做信号，本地 DB 裁决不变。 \\
+Prompt injection 红队 & 验证治理强度 & 样本构造和持续回归 & 注入样本不能越权调用工具或改写策略。 \\
+模型路由优化 & 降低成本并保持结构稳定 & 模型能力差异和 fallback 策略 & 结构化输出失败率、成本、延迟可量化比较。 \\
+\bottomrule
+\end{longtable}
+
+\begin{qaBox}{最终收口话术}
+我不会把这个项目包装成已经具备完整生产级 Agent 平台。当前已经落地的是研究 DAG、工具审计、预算状态、审批入口、Harness 最小控制面、MCP policy proxy 和 Skill registry。下一步真正要补的是多 worker 调度、MCP 主流量化、Skill 执行模板和统一评测。这个边界说清楚，反而能证明我知道 Agent 系统的复杂度在哪里。
+\end{qaBox}
+
+\section{第十五轮补充：行业调研来源与选型记录}
+
+\begin{summaryBox}{为什么要单独记录来源}
+这一节专门回答“这些优化从哪里来、为什么不是拍脑袋”。面试时如果只说“我做了 Harness、MCP、Skill”，会显得像功能堆砌；如果能把外部最佳实践、项目约束、备选方案和最终落地串起来，就能证明你做的是系统设计。
+\end{summaryBox}
+
+\subsection{外部资料对当前设计的校准}
+\begin{longtable}{>{\bfseries}p{0.18\textwidth}p{0.30\textwidth}p{0.42\textwidth}}
+\toprule
+资料 & 关键结论 & 对 DeepIntel 的影响 \\
+\midrule
+\endfirsthead
+\toprule
+资料 & 关键结论 & 对 DeepIntel 的影响 \\
+\midrule
+\endhead
+Anthropic long-running harness &
+\href{https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents}{Effective harnesses for long-running agents} 强调跨 context window 的核心问题不是模型不够聪明，而是新 session 没有可靠上下文；它用 progress file、feature list、git history、incremental progress 和测试来降低 premature completion。 &
+DeepIntel 没有照搬 coding harness 的 git rollback，而是吸收“状态外置、进度可恢复、每次都要验证”的原则，落地为 \term{harness-tasks.json} v2、progress log、backup、lease、summary 和测试证据。 \\
+Anthropic agent patterns &
+\href{https://www.anthropic.com/engineering/building-effective-agents}{Building effective agents} 把 workflow 和 agent 区分开，建议先用简单可组合模式，复杂时再引入 routing、parallelization、orchestrator-workers 和 evaluator-optimizer。 &
+DeepIntel 选择显式 DAG + LangGraph，而不是纯多 agent 自由对话。这样能讲清楚依赖、预算、审批和失败传播，也符合研究任务需要可审计流程的约束。 \\
+MCP 2025-11-25 transport &
+\href{https://modelcontextprotocol.io/specification/2025-11-25/basic/transports}{MCP Transports} 明确 MCP 消息由 JSON-RPC 编码，标准传输是 stdio 和 Streamable HTTP；Streamable HTTP 涉及 Origin 校验、认证、session id、resumability 和协议版本头。 &
+DeepIntel 的 MCP 设计不能只写“连接一个 server”。面试回答必须拆成协议层、传输层和治理层；当前代码重点落在治理层，即 server trust、tool allowlist、schema、approval 和 redaction。 \\
+MCP authorization &
+\href{https://modelcontextprotocol.io/specification/2025-11-25/basic/authorization}{MCP Authorization} 说明 HTTP transport 的授权基于 OAuth 语义，但授权是 optional，stdio 场景更多从环境取凭据。 &
+这说明“用了 MCP”不等于“天然安全”。DeepIntel 要在 registry 和 policy proxy 里补应用侧授权、租户 scope、审批和审计，而不是把外部 server 的声明当最终裁决。 \\
+MCP tools &
+\href{https://modelcontextprotocol.io/specification/2025-11-25/server/tools}{MCP Tools} 说明 tool 是 model-controlled，包含 \term{inputSchema} 和可选 \term{outputSchema}；同时提示 tool annotations 不能在不可信 server 上盲信，客户端应按 \term{outputSchema} 校验 \term{structuredContent}。 &
+这直接对应本轮实现：MCP proxy 加入轻量 input/output schema 校验、write tool approval、result hash、server fingerprint 和返回值 redaction。 \\
+OpenAI Agents SDK &
+\href{https://openai.github.io/openai-agents-python/multi_agent/}{Agent orchestration} 区分 LLM orchestration 与 code orchestration，并给出 agents-as-tools 与 handoffs 的取舍；\href{https://openai.github.io/openai-agents-python/guardrails/}{Guardrails} 把 input/output/tool guardrails 分层；\href{https://openai.github.io/openai-agents-python/human_in_the_loop/}{Human-in-the-loop} 支持敏感工具调用暂停、审批、恢复；\href{https://openai.github.io/openai-agents-python/results/}{Results} 暴露 pending approvals 和 resumable \term{RunState}；\href{https://openai.github.io/openai-agents-python/tracing/}{Tracing} 覆盖 LLM generations、tool calls、handoffs 和 guardrails。 &
+这些资料支撑 DeepIntel 的拆分：Agent 运行时要有 orchestration、guardrail、approval、state、trace 五条线，而不是把全部逻辑塞进一个 prompt 或一个节点。 \\
+Skill capability 设计 &
+\href{https://openai.github.io/openai-agents-python/ref/sandbox/capabilities/skills/}{OpenAI Agents SDK Skill capability} 把 skill 建模为带 name、description、content、scripts、references、assets 和 deferred 标记的能力对象；本地 \term{skill-creator/SKILL.md} 进一步强调 metadata 先触发、正文按需加载、资源渐进披露、正文保持精简。 &
+这支持 DeepIntel 的 meta/content 分离、top-k、version snapshot、scope 检查和工具 allowlist。Skill 不是提示附件，而是会影响运行时边界的能力对象。 \\
+\bottomrule
+\end{longtable}
+
+\subsection{Harness 选型记录}
+\begin{longtable}{>{\bfseries}p{0.18\textwidth}p{0.23\textwidth}p{0.25\textwidth}p{0.26\textwidth}}
+\toprule
+方案 & 优点 & 风险/成本 & 决策 \\
+\midrule
+\endfirsthead
+\toprule
+方案 & 优点 & 风险/成本 & 决策 \\
+\midrule
+\endhead
+只写 progress log & 最简单，append-only，容易 grep。 & 只能解释历史，不能稳定驱动恢复；无法表达 lease、pending、terminal、retryable、approval。 & 否。作为辅助日志保留，但不能做控制面。 \\
+只依赖 LangGraph checkpoint & 和业务图贴合，能恢复图内状态。 & checkpoint 解决“图走到哪里”，不解决“任务能否继续、谁持有 lease、预算是否熔断、审批是否等待”。 & 否。继续保留图内 checkpoint，但外面加 Harness supervisor。 \\
+文件型 Harness v2 & 低成本、易测试、适合当前研究 session；能做 backup、atomic replace、summary、lease 和恢复。 & 不是完整分布式调度器；跨进程 lock 和多 worker 隔离还没做满。 & 选。当前已落地，测试覆盖 JSON 恢复、marker、lease、summary。 \\
+DB/队列型调度平台 & 并发、事务、审计和租约都更强。 & 改造范围大，需 job queue、worker pool、worktree 隔离、幂等 action 和回滚策略。 & 暂不选。作为多 worker 路线图。 \\
+\bottomrule
+\end{longtable}
+
+\begin{analysisBox}{最终选择}
+当前选择“文件型 Harness v2 + 业务 DB 事实源 + LangGraph checkpoint”的组合。理由是它用较小改动解决跨上下文恢复和 premature completion 的核心风险，同时不把共享工作区暴露给自动 \term{git reset --hard}。未完成边界必须说清楚：它不是成熟分布式 scheduler。
+\end{analysisBox}
+
+\subsection{MCP 选型记录}
+\begin{longtable}{>{\bfseries}p{0.18\textwidth}p{0.23\textwidth}p{0.25\textwidth}p{0.26\textwidth}}
+\toprule
+方案 & 优点 & 风险/成本 & 决策 \\
+\midrule
+\endfirsthead
+\toprule
+方案 & 优点 & 风险/成本 & 决策 \\
+\midrule
+\endhead
+Planner 直连 MCP tool & 快速接入，开发量低。 & 丢失 server trust、tenant scope、tool allowlist、schema、审批、redaction 和审计。 & 否。高风险，面试不能讲成生产治理。 \\
+MCP policy proxy & 把协议调用和治理分离；可对每次调用做 allowlist、schema、approval、redaction、fingerprint。 & 需要维护 registry、policy JSON、审计记录和工具 schema。 & 选。当前已落地最小治理闭环。 \\
+全量 API gateway + OAuth broker & 企业级能力最完整，可统一 token、scope、rate limit、audit。 & 建设成本高，当前 MCP 主流量还不够，不适合先做重网关。 & 暂不选。后续远程 MCP 主流量化后再推进。 \\
+\bottomrule
+\end{longtable}
+
+\begin{analysisBox}{最终选择}
+当前选择 MCP policy proxy，因为它能把“协议可调用”和“应用允许执行”分开。MCP 只规定 server 暴露工具、资源和传输，不替应用做所有信任裁决。DeepIntel 的核心优化点就是把这些裁决显式化。
+\end{analysisBox}
+
+\subsection{Agent 架构选型记录}
+\begin{longtable}{>{\bfseries}p{0.18\textwidth}p{0.23\textwidth}p{0.25\textwidth}p{0.26\textwidth}}
+\toprule
+方案 & 优点 & 风险/成本 & 决策 \\
+\midrule
+\endfirsthead
+\toprule
+方案 & 优点 & 风险/成本 & 决策 \\
+\midrule
+\endhead
+单体 autonomous loop & 灵活，prompt 少，迭代快。 & 状态、依赖、预算、审批和失败传播不清楚；复盘困难。 & 否。只适合探索，不适合当前研究型可审计任务。 \\
+显式 DAG + StateGraph & 依赖、批次、replan、approval、budget 和 citation 都可检查。 & 需要维护状态 schema、节点类型、聚合器和测试。 & 选。符合当前 DeepIntel 主链路。 \\
+多 agent 自由对话 & 表达力强，可模拟专家协作。 & 容易重复、漂移、难以判定事实所有权；成本和延迟高。 & 否。可作为 brainstorming，不作为默认执行 runtime。 \\
+Manager + specialists as tools & Manager 保持最终控制，专家作为有边界能力。 & 需要明确 specialist contract 和 trace correlation。 & 设计已定。未来用于 RAG/browser/MCP 专家化，但不替代 DAG。 \\
+\bottomrule
+\end{longtable}
+
+\begin{analysisBox}{最终选择}
+当前选择“显式 DAG + StateGraph + Harness + policy guardrail”。这不是保守，而是因为研究型 Agent 最重要的是可解释调度和可恢复执行。多 agent 可以作为局部优化，但必须先有合同、预算、trace 和失败语义。
+\end{analysisBox}
+
+\subsection{Skill 选型记录}
+\begin{longtable}{>{\bfseries}p{0.18\textwidth}p{0.23\textwidth}p{0.25\textwidth}p{0.26\textwidth}}
+\toprule
+方案 & 优点 & 风险/成本 & 决策 \\
+\midrule
+\endfirsthead
+\toprule
+方案 & 优点 & 风险/成本 & 决策 \\
+\midrule
+\endhead
+把 Skill 当 prompt snippet & 实现最快。 & 无法版本化、审计、scope、top-k、snapshot，也无法解释工具边界变化。 & 否。面试时不要这样描述当前系统。 \\
+版本化 Skill registry & 可做 meta/content 分离、匹配、manual enable、scope、tool allowlist 和 snapshot。 & 需要解析、缓存、排序、session 固化和测试。 & 选。当前已落地 top-k 与 resolved snapshot 测试。 \\
+Skill 自定义 DAG 节点模板 & 能让领域能力直接影响执行结构。 & 需要模板 schema、节点权限、版本兼容和安全审查。 & 未完成。作为下一阶段路线图，不宣称已具备。 \\
+\bottomrule
+\end{longtable}
+
+\begin{analysisBox}{最终选择}
+当前选择版本化 Skill registry，而不是简单 prompt 拼接。理由是 Skill 会影响 planning、tool usage 和 command execution，本质上已经进入安全边界。已落地部分可以讲：scope 不被 manual enable 绕过、top-k 控制 prompt budget、session snapshot 防止运行漂移。
+\end{analysisBox}
+
+\subsection{本轮实现 TODO 与验收证据}
+\begin{longtable}{>{\bfseries}p{0.23\textwidth}p{0.22\textwidth}p{0.25\textwidth}p{0.22\textwidth}}
+\toprule
+TODO & 状态 & 验收证据 & 面试边界 \\
+\midrule
+\endfirsthead
+\toprule
+TODO & 状态 & 验收证据 & 面试边界 \\
+\midrule
+\endhead
+Harness v2 state/migration & 已落地 & \term{tests/governance/test\_harness.py} & 不是完整 job queue。 \\
+Harness atomic write + backup recovery & 已落地 & JSON corruption recovery 测试 & backup 同坏时会停止。 \\
+Harness active marker + lease + summary & 已落地 & marker、expired lease、summary tests & 没有多 worker lock。 \\
+MCP secret policy parsing & 已落地 & \term{test\_mcp\_policy.py} & policy schema 还轻量。 \\
+MCP tool schema validation & 已落地 & schema invalid tests & 不是完整 JSON Schema 引擎。 \\
+MCP write tool approval & 已落地 & approval request tests & 审批最终还要接 DB 聚合根。 \\
+MCP recursive redaction + hash & 已落地 & configured redaction keys tests & 需要业务持续补 redact keys。 \\
+Skill top-k 与 tool allowlist 合并 & 已落地 & \term{tests/skills/test\_skills.py} & top-k 仍是规则排序。 \\
+Skill resolved snapshot & 已落地 & registry update 后旧 snapshot 保持 v1 测试 & 版本回收 UI 未完成。 \\
+Agent 岗题卡扩展 & 已落地 & \term{agent-position-cardbook.tex} 106 张题卡 & 题卡是面试准备，不是功能代码。 \\
+面试笔记扩展到 200 页左右 & 已落地 & PDF 当前约 200 页 & 页数不是质量指标，内容边界才是。 \\
+\bottomrule
+\end{longtable}
+
+\begin{riskBox}{不能夸大的地方}
+本轮没有把 DeepIntel 改成完整企业级 Agent 平台。准确说法是：Harness、MCP 和 Skill 的治理面已经明显增强，并且有测试覆盖；多 worker 调度、MCP 主流量化、Skill DAG 模板、统一 eval dashboard、法证级审计仍是路线图。
+\end{riskBox}
+
+\section{第十七轮拷打：继续优化还能补哪些细节}
+
+\begin{summaryBox}{本轮定位}
+这一轮不是继续堆功能，而是补“面试官会追问但实现容易被忽略”的治理细节：状态文件并发写、依赖失败传播、MCP 参数级审批幂等、嵌套 schema、Skill scope 元数据一致性。它们都不大，但都直接决定 Agent 系统是不是能在真实运行中解释清楚。
+\end{summaryBox}
+
+\subsection{本轮发现的可优化点}
+\begin{longtable}{>{\bfseries}p{0.22\textwidth}p{0.28\textwidth}p{0.26\textwidth}p{0.16\textwidth}}
+\toprule
+可优化点 & 风险 & 本轮处理 & 状态 \\
+\midrule
+\endfirsthead
+\toprule
+可优化点 & 风险 & 本轮处理 & 状态 \\
+\midrule
+\endhead
+Harness 状态并发写 & 两个执行器同时写 \term{harness-tasks.json}，可能覆盖 checkpoint 或 backup。 & 增加 \term{.harness-state.lock} 轻量 transaction lock，并支持 stale lock 清理。 & 已落地 \\
+Harness 依赖校验 & 循环依赖或依赖失败后，任务可能一直 pending，表面看没有错误。 & 增加 \term{validate\_dependencies()}，标记 circular dependency 与 blocked by failed。 & 已落地 \\
+MCP 嵌套 schema & 顶层 schema 通过但嵌套 object、array item 出错，真实工具仍可能收到坏参数。 & 增加递归 object、array items、enum 校验。 & 已落地 \\
+MCP 输出 schema & 只校验输入参数，不校验工具返回结构，坏的 \term{structuredContent} 可能进入后续上下文和审计。 & 支持 \term{outputSchema}/\term{tool\_output\_schemas}，对 \term{structuredContent} 做轻量递归校验。 & 已落地 \\
+MCP 审批幂等 & 如果 approval id 只绑定 tool，不同参数可能复用同一审批；如果只绑定脱敏参数，不同 secret 可能合并。 & approval id 绑定 raw args hash；审批 payload 只展示 redacted args 和 args hash。 & 已落地 \\
+MCP 审计 hash 稳定性 & 字典字段顺序不同导致 result hash 不同，审计比对噪音大。 & result hash 改为 canonical JSON hash。 & 已落地 \\
+Skill scope 元数据 & \term{scope=global} 却带 tenant/project，或 tenant/project scope 字段缺失，可能形成灰色越权入口。 & 在 \term{SkillMetadata} 加 model validator 强制字段绑定。 & 已落地 \\
+统一 eval dashboard & 现有 metrics 分散，难以一眼比较质量、成本、恢复能力。 & 本轮只记录路线图，未扩展 dashboard。 & 未完成 \\
+Skill DAG 模板 & Skill 还不能直接声明执行节点模板。 & 本轮不做，避免把提示能力和执行能力混在一起。 & 未完成 \\
+\bottomrule
+\end{longtable}
+
+\subsection{选型对比与决策}
+\begin{longtable}{>{\bfseries}p{0.18\textwidth}p{0.24\textwidth}p{0.25\textwidth}p{0.25\textwidth}}
+\toprule
+决策点 & 方案 A & 方案 B & 本轮选择 \\
+\midrule
+\endfirsthead
+\toprule
+决策点 & 方案 A & 方案 B & 本轮选择 \\
+\midrule
+\endhead
+Harness lock & 文件目录锁，低成本、可测试、适合单机状态文件。 & 引入 DB/Redis 分布式锁，能力更强但改造范围大。 & 选文件目录锁；它解决当前 state transaction 风险，但不宣称多 worker 平台已完成。 \\
+依赖失败处理 & 只在 summary 里统计 blocked。 & 主动把循环依赖和被失败依赖阻塞的任务标成 terminal failed。 & 选主动标记；否则任务会伪装成 pending，恢复时没有明确失败语义。 \\
+MCP approval hash & 绑定 redacted args，避免敏感值进入 hash 输入。 & 绑定 raw args，只在 payload 展示 redacted args。 & 选 raw args hash；审批幂等必须区分真实写入意图，否则不同 secret 值会复用审批。 \\
+MCP schema & 只做输入顶层校验，简单但漏嵌套和坏输出。 & 轻量递归 JSON Schema 子集，同时覆盖 inputSchema 和 outputSchema。 & 选轻量递归；覆盖 object、array、enum、required 和 structuredContent 校验，仍不冒充完整 JSON Schema 引擎。 \\
+Skill scope & 只在 registry resolve 时过滤。 & metadata 创建时就校验 scope 字段绑定。 & 选双层防护；创建时约束减少脏数据，resolve 时过滤防止越权。 \\
+\bottomrule
+\end{longtable}
+
+\subsection{本轮落地证据}
+\begin{longtable}{>{\bfseries}p{0.22\textwidth}p{0.28\textwidth}p{0.34\textwidth}}
+\toprule
+模块 & 代码位置 & 验收测试 \\
+\midrule
+\endfirsthead
+\toprule
+模块 & 代码位置 & 验收测试 \\
+\midrule
+\endhead
+Harness 状态锁 & \term{app/governance/harness.py}：\term{\_state\_lock()}、\term{\_clear\_stale\_lock()} & \term{test\_harness\_state\_lock\_releases\_after\_state\_transaction}；\term{test\_harness\_state\_lock\_removes\_stale\_lock} \\
+Harness 依赖校验 & \term{validate\_dependencies()}、\term{\_dependency\_cycle\_path()}、\term{\_mark\_dependency\_failed()} & \term{test\_harness\_validate\_dependencies\_marks\_cycles\_and\_blocked\_tasks}；\term{test\_harness\_validate\_dependencies\_is\_idempotent} \\
+MCP 递归 schema & \term{app/governance/mcp.py}：\term{\_validate\_object()}、\term{\_validate\_value()} & \term{test\_mcp\_policy\_validates\_nested\_schema\_and\_array\_items} \\
+MCP 输出 schema & \term{app/governance/mcp.py}：\term{\_tool\_output\_schema()}、\term{\_structured\_output()} & \term{test\_mcp\_policy\_validates\_output\_schema\_structured\_content} \\
+MCP 审批幂等 & \term{\_stable\_hash()}、\term{\_approval\_id()}、raw args hash & \term{test\_mcp\_policy\_approval\_id\_includes\_args\_hash\_for\_idempotency}；\term{test\_mcp\_policy\_approval\_id\_uses\_raw\_args\_hash\_not\_redacted\_hash} \\
+MCP 审计 hash & canonical JSON result hash & \term{test\_mcp\_result\_hash\_is\_stable\_for\_equivalent\_payload\_order} \\
+Skill scope 元数据 & \term{app/skills/models.py}：\term{validate\_scope\_binding()} & \term{test\_skill\_scope\_metadata\_requires\_consistent\_tenant\_and\_project\_binding} \\
+\bottomrule
+\end{longtable}
+
+\begin{riskBox}{本轮仍不能夸大的边界}
+第一，\term{.harness-state.lock} 是状态事务锁，不是完整分布式 worker coordination。第二，MCP schema 是工程上够用的轻量子集，不支持 \term{oneOf}、\term{pattern}、复杂引用解析；输出校验也只覆盖结构化结果，不等于完整语义校验。第三，Skill scope validator 防的是元数据不一致，不等于完整 RBAC。第四，approval id 绑定参数指纹能减少重复审批风险，但真正执行写操作仍需要 DB 聚合根、action id 和幂等键共同保证。
+\end{riskBox}
+
+\subsection{下一阶段可扩展功能清单}
+\begin{enumerate}[leftmargin=2em]
+  \item \textbf{统一 eval dashboard}：把 RAG、Browser、MCP、Harness 恢复、预算命中、approval wait time 合成一个 session-level scoreboard。
+  \item \textbf{MCP registry UI}：展示 server trust、fingerprint、allowed tools、schema、write tools、redaction keys 和最近调用失败。
+  \item \textbf{Skill provenance}：给 skill 增加 author、source、review status、content hash、signed version，防止 skill 内容投毒。
+  \item \textbf{Approval action id}：把审批从 tool-level 推进到 action-level，审批记录绑定 action id、args hash、node id、DB version。
+  \item \textbf{Harness recovery planner}：lease 过期后不是直接接管，而是输出恢复建议：resume、retry、replan、await approval、terminal failed。
+  \item \textbf{Skill DAG 模板}：只有在模板 schema、权限和版本兼容做完后，才让 skill 影响 DAG 节点结构。
+\end{enumerate}
+
+\begin{qaBox}{面试收口}
+这轮优化最重要的不是“又加了几个函数”，而是把 Agent 系统里容易被忽视的确定性边界补上：谁能写状态、任务为什么阻塞、工具输入和输出是否真合法、审批是否绑定真实动作、skill scope 是否一致。Agent 工程不是让模型更自由，而是在模型自由行动前后都留下可验证的控制面。
+\end{qaBox}
+
+\section{第十八轮拷打：高级工程师故障注入题}
+
+\begin{summaryBox}{这一轮定位}
+这一节专门替换掉低价值概念题。高级 Agent 岗面试不会满足于“为什么要系统设计”，而会直接问：这个系统在哪些事故场景下会错、如何检测、如何恢复、如何证明没有复发。回答时必须落到状态不变量、代码位置、测试证据和未完成边界。
+\end{summaryBox}
+
+\subsection{事故 1：审批回调重复到达，写工具会不会执行两次}
+\begin{qaBox}{工程回答}
+不能只靠 approval id 防重复。正确不变量是：同一个 \term{action\_id + args\_hash + db\_version} 只能从 pending 转成 approved/executed 一次；工具执行要有幂等键，审批回调只是状态迁移信号，不是直接执行命令。
+\end{qaBox}
+
+\begin{analysisBox}{DeepIntel 落点}
+本轮已经把 MCP approval id 绑定 raw args hash，避免不同写入意图复用同一审批；但完整闭环还需要 DB 聚合根记录 action id、审批版本和执行结果。面试时要诚实说：当前做到的是“审批请求幂等识别”，不是“写操作全链路 exactly-once”。下一步应在审批表上加唯一约束，在执行表上加幂等键，并把 MCP executor 结果写成可重放审计事件。
+\end{analysisBox}
+
+\subsection{事故 2：MCP server 返回的 structuredContent 结构错了怎么办}
+\begin{qaBox}{工程回答}
+输入 schema 只能证明请求参数形状合法，不能证明工具返回可被下游消费。生产系统必须校验 \term{outputSchema}，尤其是 MCP 的 \term{structuredContent}；校验失败时应进入 terminal error 或 safe error，不能把坏结构送给 Analyst、Report 或审计 hash。
+\end{qaBox}
+
+\begin{analysisBox}{DeepIntel 落点}
+本轮已在 \term{McpPolicyProxy} 中支持 \term{outputSchema}/\term{tool\_output\_schemas}，并优先校验 \term{structuredContent}。验收测试是 \term{test\_mcp\_policy\_validates\_output\_schema\_structured\_content}。边界是它仍是轻量 JSON Schema 子集，只覆盖 object、array、enum、required、additionalProperties 等基础规则，不做语义级事实校验。
+\end{analysisBox}
+
+\subsection{事故 3：两个 worker 同时写 Harness 状态，checkpoint 丢了怎么办}
+\begin{qaBox}{工程回答}
+长任务状态文件必须有状态事务锁、写前备份、临时文件和原子替换。否则两个 worker 同时写 \term{harness-tasks.json} 时，后写者可能覆盖前写者的 checkpoint、lease 或 last error，恢复时系统会读到一个看似合法但语义过期的状态。
+\end{qaBox}
+
+\begin{analysisBox}{DeepIntel 落点}
+本轮加入 \term{.harness-state.lock}、stale lock 清理和状态写入保护，测试覆盖 lock release 与 stale cleanup。需要继续强调边界：这是单机状态事务锁，不是完整分布式 scheduler；多 worker 真正上线还要独立 worktree、lease renewal、claim compare-and-set、rollback 隔离和 DB/队列级调度。
+\end{analysisBox}
+
+\subsection{事故 4：Skill 手动启用绕过租户 scope 怎么办}
+\begin{qaBox}{工程回答}
+manual enable 是偏好信号，不是授权信号。Skill 会影响 prompt、tool allowlist、agent hints 和执行边界，所以 scope 必须在 metadata 创建时校验，在 session resolve 时再次过滤。只在 UI 层隐藏不可用 skill 不够，因为 API 和缓存仍可能被绕过。
+\end{qaBox}
+
+\begin{analysisBox}{DeepIntel 落点}
+当前已有 \term{SkillMetadata.validate\_scope\_binding()}，强制 global/tenant/project 字段绑定；测试还覆盖 manual enable 不能绕过 scope filters。下一步可以补 provenance、review status、content hash 和 signed version，防止 skill 内容被投毒或跨环境漂移。
+\end{analysisBox}
+
+\subsection{事故 5：RAG 答案错了，如何定位不是一句“模型幻觉”}
+\begin{qaBox}{工程回答}
+先看正确证据有没有进入候选集，再看是否排到足够靠前，最后看生成是否按证据回答。也就是按 retrieval、ranking、generation 三层定位，而不是直接换模型。生产事故复盘要同时给出失败 query、gold doc、Hit@K、MRR、Context Recall、Faithfulness 和工具轨迹。
+\end{qaBox}
+
+\begin{analysisBox}{DeepIntel 落点}
+项目里已有 retrieval/generation 指标记录、tool history 和 node outcome，本轮文档已把 Agent Eval 改成六层定位：任务完成、证据召回、工具执行、答案可信、成本受控、恢复能力。后续应补统一 eval dashboard，把 RAG、Browser、MCP、Harness 和 budget breaker 聚合成 session-level scoreboard。
+\end{analysisBox}
+
+\subsection{事故 6：预算硬熔断发生在证据不足时，如何避免粗暴失败}
+\begin{qaBox}{工程回答}
+预算 breaker 不是直接 kill，而是触发策略收缩：停止可选 Web 扩展、禁止新 replan、保留当前证据、标记 coverage gap，并输出部分报告或请求用户确认是否追加预算。关键不变量是成本不能继续无限增长，同时不能伪装成完整结论。
+\end{qaBox}
+
+\begin{analysisBox}{DeepIntel 落点}
+当前图里已有 budget breaker 和 should-continue 路由测试；面试时要把它讲成“控制规则参与路由”，不是“打个 warning”。未完成边界是还没有统一的预算策略配置 UI，也没有按任务类型动态调预算曲线。
+\end{analysisBox}
+
+\subsection{事故 7：Prompt injection 藏在网页正文里，为什么 schema 仍不够}
+\begin{qaBox}{工程回答}
+schema 只能约束工具参数形状，不能判断网页内容是不是试图覆盖系统指令。对 Browser/RAG 返回内容，要把不可信文本作为 evidence 处理，而不是作为 instruction 处理；还要做引用边界、命令隔离、敏感工具审批和输出审查。
+\end{qaBox}
+
+\begin{analysisBox}{DeepIntel 落点}
+DeepIntel 当前通过 tool audit、approval、MCP policy proxy 和 Reflection 降低风险，但还需要更系统的 prompt-injection eval set、source trust score 和 per-source quarantine。高级回答的重点是承认 schema 不是万能护栏，治理要覆盖输入、工具、输出和状态恢复四层。
+\end{analysisBox}

@@ -3,7 +3,9 @@ from fnmatch import fnmatch
 
 import pytest
 
-from app.skills.models import SkillContentRecord, SkillMetaRecord, SkillRecord
+from pydantic import ValidationError
+
+from app.skills.models import SkillContentRecord, SkillMetaRecord, SkillMetadata, SkillRecord
 from app.skills.parser import derive_coarse_terms, parse_skill_markdown
 from app.skills.registry import SkillRegistry
 from app.skills.service import update_skill
@@ -79,6 +81,47 @@ def test_parse_skill_markdown_extracts_frontmatter_and_sections():
     assert "Prefer listed-company disclosures" in sections["prompt"]
     assert "Do not use browser" in sections["constraints"]
     assert "# Prompt" in body
+
+
+def test_skill_scope_metadata_requires_consistent_tenant_and_project_binding():
+    with pytest.raises(ValidationError, match="global skill must not set tenant_id"):
+        SkillMetadata(
+            name="Bad Global",
+            slug="bad-global",
+            description="Invalid global scope.",
+            scope="global",
+            tenant_id="tenant-a",
+        )
+
+    with pytest.raises(ValidationError, match="tenant scoped skill must set tenant_id"):
+        SkillMetadata(
+            name="Bad Tenant",
+            slug="bad-tenant",
+            description="Invalid tenant scope.",
+            scope="tenant",
+        )
+
+    with pytest.raises(ValidationError, match="project scoped skill must set tenant_id and project_id"):
+        SkillMetadata(
+            name="Bad Project",
+            slug="bad-project",
+            description="Invalid project scope.",
+            scope="project",
+            tenant_id="tenant-a",
+        )
+
+    project_skill = SkillMetadata(
+        name="Good Project",
+        slug="Good Project",
+        description="Valid project scope.",
+        scope="project",
+        tenant_id="Tenant-A",
+        project_id="Project-A",
+    )
+
+    assert project_skill.slug == "good-project"
+    assert project_skill.tenant_id == "tenant-a"
+    assert project_skill.project_id == "project-a"
 
 
 @pytest.mark.asyncio
@@ -314,6 +357,78 @@ Prefer inflation, rates, and central-bank sources.
     assert new_query_context.effective_skill_ids == [original_skill.id]
     assert new_query_context.resolved_skills[0].version == 2
     assert new_query_context.resolved_skills[0].slug == "macro-research"
+
+
+@pytest.mark.asyncio
+async def test_registry_truncates_to_top_k_and_merges_allowed_tools(monkeypatch):
+    class _SkillSettings:
+        match_top_k = 2
+        coarse_candidate_floor = 1
+        broad_fallback_limit = 10
+        content_l1_cache_size = 64
+        match_cache_ttl = 900
+        content_cache_ttl = 1800
+
+    monkeypatch.setattr("app.skills.registry.get_settings", lambda: type("Settings", (), {"skills": _SkillSettings()})())
+
+    skills = [
+        _build_skill(
+            "00000000-0000-0000-0000-000000000101",
+            SAMPLE_SKILL.replace("slug: finance-research", "slug: finance-a").replace("priority: 200", "priority: 300"),
+        ),
+        _build_skill(
+            "00000000-0000-0000-0000-000000000102",
+            SAMPLE_SKILL.replace("slug: finance-research", "slug: finance-b").replace("priority: 200", "priority: 250"),
+        ),
+        _build_skill(
+            "00000000-0000-0000-0000-000000000103",
+            SAMPLE_SKILL.replace("slug: finance-research", "slug: finance-c").replace("priority: 200", "priority: 100"),
+        ),
+    ]
+    registry = SkillRegistry()
+    registry._rebuild_indexes([skill.meta for skill in skills])
+    for skill in skills:
+        registry._remember_content(skill.content)
+
+    context = await registry.resolve_for_session(query="finance 财报", manually_enabled_skill_ids=[], manually_disabled_skill_ids=[])
+
+    assert len(context.effective_skill_ids) == 2
+    assert context.truncated_skill_count == 1
+    assert context.resolved_skills[0].slug == "finance-a"
+    assert context.resolved_skills[1].slug == "finance-b"
+    assert context.effective_tool_allowlist == ["search", "rag"]
+
+
+@pytest.mark.asyncio
+async def test_resolved_skill_snapshot_keeps_version_and_prompt_after_registry_update():
+    registry = SkillRegistry()
+    original_skill = _build_skill("00000000-0000-0000-0000-000000000110")
+    registry._rebuild_indexes([original_skill.meta])
+    registry._remember_content(original_skill.content)
+
+    original_context = await registry.resolve_for_session(
+        query="finance 财报",
+        manually_enabled_skill_ids=[],
+        manually_disabled_skill_ids=[],
+    )
+
+    updated_markdown = SAMPLE_SKILL.replace("version: 1", "version: 2", 1).replace(
+        "Prefer listed-company disclosures and earnings material.",
+        "Prefer updated macro and rate material.",
+    )
+    updated_skill = _build_skill(original_skill.id, updated_markdown)
+    await registry.upsert(updated_skill)
+
+    new_context = await registry.resolve_for_session(
+        query="finance 财报",
+        manually_enabled_skill_ids=[],
+        manually_disabled_skill_ids=[],
+    )
+
+    assert original_context.resolved_skills[0].version == 1
+    assert "Prefer listed-company disclosures" in original_context.resolved_skills[0].prompt_sections["prompt"]
+    assert new_context.resolved_skills[0].version == 2
+    assert "Prefer updated macro" in new_context.resolved_skills[0].prompt_sections["prompt"]
 
 
 @pytest.mark.asyncio
