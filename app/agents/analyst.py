@@ -143,6 +143,7 @@ Return a JSON object with these fields:
                 workflow.update(status='paused',stop_reason=error.reason,partial_response=self.last_partial_response)
                 failed={'attempt':workflow['attempts'][key],
                     'reason':error.reason,'raw_response':self.last_partial_response,
+                    'admission':deepcopy(getattr(error,'admission',None)),
                     'context':deepcopy(self.last_context_manifest)}
                 failures=workflow.setdefault('failed_attempts',{}).setdefault(key,[])
                 if not failures or failures[-1]!=failed:failures.append(failed)
@@ -306,7 +307,9 @@ Return a JSON object with these fields:
                 organization_research,resume_state,on_progress)
         logger.info(f"Analyst: analyzing {len(evidence_list)} evidence items")
         decision = build_guardrail_decision(user_query)
-        system_prompt = f"{build_prompt_profile_message(decision, user_query)}\n\n{self.SYSTEM_PROMPT}"
+        # The complete frozen question is already in the user message. Keep
+        # only the enforcement/profile instructions in the system message.
+        system_prompt = f"{build_prompt_profile_message(decision)}\n\n{self.SYSTEM_PROMPT}"
         if analyst_hints:
             system_prompt = (
                 f"{system_prompt}\n\n## Analyst Skill Instructions\n"
@@ -408,7 +411,11 @@ Also provide the structured JSON output."""
             'research', _output_tokens, max_bytes=getattr(self,'context_expansion_bytes',36000) if organization_research else 10000,
             request_extra={'response_format': {'type': 'json_object'}} if organization_research else None)
         if organization_research and not self.last_context_manifest.get('sources'):
-            raise TokenBudgetExceeded('insufficient_context_budget')
+            error=TokenBudgetExceeded('insufficient_context_budget')
+            error.admission={'reason':'no_acquired_source_fits','prompt_bound':self.last_context_manifest.get('prompt_bound'),
+                'requested_output_tokens':_output_tokens,'available_tokens':self.request_budget.available() if self.request_budget else None,
+                'selected_sources':0}
+            raise error
 
         try:
             fallback=self.routed_fallback if hasattr(self,'routed_fallback') else create_fallback_llm_client()

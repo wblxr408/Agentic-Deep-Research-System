@@ -40,7 +40,8 @@ interface ResearchResult {
   report_audit?: {needs_review?:boolean;audit_incomplete?:boolean;total_claims?:number;supported_claims?:number;
     revision_requests?:Array<{claim_id:string;text:string;reason:string;requested_action:string}>}|null
   analysis_recovery_available?: boolean
-  analysis_progress?: {phase: string|null;status:string;completed_steps:number}|null
+  analysis_progress?: {phase: string|null;status:string;completed_steps:number;stop_reason?:string|null;
+    last_admission?:{prompt_bound?:number|null;requested_output_tokens?:number|null;available_tokens?:number|null;selected_sources?:number|null}|null}|null
   budget_state?: {used_total_tokens?:number;max_total_tokens?:number;cost_status?:string;token_usage_estimated?:boolean;hard_stop_reason?:string|null;model_stop_reason?:string|null;inflight_model_requests?:number} | null
   report_editorial?: { note?: string } | null
   delivery_view?: DeliveryView | null
@@ -312,7 +313,9 @@ function ResearchDashboard({ onBack }: ResearchDashboardProps) {
   })
   const traceEvents = events.some(event => event.type !== 'connected') ? events : historicalEvents
   const progressEvent=[...events].reverse().find(event=>event.type==='state_update' && event.data.analysis_progress)
-  const analysisProgress=(progressEvent?.data.analysis_progress as ResearchResult['analysis_progress']) || result?.analysis_progress
+  const liveAnalysisProgress=progressEvent?.data.analysis_progress as ResearchResult['analysis_progress']
+  const analysisProgress=liveAnalysisProgress&&(!result||['pending','running'].includes(result.status))
+    ? {...result?.analysis_progress,...liveAnalysisProgress}:result?.analysis_progress
   const analysisLabels:Record<string,string>={extract_publications:'整理成果与署名',landscape:'研究布局',
     evolution:'研究演进',relationships:'组织与学者关系',deep_dive:'成果深读',validation:'来源核对',actions:'研究与合作行动'}
   const progressParts=analysisProgress?.phase?.split(':') || []
@@ -776,6 +779,12 @@ function ResearchDashboard({ onBack }: ResearchDashboardProps) {
               {analysisProgress && <section data-app-only aria-label="研究分析进度" className="mb-4 rounded-lg border border-xmgray-200 p-3 text-sm">
                 <p>{isCanceled?'研究已取消，保留最后分析进度':analysisProgress.status==='completed'?'分阶段分析已完成':analysisProgress.status==='paused'?'分析已暂停':`当前分析：${analysisPhase}${progressParts[2]==='conditions'?' · 实验条件补读':''}${analysisBatch?` · 第${analysisBatch}组`:''}`}</p>
                 <p className="text-xs text-xmgray-500">已保留 {analysisProgress.completed_steps} 个分析步骤。阶段结果和用量随研究保存。</p>
+                {analysisProgress.stop_reason==='insufficient_context_budget'&&<p className="mt-2 text-amber-800">本阶段未能在剩余额度内装入可引用的原文，已保留当前结果。</p>}
+                {analysisProgress.last_admission&&<details className="mt-2 text-xs"><summary>本次调用的额度需求</summary>
+                  {typeof analysisProgress.last_admission.prompt_bound==='number'&&<p>输入估算上界：{analysisProgress.last_admission.prompt_bound.toLocaleString()} Token</p>}
+                  {typeof analysisProgress.last_admission.requested_output_tokens==='number'&&<p>输出预留：{analysisProgress.last_admission.requested_output_tokens.toLocaleString()} Token</p>}
+                  {typeof analysisProgress.last_admission.available_tokens==='number'&&<p>该阶段当时可用：{analysisProgress.last_admission.available_tokens.toLocaleString()} Token</p>}
+                </details>}
                 {result?.analysis_recovery_available && <button type="button" className="mt-2 text-xmorange"
                   disabled={resumeAnalysis.isPending || isStreaming} onClick={()=>resumeAnalysis.mutate()}>
                   {resumeAnalysis.isPending?'正在继续…':'继续本次分析'}</button>}

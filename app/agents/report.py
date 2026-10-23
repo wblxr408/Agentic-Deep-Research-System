@@ -188,7 +188,7 @@ class ReportAgent:
             self.SYSTEM_PROMPT if self.last_writing_plan['output_kind']=='report' and self.last_writing_plan['structure_owner']=='reader_task'
             else 'You write source-grounded research answers in Chinese Markdown. Every factual claim uses the original [citation:N].')
         instructions+=writing_instructions(self.last_writing_plan)
-        system_prompt = f"{build_prompt_profile_message(decision, user_query)}\n\n{instructions}"
+        system_prompt = f"{build_prompt_profile_message(decision)}\n\n{instructions}"
         if report_hints:
             system_prompt = (
                 f"{system_prompt}\n\n## Report Skill Instructions\n"

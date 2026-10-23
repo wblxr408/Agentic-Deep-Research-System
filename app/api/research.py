@@ -1368,6 +1368,8 @@ async def get_research_result(session_id: str, principal: Principal = principal_
         raise HTTPException(status_code=404, detail="Session not found")
 
     workflow=_json_object(row.get('analysis_workflow'))
+    phase_failures=(workflow.get('failed_attempts') or {}).get(workflow.get('active_phase')) or []
+    phase_admission=(phase_failures[-1].get('admission') if phase_failures else None)
     frozen_citations=_normalize_citations(row['citations'])
     locators={item.get('citation_id'):item.get('locator') for item in frozen_citations if item.get('locator')}
     citations = projection([{**dict(citation),'locator':locators.get(citation['citation_id'])} for citation in citation_rows] if citation_rows else frozen_citations)
@@ -1408,10 +1410,11 @@ async def get_research_result(session_id: str, principal: Principal = principal_
         'budget_state':review_status.get('budget_state'),
         "execution_plan": _json_object(row.get("execution_plan")),
         'analysis_progress':{'phase':workflow.get('active_phase'),'status':workflow.get('status'),
+            'stop_reason':workflow.get('stop_reason'),'last_admission':projection(phase_admission),
             'completed_steps':len(workflow.get('completed') or {})} if workflow else None,
         'analysis_recovery_available':bool(row['status']=='paused' and workflow.get('status')=='paused'
             and workflow.get('schema_version')=='adrs-analysis-questions-v2'
-            and workflow.get('stop_reason') in {'analysis_output_incomplete','analysis_provider_unavailable','model_output_limit'}
+            and workflow.get('stop_reason') in {'analysis_output_incomplete','analysis_provider_unavailable','model_output_limit','insufficient_context_budget'}
             and int((workflow.get('attempts') or {}).get(workflow.get('active_phase'),2))<2),
         "created_at": row["created_at"].isoformat(),
         "completed_at": row["completed_at"].isoformat() if row["completed_at"] else None,
@@ -1675,7 +1678,7 @@ async def resume_research_analysis(session_id: str, background_tasks: Background
             or state.get('skill_context')!=_json_object(record['skill_context'])
             or workflow.get('schema_version')!='adrs-analysis-questions-v2'
             or workflow.get('status')!='paused' or not isinstance(phase,str)
-            or reason not in {'analysis_output_incomplete','analysis_provider_unavailable','model_output_limit'}
+            or reason not in {'analysis_output_incomplete','analysis_provider_unavailable','model_output_limit','insufficient_context_budget'}
             or state.get('pending_approvals')):
         raise HTTPException(409,'analysis_checkpoint_not_recoverable')
     if int((workflow.get('attempts') or {}).get(phase,0))>=2:
@@ -1702,7 +1705,10 @@ async def resume_research_analysis(session_id: str, background_tasks: Background
     budget=_build_budget_state(state)
     allowance=_stage_model_budget({**state,'budget_state':budget},'analyst')
     import time
-    if (budget.get('hard_stop_reason') or allowance.available()<1024
+    cost_exhausted=budget.get('max_cost_usd') is not None and float(budget.get('used_cost_usd') or 0)>=float(budget['max_cost_usd'])
+    # This route never dispatches new acquisition. Tool exhaustion cannot
+    # erase the separate remaining model allowance; cost/time still apply.
+    if (budget.get('hard_stop_reason') not in {None,'tool_call_limit'} or cost_exhausted or allowance.available()<1024
             or allowance.deadline is None or time.monotonic()>=allowance.deadline):
         raise HTTPException(409,'analysis_original_allowance_exhausted')
     budget['model_stop_reason']=None

@@ -299,6 +299,7 @@ def fit_messages(builder, budget, purpose: str, output_tokens: int, *, max_bytes
         if allowance <= 512:
             error=TokenBudgetExceeded('insufficient_context_budget')
             error.admission={'prompt_bound':bound,'requested_output_tokens':output_tokens,
+                'available_tokens':budget.available(purpose),'attempted_material_bytes':allowance,
                 'context_limit':getattr(budget,'context_limit',None)}
             raise error
         allowance = max(512, min(int(allowance*.75), allowance-(bound+output_tokens-budget.available(purpose))))

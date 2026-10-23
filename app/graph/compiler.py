@@ -392,7 +392,7 @@ def _model_budget_pause(state, agent, stage, error, *, report=None, citations=No
         'provider_usage_exceeded_reservation','final_audit_budget_exhausted','root_model_admission_denied'}
     if budget_stop:budget['hard_stop_reason'] = budget.get('hard_stop_reason') or error.reason
     session.update(status='paused',updated_at=utc_now_naive().isoformat())
-    recoverable=stage=='analyst' and error.reason in {'analysis_output_incomplete','analysis_provider_unavailable','model_output_limit'}
+    recoverable=stage=='analyst' and error.reason in {'analysis_output_incomplete','analysis_provider_unavailable','model_output_limit','insufficient_context_budget'}
     route_error=error.reason.startswith('model_rout') or error.reason in {'no_eligible_model_route',
         'model_endpoint_changed','model_context_capability_exceeded'}
     data_error=any(value in error.reason for value in ('data_class','access_credentials','data_governance','report_disclosure'))
@@ -2109,6 +2109,9 @@ async def analyst_node(state: ResearchState) -> dict:
     from app.agents.analyst import AnalystAgent
     from app.source_lifecycle import current_synthesis_state
     state=await current_synthesis_state(state)
+    # A failed acquisition remains a failed step, while the root is actively
+    # synthesizing the retained material. Do not mirror it as a failed root.
+    state={**state,'runtime_status':RuntimeStatus.RUNNING.value}
     from app.organization_findings import build_organization_findings
     from app.graph.state import AgentEvent, deserialize_evidence
     from app.observability.trace import EventType
@@ -2169,6 +2172,9 @@ async def analyst_node(state: ResearchState) -> dict:
         checkpoint_sequence=sequence
         state['session']['checkpoint_seq']=sequence
         state['analysis_workflow']=progress
+        from app.execution_control import current_control
+        control=current_control()
+        if control:await control.mirror_runtime()
         await get_sse_manager().publish(str(state['task_id']),EventType.STATE_UPDATE.value,{
             'agent':'analyst','status':'running','analysis_progress':{'phase':progress.get('active_phase'),
                 'status':progress['status'],'completed_steps':len(progress['completed'])}})

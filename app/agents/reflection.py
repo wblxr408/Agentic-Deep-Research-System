@@ -136,7 +136,7 @@ Be strict but fair. Flag real hallucinations but don't over-flag.
         """
         logger.info(f"Reflection: validating analysis ({len(analysis)} chars, {len(evidence_list)} evidence items)")
         decision = build_guardrail_decision(user_query)
-        system_prompt = f"{build_prompt_profile_message(decision, user_query)}\n\n{self.SYSTEM_PROMPT}"
+        system_prompt = f"{build_prompt_profile_message(decision)}\n\n{self.SYSTEM_PROMPT}"
         if (organization_research or {}).get('corpus'):
             from app.organization_corpus import corpus_instructions
             from app.organization_purpose import analysis_instructions

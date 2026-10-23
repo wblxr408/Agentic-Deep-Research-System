@@ -151,11 +151,17 @@ class RuntimePersistence:
                 WHERE id=$1::uuid FOR UPDATE''',session_id)
             if (not binding or str(binding['owner_id'])!=str(owner) or str(binding['execution_id'])!=str(execution)
                     or binding['status']!='running'):return None
+            from app.db.execution_control import receipt_budget
+            budget=await receipt_budget(conn,session_id,owner,dict(state.get('budget_state') or {}))
+            state['budget_state']=budget
+            session.update(total_tokens=int(budget.get('used_total_tokens') or 0),
+                total_cost_usd=float(budget.get('used_cost_usd') or 0))
             sequence=await conn.fetchval('''UPDATE session_runtime_state SET
                 state_snapshot_json=jsonb_set(jsonb_set(jsonb_set(jsonb_set(jsonb_set(state_snapshot_json,
                     '{analysis_workflow}',$2::jsonb,true),'{budget_state}',$3::jsonb,true),
                     '{session}',$4::jsonb,true),'{session,checkpoint_seq}',to_jsonb(checkpoint_seq+1),true),
-                    '{organization_result}',$7::jsonb,true),
+                    '{organization_result}',$7::jsonb,true)||'{"status":"running","runtime_status":"running"}'::jsonb,
+                runtime_status='running',public_status='running',
                 checkpoint_seq=checkpoint_seq+1,last_heartbeat_at=NOW()
                 WHERE session_id=$1::uuid AND state_snapshot_json->'session'->>'execution_id'=$5
                     AND COALESCE(state_snapshot_json->'plan_manifest'->>'plan_version','')=$6
@@ -164,7 +170,8 @@ class RuntimePersistence:
                 str((state.get('plan_manifest') or {}).get('plan_version') or ''),dumps_json(state.get('organization_result')))
             if sequence is None:return None
             await conn.execute('''UPDATE research_sessions SET total_tokens=$2,
-                review_status=jsonb_set(COALESCE(review_status,'{}'::jsonb),'{budget_state}',$3::jsonb,true),
+                review_status=jsonb_set(jsonb_set(COALESCE(review_status,'{}'::jsonb),'{budget_state}',$3::jsonb,true),
+                    '{runtime_status}','"running"'::jsonb,true),
                 updated_at=NOW() WHERE id=$1::uuid''',session_id,
                 int((state.get('budget_state') or {}).get('used_total_tokens') or 0),dumps_json(state.get('budget_state') or {}))
             return sequence

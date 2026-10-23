@@ -267,17 +267,17 @@ def build_guardrail_decision(query: str, *, user_confirmed: bool = False) -> Gua
     )
 
 
-def compose_guardrail_prompt(query: str, decision: GuardrailDecision) -> str:
+def compose_guardrail_prompt(query: str | None, decision: GuardrailDecision) -> str:
     if decision.prompt_profile == PromptProfile.RESEARCH_FACTS_ONLY:
         body = "只回答可被检索证据直接支持的事实，不能扩写。"
     elif decision.prompt_profile == PromptProfile.RESEARCH_ANALYSIS:
         body = "允许做分析，但每个关键结论必须绑定证据。"
     else:
         body = "优先保守回答，证据不足时明确拒答。"
-    return f"{BASE_GUARDRAIL_PREFIX}\n{body}\n\n研究问题：{query}"
+    return f"{BASE_GUARDRAIL_PREFIX}\n{body}" + (f"\n\n研究问题：{query}" if query is not None else '')
 
 
-def build_prompt_profile_message(decision: GuardrailDecision, query: str) -> str:
+def build_prompt_profile_message(decision: GuardrailDecision, query: str | None = None) -> str:
     return compose_guardrail_prompt(query, decision)
 
 
