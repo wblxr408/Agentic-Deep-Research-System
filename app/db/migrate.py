@@ -435,10 +435,10 @@ async def run_migration(
             # Create schema
             fts_config = await resolve_text_search_config(conn, log=logger)
             try:
-                schema = SCHEMA_SQL.format(
-                    dimension=embed_dimension,
-                    fts_config=regconfig_sql_literal(fts_config),
-                )
+                # JSON defaults contain literal braces. Only these two
+                # application-owned schema placeholders may be substituted.
+                schema = SCHEMA_SQL.replace('{dimension}',str(embed_dimension)).replace(
+                    '{fts_config}',regconfig_sql_literal(fts_config))
                 await conn.execute(schema)
             except (OSError, RuntimeError, asyncpg.PostgresError) as exc:
                 logger.warning(
@@ -446,10 +446,8 @@ async def run_migration(
                     fts_config,
                     exc,
                 )
-                schema = SCHEMA_SQL.format(
-                    dimension=embed_dimension,
-                    fts_config="'simple'",
-                )
+                schema = SCHEMA_SQL.replace('{dimension}',str(embed_dimension)).replace(
+                    '{fts_config}',"'simple'")
                 await conn.execute(schema)
 
             await conn.execute(MATCHING_SCHEMA_SQL)
