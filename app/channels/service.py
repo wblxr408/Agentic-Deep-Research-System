@@ -65,6 +65,8 @@ class ChannelService:
         return normalized
 
     def collect(self, request: CollectionRequest, *, max_calls: int = 8, timeout_seconds: float | None = None) -> CollectionResult:
+        from app.execution_control import check_execution
+        check_execution()
         spec = CATALOG[request.channel]
         config = ChannelConfig(**self.store.read(self.owner_id)["configs"].get(request.channel, {}))
         result = CollectionResult()

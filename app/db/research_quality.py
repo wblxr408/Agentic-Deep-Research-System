@@ -53,7 +53,7 @@ async def save_feedback(conn,session_id,owner_id,request):
     if old:
         if str(old['session_id'])!=str(session_id) or old['fingerprint']!=fingerprint:raise ValueError('feedback_request_id_payload_conflict')
         return {'request_id':str(request.request_id),'binding_id':request.binding_id,'replayed':True}
-    if state['status'] not in {'completed','paused','failed'}:raise ValueError('feedback_requires_stopped_task')
+    if state['status'] not in {'completed','paused','failed','canceled'}:raise ValueError('feedback_requires_stopped_task')
     validate_feedback(state,request)
     count=await conn.fetchval('SELECT COUNT(*) FROM research_quality_feedback WHERE owner_id=$1::uuid AND session_id=$2::uuid',str(owner_id),str(session_id))
     if count>=1000:raise ValueError('task_feedback_limit_1000')

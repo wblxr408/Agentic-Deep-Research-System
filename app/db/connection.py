@@ -17,6 +17,7 @@ from app.db.matching import MATCHING_SCHEMA_SQL
 from app.db.presets import PRESET_SCHEMA_SQL
 from app.db.report_delivery import SCHEMA_SQL as REPORT_DELIVERY_SCHEMA_SQL
 from app.db.research_quality import SCHEMA_SQL as RESEARCH_QUALITY_SCHEMA_SQL
+from app.db.execution_control import SCHEMA_SQL as EXECUTION_CONTROL_SCHEMA_SQL
 from app.db.retrieval_indexes import RETRIEVAL_SCHEMA_SQL
 from app.source_lifecycle import SCHEMA_SQL as LIFECYCLE_SCHEMA_SQL
 from app.db.text_search import regconfig_sql_literal, resolve_text_search_config
@@ -142,7 +143,7 @@ async def init_db() -> asyncpg.Pool:
         await conn.execute("ALTER TABLE research_sessions ADD COLUMN IF NOT EXISTS total_tokens INTEGER DEFAULT 0")
         await conn.execute("ALTER TABLE research_sessions ADD COLUMN IF NOT EXISTS total_cost_usd NUMERIC(10, 6) DEFAULT 0")
         await conn.execute("ALTER TABLE research_sessions DROP CONSTRAINT IF EXISTS research_sessions_status_check")
-        await conn.execute("ALTER TABLE research_sessions ADD CONSTRAINT research_sessions_status_check CHECK (status IN ('pending', 'running', 'completed', 'failed', 'paused'))")
+        await conn.execute("ALTER TABLE research_sessions ADD CONSTRAINT research_sessions_status_check CHECK (status IN ('pending', 'running', 'completed', 'failed', 'paused', 'canceled'))")
 
         await conn.execute("""
             CREATE TABLE IF NOT EXISTS citations (
@@ -430,6 +431,7 @@ async def init_db() -> asyncpg.Pool:
         await conn.execute(PRESET_SCHEMA_SQL)
         await conn.execute(REPORT_DELIVERY_SCHEMA_SQL)
         await conn.execute(RESEARCH_QUALITY_SCHEMA_SQL)
+        await conn.execute(EXECUTION_CONTROL_SCHEMA_SQL)
         await conn.execute(RETRIEVAL_SCHEMA_SQL)
         await conn.execute(LIFECYCLE_SCHEMA_SQL)
 

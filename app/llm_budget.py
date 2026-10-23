@@ -46,6 +46,9 @@ class ModelTokenBudget:
         self.phase_events:list[dict]=[]
         self.data_events:list[dict]=[]
         self.data_governance:dict|None=None
+        from app.execution_control import current_control
+        self.execution_control=current_control()
+        self.stage=None
         self._lock = threading.Lock()
 
     def available(self, purpose: str = 'research') -> int:
@@ -70,6 +73,7 @@ class ModelTokenBudget:
         return True
 
     def reserve(self, request: dict, purpose: str, route: dict | None = None) -> tuple[dict, dict]:
+        if self.execution_control:self.execution_control.check()
         request = dict(request)
         if request.get('n', 1) != 1:
             raise TokenBudgetExceeded('unsupported_multiple_completions')
@@ -95,10 +99,25 @@ class ModelTokenBudget:
             self.inflight += reservation
             record = {'call_id':str(uuid4()),'started_monotonic':time.monotonic(),
                 'purpose':purpose, 'model':request.get('model'), 'prompt_bound':prompt_bound,
-                'output_cap':completion_cap,'reserved_tokens':reservation,'status':'inflight'}
+                'agent':self.stage,'output_cap':completion_cap,'reserved_tokens':reservation,'status':'inflight',
+                'dispatch_status':'admitted_possible_dispatch'}
             if route:record['routing']=dict(route)
+            price=(route or {}).get('price') or {}
+            record['reserved_known_cost_usd']=(prompt_bound*price['input_per_million']+completion_cap*price['output_per_million'])/1000000 if (
+                price.get('source') and price.get('input_per_million') is not None and price.get('output_per_million') is not None) else None
             self.calls.append(record)
         return request, record
+
+    def reject_before_dispatch(self,record,reason):
+        with self._lock:
+            if record.get('status')!='inflight':return
+            self.inflight-=record['reserved_tokens']
+            started=record.pop('started_monotonic',None)
+            record.update(status='blocked_before_dispatch',dispatch_status='not_dispatched',reason=reason,
+                total_tokens=0,reported_tokens=0,prompt_tokens=0,completion_tokens=0,estimated=False,
+                cost_known=True,cost_usd=0.,cost_basis='no_dispatch_no_provider_charge',
+                duration_ms=round((time.monotonic()-started)*1000) if started is not None else None)
+        if self.execution_control:self.execution_control.model_receipt(record)
 
     def settle(self, record: dict, response: Any = None, *, interrupted: bool = False):
         usage = getattr(response, 'usage', None)
@@ -131,9 +150,11 @@ class ModelTokenBudget:
                 completion_tokens=completion if valid else record['output_cap'], estimated=interrupted or not valid,
                 cost_known=known_price, cost_usd=round(cost,6) if known_price else 0.0,
                 cost_basis='configured_price_estimate_not_invoice' if configured_price else 'static_reference' if known_price else 'unknown')
-            if self.spent > self.limit or (total is not None and total > record['reserved_tokens']):
+            exceeded=self.spent > self.limit or (total is not None and total > record['reserved_tokens'])
+            if exceeded:
                 self.stop_reason = 'provider_usage_exceeded_reservation'
-                raise TokenBudgetExceeded(self.stop_reason)
+        if self.execution_control:self.execution_control.model_receipt(record)
+        if exceeded:raise TokenBudgetExceeded(self.stop_reason)
 
     def usage(self) -> dict:
         settled = [row for row in self.calls if row['status'] != 'inflight']
@@ -167,6 +188,8 @@ class BudgetedClient:
         return result
 
     def create(self, **request):
+        control=self.budget.execution_control
+        if control:control.check()
         validator=getattr(self._client,'validate_dispatch',None)
         if validator is not None:validator()
         from app.data_governance import provider_request
@@ -180,6 +203,14 @@ class BudgetedClient:
         request, record = self.budget.reserve(request,self.purpose,self.route_info)
         record['data_governance']=admission
         deadline = self.budget.call_deadline(self.purpose)
+        if control:
+            try:
+                if not control.model_receipt(record,admission=True,deadline=deadline):
+                    raise TokenBudgetExceeded('root_model_admission_denied')
+                control.check()
+            except BaseException as error:
+                self.budget.reject_before_dispatch(record,getattr(error,'reason','model_admission_persistence_unavailable'))
+                raise
         options: dict = {'max_retries':0}
         if deadline is not None:
             options['timeout'] = max(0.1,deadline-time.monotonic())
@@ -187,6 +218,16 @@ class BudgetedClient:
         try:
             if hasattr(client,'with_options'):
                 client = client.with_options(**options)
+            if control:control.check()
+            if deadline is not None and time.monotonic()>=deadline:
+                raise TokenBudgetExceeded('model_time_reservation_exhausted')
+            validator=getattr(client,'validate_dispatch',None)
+            if validator is not None:validator()
+        except BaseException as error:
+            self.budget.reject_before_dispatch(record,getattr(error,'reason','client_configuration_failed_before_dispatch'))
+            raise
+        try:
+            record['dispatch_status']='dispatch_attempted'
             if request.get('stream'):
                 request['stream_options'] = {'include_usage':True}
             response = client.chat.completions.create(**request)
@@ -195,12 +236,20 @@ class BudgetedClient:
             raise
         if not request.get('stream'):
             self.budget.settle(record,response)
+            if control:control.check()
             return response
 
+        def abort_stream():
+            try:
+                close=getattr(response,'close',None)
+                if close:close()
+            finally:self.budget.settle(record,interrupted=True)
+        if control:control.add_closer(record['call_id'],abort_stream)
         def stream():
             last_usage = None
             try:
                 for event in response:
+                    if control:control.check()
                     if deadline is not None and time.monotonic() >= deadline:
                         raise TokenBudgetExceeded('model_time_reservation_exhausted')
                     if getattr(event,'usage',None) is not None:
@@ -211,6 +260,7 @@ class BudgetedClient:
                 self.budget.settle(record,last_usage,interrupted=True)
                 raise
             finally:
+                if control:control.remove_closer(record['call_id'])
                 close = getattr(response,'close',None)
                 if close:
                     close()

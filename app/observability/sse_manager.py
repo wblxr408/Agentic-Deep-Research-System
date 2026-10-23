@@ -1,250 +1,130 @@
-"""
-SSE Manager: manages Server-Sent Events for real-time streaming.
-
-Handles multiple concurrent SSE connections with per-session event routing.
-Thread-safe implementation with proper lock management.
-"""
-
+"""Bounded per-subscriber event delivery and owner/execution-aware replay."""
 from __future__ import annotations
 
 import asyncio
 import json
 import logging
-from collections.abc import AsyncGenerator
-from typing import Any
+from typing import Any,AsyncGenerator
+from uuid import uuid4
 
-logger = logging.getLogger(__name__)
+logger=logging.getLogger(__name__)
+_UNBOUND=object()
 
 
 class SSEManager:
-    """
-    Manages SSE connections and event streaming to clients.
-
-    Architecture:
-    - Each research session has its own event queue
-    - Events are pushed as JSON-formatted SSE messages
-    - Clients connect via GET /api/v1/research/stream/{session_id}
-    - Events are sent via publish_event(session_id, event_type, data)
-
-    Event types:
-    - agent_start: An agent node begins execution
-    - thought: LLM thinking process (streamed)
-    - tool_call: Tool invocation request
-    - tool_result: Tool result returned
-    - tool_error: Tool call failed
-    - state_update: Workflow state changed
-    - reflection: Reflection result available
-    - report_chunk: Report content chunk (Markdown)
-    - report_citation: Citation added to report
-    - workflow_error: Workflow/business error occurred
-    - done: Task completed
-
-    Thread Safety:
-    - _get_queue is protected by a dedicated lock dictionary
-    - Uses setdefault pattern to atomically create locks
-    - History updates use the session-specific lock
-    """
-
     def __init__(self):
-        self._sessions: dict[str, asyncio.Queue] = {}
-        self._locks: dict[str, asyncio.Lock] = {}
-        self._events_per_session: dict[str, list[dict]] = {}
-        self._max_history = 500
-        # Lock to protect session creation (avoid race condition)
-        self._session_creation_lock = asyncio.Lock()
+        self._sessions:dict[str,set[asyncio.Queue]]={}
+        self._locks:dict[str,asyncio.Lock]={}
+        self._events_per_session:dict[str,list[dict]]={}
+        self._sequence:dict[str,int]={}
+        self._max_history=500
+        self._epochs:dict[str,str]={}
+        self._session_creation_lock=asyncio.Lock()
 
-    async def _get_queue(self, session_id: str) -> asyncio.Queue:
-        """
-        Get or create an event queue for a session.
-
-        Thread-safe: uses dedicated lock to prevent race conditions
-        during concurrent session creation.
-        """
-        # Fast path: check without lock (avoids lock contention)
-        if session_id in self._sessions:
-            return self._sessions[session_id]
-
-        # Slow path: create session with lock
+    async def _ensure_session(self,session_id):
+        if session_id in self._sessions:return
         async with self._session_creation_lock:
-            # Double-check after acquiring lock
             if session_id not in self._sessions:
-                self._sessions[session_id] = asyncio.Queue(maxsize=100)
-                # Use setdefault to atomically get/create the lock
-                # This fixes the bug where get() with default didn't store the lock
-                self._locks[session_id] = asyncio.Lock()
-                self._events_per_session[session_id] = []
-            return self._sessions[session_id]
+                self._sessions[session_id]=set();self._locks[session_id]=asyncio.Lock()
+                self._events_per_session[session_id]=[];self._sequence[session_id]=0
+                self._epochs[session_id]=uuid4().hex
 
-    async def publish(
-        self,
-        session_id: str,
-        event_type: str,
-        data: dict[str, Any],
-    ) -> None:
-        """
-        Publish an event to a session's event queue.
+    async def publish(self,session_id:str,event_type:str,data:dict[str,Any])->None:
+        from app.execution_control import current_control
+        control=current_control()
+        if control and control.binding['session_id']==str(session_id):
+            async with control.publication_gate(terminal=event_type in {'done','workflow_error'}) as allowed:
+                if allowed:await self._publish(session_id,event_type,{**data,'execution_id':control.binding['execution_id']})
+        else:await self._publish(session_id,event_type,data)
 
-        Args:
-            session_id: The research session ID
-            event_type: Type of event (e.g., "thought", "tool_call")
-            data: Event payload
-        """
+    async def _publish(self,session_id,event_type,data):
         from app.disclosure import projection
         data=projection(data)
-        queue = await self._get_queue(session_id)
-
-        event = {
-            "type": event_type,
-            "data": data,
-        }
-
-        # Store in history - use setdefault to get or create lock atomically
-        # This fixes the bug where locks.get() created throwaway locks
-        async with self._locks.setdefault(session_id, asyncio.Lock()):
-            history = self._events_per_session.get(session_id, [])
-            history.append(event)
-            if len(history) > self._max_history:
-                history[:] = history[-self._max_history:]
-            self._events_per_session[session_id] = history
-
-        # Push to queue (non-blocking)
-        try:
-            queue.put_nowait(event)
-        except asyncio.QueueFull:
-            logger.warning(f"SSE queue full for session {session_id}, dropping event")
-
-    async def stream(self, session_id: str, *, authorize=None) -> AsyncGenerator[dict[str, Any], None]:
-        """
-        Stream events to a client via SSE.
-
-        Yields event dictionaries suitable for EventSourceResponse.
-        """
-        queue = await self._get_queue(session_id)
-
-        async def permitted():
-            if authorize is None:
-                return True
-            try:
-                return bool(await authorize())
-            except Exception:
-                logger.warning("SSE authorization unavailable; closing connection")
-                return False
-
-        if not await permitted():
-            return
-
-        # Send initial connection event
-        yield {
-            "event": "connected",
-            "data": json.dumps({"session_id": session_id}),
-        }
-
-        try:
-            # Replay buffered history so late subscribers do not miss the
-            # startup burst before the EventSource handshake completes.
-            async with self._locks.setdefault(session_id, asyncio.Lock()):
-                history = list(self._events_per_session.get(session_id, []))
-
-            for event in history:
-                if not await permitted():
-                    return
-                yield {
-                    "event": event["type"],
-                    "data": json.dumps(event["data"], ensure_ascii=False),
-                }
-
-            while True:
-                if not await permitted():
-                    return
-                try:
-                    event = await asyncio.wait_for(queue.get(), timeout=1)
-                except asyncio.TimeoutError:
-                    continue
-                if not await permitted():
-                    return
-                yield {
-                    "event": event["type"],
-                    "data": json.dumps(event["data"], ensure_ascii=False),
-                }
-        except asyncio.CancelledError:
-            logger.info(f"SSE stream cancelled for session {session_id}")
-            raise
-
-    async def begin_run(self, session_id: str) -> None:
-        """Start a resumed event segment without replaying an old done event."""
-        queue = await self._get_queue(session_id)
+        await self._ensure_session(session_id)
         async with self._locks[session_id]:
-            self._events_per_session[session_id] = []
-            while not queue.empty():
-                queue.get_nowait()
+            sequence=self._sequence[session_id]+1;self._sequence[session_id]=sequence
+            event={'type':event_type,'data':data,'sequence':sequence,'id':self._epochs[session_id]+':'+str(sequence)}
+            history=self._events_per_session[session_id];history.append(event)
+            if len(history)>self._max_history:history[:]=history[-self._max_history:]
+            for queue in self._sessions[session_id]:
+                delivery=event
+                if queue.full():
+                    queue.get_nowait()
+                    delivery={**event,'data':{**data,'delivery_gap':True,'recovery':'reload_saved_research'}}
+                queue.put_nowait(delivery)
 
-    def get_history(self, session_id: str) -> list[dict]:
-        """Get the event history for a session."""
-        return self._events_per_session.get(session_id, [])
+    async def stream(self,session_id:str,*,authorize=None,execution_id=_UNBOUND,last_event_id=None)->AsyncGenerator[dict[str,Any],None]:
+        async def permitted():
+            if authorize is None:return True
+            try:return bool(await authorize())
+            except Exception:
+                logger.warning('SSE authorization unavailable; closing connection');return False
+        def matches(event):
+            return execution_id is _UNBOUND or event['data'].get('execution_id')==execution_id
+        def encoded(event):
+            return {'id':event['id'],'event':event['type'],'data':json.dumps(event['data'],ensure_ascii=False)}
+        if not await permitted():return
+        await self._ensure_session(session_id)
+        cursor=None
+        if isinstance(last_event_id,str):
+            epoch,separator,value=last_event_id.partition(':')
+            if separator and epoch==self._epochs[session_id] and value.isdecimal() and len(value)<20:cursor=int(value)
+        queue=asyncio.Queue(maxsize=100)
+        async with self._locks[session_id]:
+            # Register and capture replay atomically: no burst duplication/gap.
+            history=list(self._events_per_session[session_id])
+            self._sessions[session_id].add(queue)
+        try:
+            yield {'event':'connected','data':json.dumps({'session_id':session_id,
+                **({'execution_id':execution_id} if execution_id is not _UNBOUND else {})})}
+            if cursor is not None and history and cursor<history[0]['sequence']-1:
+                yield {'event':'state_update','data':json.dumps({'delivery_gap':True,'recovery':'reload_saved_research'})}
+            for event in history:
+                if not await permitted():return
+                if matches(event) and (cursor is None or event['sequence']>cursor):yield encoded(event)
+            while session_id in self._sessions and await permitted():
+                try:event=await asyncio.wait_for(queue.get(),timeout=1)
+                except asyncio.TimeoutError:continue
+                if not await permitted():return
+                if matches(event):yield encoded(event)
+        except asyncio.CancelledError:
+            logger.info('SSE stream cancelled for session %s',session_id);raise
+        finally:
+            self._sessions.get(session_id,set()).discard(queue)
 
-    def close_session(self, session_id: str) -> None:
-        """
-        Clean up a session's resources.
+    async def begin_run(self,session_id:str)->None:
+        await self._ensure_session(session_id)
+        async with self._locks[session_id]:
+            self._events_per_session[session_id]=[]
+            for queue in self._sessions[session_id]:
+                while not queue.empty():queue.get_nowait()
 
-        Note: This should be called when a session is permanently closed.
-        For SSE disconnection, just close the connection - the session
-        will remain for potential reconnection.
-        """
-        if session_id in self._sessions:
-            del self._sessions[session_id]
-        if session_id in self._locks:
-            del self._locks[session_id]
-        if session_id in self._events_per_session:
-            del self._events_per_session[session_id]
-        logger.info(f"Closed SSE session {session_id}")
+    def get_history(self,session_id:str)->list[dict]:
+        return list(self._events_per_session.get(session_id,[]))
 
-    async def event_generator(
-        self, session_id: str
-    ) -> AsyncGenerator[dict[str, Any], None]:
-        """Alias for stream(), compatible with EventSourceResponse."""
-        async for event in self.stream(session_id):
-            yield event
+    def close_session(self,session_id:str)->None:
+        self._sessions.pop(session_id,None);self._locks.pop(session_id,None)
+        self._events_per_session.pop(session_id,None);self._sequence.pop(session_id,None)
+        self._epochs.pop(session_id,None)
 
-    async def wait_for_completion(
-        self,
-        session_id: str,
-        timeout: float = 300.0,
-    ) -> list[dict]:
-        """
-        Wait for a session to complete (receives 'done' or 'workflow_error' event).
+    async def event_generator(self,session_id:str)->AsyncGenerator[dict[str,Any],None]:
+        async for event in self.stream(session_id):yield event
 
-        Useful for testing and synchronous use cases.
-
-        Args:
-            session_id: The session to wait for
-            timeout: Maximum seconds to wait
-
-        Returns:
-            List of all events received
-        """
-        events = []
-        loop = asyncio.get_running_loop()
-        deadline = loop.time() + timeout
-
-        async for event in self.stream(session_id):
-            events.append(event)
-            if event.get("event") in ("done", "workflow_error"):
-                return events
-
-            if loop.time() > deadline:
-                logger.warning(f"Timeout waiting for session {session_id}")
-                return events
-
+    async def wait_for_completion(self,session_id:str,timeout:float=300.)->list[dict]:
+        events=[]
+        try:
+            async with asyncio.timeout(timeout):
+                async for event in self.stream(session_id):
+                    events.append(event)
+                    if event.get('event') in {'done','workflow_error'}:break
+        except TimeoutError:logger.warning('Timeout waiting for session %s',session_id)
         return events
 
 
-# Global SSE manager instance
-_sse_manager: SSEManager | None = None
+_sse_manager:SSEManager|None=None
 
 
-def get_sse_manager() -> SSEManager:
-    """Get the global SSE manager instance."""
+def get_sse_manager()->SSEManager:
     global _sse_manager
-    if _sse_manager is None:
-        _sse_manager = SSEManager()
+    if _sse_manager is None:_sse_manager=SSEManager()
     return _sse_manager

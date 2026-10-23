@@ -17,6 +17,7 @@ from pathlib import Path
 from urllib.parse import urljoin, urlsplit
 
 from app.channels.models import ChannelError
+from app.execution_control import check_execution,current_control
 
 
 def public_url(url: str, *, resolve: bool = False) -> tuple[str, list[str]]:
@@ -46,8 +47,10 @@ class _PinnedHTTPS(http.client.HTTPSConnection):
         super().__init__(host, timeout=timeout, context=ssl.create_default_context())
         self.address = address
     def connect(self):
+        check_execution()
         sock = socket.create_connection((self.address, 443), self.timeout)
         self.sock = self._context.wrap_socket(sock, server_hostname=self.host)
+        check_execution()
 
 
 @dataclass(frozen=True)
@@ -73,6 +76,7 @@ class HttpReader:
             raise ChannelError("read_only")
         deadline = time.monotonic() + timeout
         for _ in range(4):
+            check_execution()
             if self.url_validator is not None:
                 self.url_validator(url)
             host, addresses = public_url(url, resolve=True)
@@ -82,7 +86,15 @@ class HttpReader:
                 raise ChannelError("timeout")
             parsed = urlsplit(url)
             connection = _PinnedHTTPS(host, addresses[0], remaining)
+            control=current_control();close_key='http:'+str(id(connection))
+            def abort(connection=connection):
+                if connection.sock:
+                    try:connection.sock.shutdown(socket.SHUT_RDWR)
+                    except OSError:pass
+                connection.close()
+            if control:control.add_closer(close_key,abort)
             try:
+                check_execution()
                 connection.request(method, (parsed.path or "/") + ("?" + parsed.query if parsed.query else ""),
                                    headers={"User-Agent": "DeepIntel/1.0", "Accept": "application/json,text/plain,text/html,*/*", "Accept-Encoding": "identity"})
                 response = connection.getresponse()
@@ -91,6 +103,7 @@ class HttpReader:
                     continue
                 data = bytearray()
                 while True:
+                    check_execution()
                     if time.monotonic() >= deadline:
                         raise ChannelError("timeout")
                     if connection.sock:
@@ -109,6 +122,7 @@ class HttpReader:
             except (OSError, http.client.HTTPException):
                 raise ChannelError("network") from None
             finally:
+                if control:control.remove_closer(close_key)
                 connection.close()
         raise ChannelError("redirect_limit")
 
@@ -116,6 +130,7 @@ class HttpReader:
 class CommandRunner:
     """Call fixed upstream tools; a configured prefix is trusted operator configuration."""
     def run(self, argv: list[str], *, timeout: float = 20, max_bytes: int = 1024 * 1024, secrets: tuple[str, ...] = ()) -> str:
+        check_execution()
         base_names = ("PATH", "PATHEXT", "SYSTEMROOT", "WINDIR", "COMSPEC", "TEMP", "TMP", "HOME", "USERPROFILE", "APPDATA", "LOCALAPPDATA", "LANG")
         env = {key: os.environ[key] for key in (*base_names, *secrets) if key in os.environ}
         env["PYTHONIOENCODING"] = "utf-8"
@@ -144,6 +159,7 @@ class CommandRunner:
         argv = [executable, *argv[1:]]
         flags = {"creationflags": subprocess.CREATE_NO_WINDOW} if os.name == "nt" else {"start_new_session": True}
         try:
+            check_execution()
             process = subprocess.Popen(argv, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                                        stdin=subprocess.DEVNULL, shell=False, env=env, **flags)
         except FileNotFoundError:
@@ -181,6 +197,7 @@ class CommandRunner:
         deadline = time.monotonic() + timeout
         try:
             while not done.wait(0.02) or process.poll() is None:
+                check_execution()
                 if overflow.is_set():
                     raise ChannelError("output_limit")
                 if time.monotonic() >= deadline:
@@ -265,6 +282,7 @@ class ExecutionBudget:
         self.deadline, self.max_calls, self.used = deadline, max_calls, 0
 
     def remaining(self):
+        check_execution()
         remaining = self.deadline - time.monotonic()
         if remaining <= 0:
             raise ChannelError("budget_exceeded")

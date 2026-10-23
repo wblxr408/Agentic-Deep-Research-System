@@ -117,7 +117,7 @@ async def _principal_from_token(raw_token: str, kind: str) -> Principal | None:
     return Principal(id=str(row["id"]), username=row["username"], auth_type=kind, credential_hash=token_hash(raw_token)) if row else None
 
 
-async def stream_principal_valid(principal: Principal, session_id: str) -> bool:
+async def stream_principal_valid(principal: Principal, session_id: str,*,execution_id=None,enforce_execution=False) -> bool:
     """Revalidate the original credential and ownership at the event boundary."""
     pool = await get_db_pool()
     async with pool.acquire() as conn:
@@ -125,8 +125,9 @@ async def stream_principal_valid(principal: Principal, session_id: str) -> bool:
             if get_settings().security.auth_enabled:
                 return False
             return bool(await conn.fetchval(
-                "SELECT EXISTS(SELECT 1 FROM research_sessions WHERE id = $1::uuid AND owner_id = $2::uuid)",
-                session_id, principal.id,
+                """SELECT EXISTS(SELECT 1 FROM research_sessions WHERE id=$1::uuid AND owner_id=$2::uuid
+                    AND ($3::boolean=FALSE OR execution_id IS NOT DISTINCT FROM $4::uuid))""",
+                session_id, principal.id,enforce_execution,execution_id,
             ))
         if principal.auth_type not in {"session", "api_token"} or not principal.credential_hash:
             return False
@@ -140,7 +141,8 @@ async def stream_principal_valid(principal: Principal, session_id: str) -> bool:
                   AND t.revoked_at IS NULL AND p.is_active = TRUE
                   AND t.session_version = p.session_version
                   AND (t.expires_at IS NULL OR t.expires_at > NOW())
-            )""", principal.credential_hash, principal.id, session_id,
+                  AND ($4::boolean=FALSE OR s.execution_id IS NOT DISTINCT FROM $5::uuid)
+            )""", principal.credential_hash, principal.id, session_id,enforce_execution,execution_id,
         ))
 
 

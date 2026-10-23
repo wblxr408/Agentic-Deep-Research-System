@@ -34,9 +34,9 @@ def public_status_from_runtime(runtime_status: str | None) -> str:
         return "running"
     if runtime_status in (
         RuntimeStatus.TERMINAL_FAILED.value,
-        RuntimeStatus.CANCELED.value,
     ):
         return "failed"
+    if runtime_status==RuntimeStatus.CANCELED.value:return 'canceled'
     if runtime_status == RuntimeStatus.COMPLETED.value:
         return "completed"
     return "running"
@@ -291,6 +291,12 @@ class RuntimePersistence:
                     state.setdefault('session',{})['checkpoint_seq']=max(int(stored['checkpoint_seq'] or 0),
                         int(state.get('session',{}).get('checkpoint_seq') or 0))
                 if actual_owner:
+                    from app.db.execution_control import receipt_budget
+                    budget_state=await receipt_budget(conn,session_id,actual_owner,budget_state)
+                    state['budget_state']=budget_state
+                    review_status['budget_state']=budget_state
+                    state.setdefault('session',{}).update(total_tokens=int(budget_state.get('used_total_tokens') or 0),
+                        total_cost_usd=float(budget_state.get('used_cost_usd') or 0))
                     from app.evidence_ingestion import reconcile_evidence_ledger
                     prior=await conn.fetchval("SELECT state_snapshot_json->'evidence_ledger' FROM session_runtime_state WHERE session_id=$1::uuid",session_id)
                     prior=json.loads(prior) if isinstance(prior,str) else prior

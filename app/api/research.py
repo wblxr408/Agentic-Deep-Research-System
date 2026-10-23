@@ -13,7 +13,7 @@ from collections.abc import AsyncGenerator
 from typing import Any
 
 import asyncpg
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, Field, field_validator, model_validator
 from app.channels.models import ChannelName
 from sse_starlette.sse import EventSourceResponse
@@ -28,6 +28,8 @@ from app.db.report_delivery import TemplateSave,load_template,save_template,temp
 from app.disclosure import projection,redact_text,report_history_projection,VERSION as DISCLOSURE_VERSION
 from app.research_quality import QualityFeedback,quality_view,compare_quality
 from app.db.research_quality import load_quality_state,load_feedback,save_feedback
+from app.execution_control import controlled_execution,current_control,check_execution,signal_cancellation
+from app.db.execution_control import cancel_execution,receipt_budget
 from app.governance import HarnessSupervisor, RuntimePersistence
 from app.governance.runtime import normalize_tool_audit_rows, public_status_from_runtime
 from app.graph.compiler import compile_research_graph
@@ -474,6 +476,13 @@ class ResearchStatus(BaseModel):
     pending_approval_count: int = 0
     budget_state: dict[str, Any] | None = None
     last_error_category: str | None = None
+    execution_id:str|None=None
+    cancellation:dict[str,Any]|None=None
+
+
+class CancellationRequest(BaseModel):
+    request_id:uuid.UUID
+    execution_id:uuid.UUID|None
 
 
 def _same_research_request(stored, current):
@@ -567,7 +576,7 @@ class ApprovalActionRequest(BaseModel):
 
 async def research_event_generator(
     session_id: str,
-    *, authorize=None,
+    *, authorize=None,execution_id=None,enforce_execution=False,last_event_id=None,
 ) -> AsyncGenerator[dict[str, Any], None]:
     """
     SSE event generator for research progress.
@@ -577,7 +586,9 @@ async def research_event_generator(
 
     try:
         # Stream events from the queue
-        async for event in sse.stream(session_id, authorize=authorize):
+        options={'authorize':authorize,'last_event_id':last_event_id}
+        if enforce_execution:options['execution_id']=execution_id
+        async for event in sse.stream(session_id,**options):
             yield event
     except asyncio.CancelledError:
         logger.info(f"SSE stream cancelled for session {session_id}")
@@ -595,7 +606,7 @@ async def _owned_session_exists(session_id: str, owner_id: str) -> bool:
 
 
 @router.get("/stream/{session_id}")
-async def stream_research(session_id: str, principal: Principal = principal_dependency):
+async def stream_research(session_id: str, request: Request, principal: Principal = principal_dependency):
     """
     SSE endpoint for real-time research progress streaming.
 
@@ -613,11 +624,16 @@ async def stream_research(session_id: str, principal: Principal = principal_depe
     - done: Task completion
     - workflow_error: Workflow/business error occurred
     """
-    if not await _owned_session_exists(session_id, principal.id):
-        raise HTTPException(status_code=404, detail="Session not found")
+    pool=await get_db_pool()
+    async with pool.acquire() as conn:
+        binding=await conn.fetchrow('SELECT execution_id FROM research_sessions WHERE id=$1::uuid AND owner_id=$2::uuid',session_id,principal.id)
+    if binding is None:raise HTTPException(status_code=404,detail='Session not found')
+    execution_id=str(binding['execution_id']) if binding['execution_id'] else None
     from app.security.auth import stream_principal_valid
     return EventSourceResponse(
-        research_event_generator(session_id, authorize=lambda: stream_principal_valid(principal, session_id)),
+        research_event_generator(session_id,execution_id=execution_id,enforce_execution=True,
+            last_event_id=request.headers.get('last-event-id'),
+            authorize=lambda: stream_principal_valid(principal, session_id,execution_id=execution_id,enforce_execution=True)),
         media_type="text/event-stream",
     )
 
@@ -893,7 +909,7 @@ async def get_research_status(session_id: str, principal: Principal = principal_
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
             """
-            SELECT rs.id, rs.user_query, rs.status, rs.review_status, rs.created_at, rs.updated_at, rs.completed_at,
+            SELECT rs.id, rs.execution_id, rs.user_query, rs.status, rs.review_status, rs.created_at, rs.updated_at, rs.completed_at,
                    sbs.max_total_tokens, sbs.max_cost_usd, sbs.max_tool_calls, sbs.max_wall_clock_seconds,
                    sbs.used_total_tokens, sbs.used_cost_usd, sbs.used_tool_calls,
                    sbs.elapsed_wall_clock_seconds, sbs.hard_stop_reason
@@ -912,6 +928,7 @@ async def get_research_status(session_id: str, principal: Principal = principal_
     budget_state = review_status.get("budget_state")
     if row.get("max_tool_calls") is not None:
         budget_state = {
+            **(budget_state or {}),
             "max_total_tokens": int(row.get("max_total_tokens") or 0),
             "max_cost_usd": float(row.get("max_cost_usd") or 0.0),
             "max_tool_calls": int(row.get("max_tool_calls") or 0),
@@ -925,6 +942,8 @@ async def get_research_status(session_id: str, principal: Principal = principal_
     pending_approval_count = int(review_status.get("pending_approval_count", 0) or 0)
     return ResearchStatus(
         session_id=str(row["id"]),
+        execution_id=str(row['execution_id']) if row['execution_id'] else None,
+        cancellation=projection(review_status.get('cancellation')),
         status=row["status"],
         created_at=row["created_at"].isoformat(),
         updated_at=row["updated_at"].isoformat() if row["updated_at"] else None,
@@ -1293,6 +1312,19 @@ async def retained_quality(session_id:uuid.UUID,principal:Principal=principal_de
     except ValueError as error:raise HTTPException(404 if str(error)=='quality_task_not_found' else 409,str(error)) from error
 
 
+@router.post('/{session_id}/cancel')
+async def cancel_research(session_id:uuid.UUID,payload:CancellationRequest,principal:Principal=principal_dependency):
+    pool=await get_db_pool()
+    try:
+        async with pool.acquire() as conn,conn.transaction():
+            result=await cancel_execution(conn,session_id,_principal_id(principal),payload)
+    except ValueError as error:raise HTTPException(404 if str(error)=='cancel_task_not_found' else 409,str(error)) from error
+    signal_cancellation(session_id,result['execution_id'])
+    if not result.get('replayed') and result.get('transitioned'):
+        await get_sse_manager().publish(str(session_id),'done',{**result,'runtime_status':'canceled'})
+    return result
+
+
 @router.post('/{session_id}/feedback')
 async def retain_quality_feedback(session_id:uuid.UUID,payload:QualityFeedback,principal:Principal=principal_dependency):
     pool=await get_db_pool()
@@ -1349,6 +1381,8 @@ async def get_research_result(session_id: str, principal: Principal = principal_
         audit=review_status.get('final_report_audit')) if row['status'] == 'completed' and row['final_report'] else None
     result = {
         "session_id": str(row["id"]),
+        'execution_id':str(row['execution_id']) if row['execution_id'] else None,
+        'cancellation':review_status.get('cancellation'),
         "query": row["user_query"],
         "status": row["status"],
         'classification_versions': review_status.get('classification_versions', []),
@@ -1697,6 +1731,7 @@ async def resume_research_analysis(session_id: str, background_tasks: Background
         resume_at='analysis_resume')
     return {'session_id':session_id,'execution_id':execution_id,'status':'running','resumed':True}
 
+@controlled_execution
 async def run_research_workflow(
     session_id: str,
     query: str,
@@ -1833,6 +1868,7 @@ async def run_research_workflow(
         last_chunk = accumulated_state
         checkpoint_seq = int(state["session"].get("checkpoint_seq", 0))
         async for mode, chunk in graph.astream(graph_input, config, stream_mode=["updates", "values"]):
+            check_execution()
             if isinstance(chunk, dict):
                 if mode == "updates":
                     for update in _iter_state_updates(chunk):
@@ -1891,6 +1927,7 @@ async def run_research_workflow(
 
         # Full values snapshots preserve initial context and reducer semantics.
         final_state: dict[str, Any] = accumulated_state if accumulated_state else last_chunk
+        check_execution()
 
         # Save results to database
         if final_state:
@@ -1945,6 +1982,11 @@ async def run_research_workflow(
                     if (not binding or binding['status']=='canceled'
                             or (execution_id and str(binding['execution_id'])!=str(execution_id))
                             or (owner_id and str(binding['owner_id'])!=str(owner_id))):return
+                    session_budget_state=await receipt_budget(conn,session_id,owner_id,session_budget_state)
+                    final_state['budget_state']=session_budget_state
+                    review_status['budget_state']=session_budget_state
+                    final_state.setdefault('session',{}).update(total_tokens=int(session_budget_state.get('used_total_tokens') or 0),
+                        total_cost_usd=float(session_budget_state.get('used_cost_usd') or 0))
                     if binding['owner_id']:
                         from app.evidence_ingestion import reconcile_evidence_ledger
                         from app.db.report_delivery import retain_report_version
@@ -2148,41 +2190,37 @@ async def run_research_workflow(
                 )
                 harness.clear_active_if_idle()
 
-        # Fence terminal events too: an older worker cannot close a resumed stream.
-        pool = await get_db_pool()
-        async with pool.acquire() as conn, conn.transaction():
-            if execution_id and not await conn.fetchval(
-                "SELECT id FROM research_sessions WHERE id = $1::uuid AND execution_id = $2::uuid FOR UPDATE",
-                session_id, execution_id,
-            ):
-                return
-            await sse.publish(session_id, "done", {
-                "session_id": session_id,
-                "status": final_state.get("status", "completed"),
-                "timestamp": utc_now_naive().isoformat(),
-            })
+        # SSE holds its own owner/execution share lock through enqueue. Do not
+        # hold a separate update lock while waiting on that publication gate.
+        await sse.publish(session_id, "done", {
+            "session_id": session_id,"status":final_state.get('status','completed'),
+            "timestamp":utc_now_naive().isoformat()})
 
         logger.info(f"Research workflow completed: {session_id}")
 
     except Exception as exc:
+        control=current_control()
+        if control and control.reason in {'execution_canceled','execution_superseded'}:
+            logger.info('Research execution stopped: %s',control.reason)
+            return
         logger.exception("Research workflow error for %s", session_id)
 
         try:
             pool = await get_db_pool()
             async with pool.acquire() as conn, conn.transaction():
                 if execution_id and not await conn.fetchval(
-                    "SELECT id FROM research_sessions WHERE id = $1::uuid AND execution_id = $2::uuid FOR UPDATE",
+                    "SELECT id FROM research_sessions WHERE id = $1::uuid AND execution_id = $2::uuid AND status!='canceled' FOR UPDATE",
                     session_id, execution_id,
                 ):
                     return
                 await conn.execute(
-                    "UPDATE research_sessions SET status = 'failed', updated_at = $1 WHERE id = $2::uuid",
-                    utc_now_naive(), session_id,
+                    """UPDATE research_sessions SET status='failed',updated_at=$1,
+                    review_status=jsonb_set(COALESCE(review_status,'{}'::jsonb),'{last_error_category}',to_jsonb($3::text))
+                    WHERE id=$2::uuid AND status!='canceled'""",
+                    utc_now_naive(), session_id,control.reason if control and control.reason else 'workflow_error',
                 )
-                await sse.publish(session_id, "workflow_error", {
-                    "session_id": session_id, "error": str(exc),
-                    "timestamp": utc_now_naive().isoformat(),
-                })
+            await sse.publish(session_id, "workflow_error", {
+                "session_id":session_id,"error":str(exc),"timestamp":utc_now_naive().isoformat()})
             harness.upsert_task(
                 session_id=session_id,
                 public_status="failed",

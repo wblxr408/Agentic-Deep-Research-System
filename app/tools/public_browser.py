@@ -8,6 +8,7 @@ import threading
 
 from app.channels.execution import HttpReader, public_url,ExecutionBudget
 from app.channels.models import ChannelError
+from app.execution_control import current_control,check_execution
 
 
 class PublicBrowserGateway:
@@ -24,13 +25,17 @@ class PublicBrowserGateway:
         self.primary_response=None
         self.cache_controls=[]
         self._deny_socket = None
+        self._control=current_control()
+        self._close_key='browser:'+str(id(self))
 
     def close(self):
+        if self._control:self._control.remove_closer(self._close_key)
         if self._deny_socket is not None:
             self._deny_socket.close()
             self._deny_socket = None
 
     async def _read(self, url, method="GET"):
+        check_execution()
         public_url(url)
         async with self._slots:
             async with self._lock:
@@ -56,14 +61,16 @@ class PublicBrowserGateway:
 
     async def route(self, route):
         try:
+            check_execution()
             request = route.request
             if request.method not in {"GET", "HEAD"}:
                 raise ChannelError("read_only")
             response = self._prepared.pop(request.url, None) if request.method == "GET" else None
             if response is None:
                 response = await self._read(request.url, request.method)
+            check_execution()
             await route.fulfill(status=response.status, headers=response.headers, body=response.body)
-        except (ChannelError, OSError, ValueError):
+        except (ChannelError, OSError, ValueError, RuntimeError):
             await route.abort("blockedbyclient")
 
     async def new_context(self, browser):
@@ -82,6 +89,12 @@ class PublicBrowserGateway:
                 proxy={"server": f"http://127.0.0.1:{port}", "bypass": "<-loopback>"},
             )
             await context.route("**/*", self.route)
+            if self._control:
+                loop=asyncio.get_running_loop()
+                def stop_context():
+                    if not loop.is_closed():
+                        asyncio.run_coroutine_threadsafe(context.close(),loop).result(timeout=3)
+                self._control.add_closer(self._close_key,stop_context)
             if hasattr(context, "route_web_socket"):
                 await context.route_web_socket("**/*", lambda websocket: websocket.close())
             return context

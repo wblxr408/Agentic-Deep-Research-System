@@ -212,8 +212,13 @@ def _build_budget_state(state: ResearchState) -> dict[str, Any]:
     legacy_tokens = int(existing_budget.get('legacy_unattributed_tokens',max(0,int(existing_budget.get('used_total_tokens') or 0)-model_tokens)))
     used_total_tokens = sum(int(call.get("tokens_used") or 0) for call in tool_calls) + model_tokens + legacy_tokens
     used_cost_usd = round(sum(float(call.get("cost_usd") or 0.0) for call in tool_calls) + sum(float(row.get('cost_usd') or 0) for row in model_usage), 6)
-    used_tool_calls = sum(max(1, sum(int(a.get("call_count", 0)) for a in (call.get("safety_json") or {}).get("channel_attempts", []))) for call in tool_calls)
-    used_tool_calls = max(used_tool_calls, int(existing_budget.get("used_tool_calls") or 0))
+    raw_tool_counts={call['call_id']:max(1,sum(int(a.get('call_count',0)) for a in (call.get('safety_json') or {}).get('channel_attempts',[])))
+        for call in tool_calls if call.get('call_id')}
+    previous_tool_counts=dict(existing_budget.get('tool_call_counts') or raw_tool_counts)
+    tool_call_counts=dict(previous_tool_counts)
+    for key,count in raw_tool_counts.items():tool_call_counts[key]=max(tool_call_counts.get(key,0),count)
+    legacy_tool_calls=max(0,int(existing_budget.get('used_tool_calls') or 0)-sum(previous_tool_counts.values()))
+    used_tool_calls=legacy_tool_calls+sum(tool_call_counts.values())
     if existing_budget.get("used_total_tokens"):
         used_total_tokens = max(used_total_tokens, int(existing_budget.get("used_total_tokens") or 0))
     if existing_budget.get("used_cost_usd"):
@@ -266,9 +271,12 @@ def _build_budget_state(state: ResearchState) -> dict[str, Any]:
         'legacy_unattributed_tokens':legacy_tokens,
         'audit_token_reserve':min(12000,int(configured['max_total_tokens'])//5),
         'report_token_reserve':min(12000,int(configured['max_total_tokens'])//5),
-        'token_usage_estimated':legacy_tokens > 0 or any(row.get('estimated') for row in model_usage),
+        'token_usage_estimated':bool(existing_budget.get('token_usage_estimated')) or legacy_tokens > 0
+            or any(row.get('estimated') for row in model_usage)
+            or any(row.get('estimated') or row.get('status')=='inflight' for row in existing_budget.get('model_requests') or []),
         "used_cost_usd": used_cost_usd,
         "used_tool_calls": used_tool_calls,
+        'tool_call_counts':tool_call_counts,
         "elapsed_wall_clock_seconds": elapsed_wall_clock_seconds,
         "hard_stop_reason": hard_stop_reason,
         "warning": warning,
@@ -363,6 +371,7 @@ def _stage_model_budget(state: ResearchState, stage: str) -> ModelTokenBudget:
     meter.upgrade_history=list(root.get('capability_upgrades') or [])
     from app.data_governance import effective_context
     meter.data_governance=effective_context(state)
+    meter.stage=stage
     return meter
 
 
@@ -377,7 +386,7 @@ def _model_budget_pause(state, agent, stage, error, *, report=None, citations=No
     session,budget = _apply_llm_usage_to_state(state,stage,_agent_model_usage(agent))
     budget['model_stop_reason'] = error.reason
     budget_stop=error.reason in {'token_budget_exhausted','model_time_reservation_exhausted',
-        'provider_usage_exceeded_reservation','final_audit_budget_exhausted'}
+        'provider_usage_exceeded_reservation','final_audit_budget_exhausted','root_model_admission_denied'}
     if budget_stop:budget['hard_stop_reason'] = budget.get('hard_stop_reason') or error.reason
     session.update(status='paused',updated_at=utc_now_naive().isoformat())
     recoverable=stage=='analyst' and error.reason in {'analysis_output_incomplete','analysis_provider_unavailable','model_output_limit'}
@@ -1000,7 +1009,10 @@ def dag_executor_node(state: ResearchState) -> dict:
             if next_retry_at is not None:
                 delay_seconds = max(0.0, min((next_retry_at - utc_now_naive()).total_seconds(), 5.0))
                 if delay_seconds > 0:
-                    time.sleep(delay_seconds)
+                    from app.execution_control import current_control
+                    control=current_control()
+                    if control:control.event.wait(delay_seconds);control.check()
+                    else:time.sleep(delay_seconds)
         emit_event(state, EventType.AGENT_COMPLETE, "dag_executor", "本轮暂无可执行取证步骤；等待或跳过原因分别记录。")
         trace = list(scheduling_trace)
         if deferred_retries:
@@ -2617,13 +2629,14 @@ async def report_node(state: ResearchState) -> dict:
             query=state['user_query'],report=report,citations=[item.model_dump() for item in citations],
             understanding=state.get('query_understanding'),organization_result=organization_result,audit=agent.last_audit)
         policy=((state.get('query_understanding') or {}).get('delivery') or {}).get('drawing_policy') or {}
-        drawing_client,drawing_model=agent.client,agent.model
+        from app.llm_budget import budgeted_client
+        drawing_client,drawing_model=budgeted_client(agent.client,agent.request_budget,'render'),agent.model
         if state.get('model_routing'):
             from app.model_routing import routed_binding,data_bound_snapshot
             from app.llm_budget import budgeted_client
             try:
                 raw,drawing_model,_=routed_binding('render',data_bound_snapshot(state['model_routing'],agent.request_budget.data_governance))
-                drawing_client=budgeted_client(raw,agent.request_budget,'report')
+                drawing_client=budgeted_client(raw,agent.request_budget,'render')
             except TokenBudgetExceeded as error:
                 paused=_model_budget_pause(state,agent,'report',error,report=report,citations=citations)
                 paused['organization_result']=organization_result

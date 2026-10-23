@@ -91,6 +91,7 @@ class TaskStatus(str, Enum):
     COMPLETED = "completed"   # 成功完成
     FAILED = "failed"         # 失败
     PAUSED = "paused"        # 暂停（等待人工介入）
+    CANCELED = "canceled"
 
 
 class RuntimeStatus(str, Enum):
@@ -293,7 +294,7 @@ class ToolCallRecord(BaseModel):
     对应主题 3：追踪每个 Agent 的每个工具调用，
     实现完整的工具调用审计。
     """
-    call_id: str = Field(default_factory=lambda: f"call-{uuid.uuid4().hex[:8]}")
+    call_id: str = Field(default_factory=lambda: f"call-{uuid.uuid4().hex}")
     # 调用者
     agent_type: AgentType
     # 工具名称

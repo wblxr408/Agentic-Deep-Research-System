@@ -47,6 +47,8 @@ class McpPolicyProxy:
         self.executor = executor
 
     async def invoke(self, request: McpToolRequest) -> McpToolResult:
+        from app.execution_control import check_execution
+        check_execution()
         pool = await get_db_pool()
         async with pool.acquire() as conn:
             registry = await conn.fetchrow(
@@ -167,7 +169,9 @@ class McpPolicyProxy:
                 server_fingerprint=registry["fingerprint"],
             )
 
+        check_execution()
         payload = await self.executor(request)
+        check_execution()
         output_schema = self._tool_output_schema(secret_policy, request.tool_name)
         output_schema_error = self._validate_schema(
             self._structured_output(payload),

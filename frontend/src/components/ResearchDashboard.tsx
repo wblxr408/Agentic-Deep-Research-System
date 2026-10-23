@@ -31,15 +31,17 @@ import type { QueryDraft, UnderstandingSnapshot } from './QueryUnderstandingPane
 import ResearchPlanSummary from './ResearchPlanSummary'
 import ResearchConfigurationEditor from './ResearchConfigurationEditor'
 import ResearchQuality from './ResearchQuality'
+import ResearchCancellation from './ResearchCancellation'
 import type { PlanSummaryProps } from './ResearchPlanSummary'
 import type { DeliveryView } from './ReportDeliveryView'
 
 interface ResearchResult {
+  execution_id?:string|null
   report_audit?: {needs_review?:boolean;audit_incomplete?:boolean;total_claims?:number;supported_claims?:number;
     revision_requests?:Array<{claim_id:string;text:string;reason:string;requested_action:string}>}|null
   analysis_recovery_available?: boolean
   analysis_progress?: {phase: string|null;status:string;completed_steps:number}|null
-  budget_state?: {used_total_tokens?:number;max_total_tokens?:number;cost_status?:string;token_usage_estimated?:boolean;hard_stop_reason?:string|null;model_stop_reason?:string|null} | null
+  budget_state?: {used_total_tokens?:number;max_total_tokens?:number;cost_status?:string;token_usage_estimated?:boolean;hard_stop_reason?:string|null;model_stop_reason?:string|null;inflight_model_requests?:number} | null
   report_editorial?: { note?: string } | null
   delivery_view?: DeliveryView | null
   plan_manifest?: PlanSummaryProps['plan']
@@ -128,6 +130,8 @@ function ResearchDashboard({ onBack }: ResearchDashboardProps) {
   const requestKeyRef = useRef(requestDraftKey)
   requestKeyRef.current = requestDraftKey
   const inputRef = useRef<HTMLInputElement>(null)
+  const handledTerminal=useRef<SSEvent|null>(null)
+  const handledGap=useRef<SSEvent|null>(null)
 
   // SSE for real-time updates
   const { events, status: sseStatus, error: sseError, clearEvents } = useSSE(activeSessionId, streamRunKey)
@@ -262,11 +266,18 @@ function ResearchDashboard({ onBack }: ResearchDashboardProps) {
 
   useEffect(() => {
     const doneEvent = events.find((e: SSEvent) => e.type === 'done' || e.type === 'workflow_error')
-    if (doneEvent) {
+    if (doneEvent&&handledTerminal.current!==doneEvent) {
+      handledTerminal.current=doneEvent
       setIsStreaming(false)
-      setSessionStatus(doneEvent.type === 'done' ? 'completed' : 'failed')
+      setSessionStatus(doneEvent.type === 'done' ? String(doneEvent.data.status||'completed') : 'failed')
+      void refetchResult()
     }
-  }, [events])
+  }, [events,refetchResult])
+
+  useEffect(()=>{
+    const gap=[...events].reverse().find(event=>event.data.delivery_gap===true)
+    if(gap&&handledGap.current!==gap){handledGap.current=gap;void refetchResult()}
+  },[events,refetchResult])
 
   useEffect(() => {
     if (sseStatus === 'error') {
@@ -278,7 +289,7 @@ function ResearchDashboard({ onBack }: ResearchDashboardProps) {
     if (result?.status) {
       if (!query) setQuery(result.query)
       setSessionStatus(result.status)
-      if (['completed', 'failed', 'paused', 'pending_confirmation'].includes(result.status)) {
+      if (['completed', 'failed', 'paused', 'canceled', 'pending_confirmation'].includes(result.status)) {
         setIsStreaming(false)
       }
     }
@@ -383,16 +394,18 @@ function ResearchDashboard({ onBack }: ResearchDashboardProps) {
   const canRefetchResult = Boolean(activeSessionId)
   const workflowErrorEvent = [...events].reverse().find((event: SSEvent) => event.type === 'workflow_error')
   const isFailed = sessionStatus === 'failed'
+  const isCanceled=sessionStatus==='canceled'
+  const stoppedLabel=isCanceled?'已取消':sessionStatus==='paused'?'已暂停':sessionStatus==='pending'?'待执行':isFailed?'失败':sessionStatus==='completed'?'已完成':'等待状态'
   const emptyReportTitle = isConnectingStream
     ? '正在建立研究流连接...'
-    : isFailed
+    : isCanceled?'研究已取消':isFailed
       ? '研究执行失败'
       : sseError
       ? '实时流已中断'
       : '报告暂未生成'
   const emptyReportDescription = isConnectingStream
     ? '任务已提交，正在等待首个 Agent 事件和报告片段。'
-    : isFailed
+    : isCanceled?'已保留取得的资料和用量。本次任务未生成完成报告。':isFailed
       ? String(workflowErrorEvent?.data.error || workflowErrorEvent?.data.message || '任务执行过程中发生错误。')
       : sseError
       ? '实时事件连接失败，但仍可继续读取已落库的研究结果。'
@@ -639,7 +652,7 @@ function ResearchDashboard({ onBack }: ResearchDashboardProps) {
             <div className="flex items-center gap-1.5">
               <div className={`status-dot ${isStreaming ? 'streaming' : 'online'}`} />
               <span className="text-xs text-xmgray-500">
-                {isStreaming ? currentNode || '执行中' : isFailed ? '失败' : '已完成'}
+                {isStreaming ? currentNode || '执行中' : stoppedLabel}
               </span>
             </div>
             <div className="h-4 w-px bg-xmgray-200" />
@@ -658,7 +671,7 @@ function ResearchDashboard({ onBack }: ResearchDashboardProps) {
             <h3 className="text-sm font-medium text-xmgray-700">本次研究计划</h3>
             <ol className="mt-3 max-h-72 space-y-3 overflow-y-auto text-xs text-xmgray-600">{result.execution_plan.nodes.map(node => <li key={node.node_id}>
               <span className="font-medium">{({ search: '搜索取证', browser: '网页取证', analyst: '综合分析', report: '报告', reflection: '核验', rag: '内部资料', mcp: '扩展工具' } as Record<string, string>)[node.node_type] || node.node_type}</span>
-              <span className="ml-2">{({ done: '已完成', failed: '失败', skipped: '已跳过', pending: '待执行', running: '执行中' } as Record<string, string>)[node.status] || node.status}</span>
+              <span className="ml-2">{isCanceled&&['pending','running'].includes(node.status)?'任务已取消':({ done: '已完成', failed: '失败', skipped: '已跳过', pending: '待执行', running: '执行中' } as Record<string, string>)[node.status] || node.status}</span>
               <p className="mt-1 break-words">{node.query}</p>
             </li>)}</ol>
           </section> : null}
@@ -676,7 +689,7 @@ function ResearchDashboard({ onBack }: ResearchDashboardProps) {
               <span className="tag text-[11px]">
                 {isStreaming
                   ? <><span className="status-dot streaming mr-1" />运行中</>
-                  : isFailed ? '失败' : '已完成'}
+                  : stoppedLabel}
               </span>
             </div>
             <div className="p-4 h-[420px] overflow-y-auto">
@@ -706,8 +719,11 @@ function ResearchDashboard({ onBack }: ResearchDashboardProps) {
         {/* Right: Report panel */}
         <div className="lg:col-span-8 space-y-4">
           {result && <UnderstandingSummary value={result.query_understanding} />}
+          {result&&result.execution_id!==undefined&&<ResearchCancellation key={`cancel-${result.session_id}-${result.execution_id}`}
+            sessionId={result.session_id} executionId={result.execution_id} status={result.status}
+            inflight={result.budget_state?.inflight_model_requests} onRefresh={async()=>{const refreshed=await refetchResult();if(refreshed.error)throw refreshed.error}}/>}
           {result && <ResearchPlanSummary status={result.status} plan={result.plan_manifest} dag={result.execution_plan} history={result.plan_history} control={result.iteration_control} />}
-          {result&&['completed','paused','failed'].includes(result.status)&&<ResearchConfigurationEditor key={`configure-${result.session_id}`}
+          {result&&['completed','paused','failed','canceled'].includes(result.status)&&<ResearchConfigurationEditor key={`configure-${result.session_id}`}
             query={typeof result.restart_parameters?.query==='string'?result.restart_parameters.query:result.query} parameters={result.restart_parameters} onStarted={handleRestartedResearch}/>}
           {result?.organization_research && <section className="card p-5 text-sm text-xmgray-700" aria-label="本次组织研究范围">
             <h3 className="font-medium">本次组织研究范围</h3>
@@ -726,7 +742,7 @@ function ResearchDashboard({ onBack }: ResearchDashboardProps) {
           {/* Report */}
           {result?.status === 'completed' && result.organization_research && <ClassificationPanel key={`classification-${result.session_id}`} sessionId={result.session_id} />}
           {activeSessionId && <IngestionPanel key={`ingestion-${activeSessionId}`} sessionId={activeSessionId} />}
-          {result&&['completed','paused','failed'].includes(result.status)&&<ResearchQuality key={`quality-${result.session_id}`} sessionId={result.session_id}/>}
+          {result&&['completed','paused','failed','canceled'].includes(result.status)&&<ResearchQuality key={`quality-${result.session_id}`} sessionId={result.session_id}/>}
           <div className="card p-0 overflow-hidden">
             <div className="px-5 py-4 flex items-center justify-between border-b border-xmgray-100">
               <div className="flex items-center gap-2">
@@ -756,7 +772,7 @@ function ResearchDashboard({ onBack }: ResearchDashboardProps) {
             <div className="p-6 min-h-[500px] max-h-[680px] overflow-y-auto">
               {activeSessionId&&<ReportHistory key={activeSessionId} sessionId={activeSessionId}/>}
               {analysisProgress && <section data-app-only aria-label="研究分析进度" className="mb-4 rounded-lg border border-xmgray-200 p-3 text-sm">
-                <p>{analysisProgress.status==='completed'?'分阶段分析已完成':analysisProgress.status==='paused'?'分析已暂停':`当前分析：${analysisPhase}${progressParts[2]==='conditions'?' · 实验条件补读':''}${analysisBatch?` · 第${analysisBatch}组`:''}`}</p>
+                <p>{isCanceled?'研究已取消，保留最后分析进度':analysisProgress.status==='completed'?'分阶段分析已完成':analysisProgress.status==='paused'?'分析已暂停':`当前分析：${analysisPhase}${progressParts[2]==='conditions'?' · 实验条件补读':''}${analysisBatch?` · 第${analysisBatch}组`:''}`}</p>
                 <p className="text-xs text-xmgray-500">已保留 {analysisProgress.completed_steps} 个分析步骤。阶段结果和用量随研究保存。</p>
                 {result?.analysis_recovery_available && <button type="button" className="mt-2 text-xmorange"
                   disabled={resumeAnalysis.isPending || isStreaming} onClick={()=>resumeAnalysis.mutate()}>

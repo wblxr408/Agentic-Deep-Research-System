@@ -144,3 +144,21 @@ The system SHALL organize literal retained excerpts by the current question and 
 - **THEN** 已知参考费用只作为小计，完整金额保持未知
 - **AND** 性能分位数带实际样本数量及缺失量，不宣称总体SLA或虚构节省比例
 
+### Requirement: Cancellation stops new work and preserves dispatched usage
+系统 SHALL 由本人携带当前execution_id及幂等request_id取消未完成任务，保留canceled独立终态。模型和工具准入 SHALL 与取消复用原任务事务锁，计入当前已用及在途份额；取消后MUST NOT恢复额度、旧审批或接受迟到正文。
+
+#### Scenario: Cancel races a model or tool dispatch
+- **WHEN** 本人取消与供应商／工具准入并发
+- **THEN** 事务确定是否已准入，未准入不派发，已准入保持实际或未知计量及原期限
+- **AND** 迟到结算只合并原归属收据，不把当前取消／新执行改成完成或失败，不回灌证据
+
+#### Scenario: A stale page or a retried command attempts cancellation
+- **WHEN** execution_id已变化，或同request_id重放／异参复用
+- **THEN** 旧执行命令和异参拒绝，相同命令只产生一个业务结果
+- **AND** 用户可查看已取消状态、未结算收据及原配置，复制新任务重新预览当前许可
+
+#### Scenario: Several readers reconnect across an execution change
+- **WHEN** 多个页面订阅同任务，或携带保留窗口外的事件ID重连
+- **THEN** 各订阅独立有界接收，发事件前复核原凭据与执行；旧执行不能关闭新连接
+- **AND** 保留窗口缺口明确回到持久化结果，不能把流式事件当永久完整研究成果
+

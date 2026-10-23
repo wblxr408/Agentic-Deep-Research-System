@@ -59,16 +59,21 @@ def tool_payload(state, dag, node):
 
 
 async def current_execution(binding):
+    from app.config import get_settings
+    local=not get_settings().security.auth_enabled and binding['owner_id']=='00000000-0000-0000-0000-000000000000'
     pool = await get_db_pool()
     async with pool.acquire() as connection:
         return bool(await connection.fetchval('''SELECT EXISTS(SELECT 1 FROM research_sessions s
-            JOIN auth_principals p ON p.id=s.owner_id AND p.is_active=TRUE
-            WHERE s.id=$1::uuid AND s.owner_id=$2::uuid AND s.execution_id=$3::uuid AND s.status='running')''',
-            binding['task_id'], binding['owner_id'], binding['execution_id']))
+            LEFT JOIN auth_principals p ON p.id=s.owner_id
+            WHERE s.id=$1::uuid AND s.owner_id=$2::uuid AND s.execution_id=$3::uuid AND s.status='running'
+                AND (p.is_active=TRUE OR $4::boolean))''',
+            binding['task_id'], binding['owner_id'], binding['execution_id'],local))
 
 
 def bound_tool_node(function):
     async def execute(state):
+        from app.execution_control import current_control
+        control=current_control()
         binding = deepcopy(state.get('tool_handoff') or {})
         if not binding.get('operation_id'):
             raise PlanningError('trusted_tool_handoff_required')
@@ -81,6 +86,10 @@ def bound_tool_node(function):
             error = 'execution_no_longer_current'
         if not error and binding['call_allowance'] <= 0:
             error = 'tool_budget_not_reserved'
+        admitted=False
+        if not error and control:
+            admitted=await control.tool_receipt(binding,admission=True)
+            if not admitted:error='tool_operation_already_started_or_budget_unavailable'
         if not error:
             try:
                 started = True
@@ -89,11 +98,17 @@ def bound_tool_node(function):
                 payload = await asyncio.wait_for(work, timeout=seconds)
             except TimeoutError:
                 error = 'tool_result_timeout_unknown'
+            except asyncio.CancelledError:
+                if admitted:
+                    await asyncio.shield(control.tool_receipt(binding,payload,'tool_execution_interrupted_unknown'))
+                raise
             except (OSError, RuntimeError, TypeError, ValueError, KeyError) as exc:
                 error = 'tool_result_unknown:' + type(exc).__name__
             error = error or result_binding_error(binding, binding, state.get('plan_manifest') or {})
             if not error and not await current_execution(binding):
                 error = 'execution_no_longer_current'
+        if admitted:
+            await control.tool_receipt(binding,payload,error)
         # Rejected raw data never enters the root evidence/model context. A timed
         # out thread cannot be forcibly killed; its existing transport deadlines
         # remain active, and its reserved calls are conservatively consumed.

@@ -100,13 +100,18 @@ Return JSON with a "queries" array of strings."""
         Uses DuckDuckGo HTML search for real web results, with the Instant
         Answer API only as a supplemental fallback.
         """
+        from app.execution_control import check_execution
+        check_execution()
         html_results = self._execute_duckduckgo_html_search(query)
+        check_execution()
         if html_results:
             return html_results
         return self._execute_duckduckgo_instant_answer(query)
 
     def _execute_duckduckgo_html_search(self, query: str) -> list[SearchResult]:
         """Fetch and parse DuckDuckGo's HTML results page."""
+        from app.execution_control import check_execution
+        check_execution()
         try:
             import requests
 
@@ -120,6 +125,7 @@ Return JSON with a "queries" array of strings."""
                 "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
             }
             response = requests.get(url, params=params, headers=headers, timeout=10)
+            check_execution()
             if response.status_code != 200:
                 logger.warning("DuckDuckGo HTML search returned status %s", response.status_code)
                 return []
@@ -127,11 +133,14 @@ Return JSON with a "queries" array of strings."""
             return self._parse_duckduckgo_html(response.text, query)
 
         except (OSError, RuntimeError, TypeError, ValueError, KeyError, AttributeError) as e:
+            check_execution()
             logger.warning(f"DuckDuckGo HTML search failed for '{query}': {e}")
             return []
 
     def _execute_duckduckgo_instant_answer(self, query: str) -> list[SearchResult]:
         """Fallback to DuckDuckGo Instant Answer API."""
+        from app.execution_control import check_execution
+        check_execution()
         try:
             import requests
 
@@ -143,6 +152,7 @@ Return JSON with a "queries" array of strings."""
                 "skip_disambig": "1",
             }
             response = requests.get(url, params=params, timeout=10)
+            check_execution()
             if response.status_code != 200:
                 return []
 
@@ -171,6 +181,7 @@ Return JSON with a "queries" array of strings."""
             return results
 
         except (OSError, RuntimeError, TypeError, ValueError, KeyError) as e:
+            check_execution()
             logger.warning(f"DuckDuckGo instant answer failed for '{query}': {e}")
             return []
 

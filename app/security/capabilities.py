@@ -69,10 +69,13 @@ class CapabilityRegistry:
 
     async def run(self, capability: str, operation: Callable[[], Awaitable[Any]]) -> Any:
         """Run an optional operation once; suppress retry storms during cooldown."""
+        from app.execution_control import check_execution
+        check_execution()
         if not self.can_attempt(capability):
             raise CapabilityUnavailable(self.status(capability))
         lock = self._locks.setdefault(capability, asyncio.Lock())
         async with lock:
+            check_execution()
             if not self.can_attempt(capability):
                 raise CapabilityUnavailable(self.status(capability))
             status = self.status(capability)
@@ -80,8 +83,11 @@ class CapabilityRegistry:
             try:
                 result = await operation()
             except Exception as exc:
+                from app.llm_budget import TokenBudgetExceeded
+                if isinstance(exc,TokenBudgetExceeded) and exc.reason.startswith('execution_'):raise
                 raise CapabilityUnavailable(self.mark_failure(capability, exc)) from exc
             self.mark_healthy(capability)
+            check_execution()
             return result
 
 

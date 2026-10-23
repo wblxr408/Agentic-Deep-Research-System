@@ -22,7 +22,7 @@ export default function ResearchPlanSummary({plan,dag,history,control,status}:Pl
     <ol className="space-y-2">{(plan?.steps||dag?.nodes?.map(node=>({node_id:node.node_id,purpose:node.node_id,query:'',depends_on:[],condition:'always',parallel:false}))||[]).map(step=>{
       const current=live.get(step.node_id)
       const rootStage='node_type' in step&&step.node_type==='analyst'
-      return <li key={step.node_id} className="rounded border border-xmgray-100 p-2"><p>{step.purpose} · {rootStage?(status==='completed'?'根流程已交付报告':'由根流程在取证后执行'):current?labels[current.status]||current.status:'未取得实时状态'}</p>
+      return <li key={step.node_id} className="rounded border border-xmgray-100 p-2"><p>{step.purpose} · {status==='canceled'&&(!current||['pending','running'].includes(current.status))?'任务已取消，保留最后步骤记录':rootStage?(status==='completed'?'根流程已交付报告':'由根流程在取证后执行'):current?labels[current.status]||current.status:'未取得实时状态'}</p>
         <p className="break-words text-xs">{step.query}</p>
         <p className="text-xs text-xmgray-500">{step.depends_on.length?`前置：${step.depends_on.join('、')}`:'无前置步骤'} · {step.parallel?'允许有界并行':'串行'}{step.condition!=='always'&&` · 条件：${step.condition}`}</p>
         {current?.last_error_category&&<p className="text-xs text-amber-800">{reasons[current.last_error_category]||current.last_error_category}：{current.last_error}</p>}

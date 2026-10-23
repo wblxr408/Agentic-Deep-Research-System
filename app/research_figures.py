@@ -19,6 +19,28 @@ VERSION='adrs-research-figures-v1'
 RENDERER_CONTRACT='matplotlib-declarative-v1'
 
 
+def run_renderer(argv,payload,*,timeout,cwd,env):
+    from app.execution_control import check_execution
+    check_execution()
+    child=subprocess.Popen(argv,stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,
+        text=True,encoding='utf-8',cwd=cwd,env=env,creationflags=getattr(subprocess,'CREATE_NO_WINDOW',0))
+    deadline=time.monotonic()+timeout;pending=payload
+    try:
+        while True:
+            check_execution()
+            remaining=deadline-time.monotonic()
+            if remaining<=0:raise subprocess.TimeoutExpired(argv,timeout)
+            try:
+                stdout,stderr=child.communicate(input=pending,timeout=min(.25,remaining))
+                check_execution()
+                return subprocess.CompletedProcess(argv,child.returncode,stdout,stderr)
+            except subprocess.TimeoutExpired:pending=None
+    finally:
+        if child.poll() is None:child.kill()
+        try:child.communicate(timeout=3)
+        except subprocess.TimeoutExpired:child.kill();child.wait(timeout=3)
+
+
 def freeze_drawing_policy(delivery, skill_context):
     from app.skills.stages import compile_stage_skills
     mode=delivery.drawing_mode
@@ -99,7 +121,8 @@ def _drawing_data(charts):
         if 'edges' in chart:value['edges']=[{key:edge[key] for key in ('source','target','label') if key in edge} for edge in chart['edges']]
         if 'rows' in chart:value['rows']=[{'values':row['values']} for row in chart['rows']]
         values.append(value)
-    return values
+    from app.disclosure import projection
+    return projection(values)
 
 
 def figure_requests(charts,pages):
@@ -128,6 +151,8 @@ def figure_requests(charts,pages):
 def execute_drawing(view, policy, *, client, model, budget, previous=None, cache_context=None):
     from app.query_understanding import identity
     started=time.monotonic()
+    from app.execution_control import check_execution
+    check_execution()
     if budget.deadline is not None and started>=budget.deadline:
         return {'version':VERSION,'status':'blocked','reason':'drawing_original_deadline_exhausted',
             'task_id':view['task_id'],'execution_id':view.get('execution_id'),'descriptor_id':view.get('descriptor_id'),
@@ -241,9 +266,8 @@ def _execute_drawing(view, policy, *, client, model, budget):
                 if key.upper() in {'PATH','SYSTEMROOT','WINDIR','TEMP','TMP','LANG','LC_ALL'}}
             environment.update(PYTHONUTF8='1',MPLCONFIGDIR=directory,MPLBACKEND='Agg')
             render_started=time.monotonic()
-            result=subprocess.run([sys.executable,'-I',str(Path(__file__).resolve().with_name('figure_renderer.py'))],
-                input=payload,text=True,encoding='utf-8',capture_output=True,timeout=seconds,
-                cwd=directory,env=environment,creationflags=getattr(subprocess,'CREATE_NO_WINDOW',0))
+            result=run_renderer([sys.executable,'-I',str(Path(__file__).resolve().with_name('figure_renderer.py'))],
+                payload,timeout=seconds,cwd=directory,env=environment)
             record['renderer_duration_ms']=round((time.monotonic()-render_started)*1000)
         if result.returncode:return {**record,'reason':'drawing_renderer_failed','renderer_error':result.stderr[-1800:]}
         if len(result.stdout.encode('utf-8'))>24000000:return {**record,'reason':'drawing_asset_limit'}
@@ -263,7 +287,7 @@ def _execute_drawing(view, policy, *, client, model, budget):
             'renderer_version':rendered.get('renderer_version'),'font':rendered.get('font'),
             'visual_review':'not_run','semantic_review':'source_data_binding_not_independent_fact_validation'}
     except Exception as error:
-        # The known child has been reaped by subprocess.run on timeout; no
+        # The known child is reaped by run_renderer on stop/timeout; no
         # retry, permission escalation or new root allowance is introduced.
         record['model_calls']=len(budget.calls)-before
         return {**record,'reason':error.reason if isinstance(error,TokenBudgetExceeded) else type(error).__name__}

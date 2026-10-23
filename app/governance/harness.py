@@ -458,6 +458,7 @@ class HarnessSupervisor:
         self._append_progress("SESSION-0", "STATS", message=message)
 
     def _task_status_from_runtime(self, runtime_status: str) -> str:
+        if runtime_status=='canceled':return 'canceled'
         if runtime_status == "completed":
             return "completed"
         if runtime_status in {"terminal_failed", "failed"}:
