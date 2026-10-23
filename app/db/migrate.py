@@ -16,6 +16,7 @@ from app.db.text_search import regconfig_sql_literal, resolve_text_search_config
 from app.db.matching import MATCHING_SCHEMA_SQL
 from app.db.presets import PRESET_SCHEMA_SQL
 from app.db.report_delivery import SCHEMA_SQL as REPORT_DELIVERY_SCHEMA_SQL
+from app.db.research_quality import SCHEMA_SQL as RESEARCH_QUALITY_SCHEMA_SQL
 from app.db.retrieval_indexes import RETRIEVAL_SCHEMA_SQL
 from app.source_lifecycle import SCHEMA_SQL as LIFECYCLE_SCHEMA_SQL
 
@@ -453,6 +454,7 @@ async def run_migration(
             await conn.execute(MATCHING_SCHEMA_SQL)
             await conn.execute(PRESET_SCHEMA_SQL)
             await conn.execute(REPORT_DELIVERY_SCHEMA_SQL)
+            await conn.execute(RESEARCH_QUALITY_SCHEMA_SQL)
             await conn.execute(RETRIEVAL_SCHEMA_SQL)
             await conn.execute(LIFECYCLE_SCHEMA_SQL)
             logger.info("Database migration completed successfully")

@@ -26,6 +26,8 @@ from app.db.matching import load_matching_snapshot, save_matching_snapshot
 from app.db.presets import PresetInput, PresetUpdate, load_preset, insert_preset, preset_record
 from app.db.report_delivery import TemplateSave,load_template,save_template,template_record
 from app.disclosure import projection,redact_text,report_history_projection,VERSION as DISCLOSURE_VERSION
+from app.research_quality import QualityFeedback,quality_view,compare_quality
+from app.db.research_quality import load_quality_state,load_feedback,save_feedback
 from app.governance import HarnessSupervisor, RuntimePersistence
 from app.governance.runtime import normalize_tool_audit_rows, public_status_from_runtime
 from app.graph.compiler import compile_research_graph
@@ -1267,6 +1269,37 @@ async def retained_report_version(session_id:uuid.UUID,report_id:str,principal:P
     return {**payload,'reader_report':report_for_reading(payload['report'],payload.get('citations')) if payload['kind']=='report' else None,
         'report_id':row['report_id'],'sequence':row['sequence'],
         'created_at':row['created_at'].isoformat()}
+
+
+@router.get('/quality/compare')
+async def compare_retained_quality(session_ids:list[uuid.UUID]=Query(min_length=2,max_length=8),principal:Principal=principal_dependency):
+    if len(set(session_ids))!=len(session_ids):raise HTTPException(422,'duplicate_quality_comparison_session')
+    pool=await get_db_pool()
+    try:
+        async with pool.acquire() as conn,conn.transaction(isolation='repeatable_read',readonly=True):
+            states=[await load_quality_state(conn,value,_principal_id(principal)) for value in session_ids]
+        return projection(compare_quality(states))
+    except ValueError as error:raise HTTPException(404 if str(error)=='quality_task_not_found' else 409,str(error)) from error
+
+
+@router.get('/{session_id}/quality')
+async def retained_quality(session_id:uuid.UUID,principal:Principal=principal_dependency):
+    pool=await get_db_pool();owner=_principal_id(principal)
+    try:
+        async with pool.acquire() as conn,conn.transaction(isolation='repeatable_read',readonly=True):
+            state=await load_quality_state(conn,session_id,owner)
+            feedback=await load_feedback(conn,session_id,owner)
+        return projection(quality_view(state,feedback))
+    except ValueError as error:raise HTTPException(404 if str(error)=='quality_task_not_found' else 409,str(error)) from error
+
+
+@router.post('/{session_id}/feedback')
+async def retain_quality_feedback(session_id:uuid.UUID,payload:QualityFeedback,principal:Principal=principal_dependency):
+    pool=await get_db_pool()
+    try:
+        async with pool.acquire() as conn,conn.transaction():
+            return await save_feedback(conn,session_id,_principal_id(principal),payload)
+    except ValueError as error:raise HTTPException(404 if str(error)=='quality_task_not_found' else 409,str(error)) from error
 
 
 @router.get("/{session_id}")

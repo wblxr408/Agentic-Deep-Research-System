@@ -30,6 +30,7 @@ import QueryUnderstandingPanel, { defaultQueryDraft, queryDraftRequest, Understa
 import type { QueryDraft, UnderstandingSnapshot } from './QueryUnderstandingPanel'
 import ResearchPlanSummary from './ResearchPlanSummary'
 import ResearchConfigurationEditor from './ResearchConfigurationEditor'
+import ResearchQuality from './ResearchQuality'
 import type { PlanSummaryProps } from './ResearchPlanSummary'
 import type { DeliveryView } from './ReportDeliveryView'
 
@@ -725,6 +726,7 @@ function ResearchDashboard({ onBack }: ResearchDashboardProps) {
           {/* Report */}
           {result?.status === 'completed' && result.organization_research && <ClassificationPanel key={`classification-${result.session_id}`} sessionId={result.session_id} />}
           {activeSessionId && <IngestionPanel key={`ingestion-${activeSessionId}`} sessionId={activeSessionId} />}
+          {result&&['completed','paused','failed'].includes(result.status)&&<ResearchQuality key={`quality-${result.session_id}`} sessionId={result.session_id}/>}
           <div className="card p-0 overflow-hidden">
             <div className="px-5 py-4 flex items-center justify-between border-b border-xmgray-100">
               <div className="flex items-center gap-2">

@@ -123,3 +123,16 @@ The system SHALL organize literal retained excerpts by the current question and 
 - **THEN** 沿原权限保留真实材料身份与访问URL，复制新任务重新预览当前许可
 - **AND** 报告JSON仅使用独立export_view，排除原材料和重开参数，不宣称原始存储已全面加密
 
+### Requirement: Quality observations and human judgments retain scope
+系统 SHALL 使用实际候选返回顺序和明确人工标注计算有界池内排名指标；没有标签、标准答案或有效分母时MUST保留未知。反馈 SHALL 绑定本人当前报告／证据／计划／执行及实际目标，以请求身份幂等保存，不自动改变事实库、索引或模型配置。
+
+#### Scenario: Only some candidates are judged
+- **WHEN** 用户没有标完整个返回候选池或池中没有已知正例
+- **THEN** 不能生成该池Recall／MRR／NDCG的完整质量结论，更不能声称全库召回
+- **AND** 已标数量、可定义的局部指标及真实通道成员仍可见
+
+#### Scenario: A feedback request is retried or stale
+- **WHEN** 相同请求身份重放、复用为不同参数或当前报告快照已经改变
+- **THEN** 相同参数只形成一个反馈事件，异参或旧快照拒绝新增
+- **AND** 纠错与采纳不覆盖原报告或自动授权新研究
+
