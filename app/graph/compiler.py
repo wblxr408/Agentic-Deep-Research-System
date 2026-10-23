@@ -1680,7 +1680,10 @@ def browser_node(state: ResearchState) -> dict:
             org_config = state.get('organization_research')
             validator=admit_corpus_request(node.query,org_config)
             candidates=[item for item in state.get('collected_evidence',[]) if reusable_task_source(item,node.query,state.get('query_understanding'))]
-            cached=max(candidates,key=lambda item:observed_instant(item['collected_at'])) if candidates else None
+            # Freshness uses the observed fetch instant. Legacy collection labels
+            # may be naive or absent even when transport metadata is trustworthy.
+            cached=max(candidates,key=lambda item:observed_instant(
+                (item.get('acquisition') or {}).get('source_fetched_at') or item.get('collected_at'))) if candidates else None
             if cached:
                 validator(cached['source_url'])
                 from app.graph.state import BrowserResult

@@ -62,3 +62,7 @@ PDF正文使用原生文字流，结构提取上限另记；原始NUL使用可�
 
 现有PostgreSQL增加报告文本版本及声明式图文模板版本两表，不增服务或Agent。报告在原owner/execution事务后保存原文版本映射和审核，report_binding防旧稿混新资料；完整稿／草稿／中断响应分别呈现。模板独立于权重，owner范围内expected_version追加、request_id同参数重放，项目标签不授予共享权限。复制后实际配置进入当前预览及Skill准入。冻结writing_plan适配回答类型和深度，页面／模块结构优先。DDL仅接初始化及migrate入口、未运行；文本历史不复制图像文件，PPTX无适配时预览拒绝。控制点与最后场景见docs/report-history-templates.md。
 
+## OPT-18 failure persistence and selected maintenance
+
+原根行仍是执行与预算权威。普通异常先合并持久收据，再保留最后实际快照；仅pending／running转failed，已提交的完成／暂停／取消结果保留原状态。通知异常追加有界运行事件，工作区可定位步骤，报告正文继续只呈现研究内容。Harness镜像持有当前owner／execution共享栅栏读取DB，避免旧执行写回；文件错误不触发付费重跑。缓存按本人同任务来源版本、实际取得时间与当前政策判断；特征复用、DAG并发和类别重试沿用现有组件，维护采用显式同版本重建／完整保留代激活／direct回退。未采用的答案缓存、向量缓存、冷热分层、新调度和后台维护保留条件选型，见docs/runtime-accounting-cache.md。沿用A2ABreak v1.0全11项评估，本增量03／06／10／11控制点与未运行验证状态同时记录；不新增Agent或服务。
+

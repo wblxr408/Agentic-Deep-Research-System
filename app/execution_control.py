@@ -155,7 +155,7 @@ class ExecutionControl:
 
     async def finalize_receipts(self):
         from app.db.connection import get_db_pool
-        from app.db.execution_control import decoded,task_budget,receipt_budget,persist_receipt_budget
+        from app.db.execution_control import task_budget,receipt_budget,persist_receipt_budget
         pool=await get_db_pool()
         async with pool.acquire() as conn,conn.transaction():
             row=await conn.fetchrow('SELECT review_status,status,execution_id,total_tokens,total_cost_usd FROM research_sessions WHERE id=$1::uuid AND owner_id=$2::uuid FOR UPDATE',
@@ -163,18 +163,69 @@ class ExecutionControl:
             if row:
                 budget=await receipt_budget(conn,self.binding['session_id'],self.binding['owner_id'],task_budget(row))
                 await persist_receipt_budget(conn,self.binding['session_id'],self.binding['owner_id'],budget)
-            mirror=await conn.fetchval('SELECT state_snapshot_json FROM session_runtime_state WHERE session_id=$1::uuid',self.binding['session_id']) if row else None
-        if row and row['status']=='canceled' and str(row['execution_id'])==self.binding['execution_id']:
+        if row and str(row['execution_id'])==self.binding['execution_id']:
+            await self.mirror_runtime()
+
+    async def mirror_runtime(self,harness=None):
+        """Mirror only the authoritative current execution, holding its share fence.
+
+        File delivery is best effort. A failure here must not spend another
+        research attempt or invalidate a DB-committed result.
+        """
+        from app.db.connection import get_db_pool
+        from app.db.execution_control import decoded,task_budget
+        try:
             from app.config import get_settings
             from app.governance.harness import HarnessSupervisor
-            settings=get_settings();harness=HarnessSupervisor(settings.harness.state_root)
-            snapshot=decoded(mirror)
-            await asyncio.to_thread(harness.upsert_task,session_id=self.binding['session_id'],public_status='canceled',
-                runtime_status='canceled',budget=budget,current_batch=[],pending_approval_id=None,
-                checkpoint_seq=int((snapshot.get('session') or {}).get('checkpoint_seq') or 0),
-                used_total_tokens=int(budget.get('used_total_tokens') or 0),used_cost_usd=float(budget.get('used_cost_usd') or 0),
-                worker_id=settings.harness.worker_id,state_snapshot=snapshot)
+            settings=get_settings();harness=harness or HarnessSupervisor(settings.harness.state_root)
+            pool=await get_db_pool()
+            async with pool.acquire() as conn,conn.transaction():
+                await conn.execute("SELECT set_config('lock_timeout','3000',true)")
+                await conn.execute("SELECT set_config('statement_timeout','10000',true)")
+                row=await conn.fetchrow('''SELECT s.status,s.review_status,s.total_tokens,s.total_cost_usd,
+                    r.runtime_status,r.state_snapshot_json,r.checkpoint_seq,r.current_batch_json
+                    FROM research_sessions s LEFT JOIN session_runtime_state r ON r.session_id=s.id
+                    WHERE s.id=$1::uuid AND s.owner_id=$2::uuid AND s.execution_id=$3::uuid FOR SHARE OF s''',
+                    self.binding['session_id'],self.binding['owner_id'],self.binding['execution_id'])
+                if not row:return False
+                snapshot=decoded(row['state_snapshot_json']);budget=task_budget(row)
+                review=decoded(row['review_status'])
+                runtime=({'completed':'completed','failed':'terminal_failed','canceled':'canceled'}.get(row['status'])
+                    or review.get('runtime_status') or row['runtime_status'] or row['status'])
+                pending=snapshot.get('pending_approvals') or []
+                write=asyncio.create_task(asyncio.to_thread(harness.upsert_task,session_id=self.binding['session_id'],public_status=row['status'],
+                    runtime_status=runtime,budget=budget,current_batch=snapshot.get('current_executing_nodes') or [],
+                    pending_approval_id=pending[-1].get('approval_id') if pending else None,
+                    checkpoint_seq=int(row['checkpoint_seq'] or 0),
+                    used_total_tokens=int(budget.get('used_total_tokens') or 0),used_cost_usd=float(budget.get('used_cost_usd') or 0),
+                    last_error=review.get('workflow_failure') or ({'category':review['last_error_category']}
+                        if review.get('last_error_category') else None),
+                    worker_id=settings.harness.worker_id,state_snapshot=snapshot))
+                interrupted=False
+                while True:
+                    try:
+                        await asyncio.shield(write)
+                        break
+                    except asyncio.CancelledError:
+                        if write.cancelled():raise
+                        # A thread cannot be canceled. Keep the DB fence until
+                        # its bounded file write ends, even if the host stops us.
+                        interrupted=True
+                if interrupted:raise asyncio.CancelledError
             await asyncio.to_thread(harness.clear_active_if_idle)
+            return True
+        except Exception:
+            logger.warning('Runtime file mirror unavailable; committed DB state remains authoritative')
+            return False
+
+    async def persist_failure(self,error,category='workflow_error'):
+        from app.db.connection import get_db_pool
+        from app.db.execution_control import persist_workflow_failure
+        pool=await get_db_pool()
+        async with pool.acquire() as conn,conn.transaction():
+            await conn.execute("SELECT set_config('lock_timeout','3000',true)")
+            await conn.execute("SELECT set_config('statement_timeout','10000',true)")
+            return await persist_workflow_failure(conn,self.binding,error,category)
 
 
 def controlled_execution(function):
@@ -192,6 +243,11 @@ def controlled_execution(function):
             _active[key]=control
         token=_current.set(control);watcher=asyncio.create_task(control.observe())
         try:return await function(*args,**kwargs)
+        except asyncio.CancelledError as error:
+            control.stop('execution_interrupted')
+            try:await control.persist_failure(error,'execution_interrupted')
+            except Exception:logger.warning('Interrupted execution state could not be saved; retained checkpoints remain authoritative')
+            raise
         finally:
             watcher.cancel()
             try:await watcher

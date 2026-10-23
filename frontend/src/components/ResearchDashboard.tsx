@@ -47,6 +47,8 @@ interface ResearchResult {
   plan_manifest?: PlanSummaryProps['plan']
   plan_history?: PlanSummaryProps['history']
   iteration_control?: PlanSummaryProps['control']
+  workflow_failure?: PlanSummaryProps['failure']
+  operational_events?: PlanSummaryProps['operationalEvents']
   query_understanding?: UnderstandingSnapshot | null
   session_id: string
   query: string
@@ -722,7 +724,7 @@ function ResearchDashboard({ onBack }: ResearchDashboardProps) {
           {result&&result.execution_id!==undefined&&<ResearchCancellation key={`cancel-${result.session_id}-${result.execution_id}`}
             sessionId={result.session_id} executionId={result.execution_id} status={result.status}
             inflight={result.budget_state?.inflight_model_requests} onRefresh={async()=>{const refreshed=await refetchResult();if(refreshed.error)throw refreshed.error}}/>}
-          {result && <ResearchPlanSummary status={result.status} plan={result.plan_manifest} dag={result.execution_plan} history={result.plan_history} control={result.iteration_control} />}
+          {result && <ResearchPlanSummary status={result.status} plan={result.plan_manifest} dag={result.execution_plan} history={result.plan_history} control={result.iteration_control} failure={result.workflow_failure} operationalEvents={result.operational_events} />}
           {result&&['completed','paused','failed','canceled'].includes(result.status)&&<ResearchConfigurationEditor key={`configure-${result.session_id}`}
             query={typeof result.restart_parameters?.query==='string'?result.restart_parameters.query:result.query} parameters={result.restart_parameters} onStarted={handleRestartedResearch}/>}
           {result?.organization_research && <section className="card p-5 text-sm text-xmgray-700" aria-label="本次组织研究范围">

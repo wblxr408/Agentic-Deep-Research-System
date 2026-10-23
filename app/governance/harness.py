@@ -18,7 +18,7 @@ class HarnessSupervisor:
 
     STATE_VERSION = 2
     ACTIVE_RUNTIME_STATUSES: ClassVar[set[str]] = {"running", "awaiting_approval", "retryable_failed"}
-    TERMINAL_RUNTIME_STATUSES: ClassVar[set[str]] = {"completed", "terminal_failed", "failed"}
+    TERMINAL_RUNTIME_STATUSES: ClassVar[set[str]] = {"completed", "terminal_failed", "failed", "canceled"}
 
     def __init__(self, state_root: str | None = None):
         settings = get_settings()
@@ -420,6 +420,8 @@ class HarnessSupervisor:
             "awaiting_approval": 0,
             "retryable_failed": 0,
             "terminal_failed": 0,
+            "canceled": 0,
+            "paused": 0,
             "pending": 0,
             "blocked": 0,
             "lease_expired": 0,
@@ -442,6 +444,10 @@ class HarnessSupervisor:
                 counts["retryable_failed"] += 1
             elif runtime_status in {"terminal_failed", "failed"}:
                 counts["terminal_failed"] += 1
+            elif runtime_status == 'canceled':
+                counts['canceled'] += 1
+            elif runtime_status in {'budget_exhausted','analysis_paused','report_paused','paused'}:
+                counts['paused'] += 1
             else:
                 counts["pending"] += 1
             if any(dep in terminal_failed_ids for dep in task.get("depends_on", [])):
@@ -459,6 +465,7 @@ class HarnessSupervisor:
 
     def _task_status_from_runtime(self, runtime_status: str) -> str:
         if runtime_status=='canceled':return 'canceled'
+        if runtime_status in {'budget_exhausted','analysis_paused','report_paused','paused'}:return 'paused'
         if runtime_status == "completed":
             return "completed"
         if runtime_status in {"terminal_failed", "failed"}:

@@ -30,7 +30,7 @@ from app.research_quality import QualityFeedback,quality_view,compare_quality
 from app.db.research_quality import load_quality_state,load_feedback,save_feedback
 from app.execution_control import controlled_execution,current_control,check_execution,signal_cancellation
 from app.db.execution_control import cancel_execution,receipt_budget
-from app.governance import HarnessSupervisor, RuntimePersistence
+from app.governance import RuntimePersistence
 from app.governance.runtime import normalize_tool_audit_rows, public_status_from_runtime
 from app.graph.compiler import compile_research_graph
 from app.graph.state import (
@@ -1401,6 +1401,8 @@ async def get_research_result(session_id: str, principal: Principal = principal_
         'plan_history': review_status.get('plan_history', []),
         'iteration_control': review_status.get('iteration_control'),
         'planning_policy': review_status.get('planning_policy'),
+        'workflow_failure':projection(review_status.get('workflow_failure')),
+        'operational_events':projection(review_status.get('operational_events',[])),
         'report_audit': review_status.get('final_report_audit'),
         'report_editorial': review_status.get('report_editorial'),
         'budget_state':review_status.get('budget_state'),
@@ -1760,11 +1762,10 @@ async def run_research_workflow(
     """
     sse = get_sse_manager()
     runtime_persistence = RuntimePersistence()
-    harness = HarnessSupervisor(get_settings().harness.state_root)
-    settings = get_settings()
-    budget = get_research_budget(output_length)
+    harness = None  # A file mirror failure cannot prevent root-state persistence.
 
     try:
+        budget = get_research_budget(output_length)
         state = deepcopy(resume_state) if resume_state is not None else create_initial_state(query, session_id)
         if resume_state is None:
             from app.model_routing import freeze_model_routing
@@ -1831,19 +1832,7 @@ async def run_research_workflow(
                 for key in ('schema_version','interpretation_id','query_type','slots','temporal','complexity','notes')},
             "timestamp": utc_now_naive().isoformat(),
         })
-        harness.upsert_task(
-            session_id=session_id,
-            public_status="running",
-            runtime_status=RuntimeStatus.RUNNING.value,
-            budget=state["budget_state"],
-            current_batch=state.get("current_executing_nodes", []),
-            checkpoint_seq=int(state["session"].get("checkpoint_seq", 0)),
-            pending_approval_id=None,
-            used_total_tokens=int(state["budget_state"].get("used_total_tokens", 0)),
-            used_cost_usd=float(state["budget_state"].get("used_cost_usd", 0)),
-            state_snapshot=state,
-            worker_id=settings.harness.worker_id,
-        )
+        await current_control().mirror_runtime(harness)
 
         # Compile graph
         graph = compile_research_graph()
@@ -1885,7 +1874,6 @@ async def run_research_workflow(
                 accumulated_state = deepcopy(chunk)
                 last_chunk = accumulated_state
                 checkpoint_state = accumulated_state
-                checkpoint_runtime = checkpoint_state.get("runtime_status", RuntimeStatus.RUNNING.value)
                 checkpoint_batch = checkpoint_state.get("current_executing_nodes", [])
                 checkpoint_ref = None
                 try:
@@ -1904,26 +1892,7 @@ async def run_research_workflow(
                 )
                 if persisted is False:
                     return
-                pending_approvals = checkpoint_state.get("pending_approvals", [])
-                pending_approval_id = None
-                if pending_approvals:
-                    latest = pending_approvals[-1]
-                    if isinstance(latest, dict):
-                        pending_approval_id = latest.get("approval_id")
-                harness.upsert_task(
-                    session_id=session_id,
-                    public_status=public_status_from_runtime(checkpoint_runtime),
-                    runtime_status=checkpoint_runtime,
-                    budget=dict(checkpoint_state.get("budget_state") or {}),
-                    current_batch=checkpoint_batch,
-                    checkpoint_seq=checkpoint_seq,
-                    pending_approval_id=pending_approval_id,
-                    used_total_tokens=int((checkpoint_state.get("budget_state") or {}).get("used_total_tokens", 0) or 0),
-                    used_cost_usd=float((checkpoint_state.get("budget_state") or {}).get("used_cost_usd", 0.0) or 0.0),
-                    last_error={"category": (checkpoint_state.get("review_status") or {}).get("last_error_category")},
-                    worker_id=settings.harness.worker_id,
-                    state_snapshot=checkpoint_state,
-                )
+                await current_control().mirror_runtime(harness)
 
         # Full values snapshots preserve initial context and reducer semantics.
         final_state: dict[str, Any] = accumulated_state if accumulated_state else last_chunk
@@ -2175,20 +2144,7 @@ async def run_research_workflow(
                 )
                 if persisted is False:
                     return
-                harness.upsert_task(
-                    session_id=session_id,
-                    public_status=final_state.get("status", public_status_from_runtime(runtime_status)),
-                    runtime_status=runtime_status,
-                    budget=session_budget_state,
-                    current_batch=final_state.get("current_executing_nodes", []),
-                    checkpoint_seq=int(final_state.get("session", {}).get("checkpoint_seq", 0) or 0),
-                    pending_approval_id=None,
-                    used_total_tokens=int(session_budget_state.get("used_total_tokens", 0) or 0),
-                    used_cost_usd=float(session_budget_state.get("used_cost_usd", 0.0) or 0.0),
-                    worker_id=settings.harness.worker_id,
-                    state_snapshot=final_state,
-                )
-                harness.clear_active_if_idle()
+                await current_control().mirror_runtime(harness)
 
         # SSE holds its own owner/execution share lock through enqueue. Do not
         # hold a separate update lock while waiting on that publication gate.
@@ -2206,35 +2162,13 @@ async def run_research_workflow(
         logger.exception("Research workflow error for %s", session_id)
 
         try:
-            pool = await get_db_pool()
-            async with pool.acquire() as conn, conn.transaction():
-                if execution_id and not await conn.fetchval(
-                    "SELECT id FROM research_sessions WHERE id = $1::uuid AND execution_id = $2::uuid AND status!='canceled' FOR UPDATE",
-                    session_id, execution_id,
-                ):
-                    return
-                await conn.execute(
-                    """UPDATE research_sessions SET status='failed',updated_at=$1,
-                    review_status=jsonb_set(COALESCE(review_status,'{}'::jsonb),'{last_error_category}',to_jsonb($3::text))
-                    WHERE id=$2::uuid AND status!='canceled'""",
-                    utc_now_naive(), session_id,control.reason if control and control.reason else 'workflow_error',
-                )
-            await sse.publish(session_id, "workflow_error", {
-                "session_id":session_id,"error":str(exc),"timestamp":utc_now_naive().isoformat()})
-            harness.upsert_task(
-                session_id=session_id,
-                public_status="failed",
-                runtime_status=RuntimeStatus.TERMINAL_FAILED.value,
-                budget={},
-                current_batch=[],
-                checkpoint_seq=0,
-                pending_approval_id=None,
-                last_error={"category": "workflow_error", "message": str(exc)},
-                worker_id=settings.harness.worker_id,
-                state_snapshot=None,
-            )
+            result=await control.persist_failure(exc,control.reason or 'workflow_error')
+            if result is None:return
+            await control.mirror_runtime(harness)
+            event='workflow_error' if result['transitioned'] else 'done'
+            await sse.publish(session_id,event,{
+                'session_id':session_id,'status':result['status'],
+                **({'error':result['failure']['message']} if result['transitioned'] else {}),
+                'timestamp':utc_now_naive().isoformat()})
         except (OSError, RuntimeError, asyncpg.PostgresError) as db_error:
-            # FIX: Log the error instead of silently swallowing
-            logger.error(
-                f"Failed to update session {session_id} status to 'failed': {db_error}"
-            )
+            logger.error('Workflow outcome persistence or notice unavailable for %s: %s',session_id,db_error)

@@ -108,6 +108,68 @@ async def persist_receipt_budget(conn,session_id,owner_id,budget):
         str(session_id),str(owner_id),int(budget.get('used_total_tokens') or 0),float(budget.get('used_cost_usd') or 0),int(budget.get('used_tool_calls') or 0))
 
 
+async def persist_workflow_failure(conn,binding,error,category='workflow_error'):
+    """The caller owns one transaction; never replace a committed research result."""
+    session_id,owner_id,execution_id=(binding[key] for key in ('session_id','owner_id','execution_id'))
+    row=await conn.fetchrow('''SELECT status,execution_id,review_status,total_tokens,total_cost_usd
+        FROM research_sessions WHERE id=$1::uuid AND owner_id=$2::uuid FOR UPDATE''',session_id,owner_id)
+    if not row or str(row['execution_id'])!=execution_id:return None
+    review=decoded(row['review_status'])
+    budget=await receipt_budget(conn,session_id,owner_id,task_budget(row))
+    await persist_receipt_budget(conn,session_id,owner_id,budget)
+    review['budget_state']=budget
+    stored=await conn.fetchrow('''SELECT state_snapshot_json,checkpoint_seq,last_checkpoint_ref,current_batch_json
+        FROM session_runtime_state WHERE session_id=$1::uuid FOR UPDATE''',session_id)
+    snapshot=decoded(stored['state_snapshot_json']) if stored else {}
+    event={'category':category,'error_type':type(error).__name__,
+        'message':str(projection(str(error)))[:1500],'at':datetime.now(UTC).isoformat(),
+        'execution_id':execution_id,'checkpoint_seq':int(stored['checkpoint_seq'] or 0) if stored else 0}
+    if row['status'] not in {'pending','running'}:
+        # Publication, SSE or file I/O after commit cannot invalidate that result.
+        event['effect']='committed_research_state_preserved'
+        events=[*(review.get('operational_events') or []),event][-32:]
+        await conn.execute('''UPDATE research_sessions SET review_status=jsonb_set(
+            COALESCE(review_status,'{}'::jsonb),'{operational_events}',$3::jsonb)
+            WHERE id=$1::uuid AND owner_id=$2::uuid''',session_id,owner_id,json.dumps(events,ensure_ascii=False))
+        runtime=({'completed':'completed','failed':'terminal_failed','canceled':'canceled'}.get(row['status'])
+            or review.get('runtime_status') or snapshot.get('runtime_status') or 'analysis_paused')
+        snapshot.update(status=row['status'],runtime_status=runtime,budget_state=budget,
+            review_status={**review,'operational_events':events})
+        if row['status'] in {'completed','failed','canceled'}:
+            snapshot.update(current_executing_nodes=[],pending_approvals=[])
+        snapshot['session']={**(snapshot.get('session') or {}),**binding,'status':row['status'],
+            'checkpoint_seq':event['checkpoint_seq']}
+        await conn.execute('''UPDATE session_runtime_state SET public_status=$2,runtime_status=$3,
+            state_snapshot_json=$4::jsonb,current_batch_json=$5::jsonb,pending_approval_count=$6
+            WHERE session_id=$1::uuid''',session_id,row['status'],runtime,
+            json.dumps(snapshot,ensure_ascii=False,default=str),json.dumps(snapshot.get('current_executing_nodes') or []),
+            len(snapshot.get('pending_approvals') or []))
+        return {'status':row['status'],'transitioned':False}
+    event.update(effect='root_execution_failed',
+        interrupted_batch=snapshot.get('current_executing_nodes') or [],
+        analysis_status=(snapshot.get('analysis_workflow') or {}).get('status'),
+        last_checkpoint_ref=stored['last_checkpoint_ref'] if stored else None)
+    review.update(runtime_status='terminal_failed',last_error_category=category,
+        workflow_failure=event,budget_state=budget,pending_approval_count=0)
+    snapshot.update(status='failed',runtime_status='terminal_failed',review_status=review,
+        budget_state=budget,current_executing_nodes=[],pending_approvals=[])
+    snapshot['session']={**(snapshot.get('session') or {}),**binding,'status':'failed',
+        'checkpoint_seq':event['checkpoint_seq'],'total_tokens':int(budget.get('used_total_tokens') or 0),
+        'total_cost_usd':float(budget.get('used_cost_usd') or 0)}
+    snapshot.setdefault('task_id',session_id)
+    await conn.execute('''UPDATE research_sessions SET status='failed',updated_at=NOW(),
+        completed_at=COALESCE(completed_at,NOW()),review_status=$3::jsonb
+        WHERE id=$1::uuid AND owner_id=$2::uuid''',session_id,owner_id,json.dumps(review,ensure_ascii=False,default=str))
+    await conn.execute('''INSERT INTO session_runtime_state(session_id,runtime_status,public_status,
+        terminal_failure_reason,state_snapshot_json) VALUES($1::uuid,'terminal_failed','failed',$2,$3::jsonb)
+        ON CONFLICT(session_id) DO UPDATE SET runtime_status='terminal_failed',public_status='failed',
+        terminal_failure_reason=EXCLUDED.terminal_failure_reason,state_snapshot_json=EXCLUDED.state_snapshot_json,
+        current_batch_json='[]'::jsonb,pending_approval_count=0,last_heartbeat_at=NOW()''',
+        session_id,category,json.dumps(snapshot,ensure_ascii=False,default=str))
+    await conn.execute("UPDATE approval_requests SET status='denied' WHERE session_id=$1::uuid AND status='pending'",session_id)
+    return {'status':'failed','transitioned':True,'failure':event}
+
+
 async def model_receipt(conn,binding,record,*,admission=False):
     session_id,owner_id,execution_id=(binding[key] for key in ('session_id','owner_id','execution_id'))
     from app.config import get_settings
