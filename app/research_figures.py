@@ -16,6 +16,7 @@ from app.llm_budget import TokenBudgetExceeded, request_token_bound
 from app.security.prompt_security import untrusted_context
 
 VERSION='adrs-research-figures-v1'
+RENDERER_CONTRACT='matplotlib-declarative-v1'
 
 
 def freeze_drawing_policy(delivery, skill_context):
@@ -124,11 +125,47 @@ def figure_requests(charts,pages):
     return requests
 
 
-def execute_drawing(view, policy, *, client, model, budget):
+def execute_drawing(view, policy, *, client, model, budget, previous=None, cache_context=None):
+    from app.query_understanding import identity
     started=time.monotonic()
+    if budget.deadline is not None and started>=budget.deadline:
+        return {'version':VERSION,'status':'blocked','reason':'drawing_original_deadline_exhausted',
+            'task_id':view['task_id'],'execution_id':view.get('execution_id'),'descriptor_id':view.get('descriptor_id'),
+            'assets':[],'model_calls':0,'duration_ms':0,'cache_status':'rejected_original_deadline'}
+    selected=figure_requests(view.get('charts') or [],view.get('pages') or [])
+    cache_context=cache_context or {}
+    binding={'task_id':view['task_id'],'owner_id':cache_context.get('owner_id'),
+        'evidence_version':cache_context.get('evidence_version'),'data':_drawing_data(selected),
+        'policy':policy,'renderer_contract':RENDERER_CONTRACT}
+    cache_id=identity(binding) if cache_context.get('owner_id') and cache_context.get('evidence_version') else None
+    if (policy.get('status')=='ready' and policy.get('version')==VERSION and selected
+            and cache_id and isinstance(previous,dict) and previous.get('cache_id')==cache_id
+            and previous.get('version')==VERSION and previous.get('status')=='rendered' and previous.get('renderer_version')==RENDERER_CONTRACT
+            and previous.get('task_id')==view['task_id'] and previous.get('cache_owner_id')==cache_context['owner_id']
+            and previous.get('recipe_identity')==identity(previous.get('plan'))):
+        try:
+            plan=FigurePlan.model_validate(previous['plan'])
+            ids={item['chart_id'] for item in selected};assets=previous.get('assets') or []
+            if (len(plan.figures)==len(ids)==len(assets) and {item.chart_id for item in plan.figures}==ids
+                    and {item.get('chart_id') for item in assets}==ids
+                    and all(item.get('svg','').startswith('data:image/svg+xml;base64,')
+                        and item.get('png','').startswith('data:image/png;base64,') for item in assets)
+                    and len(json.dumps(assets).encode('utf-8'))<=24000000):
+                return {**previous,'execution_id':view.get('execution_id'),'descriptor_id':view.get('descriptor_id'),
+                    'cache_status':'hit','model_calls':0,'renderer_duration_ms':0,
+                    'duration_ms':round((time.monotonic()-started)*1000),
+                    'reused_from':previous.get('reused_from') or {'execution_id':previous.get('execution_id'),
+                        'descriptor_id':previous.get('descriptor_id'),'model_calls':previous.get('model_calls'),
+                        'duration_ms':previous.get('duration_ms'),'renderer_duration_ms':previous.get('renderer_duration_ms')},
+                    'reuse_semantics':'same_owner_task_evidence_policy_recipe_and_renderer_frozen_assets_original_cost_retained'}
+        except (ValueError,KeyError,TypeError):
+            pass  # An unavailable prior representation is a miss, never new evidence.
     result=_execute_drawing(view,policy,client=client,model=model,budget=budget)
     return {**result,'duration_ms':round((time.monotonic()-started)*1000),
-        'cache_status':'not_attempted','timing_scope':'plan_request_and_local_renderer_not_whole_research'}
+        'cache_status':'miss' if cache_id else 'unavailable_no_owner_evidence_binding',
+        'cache_id':cache_id,'cache_owner_id':cache_context.get('owner_id'),
+        'recipe_identity':identity(result.get('plan')) if result.get('plan') else None,
+        'timing_scope':'plan_request_and_local_renderer_not_whole_research'}
 
 
 def _execute_drawing(view, policy, *, client, model, budget):

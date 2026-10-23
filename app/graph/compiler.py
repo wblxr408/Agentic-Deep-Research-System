@@ -2178,6 +2178,11 @@ async def analyst_node(state: ResearchState) -> dict:
         organization_result['analyst_context'] = agent.last_context_manifest
     elif agent.last_context_manifest:
         organization_result={'analyst_context':agent.last_context_manifest}
+    previous_drawing=(state.get('organization_result') or {}).get('chart_rendering')
+    if isinstance(previous_drawing,dict) and previous_drawing.get('cache_id'):
+        # Carry only a prior trusted result as a cache candidate. The renderer
+        # still compares current data/policy/owner/evidence before any reuse.
+        organization_result={**(organization_result or {}),'chart_rendering':previous_drawing}
     session, budget_state = _apply_llm_usage_to_state(state, "analyst", _agent_model_usage(agent))
     session['checkpoint_seq']=checkpoint_sequence
 
@@ -2623,7 +2628,10 @@ async def report_node(state: ResearchState) -> dict:
                 paused=_model_budget_pause(state,agent,'report',error,report=report,citations=citations)
                 paused['organization_result']=organization_result
                 return paused
-        drawing=await asyncio.to_thread(execute_drawing,view,policy,client=drawing_client,model=drawing_model,budget=agent.request_budget)
+        from app.planning_control import retained_evidence_version
+        drawing=await asyncio.to_thread(execute_drawing,view,policy,client=drawing_client,model=drawing_model,budget=agent.request_budget,
+            previous=(organization_result or {}).get('chart_rendering'),
+            cache_context={'owner_id':state.get('session',{}).get('owner_id'),'evidence_version':retained_evidence_version(state)})
         organization_result={**(organization_result or {}),'chart_rendering':drawing}
         if drawing['status']!='rendered':
             paused=_model_budget_pause(state,agent,'report',TokenBudgetExceeded('drawing_skill_incomplete'),report=report,citations=citations)
@@ -2631,7 +2639,7 @@ async def report_node(state: ResearchState) -> dict:
             paused['review_status']['drawing_reason']=drawing.get('reason')
             return paused
         rendering_trace.append(_append_trace_event(state,EventType.AGENT_COMPLETE,'report',
-            f"绘图Skill已生成{len(drawing['assets'])}组SVG/PNG/PDF；图像人工复核尚未进行。"))
+            f"{'复用有效图表' if drawing.get('cache_status')=='hit' else '绘图Skill已生成'}{len(drawing['assets'])}组SVG/PNG/PDF；图像人工复核尚未进行。"))
     session, budget_state = _apply_llm_usage_to_state(state, "report", _agent_model_usage(agent))
     if budget_state.get('hard_stop_reason') in {'token_limit','cost_limit','wall_clock_limit'}:
         reason='model_time_reservation_exhausted' if budget_state['hard_stop_reason']=='wall_clock_limit' else 'token_budget_exhausted'

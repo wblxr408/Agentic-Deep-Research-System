@@ -1844,7 +1844,7 @@ async def run_research_workflow(
                             elif key in {'tool_result_envelopes','tool_handoffs','accepted_tool_operations'}:
                                 await sse.publish(session_id, 'state_update', {'key':key,'count':len(value or {})})
                             else:
-                                await sse.publish(session_id, "state_update", {"key": key, "value": str(value)[:500] if value else ""})
+                                await sse.publish(session_id, "state_update", {"key": key, "value": str(projection(value))[:500] if value else ""})
                     continue
                 accumulated_state = deepcopy(chunk)
                 last_chunk = accumulated_state
