@@ -60,3 +60,9 @@
 - [x] 7.1 普通根异常在当前owner／execution事务内保留真实预算、最后检查点与分析，终态后的通知错误仅记运行事件；工作区显示实际失败位置。（源码完成，未运行）
 - [x] 7.2 Harness仅从当前DB状态镜像，文件失败不阻断研究，取消／暂停独立计数；原文复用按实际取得时间选择，最小缓存／调度／维护及候选取舍记录于docs/runtime-accounting-cache.md。（源码与文档完成，未运行）
 - [ ] 7.3 全部ORG／OPT／FLOW实现后统一真实端到端，包含预算、取消、收据、故障及镜像竞态、缓存失效、维护回滚与报告交付；不在此阶段提前运行。
+
+## 8. Cross-module execution and ACI documentation
+
+- [x] 8.1 五类代表性计划、实际请求与工具输入示例、输入／输出／错误／恢复ACI索引归并至docs/RESEARCH_EXECUTION_PLAYBOOK.md；文档审阅，未运行示例。
+- [x] 8.2 ORG、OPT-01—18及六项讨论的源码／候选／取舍／故障／重评条件归并至docs/IMPLEMENTATION_LEDGER.md；历史复合验收与当前源码状态分开。
+- [x] 8.3 同步主TODO的X.2—X.6、模块状态表、README及完整流程入口；没有将源码完成升级为运行通过，也未执行任何检查。

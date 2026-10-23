@@ -44,7 +44,7 @@
 
 宿主正常取消根协程时设置`execution_interrupted`停止信号、关闭已有传输，并尝试同一失败事务保存最后进度；取消后不再准入新模型／工具。DB不可用或进程硬退出时不能承诺该最后写入或文件镜像，仍以原DB检查点与持久准入收据为准。宿主同时终止后台线程／事件循环属于此边界，文件不是执行权威，也没有自动重启研究服务。
 
-本人`GET /api/v1/research/{session_id}/result`增加`workflow_failure`与`operational_events`，沿原owner鉴权和披露投影。工作区“研究计划”显示失败步骤、最后保存进度与错误摘要，保留实际用量与复制研究条件入口。这些字段只属于工作区和研究记录，不进入报告正文。例如执行中断返回`status: failed`及`workflow_failure.checkpoint_seq`；报告已保存、通知失败返回原`status: completed`及`operational_events[].effect: committed_research_state_preserved`。没有为故障新增公开写接口。DB不可用时不能承诺已保存失败，日志保留“状态保存失败”；不伪造成功。
+本人`GET /api/v1/research/{session_id}`增加`workflow_failure`与`operational_events`，沿原owner鉴权和披露投影。工作区“研究计划”显示失败步骤、最后保存进度与错误摘要，保留实际用量与复制研究条件入口。这些字段只属于工作区和研究记录，不进入报告正文。例如执行中断返回`status: failed`及`workflow_failure.checkpoint_seq`；报告已保存、通知失败返回原`status: completed`及`operational_events[].effect: committed_research_state_preserved`。没有为故障新增公开写接口。DB不可用时不能承诺已保存失败，日志保留“状态保存失败”；不伪造成功。
 
 ## 其他缓存、调度与维护的选定路径
 
