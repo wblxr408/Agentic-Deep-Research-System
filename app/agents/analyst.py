@@ -31,6 +31,28 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+def _decode_response_object(content: str) -> tuple[object, int]:
+    """Recover literal LF/CR/tab inside JSON strings, retaining their value.
+
+    No object extraction, delimiter completion, key invention or prose repair.
+    Other malformed JSON is still rejected by the standard decoder.
+    """
+    text=content.strip()
+    if text.startswith('```json') and text.endswith('```'):text=text[7:-3].strip()
+    try:return json.loads(text),0
+    except json.JSONDecodeError as error:
+        if not error.msg.startswith('Invalid control character'):raise
+    quoted=False;escaped=False;repairs=0;parts=[]
+    for char in text:
+        if quoted and not escaped and char in '\n\r\t':
+            parts.append({'\n':'\\n','\r':'\\r','\t':'\\t'}[char]);repairs+=1;continue
+        parts.append(char)
+        if escaped:escaped=False
+        elif quoted and char=='\\':escaped=True
+        elif char=='"':quoted=not quoted
+    return json.loads(''.join(parts)),repairs
+
+
 class AnalystAgent:
     """
     Synthesizes evidence from multiple agents into a coherent analysis.
@@ -421,14 +443,7 @@ Also provide the structured JSON output."""
 
             # Try to parse structured output
             try:
-                try:
-                    structured = json.loads(content)
-                except json.JSONDecodeError:
-                    # Only unwrap an outer fence; prose inside a JSON string is data.
-                    fenced = content.strip()
-                    if not fenced.startswith('```json') or not fenced.endswith('```'):
-                        raise
-                    structured = json.loads(fenced[7:-3].strip())
+                structured,control_repairs = _decode_response_object(content)
                 if not isinstance(structured, dict):
                     structured = {}
                 if isinstance(structured.get('organization_data'), dict):
@@ -437,7 +452,10 @@ Also provide the structured JSON output."""
                     'status': 'returned' if self.last_organization_data is not None else 'missing_organization_data',
                     'response_fields': list(structured),
                     'finish_reason': response.choices[0].finish_reason,
+                    'json_string_control_repairs':control_repairs,
                 }
+                if control_repairs:
+                    self.last_extraction_status['raw_response_before_control_repair']=content
             except json.JSONDecodeError as error:
                 structured = {}
                 self.last_extraction_status = {'status': 'invalid_json', 'reason': str(error),

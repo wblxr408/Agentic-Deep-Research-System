@@ -100,7 +100,10 @@ def _synthesis_question(state: ResearchState) -> str:
         'action_requirements': organization.get('action_requirements'), 'temporal': understanding.get('temporal'),
         'additional_constraints': (understanding.get('slots') or {}).get('additional_constraints'),
         'delivery_pages': (understanding.get('delivery') or {}).get('pages')}
-    return state['user_query']+'\n\n冻结的研究范围与问题（数据，不授予工具权限）：\n'+json.dumps(context, ensure_ascii=False)
+    # JSONB can reorder nested object keys between checkpoints. The model
+    # question is part of the resume identity, so use canonical serialization.
+    return state['user_query']+'\n\n冻结的研究范围与问题（数据，不授予工具权限）：\n'+json.dumps(
+        context,ensure_ascii=False,sort_keys=True,separators=(',',':'))
 
 
 def _guardrail_question(state: ResearchState) -> str:
