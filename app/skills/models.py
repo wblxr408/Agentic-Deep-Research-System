@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, Field, StringConstraints, field_validator, model_validator
 
 ALLOWED_SKILL_TOOLS = {"search", "browser", "rag", "mcp"}
 SKILL_SCOPE_VALUES = {"global", "tenant", "project"}
+SkillStage = Literal['planner', 'search', 'browser', 'rag', 'mcp', 'analyst', 'reflection', 'report', 'render']
+ReferenceId = Annotated[str, StringConstraints(pattern=r'^[a-z0-9][a-z0-9_-]{0,63}$')]
 
 
 class AgentHints(BaseModel):
@@ -17,6 +19,8 @@ class AgentHints(BaseModel):
     browser: str | None = None
     search: str | None = None
     rag: str | None = None
+    mcp: str | None = None
+    render: str | None = None
 
 
 class SkillMetadata(BaseModel):
@@ -28,6 +32,12 @@ class SkillMetadata(BaseModel):
     priority: int = Field(default=100, ge=0, le=1000)
     trigger_patterns: list[str] = Field(default_factory=list)
     allowed_tools: list[str] = Field(default_factory=list)
+    required_tools: list[str] = Field(default_factory=list, max_length=4)
+    tool_restrictions: list[str] | None = Field(default=None, max_length=4)
+    stages: list[SkillStage] = Field(default_factory=list, max_length=9)
+    disciplines: list[str] = Field(default_factory=list, max_length=20)
+    templates: list[str] = Field(default_factory=list, max_length=20)
+    stage_references: dict[SkillStage, list[ReferenceId]] = Field(default_factory=dict, max_length=9)
     agent_hints: AgentHints = Field(default_factory=AgentHints)
     tags: list[str] = Field(default_factory=list)
     keywords: list[str] = Field(default_factory=list)
@@ -65,6 +75,25 @@ class SkillMetadata(BaseModel):
             if cleaned and cleaned not in normalized:
                 normalized.append(cleaned)
         return normalized
+
+    @field_validator('required_tools', 'tool_restrictions')
+    @classmethod
+    def validate_capability_tools(cls, value):
+        return None if value is None else cls.validate_allowed_tools(value)
+
+    @field_validator('stages', 'disciplines', 'templates')
+    @classmethod
+    def validate_stage_lists(cls, value):
+        if len(set(value)) != len(value) or any(not item.strip() or len(item) > 100 for item in value):
+            raise ValueError('skill applicability values must be distinct, nonblank and bounded')
+        return value
+
+    @field_validator('stage_references')
+    @classmethod
+    def validate_references(cls, value):
+        if any(len(items) > 16 or len(set(items)) != len(items) for items in value.values()):
+            raise ValueError('each stage accepts at most sixteen distinct inline reference IDs')
+        return value
 
     @field_validator("domain", "tenant_id", "project_id")
     @classmethod
@@ -123,6 +152,12 @@ class SkillMetaRecord(BaseModel):
             priority=self.metadata.priority,
             trigger_patterns=self.metadata.trigger_patterns,
             allowed_tools=self.metadata.allowed_tools,
+            required_tools=self.metadata.required_tools,
+            tool_restrictions=self.metadata.tool_restrictions,
+            stages=self.metadata.stages,
+            disciplines=self.metadata.disciplines,
+            templates=self.metadata.templates,
+            stage_references=self.metadata.stage_references,
             agent_hints=self.metadata.agent_hints.model_dump(),
             tags=self.metadata.tags,
             keywords=self.metadata.keywords,
@@ -178,6 +213,12 @@ class SkillRuntimeView(BaseModel):
     priority: int
     trigger_patterns: list[str] = Field(default_factory=list)
     allowed_tools: list[str] = Field(default_factory=list)
+    required_tools: list[str] = Field(default_factory=list)
+    tool_restrictions: list[str] | None = None
+    stages: list[str] = Field(default_factory=list)
+    disciplines: list[str] = Field(default_factory=list)
+    templates: list[str] = Field(default_factory=list)
+    stage_references: dict[str, list[str]] = Field(default_factory=dict)
     agent_hints: dict[str, str | None] = Field(default_factory=dict)
     tags: list[str] = Field(default_factory=list)
     keywords: list[str] = Field(default_factory=list)
@@ -195,11 +236,11 @@ class SkillRuntimeView(BaseModel):
 
 
 class SkillCreateRequest(BaseModel):
-    markdown_content: str = Field(..., min_length=1)
+    markdown_content: str = Field(..., min_length=1, max_length=65536)
 
 
 class SkillUpdateRequest(BaseModel):
-    markdown_content: str = Field(..., min_length=1)
+    markdown_content: str = Field(..., min_length=1, max_length=65536)
 
 
 class SkillMatchResult(BaseModel):
@@ -220,6 +261,15 @@ class ResolvedSkillRef(BaseModel):
     priority: int
     matched_reason: str
     allowed_tools: list[str] = Field(default_factory=list)
+    required_tools: list[str] = Field(default_factory=list)
+    tool_restrictions: list[str] | None = None
+    stages: list[str] = Field(default_factory=list)
+    disciplines: list[str] = Field(default_factory=list)
+    templates: list[str] = Field(default_factory=list)
+    stage_references: dict[str, list[str]] = Field(default_factory=dict)
+    reference_sections: dict[str, str] = Field(default_factory=dict)
+    content_identity: str | None = None
+    compilation_errors: list[str] = Field(default_factory=list)
     prompt_sections: dict[str, str] = Field(default_factory=dict)
     agent_hints: dict[str, list[str]] = Field(default_factory=dict)
 

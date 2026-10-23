@@ -20,6 +20,9 @@ class McpToolRequest:
     requested_args: dict[str, Any]
     server_id: str
     approval_id: str | None = None
+    owner_id: str | None = None
+    node_id: str | None = None
+    revision_count: int = 0
 
 
 @dataclass
@@ -100,7 +103,8 @@ class McpPolicyProxy:
             args_hash = self._stable_hash(request.requested_args)
             approval_request = {
                 "approval_id": self._approval_id(request, args_hash),
-                "node_id": None,
+                "node_id": request.node_id,
+                "bound_query": request.requested_args.get("query"),
                 "tool_name": request.tool_name,
                 "risk_level": "high",
                 "reason": "mcp_write_requires_approval",
@@ -109,6 +113,7 @@ class McpPolicyProxy:
                     "tool_name": request.tool_name,
                     "args": redacted_args,
                     "args_hash": args_hash,
+                    "server_fingerprint": registry["fingerprint"],
                 },
                 "status": "pending",
             }
@@ -117,6 +122,23 @@ class McpPolicyProxy:
                 approval_request=approval_request,
                 server_fingerprint=registry["fingerprint"],
             )
+
+        if requires_approval:
+            async with pool.acquire() as conn:
+                approval = await conn.fetchrow(
+                    """SELECT a.status, a.node_id, a.request_payload_json
+                       FROM approval_requests a JOIN research_sessions s ON s.id = a.session_id
+                       WHERE a.approval_id = $1 AND a.session_id = $2::uuid
+                         AND a.tool_name = $3 AND s.owner_id = $4::uuid AND a.node_id = $5""",
+                    request.approval_id, request.session_id, request.tool_name, request.owner_id, request.node_id,
+                )
+            bound = self._coerce_policy(approval["request_payload_json"]) if approval else {}
+            if (not request.owner_id or not request.node_id or not approval or approval["status"] != "approved"
+                    or bound.get("server_id") != request.server_id
+                    or bound.get("tool_name") != request.tool_name
+                    or bound.get("args_hash") != self._stable_hash(request.requested_args)
+                    or bound.get("server_fingerprint") != registry["fingerprint"]):
+                return McpToolResult(status="terminal_error", error_category="approval_denied", error_message="approval does not match the current action")
 
         if self.executor is None:
             return McpToolResult(
@@ -337,5 +359,7 @@ class McpPolicyProxy:
             "server_id": request.server_id,
             "tool_name": request.tool_name,
             "args_hash": args_hash,
+            "node_id": request.node_id,
+            "revision_count": request.revision_count,
         }
         return f"ap-{self._stable_hash(payload)[:12]}"

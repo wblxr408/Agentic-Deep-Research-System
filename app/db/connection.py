@@ -13,6 +13,11 @@ from typing import TYPE_CHECKING, Any
 import asyncpg
 
 from app.config import get_settings
+from app.db.matching import MATCHING_SCHEMA_SQL
+from app.db.presets import PRESET_SCHEMA_SQL
+from app.db.report_delivery import SCHEMA_SQL as REPORT_DELIVERY_SCHEMA_SQL
+from app.db.retrieval_indexes import RETRIEVAL_SCHEMA_SQL
+from app.source_lifecycle import SCHEMA_SQL as LIFECYCLE_SCHEMA_SQL
 from app.db.text_search import regconfig_sql_literal, resolve_text_search_config
 
 if TYPE_CHECKING:
@@ -46,7 +51,7 @@ async def init_db() -> asyncpg.Pool:
         _fts_config = await resolve_text_search_config(conn, log=logger)
         fts_config_sql = regconfig_sql_literal(_fts_config)
         await conn.execute("CREATE EXTENSION IF NOT EXISTS vector")
-        await conn.execute("""
+        await conn.execute(f"""
             CREATE TABLE IF NOT EXISTS documents (
                 id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                 source_id UUID,
@@ -55,8 +60,8 @@ async def init_db() -> asyncpg.Pool:
                 chunk_index INTEGER DEFAULT 0,
                 chunk_count INTEGER DEFAULT 1,
                 content TEXT NOT NULL,
-                metadata JSONB DEFAULT '{}',
-                embedding VECTOR(1024),
+                metadata JSONB DEFAULT '{{}}',
+                embedding VECTOR({settings.rag.embed_dimension}),
                 created_at TIMESTAMP DEFAULT NOW(),
                 updated_at TIMESTAMP DEFAULT NOW()
             )
@@ -66,10 +71,6 @@ async def init_db() -> asyncpg.Pool:
         await conn.execute("ALTER TABLE documents ADD COLUMN IF NOT EXISTS source_type VARCHAR(20) DEFAULT 'manual'")
         await conn.execute("ALTER TABLE documents ADD COLUMN IF NOT EXISTS chunk_index INTEGER DEFAULT 0")
         await conn.execute("ALTER TABLE documents ADD COLUMN IF NOT EXISTS chunk_count INTEGER DEFAULT 1")
-        await conn.execute("""
-            CREATE INDEX IF NOT EXISTS idx_documents_embedding
-            ON documents USING ivfflat (embedding vector_cosine_ops)
-        """)
         try:
             await conn.execute(f"""
                 CREATE INDEX IF NOT EXISTS idx_documents_fts
@@ -135,6 +136,12 @@ async def init_db() -> asyncpg.Pool:
             ALTER TABLE research_sessions
             ADD COLUMN IF NOT EXISTS skill_context JSONB DEFAULT '{}'
         """)
+        await conn.execute("ALTER TABLE research_sessions ADD COLUMN IF NOT EXISTS request_payload JSONB")
+        await conn.execute("ALTER TABLE research_sessions ADD COLUMN IF NOT EXISTS execution_id UUID")
+        await conn.execute("ALTER TABLE research_sessions ADD COLUMN IF NOT EXISTS total_tokens INTEGER DEFAULT 0")
+        await conn.execute("ALTER TABLE research_sessions ADD COLUMN IF NOT EXISTS total_cost_usd NUMERIC(10, 6) DEFAULT 0")
+        await conn.execute("ALTER TABLE research_sessions DROP CONSTRAINT IF EXISTS research_sessions_status_check")
+        await conn.execute("ALTER TABLE research_sessions ADD CONSTRAINT research_sessions_status_check CHECK (status IN ('pending', 'running', 'completed', 'failed', 'paused'))")
 
         await conn.execute("""
             CREATE TABLE IF NOT EXISTS citations (
@@ -250,6 +257,7 @@ async def init_db() -> asyncpg.Pool:
                 harness_state_version INTEGER DEFAULT 1
             )
         """)
+        await conn.execute("ALTER TABLE session_runtime_state ADD COLUMN IF NOT EXISTS state_snapshot_json JSONB")
         await conn.execute("""
             CREATE TABLE IF NOT EXISTS mcp_server_registry (
                 server_id VARCHAR(100) PRIMARY KEY,
@@ -416,6 +424,12 @@ async def init_db() -> asyncpg.Pool:
         await conn.execute(
             "CREATE INDEX IF NOT EXISTS idx_skill_meta_owner_active ON skill_meta (owner_id, is_deleted, enabled)"
         )
+
+        await conn.execute(MATCHING_SCHEMA_SQL)
+        await conn.execute(PRESET_SCHEMA_SQL)
+        await conn.execute(REPORT_DELIVERY_SCHEMA_SQL)
+        await conn.execute(RETRIEVAL_SCHEMA_SQL)
+        await conn.execute(LIFECYCLE_SCHEMA_SQL)
 
     _db_pool = pool
     logger.info("Database initialized successfully")

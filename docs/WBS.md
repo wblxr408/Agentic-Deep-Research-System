@@ -1,8 +1,10 @@
 **逐项判断**
 
+> 新一轮精细化设计与实现以[优化 TODO](OPTIMIZATION_TODO.md)为入口。下文保留历史检查记录，现状与缺口需在对应优化项开始时重新核对。
+
 1. **自主研究工作流** ：**基本实现，但不算完全**
 
-* 有完整 LangGraph 主流程：**planner -> dag_executor -> search/browser/rag -> analyst -> reflection -> report**，并带重规划分支，见 app/graph/compiler.py (line 753)。
+* 有完整 LangGraph 主流程：**planner -> dag_executor -> search/browser（可补充内部资料检索）-> analyst -> reflection -> report**，并带重规划分支；公开研究默认联网，`rag` 仅在用户启用内部资料时参与。
 * 但后端启动时数据库初始化失败也不会阻止服务继续启动，这意味着“工作流可用性”并不稳，见 app/main.py (line 49) 和数据库初始化错误来源 app/db/connection.py (line 53)。
 
 1. **Research DAG 生成** ：**已实现主体，但验证不完整**

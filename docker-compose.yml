@@ -34,6 +34,9 @@ services:
       - API_PORT=8000
       - API_RELOAD=false
       - API_LOG_LEVEL=${API_LOG_LEVEL:-INFO}
+      - CHANNELS_STATE_ROOT=/app/data/channels
+    volumes:
+      - channeldata:/app/data/channels
     depends_on:
       db:
         condition: service_healthy
@@ -87,3 +90,4 @@ services:
 volumes:
   pgdata:
   redisdata:
+  channeldata:

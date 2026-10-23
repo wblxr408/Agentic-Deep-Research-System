@@ -12,7 +12,7 @@ from typing import Any, Literal
 
 import asyncpg
 from fastapi import APIRouter, Depends
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from app.config import get_settings
 from app.core.time import utc_now_naive
@@ -76,6 +76,13 @@ class LLMConfigRequest(BaseModel):
         default=None,
         description="Fallback API key"
     )
+    routing: dict = Field(default_factory=dict)
+
+    @field_validator('routing')
+    @classmethod
+    def validate_routing(cls,value):
+        from app.model_routing import RoutingPolicy,policy_data
+        return policy_data(RoutingPolicy.model_validate(value))
 
 
 class LLMConfigResponse(BaseModel):
@@ -90,6 +97,7 @@ class LLMConfigResponse(BaseModel):
     fallback_model: str | None
     has_fallback_api_key: bool
     updated_at: str | None
+    routing: dict = Field(default_factory=dict)
 
 
 class LLMConfigStatus(BaseModel):
@@ -235,6 +243,7 @@ async def get_llm_config(principal: Principal = principal_dependency):
             fallback_model=config.fallback_model,
             has_fallback_api_key=bool(config.fallback_api_key),
             updated_at=None,
+            routing=config.routing,
         )
 
     # Check DB config
@@ -252,6 +261,7 @@ async def get_llm_config(principal: Principal = principal_dependency):
             fallback_model=data.get("fallback_model"),
             has_fallback_api_key=bool(data.get("fallback_api_key")),
             updated_at=db_config.get("updated_at"),
+            routing=data.get('routing') or {},
         )
 
     # Fallback to environment variables
@@ -267,6 +277,7 @@ async def get_llm_config(principal: Principal = principal_dependency):
         fallback_model=settings.llm.fallback_model,
         has_fallback_api_key=bool(settings.llm.fallback_api_key),
         updated_at=None,
+        routing=settings.llm.routing,
     )
 
 
@@ -312,6 +323,7 @@ async def update_llm_config(config: LLMConfigRequest, principal: Principal = pri
         fallback_model=config.fallback_model,
         has_fallback_api_key=bool(config.fallback_api_key),
         updated_at=utc_now_naive().isoformat(),
+        routing=config.routing,
     )
 
 

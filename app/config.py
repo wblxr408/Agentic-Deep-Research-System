@@ -42,6 +42,7 @@ class LLMSettings(BaseSettings):
     fallback_provider: ProviderName | None = Field(default=None)
     fallback_model: str | None = Field(default=None)
     fallback_api_key: str | None = Field(default=None)
+    routing: dict = Field(default_factory=dict)
 
     model_config = SettingsConfigDict(env_prefix="LLM_", env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
@@ -73,12 +74,15 @@ class RAGSettings(BaseSettings):
     """RAG system configuration."""
 
     embed_model: str = Field(default="BAAI/bge-zh-qwen2-int8")
-    embed_dimension: int = Field(default=1024)
+    embed_revision: str | None = Field(default=None,max_length=128,description="Pinned model commit for new dense representations")
+    embed_dimension: int = Field(default=1024,ge=1,le=16000)
+    enable_dense_retrieval: bool = False
+    enable_reranker: bool = False
     rerank_model: str = Field(default="BAAI/bge-reranker-v2-m3")
     rerank_device: Literal["cuda", "cpu"] = Field(default="cuda")
-    retrieval_top_k: int = Field(default=20, description="Initial retrieval count")
-    rerank_top_n: int = Field(default=10, description="Final count after reranking")
-    rrf_k: int = Field(default=60, description="RRF fusion parameter")
+    retrieval_top_k: int = Field(default=20,ge=1,le=100,description="Initial count per retrieval channel")
+    rerank_top_n: int = Field(default=10,ge=1,le=50,description="Final count after ranking")
+    rrf_k: int = Field(default=60,ge=1,le=10000,description="RRF fusion parameter")
 
     model_config = SettingsConfigDict(env_prefix="RAG_", env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
@@ -179,6 +183,17 @@ class SkillSettings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="SKILLS_", env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
 
+class DocumentParsingSettings(BaseSettings):
+    """Finite local parsing; OCR requires both caller selection and server policy."""
+    timeout_seconds: float = Field(default=25,ge=1,le=60)
+    max_chars: int = Field(default=160000,ge=1000,le=500000)
+    ocr_enabled: bool = Field(default=False)
+    ocr_binary: str = Field(default='tesseract',min_length=1,max_length=1000)
+    ocr_language: str = Field(default='eng',pattern=r'^[a-z]{3}(?:_[a-z]{3,4})?(?:\+[a-z]{3}(?:_[a-z]{3,4})?){0,3}$')
+    max_ocr_pages: int = Field(default=8,ge=1,le=20)
+    model_config = SettingsConfigDict(env_prefix='DOCUMENT_PARSING_',env_file='.env',env_file_encoding='utf-8',extra='ignore')
+
+
 class Settings(BaseSettings):
     """Root configuration aggregating all sub-settings."""
 
@@ -193,6 +208,7 @@ class Settings(BaseSettings):
     resilience: ResilienceSettings = Field(default_factory=ResilienceSettings)
     harness: HarnessSettings = Field(default_factory=HarnessSettings)
     skills: SkillSettings = Field(default_factory=SkillSettings)
+    document_parsing: DocumentParsingSettings = Field(default_factory=DocumentParsingSettings)
 
     # Global flags
     sse_enabled: bool = Field(default=True)

@@ -16,8 +16,35 @@ import type { SSEvent } from '../hooks/useSSE'
 import AgentTrace from './AgentTrace'
 import ToolTrace from './ToolTrace'
 import ReportPreview from './ReportPreview'
+import ReportDownloads from './ReportDownloads'
+import ReportHistory from './ReportHistory'
+import ClassificationPanel from './ClassificationPanel'
+import IngestionPanel from './IngestionPanel'
+import type { OrganizationReportSnapshot } from './OrganizationReportSummary'
+import ChannelPanel from './ChannelPanel'
+import OrganizationResearchPanel, { defaultOrganizationDraft, organizationRequest } from './OrganizationResearchPanel'
+import OrganizationWeightsPanel from './OrganizationWeightsPanel'
+import type { WeightSelection } from './OrganizationWeightsPanel'
+import ResearchMatchingPanel from './ResearchMatchingPanel'
+import QueryUnderstandingPanel, { defaultQueryDraft, queryDraftRequest, UnderstandingSummary } from './QueryUnderstandingPanel'
+import type { QueryDraft, UnderstandingSnapshot } from './QueryUnderstandingPanel'
+import ResearchPlanSummary from './ResearchPlanSummary'
+import ResearchConfigurationEditor from './ResearchConfigurationEditor'
+import type { PlanSummaryProps } from './ResearchPlanSummary'
+import type { DeliveryView } from './ReportDeliveryView'
 
 interface ResearchResult {
+  report_audit?: {needs_review?:boolean;audit_incomplete?:boolean;total_claims?:number;supported_claims?:number;
+    revision_requests?:Array<{claim_id:string;text:string;reason:string;requested_action:string}>}|null
+  analysis_recovery_available?: boolean
+  analysis_progress?: {phase: string|null;status:string;completed_steps:number}|null
+  budget_state?: {used_total_tokens?:number;max_total_tokens?:number;cost_status?:string;token_usage_estimated?:boolean;hard_stop_reason?:string|null;model_stop_reason?:string|null} | null
+  report_editorial?: { note?: string } | null
+  delivery_view?: DeliveryView | null
+  plan_manifest?: PlanSummaryProps['plan']
+  plan_history?: PlanSummaryProps['history']
+  iteration_control?: PlanSummaryProps['control']
+  query_understanding?: UnderstandingSnapshot | null
   session_id: string
   query: string
   status: string
@@ -27,8 +54,12 @@ interface ResearchResult {
     source_url: string
     source_title: string
     source_type: string
+    extracted_evidence?:string
+    locator?:{evidence_id:string;start:number;end:number;parse_version_id?:string|null;chunk_reference?:unknown;returned_span?:unknown}|null
   }> | Record<string, unknown> | null
   agent_trace: unknown[]
+  execution_plan?: { nodes: Array<{ node_id: string; node_type: string; query: string; status: string }> }
+  restart_parameters?: Record<string, unknown>
   skill_context?: {
     auto_matched_skill_ids?: string[]
     manually_enabled_skill_ids?: string[]
@@ -46,6 +77,18 @@ interface ResearchResult {
   }
   created_at: string
   completed_at: string | null
+  organization_research?: {
+    purpose?: string
+    modules?: string[]
+    corpus?: Record<string, unknown>
+    taxonomy?: { request?: unknown }
+    action_requirements?: unknown
+    scope: { organization_types: string[]; entities: Array<{ entity_id: string; name: string }>; disciplines: string[]; start_date: string; end_date: string }
+    effective_weights: { effective_weights: Record<string, number> }
+  } | null
+  organization_result?: { evidence_count?: number; counting_unit?: string; gaps?: string[]; report_summary?: OrganizationReportSnapshot;
+    analyst_context?:unknown;report_context?:unknown;
+    chart_rendering?:{status:string;reason?:string|null}} | null
 }
 
 interface SkillItem {
@@ -64,17 +107,28 @@ interface ResearchDashboardProps {
 function ResearchDashboard({ onBack }: ResearchDashboardProps) {
   const [query, setQuery] = useState('')
   const [ragGroup, setRagGroup] = useState('')
-  const [allowWebAfterRagHit, setAllowWebAfterRagHit] = useState(false)
+  const [useInternalDocs, setUseInternalDocs] = useState(false)
   const [outputLength, setOutputLength] = useState<'short' | 'medium' | 'long'>('medium')
-  const [activeSessionId, setActiveSessionId] = useState<string | null>(null)
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(() => new URLSearchParams(window.location.search).get('session'))
   const [isStreaming, setIsStreaming] = useState(false)
+  const [streamRunKey, setStreamRunKey] = useState('')
   const [sessionStatus, setSessionStatus] = useState<string | null>(null)
   const [enabledSkillIds, setEnabledSkillIds] = useState<string[]>([])
   const [disabledSkillIds, setDisabledSkillIds] = useState<string[]>([])
+  const [selectedChannels, setSelectedChannels] = useState<string[]>([])
+  const [organizationDraft, setOrganizationDraft] = useState(defaultOrganizationDraft)
+  const [weightSelection, setWeightSelection] = useState<WeightSelection>()
+  const [queryDraft, setQueryDraft] = useState<QueryDraft>(defaultQueryDraft)
+  const [understanding, setUnderstanding] = useState<UnderstandingSnapshot | null>(null)
+  const [understandingKey, setUnderstandingKey] = useState('')
+  const requestDraftKey = JSON.stringify({ query, queryDraft, organizationDraft, weightSelection, useInternalDocs,
+    ragGroup, outputLength, enabledSkillIds, disabledSkillIds, selectedChannels })
+  const requestKeyRef = useRef(requestDraftKey)
+  requestKeyRef.current = requestDraftKey
   const inputRef = useRef<HTMLInputElement>(null)
 
   // SSE for real-time updates
-  const { events, status: sseStatus, error: sseError, clearEvents } = useSSE(activeSessionId)
+  const { events, status: sseStatus, error: sseError, clearEvents } = useSSE(activeSessionId, streamRunKey)
 
   const { data: skillsData } = useQuery<{ items: SkillItem[] }>({
     queryKey: ['skills'],
@@ -91,44 +145,119 @@ function ResearchDashboard({ onBack }: ResearchDashboardProps) {
   }, [])
 
   // Fetch research result
-  const { data: result } = useQuery<ResearchResult>({
+  const { data: result, refetch: refetchResult } = useQuery<ResearchResult>({
     queryKey: ['research', activeSessionId],
     queryFn: async () => {
       const res = await fetch(`/api/v1/research/${activeSessionId}`)
       if (!res.ok) throw new Error('Failed to fetch result')
       return res.json()
     },
-    enabled: !!activeSessionId && !isStreaming,
-    refetchInterval: isStreaming ? 3000 : false,
+    enabled: !!activeSessionId,
+    refetchInterval: query => ['pending', 'running'].includes(query.state.data?.status || 'running') ? 3000 : false,
   })
 
-  // Start research mutation
+  const resumeAnalysis = useMutation({
+    mutationFn: async () => {
+      const response=await fetch(`/api/v1/research/${activeSessionId}/analysis/resume`,{method:'POST'})
+      const data=await response.json()
+      if (!response.ok) {
+        const messages:Record<string,string>={
+          analysis_original_allowance_exhausted:'原任务的额度或期限已用完，无法继续本次分析。',
+          analysis_sources_changed:'研究资料的访问权限已变化，请调整资料后发起新研究。',
+          analysis_inputs_changed:'研究输入已变化，已保存的分析步骤不能继续复用。',
+          analysis_phase_attempt_limit:'当前问题已达到两次尝试上限。',
+          analysis_checkpoint_changed:'任务状态已变化，请刷新后查看。',
+          analysis_checkpoint_not_recoverable:'当前任务没有可继续的分析检查点。',
+          analysis_original_deadline_unavailable:'原任务的期限记录不完整，无法恢复。',
+        }
+        throw new Error(messages[String(data.detail)] || '暂时无法继续分析，请稍后重试。')
+      }
+      return data as {execution_id:string}
+    },
+    onSuccess: async data => {
+      clearEvents()
+      setStreamRunKey(data.execution_id)
+      const refreshed=await refetchResult()
+      const status=refreshed.data?.status || 'running'
+      setSessionStatus(status)
+      setIsStreaming(['pending','running'].includes(status))
+    },
+  })
+
+  function buildRequest(q: string) {
+    const drawingIds = queryDraft.drawingMode==='builtin'?[]:[
+      ...(queryDraft.drawingMode==='manual_skill'?queryDraft.drawingSkillIds:[]),
+      ...Object.values(queryDraft.chartSkillIds||{}).filter(Boolean)]
+    if (drawingIds.some(id => disabledSkillIds.includes(id))) throw new Error('绘图 Skill 已在会话中禁用，请先解除禁用或重新选择。')
+    return { query: q, use_internal_docs: useInternalDocs,
+      rag_group: useInternalDocs ? ragGroup.trim() || null : null, output_length: outputLength,
+      enabled_skill_ids: [...new Set([...enabledSkillIds, ...drawingIds])], disabled_skill_ids: disabledSkillIds,
+      channels: selectedChannels, organization_research: organizationRequest(organizationDraft, q, weightSelection),
+      ...queryDraftRequest(queryDraft, organizationDraft.enabled) }
+  }
+
+  async function previewRequest(body: ReturnType<typeof buildRequest>, key: string): Promise<UnderstandingSnapshot> {
+    const response = await fetch('/api/v1/research/understanding', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+    })
+    const data = await response.json()
+    if (!response.ok) throw new Error(typeof data.detail === 'string' ? data.detail : '查询配置无效，请检查对象、日期和页面设置。')
+    if (requestKeyRef.current !== key) throw new Error('预览期间配置已变化，请重新预览。')
+    setUnderstanding(data)
+    setUnderstandingKey(key)
+    return data
+  }
+
+  const previewMutation = useMutation({
+    mutationFn: async () => previewRequest(buildRequest(query.trim()), requestKeyRef.current),
+  })
+
+  // Always recompute against the authenticated owner's current configuration.
   const startMutation = useMutation({
     mutationFn: async (q: string) => {
+      const key = requestKeyRef.current
+      const body = buildRequest(q)
+      const preview = await previewRequest(body, key)
+      if (!preview.ready) throw new Error('请先处理查询解释中的待澄清项，再开始研究。')
       const res = await fetch('/api/v1/research', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          query: q,
-          allow_web_after_rag_hit: allowWebAfterRagHit,
-          rag_group: ragGroup.trim() || null,
-          output_length: outputLength,
-          enabled_skill_ids: enabledSkillIds,
-          disabled_skill_ids: disabledSkillIds,
-        }),
+        body: JSON.stringify({ ...body, query_preview_id: preview.interpretation_id }),
       })
-      if (!res.ok) throw new Error('Failed to start research')
+      if (!res.ok) {
+        const problem = await res.json().catch(() => ({}))
+        if (problem.detail?.understanding) {
+          setUnderstanding(problem.detail.understanding)
+          setUnderstandingKey(key)
+        }
+        if (problem.detail?.category === 'query_preview_changed') throw new Error('研究配置或上下文已更新，已显示新解释，请重新提交。')
+        if (problem.detail?.category === 'query_clarification_required') throw new Error('请先处理查询解释中的待澄清项。')
+        throw new Error(typeof problem.detail === 'string' ? problem.detail : '研究配置未通过校验，请检查对象、学科和日期。')
+      }
       return res.json()
     },
     onSuccess: (data) => {
+      const url = new URL(window.location.href)
+      url.searchParams.set('session', data.session_id)
+      window.history.replaceState(null, '', url)
       setActiveSessionId(data.session_id)
-      setIsStreaming(true)
+      setIsStreaming(data.status === 'running')
       setSessionStatus(data.status)
       clearEvents()
     },
   })
 
   // Detect when streaming ends
+  const previousWeightSelection = useRef('')
+  const applyWeightSelection = useCallback((selection: WeightSelection) => {
+    const signature = JSON.stringify(selection)
+    const changed = signature !== previousWeightSelection.current
+    previousWeightSelection.current = signature
+    setWeightSelection(selection)
+    // A corrected draft must not keep displaying a previous submission error.
+    if (changed && !selection.error && startMutation.error && !startMutation.isPending) startMutation.reset()
+  }, [startMutation.error, startMutation.isPending, startMutation.reset])
+
   useEffect(() => {
     const doneEvent = events.find((e: SSEvent) => e.type === 'done' || e.type === 'workflow_error')
     if (doneEvent) {
@@ -145,12 +274,13 @@ function ResearchDashboard({ onBack }: ResearchDashboardProps) {
 
   useEffect(() => {
     if (result?.status) {
+      if (!query) setQuery(result.query)
       setSessionStatus(result.status)
-      if (result.status !== 'running') {
+      if (['completed', 'failed', 'paused', 'pending_confirmation'].includes(result.status)) {
         setIsStreaming(false)
       }
     }
-  }, [result])
+  }, [result, query])
 
   // Build report from streaming chunks
   const streamedReport = events
@@ -159,23 +289,49 @@ function ResearchDashboard({ onBack }: ResearchDashboardProps) {
     .join('')
 
   // Collect stats from events
-  const agentEvents = events.filter((e: SSEvent) =>
+  const historicalEvents: SSEvent[] = (result?.agent_trace || []).flatMap(event => {
+    if (typeof event !== 'object' || event === null || !('event_type' in event)) return []
+    const data = event as Record<string, unknown>
+    const metadata = typeof data.metadata === 'object' && data.metadata !== null ? data.metadata as Record<string, unknown> : {}
+    return [{ type: String(data.event_type), data: { ...data, ...metadata } }]
+  })
+  const traceEvents = events.some(event => event.type !== 'connected') ? events : historicalEvents
+  const progressEvent=[...events].reverse().find(event=>event.type==='state_update' && event.data.analysis_progress)
+  const analysisProgress=(progressEvent?.data.analysis_progress as ResearchResult['analysis_progress']) || result?.analysis_progress
+  const analysisLabels:Record<string,string>={extract_publications:'整理成果与署名',landscape:'研究布局',
+    evolution:'研究演进',relationships:'组织与学者关系',deep_dive:'成果深读',validation:'来源核对',actions:'研究与合作行动'}
+  const progressParts=analysisProgress?.phase?.split(':') || []
+  const analysisPhase=analysisLabels[progressParts[0]==='question'?progressParts[1]:progressParts[0]] || '综合分析'
+  const drawingReason=result?.organization_result?.chart_rendering?.reason
+  const drawingMessages:Record<string,string>={
+    drawing_original_budget_insufficient:'原任务剩余额度不足以完成绘图。',
+    drawing_original_deadline_exhausted:'原任务的绘图期限已到。',
+    drawing_renderer_failed:'文件绘图未完成，请查看研究记录中的渲染原因和依赖配置。',
+    no_source_bound_chart_data:'所选页面没有可用于绘图的来源数据，请调整页面或补充资料。',
+    drawing_plan_incomplete:'绘图计划未完整返回，当前报告与数据已保留。',
+    model_routing_configuration_changed:'模型配置已变化，本任务保留原模型绑定。',
+    model_context_capability_exceeded:'所选绘图模型的上下文容量不足。',
+    no_eligible_model_route:'没有满足绘图阶段及资料许可的配置模型。',
+  }
+  const analysisBatch=progressParts[0]==='extract_publications'?progressParts[1]:
+    progressParts[2]==='conditions'?progressParts[3]:progressParts[2]
+  const agentEvents = traceEvents.filter((e: SSEvent) =>
     ['agent_start', 'agent_complete', 'agent_end'].includes(e.type)
   )
-  const toolEvents = events.filter((e: SSEvent) =>
+  const toolEvents = traceEvents.filter((e: SSEvent) =>
     ['tool_start', 'tool_call', 'tool_complete', 'tool_result', 'tool_error'].includes(e.type)
   )
 
   // Latest DAG node status
-  const dagNodeEvents = events.filter((e: SSEvent) => e.type === 'agent_start')
+  const dagNodeEvents = traceEvents.filter((e: SSEvent) => e.type === 'agent_start')
   const currentNode = dagNodeEvents.length > 0
     ? (dagNodeEvents[dagNodeEvents.length - 1].data as { agent?: string })?.agent || ''
     : ''
 
   const handleStart = useCallback(() => {
-    if (query.trim().length < 5) return
+    if (query.trim().length < 5 || startMutation.isPending || previewMutation.isPending) return
     startMutation.mutate(query.trim())
-  }, [query, startMutation, allowWebAfterRagHit, ragGroup, outputLength, enabledSkillIds, disabledSkillIds])
+  }, [query, startMutation, previewMutation.isPending])
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
@@ -187,15 +343,31 @@ function ResearchDashboard({ onBack }: ResearchDashboardProps) {
   }, [handleStart, onBack])
 
   const handleNewResearch = useCallback(() => {
+    const url = new URL(window.location.href)
+    url.searchParams.delete('session')
+    window.history.replaceState(null, '', url)
     setActiveSessionId(null)
     setQuery('')
+    setQueryDraft(defaultQueryDraft)
+    setUnderstanding(null)
+    setUnderstandingKey('')
     setRagGroup('')
     setSessionStatus(null)
     clearEvents()
     inputRef.current?.focus()
   }, [clearEvents])
 
-  const displayReport = streamedReport || result?.report || ''
+  const handleRestartedResearch = useCallback((sessionId: string) => {
+    const url = new URL(window.location.href)
+    url.searchParams.set('session',sessionId)
+    window.history.replaceState(null,'',url)
+    setActiveSessionId(sessionId)
+    setIsStreaming(true)
+    setSessionStatus('running')
+    clearEvents()
+  }, [clearEvents])
+
+  const displayReport = result?.status === 'completed' ? result.report : streamedReport || result?.report || ''
   const normalizedCitations = Array.isArray(result?.citations) ? result.citations : []
   const effectiveSkillIds = result?.skill_context?.effective_skill_ids || []
   const autoMatchedSkillIds = result?.skill_context?.auto_matched_skill_ids || []
@@ -223,6 +395,8 @@ function ResearchDashboard({ onBack }: ResearchDashboardProps) {
       : sseError
       ? '实时事件连接失败，但仍可继续读取已落库的研究结果。'
       : '当前任务尚未返回可展示的报告内容。'
+
+  const [reportElement, setReportElement] = useState<HTMLDivElement | null>(null)
 
   // ======= RENDER =======
 
@@ -267,8 +441,9 @@ function ResearchDashboard({ onBack }: ResearchDashboardProps) {
               autoFocus
             />
             <button
+              aria-label="开始研究"
               onClick={handleStart}
-              disabled={isStreaming || query.trim().length < 5 || startMutation.isPending}
+              disabled={isStreaming || query.trim().length < 5 || startMutation.isPending || previewMutation.isPending}
               className="absolute right-2 top-1/2 -translate-y-1/2 btn-primary py-2.5 px-5"
             >
               {startMutation.isPending ? (
@@ -287,28 +462,39 @@ function ResearchDashboard({ onBack }: ResearchDashboardProps) {
             </button>
           </div>
           <p className="mt-3 text-xs text-xmgray-400 text-center">
-            默认先搜内部 RAG；内部没有结果时自动联网
+            默认联网研究，可按需补充内部资料
           </p>
+          {startMutation.error && <p role="alert" className="mt-3 rounded-xl bg-red-50 p-3 text-sm text-red-700">{startMutation.error.message}</p>}
+          {previewMutation.error && <p role="alert" className="mt-3 rounded-xl bg-red-50 p-3 text-sm text-red-700">{previewMutation.error.message}</p>}
+          {understanding && understandingKey !== requestDraftKey && <p className="mt-2 text-xs text-amber-800">配置已变化，下方解释来自上次预览；开始研究前会重新解释。</p>}
+          <QueryUnderstandingPanel value={queryDraft} onChange={setQueryDraft} organizationEnabled={organizationDraft.enabled}
+            skills={skillsData?.items.filter(skill => skill.enabled) || []} preview={understanding}
+            onPreview={() => { if (query.trim().length >= 5) previewMutation.mutate() }}
+            canPreview={query.trim().length >= 5}
+            busy={startMutation.isPending || previewMutation.isPending} />
+          <OrganizationResearchPanel value={organizationDraft} onChange={setOrganizationDraft} />
+          {organizationDraft.enabled && <OrganizationWeightsPanel disciplines={organizationDraft.disciplines} onChange={applyWeightSelection} />}
           <div className="mt-4 rounded-2xl border border-xmgray-100 bg-white/80 p-4 text-left shadow-sm">
             <div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-center">
               <label className="block">
-                <span className="text-xs font-medium text-xmgray-500">内部 RAG 分组（可选）</span>
+                <span className="text-xs font-medium text-xmgray-500">内部资料分组（可选）</span>
                 <input
                   type="text"
                   value={ragGroup}
+                  disabled={!useInternalDocs}
                   onChange={e => setRagGroup(e.target.value)}
                   placeholder="例如：company_docs / project_a"
-                  className="mt-1 w-full rounded-xl border border-xmgray-200 px-3 py-2 text-sm text-xmgray-700 outline-none focus:border-xm-400"
+                  className="mt-1 w-full rounded-xl border border-xmgray-200 px-3 py-2 text-sm text-xmgray-700 outline-none focus:border-xm-400 disabled:bg-xmgray-50 disabled:text-xmgray-400"
                 />
               </label>
               <label className="flex items-center gap-2 rounded-xl bg-xmgray-50 px-3 py-2 text-xs text-xmgray-600">
                 <input
                   type="checkbox"
-                  checked={allowWebAfterRagHit}
-                  onChange={e => setAllowWebAfterRagHit(e.target.checked)}
+                  checked={useInternalDocs}
+                  onChange={e => setUseInternalDocs(e.target.checked)}
                   className="accent-orange-500"
                 />
-                内部命中后仍继续联网
+                补充检索内部资料
               </label>
             </div>
             <div className="mt-4 flex flex-wrap gap-2">
@@ -373,8 +559,9 @@ function ResearchDashboard({ onBack }: ResearchDashboardProps) {
               </div>
             </div>
             <p className="mt-2 text-[11px] text-xmgray-400">
-              不勾选时：内部 RAG 有结果就只用内部证据；内部为空才自动联网。
+              启用后检索你维护的内部资料，并结合联网证据分析；留空分组会检索你的全部资料。
             </p>
+            <ChannelPanel selected={selectedChannels} onChange={setSelectedChannels} />
           </div>
         </div>
 
@@ -465,6 +652,14 @@ function ResearchDashboard({ onBack }: ResearchDashboardProps) {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left: Traces panel */}
         <div className="lg:col-span-4 space-y-4">
+          {result?.execution_plan?.nodes?.length ? <section className="card p-5" aria-label="本次研究计划">
+            <h3 className="text-sm font-medium text-xmgray-700">本次研究计划</h3>
+            <ol className="mt-3 max-h-72 space-y-3 overflow-y-auto text-xs text-xmgray-600">{result.execution_plan.nodes.map(node => <li key={node.node_id}>
+              <span className="font-medium">{({ search: '搜索取证', browser: '网页取证', analyst: '综合分析', report: '报告', reflection: '核验', rag: '内部资料', mcp: '扩展工具' } as Record<string, string>)[node.node_type] || node.node_type}</span>
+              <span className="ml-2">{({ done: '已完成', failed: '失败', skipped: '已跳过', pending: '待执行', running: '执行中' } as Record<string, string>)[node.status] || node.status}</span>
+              <p className="mt-1 break-words">{node.query}</p>
+            </li>)}</ol>
+          </section> : null}
           {/* Agent Trace - Xiaomi card */}
           <div className="card p-0 overflow-hidden">
             <div className="px-5 py-4 flex items-center justify-between border-b border-xmgray-100">
@@ -483,7 +678,7 @@ function ResearchDashboard({ onBack }: ResearchDashboardProps) {
               </span>
             </div>
             <div className="p-4 h-[420px] overflow-y-auto">
-              <AgentTrace events={events} />
+              <AgentTrace events={traceEvents} />
             </div>
           </div>
 
@@ -501,14 +696,34 @@ function ResearchDashboard({ onBack }: ResearchDashboardProps) {
               <span className="text-xs text-xmgray-400">{toolEvents.length} 次</span>
             </div>
             <div className="p-4 h-44 overflow-y-auto">
-              <ToolTrace events={events} />
+              <ToolTrace events={traceEvents} />
             </div>
           </div>
         </div>
 
         {/* Right: Report panel */}
         <div className="lg:col-span-8 space-y-4">
+          {result && <UnderstandingSummary value={result.query_understanding} />}
+          {result && <ResearchPlanSummary status={result.status} plan={result.plan_manifest} dag={result.execution_plan} history={result.plan_history} control={result.iteration_control} />}
+          {result&&['completed','paused','failed'].includes(result.status)&&<ResearchConfigurationEditor key={`configure-${result.session_id}`}
+            query={result.query} parameters={result.restart_parameters} onStarted={handleRestartedResearch}/>}
+          {result?.organization_research && <section className="card p-5 text-sm text-xmgray-700" aria-label="本次组织研究范围">
+            <h3 className="font-medium">本次组织研究范围</h3>
+            <p className="mt-2">{result.organization_research.scope.entities.map(entity => entity.name).join('、') || '范围内候选发现'} · {result.organization_research.scope.disciplines.join('、')}</p>
+            <p className="mt-1 text-xs text-xmgray-500">{result.organization_research.scope.start_date} 至 {result.organization_research.scope.end_date}</p>
+            {typeof result.organization_result?.evidence_count==='number' && <p className="mt-2 text-xs text-xmgray-500">取得 {result.organization_result.evidence_count} 条有来源证据，按证据 ID 去重；这是证据数量，成果归属与论文统计仍需核验。</p>}
+          </section>}
+          {result?.status === 'completed' && result.organization_research && <ResearchMatchingPanel key={result.session_id}
+            sessionId={result.session_id} query={result.query} scope={result.organization_research.scope}
+            disciplines={result.organization_research.scope.disciplines} restartParameters={result.restart_parameters}
+            purpose={result.organization_research.purpose} modules={result.organization_research.modules}
+            corpus={result.organization_research.corpus}
+            taxonomy={result.organization_research.taxonomy?.request}
+            actionRequirements={result.organization_research.action_requirements}
+            onStarted={handleRestartedResearch} />}
           {/* Report */}
+          {result?.status === 'completed' && result.organization_research && <ClassificationPanel key={`classification-${result.session_id}`} sessionId={result.session_id} />}
+          {activeSessionId && <IngestionPanel key={`ingestion-${activeSessionId}`} sessionId={activeSessionId} />}
           <div className="card p-0 overflow-hidden">
             <div className="px-5 py-4 flex items-center justify-between border-b border-xmgray-100">
               <div className="flex items-center gap-2">
@@ -521,6 +736,7 @@ function ResearchDashboard({ onBack }: ResearchDashboardProps) {
                 <h3 className="text-sm font-medium text-xmgray-700">研究报告</h3>
               </div>
               <div className="flex items-center gap-3">
+                {result?.status === 'completed' && <ReportDownloads result={result} reportElement={reportElement} />}
                 {isStreaming && (
                   <span className="tag-orange text-[11px]">
                     <span className="status-dot streaming mr-1" />流式生成中
@@ -535,6 +751,15 @@ function ResearchDashboard({ onBack }: ResearchDashboardProps) {
               </div>
             </div>
             <div className="p-6 min-h-[500px] max-h-[680px] overflow-y-auto">
+              {activeSessionId&&<ReportHistory key={activeSessionId} sessionId={activeSessionId}/>}
+              {analysisProgress && <section data-app-only aria-label="研究分析进度" className="mb-4 rounded-lg border border-xmgray-200 p-3 text-sm">
+                <p>{analysisProgress.status==='completed'?'分阶段分析已完成':analysisProgress.status==='paused'?'分析已暂停':`当前分析：${analysisPhase}${progressParts[2]==='conditions'?' · 实验条件补读':''}${analysisBatch?` · 第${analysisBatch}组`:''}`}</p>
+                <p className="text-xs text-xmgray-500">已保留 {analysisProgress.completed_steps} 个分析步骤。阶段结果和用量随研究保存。</p>
+                {result?.analysis_recovery_available && <button type="button" className="mt-2 text-xmorange"
+                  disabled={resumeAnalysis.isPending || isStreaming} onClick={()=>resumeAnalysis.mutate()}>
+                  {resumeAnalysis.isPending?'正在继续…':'继续本次分析'}</button>}
+                {resumeAnalysis.error && <p role="alert" className="mt-2 text-red-600">{resumeAnalysis.error.message}</p>}
+              </section>}
               {(effectiveSkillIds.length > 0 || effectiveTools.length > 0) && (
                 <div className="mb-5 rounded-2xl border border-xmgray-100 bg-xmgray-50/70 p-4">
                   <div className="text-sm font-medium text-xmgray-700">当前 Session Skill 上下文</div>
@@ -603,13 +828,30 @@ function ResearchDashboard({ onBack }: ResearchDashboardProps) {
                   )}
                 </div>
               )}
-              <ReportPreview
-                report={displayReport}
+              {result?.status==='paused' && drawingReason && <p data-app-only role="status"
+                className="mb-3 rounded-lg bg-xmgray-50 p-3 text-sm text-xmgray-600">
+                {drawingMessages[drawingReason] || '绘图尚未满足交付要求，当前稿和数据已保留。'}
+                <span className="block text-xs">研究记录：{drawingReason}</span>
+              </p>}
+              {result?.status==='paused' && result?.report_audit?.needs_review && <p data-app-only
+                role="status" className="mb-3 rounded-lg bg-xmgray-50 p-3 text-sm text-xmgray-600">
+                当前稿已保留。{result.report_audit.audit_incomplete?'来源核对尚未完成。':'部分陈述需要补证或调整。'}
+                可在下方“研究记录”查看具体内容。
+              </p>}
+              <div ref={setReportElement}><ReportPreview
+                report={displayReport ?? ''}
                 citations={normalizedCitations}
+                sessionId={activeSessionId}
                 streaming={isStreaming}
                 emptyTitle={emptyReportTitle}
                 emptyDescription={emptyReportDescription}
-              />
+                reportSummary={result?.organization_result?.report_summary}
+                deliveryView={result?.delivery_view}
+                reportEditorial={result?.report_editorial}
+                budgetState={result?.budget_state}
+                reportAudit={result?.report_audit}
+                contextEvidence={{analyst:result?.organization_result?.analyst_context,report:result?.organization_result?.report_context}}
+              /></div>
             </div>
           </div>
 

@@ -19,7 +19,7 @@ export interface SSEState {
   error: string | null
 }
 
-export function useSSE(sessionId: string | null): {
+export function useSSE(sessionId: string | null, runKey = ''): {
   events: SSEvent[]
   status: string
   error: string | null
@@ -120,7 +120,7 @@ export function useSSE(sessionId: string | null): {
       completedRef.current = false
       setStatus('disconnected')
     }
-  }, [sessionId])
+  }, [sessionId, runKey])
 
   return { events, status, error, clearEvents }
 }

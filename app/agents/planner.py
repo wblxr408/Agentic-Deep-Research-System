@@ -25,6 +25,8 @@ import re
 from typing import TYPE_CHECKING
 
 from app.config import get_settings
+from app.llm_budget import budgeted_client, TokenBudgetExceeded
+from app.graph.source_policy import apply_source_policy
 from app.graph.state import (
     DAGDefinition,
     PlanEdge,
@@ -80,25 +82,24 @@ Decompose complex research queries into an executable Directed Acyclic Graph (DA
 Choose the appropriate agent for each step:
 - `search`: Quick factual lookups, statistics, market data, news
 - `browser`: Deep research, full article reading, official sources, dynamic pages
-- `rag`: Querying existing knowledge base, background context, prior reports
+- `rag`: Optional retrieval from user-maintained internal documents; use only when Internal Documents is enabled. Do not assume background material or prior reports are indexed.
 - `mcp`: Trusted external MCP tools behind policy proxy
 - `analyst`: (auto-assigned) Synthesis and analysis after data collection
 
 ### Research Dimensions
-A comprehensive research DAG should cover:
-1. **Core Facts**: Statistics, numbers, key data points
-2. **Market Analysis**: Size, growth, trends, segmentation
-3. **Stakeholders**: Key players, competitors, regulators
-4. **Recent Developments**: Last 3-6 months news and updates
-5. **Expert Opinions**: Analyst views, industry commentary
-6. **Historical Context**: Background, origins, evolution
+Cover only the user's question, frozen scope, selected purpose and modules.
+Use the smallest evidence collection plan that can answer those questions.
+Universities and laboratories can be studied independently. Market sizing,
+competitors, commercial products and cooperation recommendations are included
+only when requested. Do not impose a universal recent-news window on history.
 
 ## DAG Design Principles
 
-1. **Granularity**: Each node should be completable in 2-5 minutes
+1. **Granularity**: Each tool node is a bounded evidence operation, not an independent full research agent
 2. **Independence**: Minimize dependencies to maximize parallelism
-3. **Coverage**: Ensure all research dimensions are addressed
+3. **Coverage**: Address the selected questions and identify missing evidence without inventing coverage
 4. **Ordering**: Put factual lookups before deep analysis
+5. **Sources**: Public research uses search/browser by default. Internal retrieval supplements web evidence and must not gate search/browser. Never stop web research because internal documents return results.
 
 ## Response Format
 
@@ -128,7 +129,7 @@ Return a JSON object with the following structure:
 
 ## Example DAG
 
-For query "分析 2025 年中国新能源汽车市场":
+For query "分析 2025 年中国新能源汽车市场" with Internal Documents enabled:
 ```json
 {
   "dag_name": "China EV Market Analysis 2025",
@@ -151,14 +152,13 @@ Note: The "analyst" node type is automatically added at the end by the system.""
 
     USER_TEMPLATE = """Research Topic: {query}
 
-Generate a comprehensive research DAG. Consider:
-1. Core facts and statistics (search)
-2. Expert analysis and opinions (browser/rag)
-3. Latest developments (search - last 6 months)
-4. Comparative perspectives (rag)
-5. Industry context and background (rag)
-
-Design the DAG to maximize parallel execution while respecting dependencies.
+Generate a bounded evidence collection DAG for this question and its frozen contract.
+Keep explicit entity, discipline, time, purpose, module and source limits.
+Use search for discovery, browser only for a real HTTP(S) URL, and rag only
+when enabled. A browser query is never a prose instruction or placeholder URL.
+Separate independent objects or questions when useful; retain real dependencies.
+Do not add market, product, cooperation or recent-news tasks unless requested.
+The root workflow owns synthesis, review, rendering, state and budget.
 
 Return a JSON object with dag_name, nodes, and edges."""
 
@@ -169,14 +169,19 @@ Return a JSON object with dag_name, nodes, and edges."""
         self.provider = settings.llm.provider
         self._client: OpenAI | None = None
         self.last_usage: dict | None = None
+        self.request_budget = None
+        self.last_plan_reason: str = 'not_started'
 
     @property
     def client(self) -> OpenAI:
         if self._client is None:
+            from app.model_routing import initialize_agent_client
+            if initialize_agent_client(self,'planner'):
+                return budgeted_client(self._client,self.request_budget,'research')
             from app.llm_client import create_llm_client, get_llm_model
             self._client = create_llm_client()
             self.model = get_llm_model()
-        return self._client
+        return budgeted_client(self._client,self.request_budget,'research')
 
     def _is_openai_compatible(self) -> bool:
         """Check if the current provider supports response_format parameter."""
@@ -230,6 +235,13 @@ Return a JSON object with dag_name, nodes, and edges."""
         planning_hints: str | None = None,
         skill_prompt: str | None = None,
         planner_hints: list[str] | None = None,
+        use_internal_docs: bool = False,
+        rag_group: str | None = None,
+        organization_research: dict | None = None,
+        planning_strategy: str = 'hybrid',
+        query_contract: str | None = None,
+        query_type: str | None = None,
+        analysis_depth: str = 'auto',
     ) -> DAGDefinition:
         """
         Generate a research DAG for the given query.
@@ -243,13 +255,40 @@ Return a JSON object with dag_name, nodes, and edges."""
             DAGDefinition object containing nodes and edges
         """
         logger.info(f"Planner: Generating DAG for query: {query[:100]}")
+        self.last_usage = None
+        from app.organization_corpus import seed_only_dag, corpus_instructions
+        declared_plan = seed_only_dag(organization_research)
+        if declared_plan is not None:
+            self.last_usage = None
+            self.last_plan_reason = 'declared_seed_only_fixed_workflow'
+            return apply_source_policy(declared_plan, query, use_internal_docs=use_internal_docs)
+
+        if planning_strategy == 'fixed':
+            self.last_plan_reason = 'explicit_fixed_workflow'
+            return apply_source_policy(self._fixed_research_dag(query, organization_research), query, use_internal_docs=use_internal_docs)
 
         decision = build_guardrail_decision(query)
-        if decision.intent == TaskIntent.FACT_LOOKUP:
-            return self._fact_lookup_dag(query)
+        if (planning_strategy != 'dynamic' and not organization_research and analysis_depth != 'deep'
+                and (query_type == 'fact' or query_type is None and decision.intent == TaskIntent.FACT_LOOKUP)):
+            self.last_plan_reason = 'direct_fact_fixed_workflow'
+            return apply_source_policy(self._fact_lookup_dag(query), query, use_internal_docs=use_internal_docs)
 
         system_prompt = f"{build_prompt_profile_message(decision, query)}\n\n{self.SYSTEM_PROMPT}"
+        system_prompt += (
+            "\n\nInternal Documents: enabled. Include a supplementary rag retrieval without blocking public web collection."
+            if use_internal_docs else
+            "\n\nInternal Documents: disabled. Use public sources; do not include rag nodes."
+        )
+        from app.organization_purpose import analysis_instructions
+        system_prompt += analysis_instructions(organization_research)
+        system_prompt += corpus_instructions(organization_research)
         user_prompt = self.USER_TEMPLATE.format(query=query)
+        if query_contract:
+            if len(query_contract) > 48000:
+                raise ValueError('task_contract_exceeds_planner_context_limit')
+            user_prompt += '\n\n' + untrusted_context('frozen_research_contract', query_contract)
+        if use_internal_docs and rag_group:
+            user_prompt += f"\n\n{untrusted_context('internal_document_group', rag_group)}"
         if skill_prompt:
             user_prompt = f"{user_prompt}\n\n{untrusted_context('skill_content', skill_prompt)}"
         if planning_hints:
@@ -266,6 +305,7 @@ Return a JSON object with dag_name, nodes, and edges."""
         ]
 
         try:
+            active_client=self.client
             create_kwargs = {
                 "model": self.model,
                 "messages": messages,
@@ -277,9 +317,9 @@ Return a JSON object with dag_name, nodes, and edges."""
                 create_kwargs["response_format"] = {"type": "json_object"}
 
             response, response_model, fallback_used = call_chat_with_fallback(
-                self.client,
+                active_client,
                 self.model,
-                create_fallback_llm_client(),
+                self.routed_fallback if hasattr(self,'routed_fallback') else create_fallback_llm_client(),
                 **{key: value for key, value in create_kwargs.items() if key != "model"},
             )
             if fallback_used:
@@ -293,25 +333,30 @@ Return a JSON object with dag_name, nodes, and edges."""
 
             content = response.choices[0].message.content
             if not content:
-                return self._fallback_dag(query)
+                self.last_plan_reason = 'empty_model_plan_fixed_fallback'
+                return apply_source_policy(self._fixed_research_dag(query, organization_research), query, use_internal_docs=use_internal_docs)
 
             try:
                 data = self._extract_json_object(content)
             except json.JSONDecodeError as parse_error:
+                self.last_plan_reason = 'non_json_model_plan_fixed_fallback'
                 logger.warning(f"Planner: non-JSON output received, using fallback parser: {parse_error}")
-                return self._fallback_dag(query)
+                return apply_source_policy(self._fixed_research_dag(query, organization_research), query, use_internal_docs=use_internal_docs)
             dag = self._parse_dag(data, query)
 
             logger.info(
                 f"Planner: Generated DAG '{dag.dag_name}' with {len(dag.nodes)} nodes, "
                 f"execution_order={dag.get_executable_order()}"
             )
-            return dag
+            self.last_plan_reason = 'bounded_model_plan'
+            return apply_source_policy(dag, query, use_internal_docs=use_internal_docs)
 
+        except TokenBudgetExceeded:
+            raise
         except (OSError, RuntimeError, TypeError, ValueError, KeyError, AttributeError) as e:
             logger.error(f"Planner error: {e}")
-            self.last_usage = None
-            return self._fallback_dag(query)
+            self.last_plan_reason = 'model_plan_failed_fixed_fallback'
+            return apply_source_policy(self._fixed_research_dag(query, organization_research), query, use_internal_docs=use_internal_docs)
 
     def _parse_dag(self, data: dict, query: str) -> DAGDefinition:
         """
@@ -334,14 +379,13 @@ Return a JSON object with dag_name, nodes, and edges."""
 
             # Validate node_type
             if node_data["node_type"] not in ("search", "browser", "rag", "mcp", "analyst", "reflection", "report"):
-                node_data["node_type"] = "search"
+                raise ValueError('plan_unknown_node_type')
 
             try:
                 node = PlanNode.model_validate(node_data)
                 nodes.append(node)
             except (OSError, RuntimeError, TypeError, ValueError, KeyError, AttributeError) as e:
-                logger.warning(f"Failed to parse node {i}: {e}, skipping")
-                continue
+                raise ValueError('invalid_plan_node') from e
 
         # Parse edges
         edges = []
@@ -353,8 +397,7 @@ Return a JSON object with dag_name, nodes, and edges."""
                 edge = PlanEdge.model_validate(edge_data)
                 edges.append(edge)
             except (OSError, RuntimeError, TypeError, ValueError, KeyError, AttributeError) as e:
-                logger.warning(f"Failed to parse edge: {e}, skipping")
-                continue
+                raise ValueError('invalid_plan_edge') from e
 
         # Ensure analyst node at the end
         analyst_exists = any(n.node_type == "analyst" for n in nodes)
@@ -375,6 +418,13 @@ Return a JSON object with dag_name, nodes, and edges."""
             nodes=nodes,
             edges=edges,
         )
+
+    def _fixed_research_dag(self, query: str, organization: dict | None) -> DAGDefinition:
+        entities = ((organization or {}).get('scope') or {}).get('entities') or []
+        questions = [f"{item['name']} {query}" for item in entities] or [query]
+        nodes = [PlanNode(node_id=f'fixed_{index+1}', node_type='search', query=text,
+            depends_on=[], parallel=True) for index, text in enumerate(questions)]
+        return DAGDefinition(dag_name='固定问题取证流程', nodes=nodes)
 
     def _fallback_dag(self, query: str) -> DAGDefinition:
         """
@@ -402,24 +452,16 @@ Return a JSON object with dag_name, nodes, and edges."""
                     parallel=False,
                 ),
                 PlanNode(
-                    node_id="n3",
-                    node_type="rag",
-                    query=f"知识库背景查询：{query}",
-                    depends_on=[],
-                    parallel=True,
-                ),
-                PlanNode(
                     node_id="n4",
                     node_type="analyst",
                     query=f"综合分析：{query}",
-                    depends_on=["n1", "n2", "n3"],
+                    depends_on=["n1", "n2"],
                     parallel=False,
                 ),
             ],
             edges=[
                 PlanEdge(from_node="n1", to_node="n2", edge_type="sequential"),
                 PlanEdge(from_node="n2", to_node="n4", edge_type="sequential"),
-                PlanEdge(from_node="n3", to_node="n4", edge_type="sequential"),
             ],
         )
 
@@ -429,29 +471,21 @@ Return a JSON object with dag_name, nodes, and edges."""
             dag_name=f"Fact-Lookup-{query[:20]}",
             nodes=[
                 PlanNode(
-                    node_id="n1",
-                    node_type="rag",
+                    node_id="n2",
+                    node_type="search",
                     query=query,
                     depends_on=[],
                     parallel=True,
                 ),
                 PlanNode(
-                    node_id="n2",
-                    node_type="search",
-                    query=query,
-                    depends_on=["n1"],
-                    parallel=False,
-                ),
-                PlanNode(
                     node_id="n3",
                     node_type="analyst",
                     query=f"回答事实问题：{query}",
-                    depends_on=["n1", "n2"],
+                    depends_on=["n2"],
                     parallel=False,
                 ),
             ],
             edges=[
-                PlanEdge(from_node="n1", to_node="n2", edge_type="sequential"),
                 PlanEdge(from_node="n2", to_node="n3", edge_type="sequential"),
             ],
         )

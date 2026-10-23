@@ -11,6 +11,7 @@ import logging
 from typing import TYPE_CHECKING
 
 from app.config import get_settings
+from app.llm_budget import budgeted_client, TokenBudgetExceeded
 from app.graph.state import (
     ClaimConflict,
     Evidence,
@@ -24,6 +25,7 @@ from app.llm_client import (
     create_fallback_llm_client,
 )
 from app.security.prompt_security import untrusted_context
+from app.claim_verification import claim_evidence_context
 
 if TYPE_CHECKING:
     from openai import OpenAI
@@ -99,14 +101,18 @@ Be strict but fair. Flag real hallucinations but don't over-flag.
         self.model = settings.llm.model
         self._client: OpenAI | None = None
         self.last_usage: dict | None = None
+        self.request_budget = None
 
     @property
     def client(self) -> OpenAI:
         if self._client is None:
+            from app.model_routing import initialize_agent_client
+            if initialize_agent_client(self,'reflection'):
+                return budgeted_client(self._client,self.request_budget,'research')
             from app.llm_client import create_llm_client, get_llm_model
             self._client = create_llm_client()
             self.model = get_llm_model()
-        return self._client
+        return budgeted_client(self._client,self.request_budget,'research')
 
     def reflect(
         self,
@@ -115,6 +121,7 @@ Be strict but fair. Flag real hallucinations but don't over-flag.
         evidence_list: list[Evidence],
         skill_prompt: str | None = None,
         reflection_hints: list[str] | None = None,
+        organization_research: dict | None = None,
     ) -> ReflectionResult:
         """
         Perform reflection on the analysis.
@@ -130,13 +137,19 @@ Be strict but fair. Flag real hallucinations but don't over-flag.
         logger.info(f"Reflection: validating analysis ({len(analysis)} chars, {len(evidence_list)} evidence items)")
         decision = build_guardrail_decision(user_query)
         system_prompt = f"{build_prompt_profile_message(decision, user_query)}\n\n{self.SYSTEM_PROMPT}"
+        if (organization_research or {}).get('corpus'):
+            from app.organization_corpus import corpus_instructions
+            from app.organization_purpose import analysis_instructions
+            system_prompt += analysis_instructions(organization_research) + corpus_instructions(organization_research)
+            system_prompt += ('\n审核本次已选问题和声明样本。明确披露的限定范围、全文缺口或无法确认，'
+                '本身不是幻觉，不要求扩大种子或补未选模块。仍严格指出无来源事实、矛盾或越界推断。')
         if reflection_hints:
             system_prompt = (
                 f"{system_prompt}\n\n## Reflection Skill Instructions\n"
                 + "\n".join(f"- {item}" for item in reflection_hints if item and item.strip())
             )
 
-        formatted_evidence = self._format_evidence(evidence_list)
+        formatted_evidence = claim_evidence_context(analysis, evidence_list)
 
         messages = [
             {"role": "system", "content": system_prompt},
@@ -150,17 +163,18 @@ Analysis to Validate:
 {untrusted_context('skill_content', skill_prompt or '') if skill_prompt else ''}
 
 Evidence Sources:
-{untrusted_context('external_evidence', formatted_evidence)}
+{untrusted_context('external_evidence', formatted_evidence, limit=25000)}
 
 Perform a rigorous quality check and return the structured JSON output."""
             },
         ]
 
         try:
+            active_client=self.client
             response, response_model, fallback_used = call_chat_with_fallback(
-                self.client,
+                active_client,
                 self.model,
-                create_fallback_llm_client(),
+                self.routed_fallback if hasattr(self,'routed_fallback') else create_fallback_llm_client(),
                 messages=messages,
                 temperature=0.1,  # Low temp for consistency
                 max_tokens=2048,
@@ -225,18 +239,16 @@ Perform a rigorous quality check and return the structured JSON output."""
             )
             return result
 
+        except TokenBudgetExceeded:
+            raise
         except (OSError, RuntimeError, TypeError, ValueError, KeyError, AttributeError) as e:
             logger.error(f"Reflection error: {e}")
             self.last_usage = None
             return self._default_result()
 
-    def _format_evidence(self, evidence_list: list[Evidence]) -> str:
-        """Format evidence for the prompt."""
-        lines = []
-        for i, ev in enumerate(evidence_list[:15], 1):
-            source = f"{ev.source_title or 'Unknown'} ({ev.source_url})" if ev.source_url else (ev.source_title or "Unknown")
-            lines.append(f"[{i}] {source}\n{ev.content[:400]}")
-        return "\n\n".join(lines)
+    def _format_evidence(self, evidence_list: list[Evidence], analysis: str = "") -> str:
+        """Compatibility helper using the same claim-oriented selection."""
+        return claim_evidence_context(analysis, evidence_list)
 
     def _default_result(self) -> ReflectionResult:
         """Return a default result when reflection fails."""

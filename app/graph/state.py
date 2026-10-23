@@ -38,6 +38,7 @@ ResearchState definition for LangGraph StateGraph.
 from __future__ import annotations
 
 import uuid
+from datetime import UTC,datetime
 from enum import Enum
 from typing import Annotated, Any, Literal, TypedDict
 
@@ -53,6 +54,10 @@ def merge_lists(left: list | None, right: list | None) -> list:
     if not right:
         return list(left)
     return [*left, *right]
+
+
+def merge_mappings(left: dict | None, right: dict | None) -> dict:
+    return {**(left or {}), **(right or {})}
 
 
 # ==============================================================
@@ -98,6 +103,9 @@ class RuntimeStatus(str, Enum):
     TERMINAL_FAILED = "terminal_failed"
     COMPLETED = "completed"
     CANCELED = "canceled"
+    BUDGET_EXHAUSTED = "budget_exhausted"
+    ANALYSIS_PAUSED = "analysis_paused"
+    REPORT_PAUSED = "report_paused"
 
 
 class PageType(str, Enum):
@@ -138,6 +146,7 @@ class PlanNode(BaseModel):
     depends_on: list[str] = Field(default_factory=list)
     # 是否可以并行执行（与 depends_on 互斥）
     parallel: bool = True
+    condition: Literal['always', 'evidence_found', 'no_evidence'] = 'always'
     # 状态
     status: StepStatus = StepStatus.PENDING
     # 重试次数
@@ -417,6 +426,7 @@ class Citation(BaseModel):
     # 附加元数据（兼容各 Agent 的字段）
     extracted_evidence: str | None = None
     relevance_score: float = 0.0
+    locator:dict|None=None
 
 
 class SearchResult(BaseModel):
@@ -427,6 +437,11 @@ class SearchResult(BaseModel):
     relevance_score: float = Field(ge=0.0, default=0.0)
     published_date: str | None = None
     domain: str | None = None
+    channel: str | None = None
+    backend: str | None = None
+    collected_at: str | None = None
+    candidate_fusion: dict | None = None
+    data_governance: dict | None = None
 
 
 class BrowserResult(BaseModel):
@@ -434,6 +449,7 @@ class BrowserResult(BaseModel):
     url: str
     title: str
     extracted_content: str
+    acquisition: dict | None = None
     page_type: PageType = PageType.GENERAL
     citations: list[str] = Field(default_factory=list)
     tokens_extracted: int = 0
@@ -441,6 +457,9 @@ class BrowserResult(BaseModel):
     extraction_level: str = "skim"  # snippet | skim | deep
     citation: str | None = None  # 单条引用文本
     error_message: str | None = None
+    channel: str | None = None
+    backend: str | None = None
+    collected_at: str | None = None
 
 
 class RAGResult(BaseModel):
@@ -449,7 +468,7 @@ class RAGResult(BaseModel):
     content: str
     score: float = Field(ge=0.0, default=0.0)
     metadata: dict = Field(default_factory=dict)
-    citation: str | None = None
+    citation: Citation | str | None = None
     # 兼容 rag.py 传入的评分字段
     vector_score: float | None = None
     bm25_score: float | None = None
@@ -500,6 +519,8 @@ class VerificationResult(BaseModel):
     completeness_score: float = Field(ge=0.0, le=1.0, default=0.5)
     citation_coverage: float = Field(ge=0.0, le=1.0, default=0.5)
     overall_confidence: float = Field(ge=0.0, le=1.0, default=0.5)
+    confidence_kind: Literal["model_estimate"] = "model_estimate"
+    human_review_status: Literal["not_reviewed"] = "not_reviewed"
     needs_revision: bool = False
     revision_focus: str | None = None
 
@@ -546,16 +567,19 @@ class Evidence(BaseModel):
     """
     evidence_id: str = Field(default_factory=lambda: f"ev-{uuid.uuid4().hex[:8]}")
     content: str
+    acquisition: dict | None = None
     source_url: str | None = None
     source_title: str | None = None
     source_type: Literal["web", "document", "knowledge_base"] = "web"
     # 来源 Agent
     collected_by: AgentType
-    collected_at: str = Field(default_factory=lambda: utc_now_naive().isoformat())
+    collected_at: str = Field(default_factory=lambda: datetime.now(UTC).isoformat())
     # 可信度
     reliability: float = Field(ge=0.0, le=1.0, default=0.7)
     # Token 消耗估计
     tokens_estimate: int = 0
+    source_channel: str | None = None
+    source_backend: str | None = None
 
     @property
     def agent_type(self) -> AgentType:
@@ -582,6 +606,13 @@ class ResearchState(TypedDict):
     # ===== 主题 1 & 4: 任务与会话 =====
     task_id: str
     user_query: str
+    organization_research: dict | None
+    query_understanding: dict | None
+    planning_policy: dict | None
+    plan_manifest: dict | None
+    plan_history: list[dict]
+    iteration_control: dict | None
+    organization_result: dict | None
     created_at: str
     status: str                        # TaskStatus
     session: dict                    # SessionMetadata
@@ -591,10 +622,15 @@ class ResearchState(TypedDict):
     current_executing_nodes: list[str]  # 当前执行的节点
     completed_nodes: list[str]        # 已完成节点
     node_outcomes: Annotated[list[dict], merge_lists]
+    tool_handoffs: dict
+    tool_result_envelopes: Annotated[dict, merge_mappings]
+    accepted_tool_operations: dict
 
     # ===== 主题 3: 工具调用历史 =====
     tool_histories: Annotated[list[dict], merge_lists]  # ToolInvocationHistory[]
     collected_evidence: Annotated[list[dict], merge_lists]  # Evidence[]
+    evidence_ledger: dict  # Derived, DB-owner-bound retained versions; no model edits
+    evidence_access_gaps: list[dict]  # Current-use exclusions; original task ledger retained
 
     # ===== 兼容旧版字段 =====
     search_results: list[dict]
@@ -609,6 +645,8 @@ class ResearchState(TypedDict):
 
     # ===== 输出 =====
     analysis: str
+    analysis_workflow: dict | None  # Root-bound question checkpoints; never an independent allowance
+    model_routing: dict | None
     final_report: str
     citations: list[dict]
     guardrail_decision: dict | None
@@ -644,12 +682,13 @@ class ResearchState(TypedDict):
     # ===== 主题 5: 校验 =====
 
     # ===== 输出 =====
-    allow_web_after_rag_hit: bool
+    use_internal_docs: bool
     rag_group: str | None
     retrieval_policy: dict | None
     runtime_status: str
     budget_state: dict | None
     pending_approvals: Annotated[list[dict], merge_lists]
+    approval_decisions: list[dict]
     output_length: str
     skill_context: dict | None
 
@@ -682,6 +721,13 @@ def create_initial_state(
         task_id=session_id,
         user_query=user_query,
         created_at=now,
+        organization_research=None,
+        query_understanding=None,
+        planning_policy=None,
+        plan_manifest=None,
+        plan_history=[],
+        iteration_control=None,
+        organization_result=None,
         status=TaskStatus.PENDING.value,
         session=session_meta.model_dump(),
 
@@ -689,6 +735,9 @@ def create_initial_state(
         current_executing_nodes=[],
         completed_nodes=[],
         node_outcomes=[],
+        tool_handoffs={},
+        tool_result_envelopes={},
+        accepted_tool_operations={},
 
         tool_histories=[],
         collected_evidence=[],
@@ -709,12 +758,13 @@ def create_initial_state(
         review_status=None,
         failure_memory=None,
         user_confirmed=False,
-        allow_web_after_rag_hit=False,
+        use_internal_docs=False,
         rag_group=None,
         retrieval_policy=None,
         runtime_status=RuntimeStatus.PENDING.value,
         budget_state=None,
         pending_approvals=[],
+        approval_decisions=[],
         output_length="medium",
         skill_context=None,
 

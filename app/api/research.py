@@ -5,20 +5,26 @@ Research API endpoints: SSE streaming and research session management.
 from __future__ import annotations
 
 import asyncio
+import json
+from copy import deepcopy
 import logging
 import uuid
 from collections.abc import AsyncGenerator
 from typing import Any
 
 import asyncpg
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
-from pydantic import BaseModel, Field
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
+from pydantic import BaseModel, Field, field_validator, model_validator
+from app.channels.models import ChannelName
 from sse_starlette.sse import EventSourceResponse
 
 from app.config import get_settings
 from app.core.time import utc_now_naive
 from app.db.connection import get_db_pool
 from app.db.json import dumps_json
+from app.db.matching import load_matching_snapshot, save_matching_snapshot
+from app.db.presets import PresetInput, PresetUpdate, load_preset, insert_preset, preset_record
+from app.db.report_delivery import TemplateSave,load_template,save_template,template_record
 from app.governance import HarnessSupervisor, RuntimePersistence
 from app.governance.runtime import normalize_tool_audit_rows, public_status_from_runtime
 from app.graph.compiler import compile_research_graph
@@ -35,12 +41,251 @@ from app.guardrails import (
     normalize_research_length,
 )
 from app.observability.sse_manager import get_sse_manager
+from app.research_scope import (
+    OrganizationScopePreview,
+    OrganizationScopePreviewRequest,
+    preview_organization_scope,
+)
+from app.research_evaluation import (
+    EvaluationContext, EvaluationPreview, EvaluationRequest, OpenAlexNormalization, OpenAlexNormalizationRequest,
+    applicability, normalize_openalex, preview_evaluation, public_sources, scheme_catalogue,
+)
+from app.research_matching import (
+    MatchingPreview, MatchingPreviewRequest, MatchingSnapshotCreated, MatchingSnapshotInput,
+    WeightConfigurationPreview, WeightConfigurationRequest, load_preset_catalogue, preview_weights, score_matching_snapshot,
+)
 from app.security.auth import Principal, require_principal
+from app.organization_runtime import OrganizationResearchRequest, freeze_organization_request
+from app.organization_taxonomy import ReclassificationRequest, freeze_taxonomy, classify_publications
+from app.organization_relationships import RelationshipPreviewRequest, build_relationship_view
+from app.organization_deep_dive import TechnicalPreviewRequest, build_technical_cards
+from app.organization_trends import TrendPreviewRequest, build_trend_view
+from app.organization_actions import ActionPreviewRequest, build_action_view
+from app.organization_statistics import build_statistics, apply_statistics
 from app.skills import get_skill_registry
+from app.query_understanding import QueryOptions, DeliveryRequest, interpret_query, context_entities, identity
+from app.planning_control import PlanningPolicy
+from app.skills.stages import compile_stage_skills
 
 logger = logging.getLogger(__name__)
+
+
+def _json_object(value: Any) -> dict[str, Any]:
+    if isinstance(value, str):
+        value = json.loads(value)
+    return value if isinstance(value, dict) else {}
+
+
 router = APIRouter(prefix="/api/v1/research", tags=["research"], dependencies=[Depends(require_principal)])
 principal_dependency = Depends(require_principal)
+
+
+@router.get('/analysis/catalog')
+def organization_analysis_catalogue():
+    """Read-only question/module options; no new data or tool permissions."""
+    from app.organization_purpose import analysis_catalogue
+    return analysis_catalogue()
+
+
+@router.get('/delivery-templates')
+async def list_delivery_templates(principal:Principal=principal_dependency):
+    pool=await get_db_pool()
+    async with pool.acquire() as conn:
+        rows=await conn.fetch('''SELECT DISTINCT ON(template_id) * FROM research_delivery_templates
+            WHERE owner_id=$1::uuid ORDER BY template_id,version DESC''',_principal_id(principal))
+    return {'items':[template_record(row) for row in rows],'scope':'current_owner_only_project_label_is_not_shared_acl'}
+
+
+@router.post('/delivery-templates',status_code=201)
+async def create_delivery_template(request:TemplateSave,principal:Principal=principal_dependency):
+    pool=await get_db_pool()
+    async with pool.acquire() as conn,conn.transaction():
+        try:return await save_template(conn,_principal_id(principal),request)
+        except ValueError as error:raise HTTPException(409,str(error)) from error
+
+
+@router.get('/delivery-templates/{template_id}/versions')
+async def delivery_template_versions(template_id:uuid.UUID,principal:Principal=principal_dependency):
+    pool=await get_db_pool()
+    async with pool.acquire() as conn:
+        rows=await conn.fetch('''SELECT * FROM research_delivery_templates WHERE owner_id=$1::uuid
+            AND template_id=$2::uuid ORDER BY version DESC''',_principal_id(principal),str(template_id))
+    if not rows:raise HTTPException(404,'Template not found')
+    return {'items':[template_record(row) for row in rows]}
+
+
+@router.get('/delivery-templates/{template_id}')
+async def get_delivery_template(template_id:uuid.UUID,version:int|None=Query(default=None,ge=1),principal:Principal=principal_dependency):
+    pool=await get_db_pool()
+    async with pool.acquire() as conn:result=await load_template(conn,_principal_id(principal),template_id,version)
+    if not result:raise HTTPException(404,'Template not found')
+    return result
+
+
+@router.put('/delivery-templates/{template_id}')
+async def revise_delivery_template(template_id:uuid.UUID,request:TemplateSave,principal:Principal=principal_dependency):
+    pool=await get_db_pool()
+    async with pool.acquire() as conn,conn.transaction():
+        try:return await save_template(conn,_principal_id(principal),request,template_id)
+        except ValueError as error:raise HTTPException(404 if str(error)=='template_not_found' else 409,str(error)) from error
+
+
+@router.post('/presets', status_code=201)
+async def create_personal_preset(request: PresetInput, principal: Principal = principal_dependency):
+    pool = await get_db_pool()
+    async with pool.acquire() as connection:
+        return await insert_preset(connection, principal.id, request)
+
+
+@router.get('/presets')
+async def list_personal_presets(principal: Principal = principal_dependency):
+    pool = await get_db_pool()
+    async with pool.acquire() as connection:
+        rows = await connection.fetch('SELECT DISTINCT ON (preset_id) * FROM organization_weight_presets WHERE owner_id=$1::uuid ORDER BY preset_id,version DESC', principal.id)
+    return {'items': [preset_record(row) for row in rows]}
+
+
+@router.get('/presets/{preset_id}')
+async def get_personal_preset(preset_id: uuid.UUID, version: int | None = Query(default=None, ge=1), principal: Principal = principal_dependency):
+    pool = await get_db_pool()
+    async with pool.acquire() as connection:
+        result = await load_preset(connection, principal.id, str(preset_id), version)
+    if result is None:
+        raise HTTPException(status_code=404, detail='Preset not found')
+    return result
+
+
+@router.get('/presets/{preset_id}/versions')
+async def personal_preset_versions(preset_id: uuid.UUID, principal: Principal = principal_dependency):
+    pool = await get_db_pool()
+    async with pool.acquire() as connection:
+        rows = await connection.fetch('SELECT * FROM organization_weight_presets WHERE preset_id=$1::uuid AND owner_id=$2::uuid ORDER BY version DESC', str(preset_id), principal.id)
+    if not rows:
+        raise HTTPException(status_code=404, detail='Preset not found')
+    return {'items': [preset_record(row) for row in rows]}
+
+
+@router.put('/presets/{preset_id}')
+async def update_personal_preset(preset_id: uuid.UUID, request: PresetUpdate, principal: Principal = principal_dependency):
+    pool = await get_db_pool()
+    async with pool.acquire() as connection, connection.transaction():
+        # One owner's edits serialize on its existing identity row. Old revisions
+        # are immutable, and an expected version prevents a stale second writer.
+        await connection.fetchval('SELECT id FROM auth_principals WHERE id=$1::uuid FOR UPDATE', principal.id)
+        latest = await load_preset(connection, principal.id, str(preset_id))
+        if latest is None:
+            raise HTTPException(status_code=404, detail='Preset not found')
+        if request.expected_version != latest['version']:
+            raise HTTPException(status_code=409, detail='Preset version changed')
+        return await insert_preset(connection, principal.id, request, identifier=str(preset_id), version=latest['version'] + 1)
+
+
+@router.post("/scope/preview", response_model=OrganizationScopePreview)
+def preview_research_scope(request: OrganizationScopePreviewRequest) -> OrganizationScopePreview:
+    """Validate supplied organization records and preview attribution without I/O."""
+    return preview_organization_scope(request)
+
+
+@router.post("/evaluation/preview", response_model=EvaluationPreview)
+def preview_research_evaluation(request: EvaluationRequest) -> EvaluationPreview:
+    """Apply exact-identity evaluation adapters to public snapshots or provided records."""
+    return preview_evaluation(request)
+
+
+@router.post("/evaluation/openalex/normalize", response_model=OpenAlexNormalization)
+def normalize_openalex_evaluation(request: OpenAlexNormalizationRequest) -> OpenAlexNormalization:
+    """Convert a supplied OpenAlex work into provider-specific paper metrics."""
+    return normalize_openalex(request)
+
+
+@router.post("/weights/preview", response_model=WeightConfigurationPreview)
+def preview_research_weights(request: WeightConfigurationRequest) -> WeightConfigurationPreview:
+    """Normalize versioned preference weights without fetching or ranking candidates."""
+    return preview_weights(request)
+
+
+@router.get('/weights/catalog')
+def weight_editor_catalogue():
+    """Read the same versioned defaults as research creation, without model/network I/O."""
+    catalogue = load_preset_catalogue()
+    return {'version': catalogue.version, 'presets': {
+        key: preview_weights(WeightConfigurationRequest(preset=key), catalogue).model_dump(mode='json')
+        for key in catalogue.presets}}
+
+
+@router.post('/evaluation/applicability')
+def evaluation_context(request: EvaluationContext):
+    """Classify context without inventing a work identity or pretending to query it."""
+    sources = public_sources()
+    return {'request': request.model_dump(mode='json'), 'live_fetch': False,
+        'exact_identity_checked': False, 'items': [
+            {**scheme.model_dump(mode='json'), 'applicable': applicability(scheme.scheme_id, request)[0],
+             'reason': applicability(scheme.scheme_id, request)[1],
+             'source_access': 'public_sample' if any(source.scheme_id == scheme.scheme_id for source in sources) else 'import_only',
+             'source_versions': [{'edition': source.edition, 'metric_year': source.metric_year,
+                                  'provider': source.provider, 'source_url': str(source.source_url)}
+                                 for source in sources if source.scheme_id == scheme.scheme_id]}
+            for scheme in scheme_catalogue()]}
+
+
+@router.post("/matching/snapshots", response_model=MatchingSnapshotCreated, status_code=201)
+async def create_matching_snapshot(request: MatchingSnapshotInput, principal: Principal = principal_dependency):
+    """Freeze explicitly supplied evidence; optional session binding must belong to this owner."""
+    if request.origin != 'explicit_records' or request.source_execution_id or request.bridge_version or request.bridge_notes:
+        raise HTTPException(status_code=422, detail='研究来源标记只能由保存会话生成，不能由调用方声明。')
+    pool = await get_db_pool()
+    async with pool.acquire() as connection:
+        identifier = await save_matching_snapshot(connection, principal.id, request)
+    if identifier is None:
+        raise HTTPException(status_code=404, detail="Session not found")
+    return MatchingSnapshotCreated(snapshot_id=identifier, evidence_cutoff=request.evidence_cutoff,
+                                   schema_version=request.schema_version)
+
+
+@router.post("/matching/preview", response_model=MatchingPreview)
+async def preview_research_matching(request: MatchingPreviewRequest, principal: Principal = principal_dependency):
+    """Reweight the owner's frozen snapshot without collection, models or writes."""
+    pool = await get_db_pool()
+    async with pool.acquire() as connection:
+        snapshot = await load_matching_snapshot(connection, principal.id, str(request.snapshot_id))
+    if snapshot is None:
+        raise HTTPException(status_code=404, detail="Matching snapshot not found")
+    return await asyncio.to_thread(score_matching_snapshot, snapshot, request.configuration, str(request.snapshot_id))
+
+
+@router.post('/{session_id}/matching/snapshot')
+async def create_session_matching_snapshot(session_id: uuid.UUID, principal: Principal = principal_dependency):
+    """Freeze this owner's saved outputs once per completed execution, without collection."""
+    from app.research_matching_bridge import BRIDGE_VERSION, snapshot_from_research
+    pool = await get_db_pool()
+    async with pool.acquire() as connection, connection.transaction():
+        row = await connection.fetchrow('''SELECT id,status,execution_id,completed_at,review_status,final_report
+            FROM research_sessions WHERE id=$1::uuid AND owner_id=$2::uuid FOR UPDATE''',str(session_id),principal.id)
+        if row is None:
+            raise HTTPException(status_code=404, detail='Session not found')
+        if row['status'] != 'completed' or not row['final_report'] or row['completed_at'] is None:
+            raise HTTPException(status_code=409, detail='请等本次研究完成，再冻结证据重排。')
+        review = _json_object(row['review_status'])
+        config = review.get('organization_research')
+        if not config:
+            raise HTTPException(status_code=409, detail='这份会话不是组织研究。')
+        identifier = await connection.fetchval('''SELECT id FROM research_matching_snapshots
+            WHERE session_id=$1::uuid AND owner_id=$2::uuid AND payload->>'bridge_version'=$3
+              AND payload->>'source_execution_id'=$4 LIMIT 1''',str(session_id),principal.id,BRIDGE_VERSION,str(row['execution_id']))
+        if identifier:
+            snapshot = await load_matching_snapshot(connection,principal.id,str(identifier))
+        else:
+            state = _json_object(await connection.fetchval('SELECT state_snapshot_json FROM session_runtime_state WHERE session_id=$1::uuid',str(session_id)))
+            try:
+                snapshot = snapshot_from_research(str(session_id),str(row['execution_id']),row['completed_at'],
+                    config,review.get('organization_result'),state)
+            except (ValueError, KeyError, TypeError) as error:
+                raise HTTPException(status_code=409, detail=str(error)) from error
+            identifier = await save_matching_snapshot(connection,principal.id,snapshot)
+    return {'snapshot_id':str(identifier),'snapshot':snapshot.model_dump(mode='json'),
+            'initial_configuration':config['effective_weights']}
+
+
 ACCUMULATING_STATE_KEYS = {
     "agent_trace",
     "tool_histories",
@@ -54,6 +299,13 @@ ACCUMULATING_STATE_KEYS = {
 }
 
 KNOWN_STATE_KEYS = {
+    'tool_handoffs', 'tool_result_envelopes', 'accepted_tool_operations',
+    'planning_policy', 'plan_manifest', 'plan_history', 'iteration_control',
+    'query_understanding',
+    'evidence_ledger',
+    'evidence_access_gaps',
+    "organization_research",
+    "organization_result",
     "task_id",
     "user_query",
     "created_at",
@@ -79,7 +331,7 @@ KNOWN_STATE_KEYS = {
     "evidence_status",
     "review_status",
     "user_confirmed",
-    "allow_web_after_rag_hit",
+    "use_internal_docs",
     "rag_group",
     "retrieval_policy",
     "runtime_status",
@@ -109,6 +361,9 @@ def _iter_state_updates(chunk: dict[str, Any]):
 
 def _normalize_citations(value: Any) -> list[dict[str, Any]]:
     """Return citations as a list of dicts regardless of stored shape."""
+    if isinstance(value,str):
+        try:value=json.loads(value)
+        except ValueError:return []
     if isinstance(value, list):
         normalized: list[dict[str, Any]] = []
         for item in value:
@@ -142,17 +397,44 @@ def _normalize_tool_audit_rows(
 class ResearchRequest(BaseModel):
     """Request body for starting a research task."""
     query: str = Field(..., min_length=5, max_length=2000, description="Research query")
-    session_id: str | None = Field(default=None, description="Optional session ID for continuation")
+    channels: list[ChannelName] = Field(default_factory=list, max_length=8)
+    organization_research: OrganizationResearchRequest | None = None
+    query_options: QueryOptions = Field(default_factory=QueryOptions)
+    delivery: DeliveryRequest = Field(default_factory=DeliveryRequest)
+    query_preview_id: str | None = Field(default=None, pattern=r'^[0-9a-f]{64}$')
+    planning_policy: PlanningPolicy = Field(default_factory=PlanningPolicy)
+
+    @field_validator('query')
+    @classmethod
+    def nonblank_query(cls, value):
+        if len(value.strip()) < 5:
+            raise ValueError('query needs at least five non-padding characters')
+        return value.strip()
+
+    @model_validator(mode='after')
+    def constrained_corpus_channels(self):
+        if self.organization_research and self.organization_research.corpus.source_scope:
+            if any(channel != 'web' for channel in self.channels):
+                raise ValueError('restricted corpus currently supports web transport; choose source groups independently')
+        return self
+
+    @field_validator("channels")
+    @classmethod
+    def unique_channels(cls, value):
+        if len(set(value)) != len(value):
+            raise ValueError("channels must be unique")
+        return value
+    session_id: str | None = Field(default=None, description="Optional new session ID; existing IDs may only confirm their original pending request")
     max_revision: int = Field(default=3, ge=1, le=5, description="Max revision loops")
     user_confirmed: bool = Field(default=False, description="User confirmed high-risk task")
-    allow_web_after_rag_hit: bool = Field(
+    use_internal_docs: bool = Field(
         default=False,
-        description="If internal RAG finds evidence, also run internet search.",
+        description="Supplement public web research with the current user's internal documents.",
     )
     rag_group: str | None = Field(
         default=None,
         max_length=100,
-        description="Optional internal RAG source group filter.",
+        description="Internal document group filter, used only when use_internal_docs is true.",
     )
     output_length: str = Field(
         default="medium",
@@ -189,6 +471,31 @@ class ResearchStatus(BaseModel):
     pending_approval_count: int = 0
     budget_state: dict[str, Any] | None = None
     last_error_category: str | None = None
+
+
+def _same_research_request(stored, current):
+    """Only omit newly introduced defaults for legacy pending confirmations."""
+    previous, actual = dict(stored), dict(current)
+    defaults = {'query_options': QueryOptions().model_dump(mode='json'),
+        'delivery': DeliveryRequest().model_dump(mode='json'), 'query_preview_id': None,
+        'planning_policy': PlanningPolicy().model_dump(mode='json')}
+    for key, default in defaults.items():
+        if key not in previous and actual.get(key) == default:
+            actual.pop(key, None)
+        elif isinstance(previous.get(key), dict) and isinstance(actual.get(key), dict) and isinstance(default, dict):
+            narrowed = dict(actual[key])
+            for field, fallback in default.items():
+                if field not in previous[key] and narrowed.get(field) == fallback:
+                    narrowed.pop(field, None)
+            actual[key] = narrowed
+    return previous == actual
+
+
+def _task_tool_allowlist(skill_context: dict, decision_tools: list[str]) -> list[str]:
+    compilation = skill_context.get('stage_compilation')
+    if compilation is not None:
+        return list(compilation.get('dispatch_tools', [])) if compilation.get('ready') else []
+    return skill_context.get('effective_tool_allowlist') or decision_tools
 
 
 class ResearchResponse(BaseModel):
@@ -257,6 +564,7 @@ class ApprovalActionRequest(BaseModel):
 
 async def research_event_generator(
     session_id: str,
+    *, authorize=None,
 ) -> AsyncGenerator[dict[str, Any], None]:
     """
     SSE event generator for research progress.
@@ -264,22 +572,13 @@ async def research_event_generator(
     """
     sse = get_sse_manager()
 
-    # Send initial connection event
-    yield {
-        "event": "connected",
-        "data": {"session_id": session_id, "timestamp": utc_now_naive().isoformat()},
-    }
-
     try:
         # Stream events from the queue
-        async for event in sse.stream(session_id):
+        async for event in sse.stream(session_id, authorize=authorize):
             yield event
     except asyncio.CancelledError:
         logger.info(f"SSE stream cancelled for session {session_id}")
-        yield {
-            "event": "disconnected",
-            "data": {"session_id": session_id},
-        }
+        raise
 
 
 async def _owned_session_exists(session_id: str, owner_id: str) -> bool:
@@ -313,8 +612,9 @@ async def stream_research(session_id: str, principal: Principal = principal_depe
     """
     if not await _owned_session_exists(session_id, principal.id):
         raise HTTPException(status_code=404, detail="Session not found")
+    from app.security.auth import stream_principal_valid
     return EventSourceResponse(
-        research_event_generator(session_id),
+        research_event_generator(session_id, authorize=lambda: stream_principal_valid(principal, session_id)),
         media_type="text/event-stream",
     )
 
@@ -322,6 +622,112 @@ async def stream_research(session_id: str, principal: Principal = principal_depe
 # ==============================================================
 # Research Task Management
 # ==============================================================
+
+async def _prepare_query_understanding(conn, request: ResearchRequest, principal: Principal,
+        skill_context: dict, budget: dict, decision):
+    selected_preset = None
+    if request.delivery.copied_from_template:
+        origin=request.delivery.copied_from_template
+        if not await load_template(conn,_principal_id(principal),origin.template_id,origin.version):
+            raise HTTPException(404,'Template origin not found')
+    if request.organization_research and request.organization_research.weight_preset:
+        reference = request.organization_research.weight_preset
+        selected_preset = await load_preset(conn, principal.id, str(reference.preset_id), reference.version)
+        if selected_preset is None:
+            raise HTTPException(status_code=404, detail='Preset not found')
+    organization = freeze_organization_request(request.organization_research, selected_preset)
+    context = None
+    if request.query_options.context_session_id:
+        row = await conn.fetchrow('''SELECT review_status,request_payload,execution_id FROM research_sessions
+            WHERE id=$1::uuid AND owner_id=$2::uuid''', str(request.query_options.context_session_id), principal.id)
+        if not row:
+            raise HTTPException(status_code=404, detail='Context session not found')
+        try:
+            context = context_entities(_json_object(row['review_status']), _json_object(row['request_payload']))
+            context['configuration_id'] += ':' + str(row['execution_id'] or '')
+        except ValueError as error:
+            raise HTTPException(status_code=422, detail=str(error)) from None
+    base_tools = set(decision.enabled_tools)
+    if not request.use_internal_docs:
+        base_tools.discard('rag')
+    needed_stages = base_tools | {'planner','analyst','reflection','report'}
+    if (request.delivery.template != 'markdown-v1' or request.delivery.drawing_mode != 'builtin'
+            or any(format != 'markdown' for format in request.delivery.formats)):
+        needed_stages.add('render')
+    try:
+        compilation = compile_stage_skills(skill_context, task_tools=base_tools,
+            disciplines=list(((organization or {}).get('scope') or {}).get('disciplines') or request.query_options.disciplines),
+            template=request.delivery.template, char_budget=request.planning_policy.stage_context_chars,
+            needed_stages=needed_stages)
+    except ValueError:
+        raise HTTPException(status_code=422, detail='stage_skill_configuration_unavailable') from None
+    skill_context['stage_compilation'] = compilation
+    skill_context['effective_tool_allowlist'] = list(compilation['dispatch_tools'])
+    from app.document_structure import VERSION as DOCUMENT_PARSER_VERSION
+    parsing=get_settings().document_parsing
+    limits = {'budget': budget, 'max_revision': request.max_revision,
+        'document_parser_policy':{'schema_version':DOCUMENT_PARSER_VERSION,**{key:getattr(parsing,key)
+            for key in ('ocr_enabled','ocr_language','max_ocr_pages','max_chars','timeout_seconds')}},
+        'planning_policy': request.planning_policy.model_dump(mode='json'),
+        'skill_compilation_id': compilation['compilation_id'],
+        'output_length': normalize_research_length(request.output_length).value,
+        'channels': list(request.channels), 'use_internal_docs': request.use_internal_docs,
+        'rag_group': request.rag_group if request.use_internal_docs else None,
+        'effective_tool_allowlist': compilation['dispatch_tools']}
+    try:
+        snapshot = interpret_query(request.query, request.query_options, request.delivery,
+            owner_id=principal.id, organization=organization, skill_context=skill_context,
+            request_limits=limits, context=context)
+    except ValueError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from None
+    snapshot['context_candidates'] = (context or {}).get('entities', [])
+    conflicts = [*compilation['conflicts'], *[{'stage': stage, **conflict}
+        for stage, profile in compilation['profiles'].items() for conflict in profile['conflicts']]]
+    snapshot['execution_preparation'] = {'skill_compilation_id': compilation['compilation_id'],
+        'ready': compilation['ready'], 'conflicts': conflicts,
+        'planning_policy': request.planning_policy.model_dump(mode='json')}
+    if not compilation['ready']:
+        snapshot['ready'] = False
+        names = {item['skill_id']: item.get('name', item['skill_id']) for item in skill_context.get('resolved_skills', [])}
+        reasons = {'required_tools_not_permitted': '需要的工具不在当前许可内',
+            'required_skill_context_exceeds_budget': '必要技能内容超出上下文预算',
+            'registered_inline_reference_missing': '缺少已声明的内联参考内容',
+            'manual_skill_unavailable_or_not_resolved': '手选技能不可用或尚未成功解析',
+            'manual_skill_has_no_requested_stage': '手选技能不适用于本次执行阶段',
+            'discipline_not_matched': '适用学科与本次研究不一致', 'discipline_not_declared': '缺少技能要求的学科信息',
+            'different_template': '所选模板与技能适用模板不同',
+            'registered_skill_sections_ambiguous': '已注册技能包含重复指令或参考章节'}
+        for conflict in conflicts:
+            snapshot['clarifications'].append({'id': 'stage_skill_conflict',
+                'message': f"技能“{names.get(conflict.get('skill_id'), '当前选择')}”：{reasons.get(conflict['reason'], '配置无法生效')}。请调整技能选择、范围或上下文预算。",
+                'skill_conflict': conflict})
+    if not compilation['dispatch_tools']:
+        snapshot['ready'] = False
+        snapshot['clarifications'].append({'id': 'no_eligible_evidence_tools',
+            'message': '当前任务与技能限制的交集中没有可用取证工具，请调整选择；系统不会扩大许可启动研究。'})
+    snapshot['interpretation_id'] = identity({'query_contract': snapshot['interpretation_id'],
+        'skill_compilation_id': compilation['compilation_id']})
+    return organization, snapshot
+
+
+@router.post('/understanding')
+async def preview_query_understanding(request: ResearchRequest, principal: Principal = principal_dependency):
+    """Read-only interpretation; no new research, tools or model calls."""
+    try:
+        async with asyncio.timeout(15):
+            decision = build_guardrail_decision(request.query + '\n' + request.query_options.additional_constraints, user_confirmed=request.user_confirmed)
+            skill_context = (await get_skill_registry(principal.id).resolve_for_session(
+                query=request.query, manually_enabled_skill_ids=request.enabled_skill_ids,
+                manually_disabled_skill_ids=request.disabled_skill_ids,
+                tenant_id=request.skill_tenant_id, project_id=request.skill_project_id)).as_dict()
+            pool = await get_db_pool()
+            async with pool.acquire() as conn:
+                _, snapshot = await _prepare_query_understanding(conn, request, principal, skill_context,
+                    get_research_budget(normalize_research_length(request.output_length)), decision)
+    except TimeoutError:
+        raise HTTPException(status_code=503, detail='query_preview_temporarily_unavailable') from None
+    return snapshot
+
 
 @router.post("", response_model=ResearchResponse)
 async def create_research(
@@ -337,7 +743,8 @@ async def create_research(
     """
     # Generate or use provided session ID
     session_id = request.session_id or str(uuid.uuid4())
-    decision = build_guardrail_decision(request.query, user_confirmed=request.user_confirmed)
+    execution_id = str(uuid.uuid4())
+    decision = build_guardrail_decision(request.query + '\n' + request.query_options.additional_constraints, user_confirmed=request.user_confirmed)
     output_length = normalize_research_length(request.output_length)
     budget = get_research_budget(output_length)
     skill_context = (await get_skill_registry(_principal_id(principal)).resolve_for_session(
@@ -352,7 +759,33 @@ async def create_research(
 
     # Save to database
     pool = await get_db_pool()
-    async with pool.acquire() as conn:
+    request_payload = request.model_dump(mode="json", exclude={"session_id", "user_confirmed"})
+    if request.organization_research and request.organization_research.weight_preset:
+        request_payload['organization_research']['weight_preset'] = request.organization_research.weight_preset.model_dump(mode='json')
+        request_payload['organization_research'].pop('weights', None)
+    async with pool.acquire() as conn, conn.transaction():
+        pending = None
+        if request.session_id and request.user_confirmed:
+            pending = await conn.fetchrow('''SELECT status,review_status,request_payload,skill_context FROM research_sessions
+                WHERE id=$1::uuid AND owner_id=$2::uuid FOR UPDATE''',session_id,principal.id)
+        if (pending and pending['status'] == 'pending'
+                and _json_object(pending['review_status']).get('requires_confirmation')
+                and _same_research_request(_json_object(pending['request_payload']), request_payload)):
+            original_review = _json_object(pending['review_status'])
+            organization_research = original_review.get('organization_research')
+            query_understanding = original_review.get('query_understanding')
+            skill_context = _json_object(pending['skill_context'])
+        else:
+            try:
+                async with asyncio.timeout(15):
+                    organization_research, query_understanding = await _prepare_query_understanding(
+                        conn, request, principal, skill_context, budget, decision)
+            except TimeoutError:
+                raise HTTPException(status_code=503, detail='query_configuration_temporarily_unavailable') from None
+            if not query_understanding['ready']:
+                raise HTTPException(status_code=409, detail={'category':'query_clarification_required','understanding':query_understanding})
+            if request.query_preview_id and request.query_preview_id != query_understanding['interpretation_id']:
+                raise HTTPException(status_code=409, detail={'category':'query_preview_changed','understanding':query_understanding})
         review_status = build_review_status(
             blocked=decision.must_confirm and not request.user_confirmed,
             requires_confirmation=decision.must_confirm and not request.user_confirmed,
@@ -362,24 +795,16 @@ async def create_research(
             intent=decision.intent,
             prompt_profile=decision.prompt_profile,
         )
-        await conn.execute(
+        review_status["organization_research"] = organization_research
+        review_status['query_understanding'] = query_understanding
+        inserted = await conn.fetchrow(
             """
             INSERT INTO research_sessions (id, user_query, status, guardrail_decision, guardrail_trace,
                                            evidence_status, review_status, prompt_profile, prompt_template,
-                                            enabled_tools, skill_context, owner_id, created_at, updated_at)
-            VALUES ($1::uuid, $2, $3, $4::jsonb, $5::jsonb, $6::jsonb, $7::jsonb, $8, $9, $10::jsonb, $11::jsonb, $12::uuid, $13, $13)
-            ON CONFLICT (id) DO UPDATE SET
-                user_query = $2,
-                status = $3,
-                guardrail_decision = $4::jsonb,
-                guardrail_trace = $5::jsonb,
-                evidence_status = $6::jsonb,
-                review_status = $7::jsonb,
-                prompt_profile = $8,
-                prompt_template = $9,
-                enabled_tools = $10::jsonb,
-                skill_context = $11::jsonb,
-                updated_at = $13
+                                            enabled_tools, skill_context, owner_id, created_at, updated_at, request_payload, execution_id)
+            VALUES ($1::uuid, $2, $3, $4::jsonb, $5::jsonb, $6::jsonb, $7::jsonb, $8, $9, $10::jsonb, $11::jsonb, $12::uuid, $13, $13, $14::jsonb, $15::uuid)
+            ON CONFLICT (id) DO NOTHING
+            RETURNING id
             """,
             session_id,
             request.query,
@@ -390,11 +815,33 @@ async def create_research(
             dumps_json(review_status),
             decision.prompt_profile.value,
             compose_guardrail_prompt(request.query, decision),
-            dumps_json(skill_context.get("effective_tool_allowlist") or decision.enabled_tools),
+            dumps_json(_task_tool_allowlist(skill_context, decision.enabled_tools)),
             dumps_json(skill_context),
             _principal_id(principal),
             utc_now_naive(),
+            dumps_json(request_payload),
+            execution_id,
         )
+        if not inserted:
+            existing = await conn.fetchrow(
+                "SELECT status, review_status, request_payload, skill_context FROM research_sessions WHERE id = $1::uuid AND owner_id = $2::uuid FOR UPDATE",
+                session_id, _principal_id(principal),
+            )
+            if not existing:
+                raise HTTPException(status_code=404, detail="Session not found")
+            if not (request.user_confirmed and existing["status"] == "pending"
+                    and _json_object(existing["review_status"]).get("requires_confirmation")
+                    and _same_research_request(_json_object(existing["request_payload"]), request_payload)):
+                raise HTTPException(status_code=409, detail="session_already_exists")
+            skill_context = _json_object(existing["skill_context"])
+            organization_research = _json_object(existing["review_status"]).get("organization_research")
+            review_status["organization_research"] = organization_research
+            query_understanding = _json_object(existing['review_status']).get('query_understanding')
+            review_status['query_understanding'] = query_understanding
+            await conn.execute(
+                "UPDATE research_sessions SET status = 'running', review_status = $1::jsonb, updated_at = $2, execution_id = $5::uuid WHERE id = $3::uuid AND owner_id = $4::uuid AND status = 'pending'",
+                dumps_json(review_status), utc_now_naive(), session_id, _principal_id(principal), execution_id,
+            )
 
     if decision.must_confirm and not request.user_confirmed:
         return ResearchResponse(
@@ -414,11 +861,15 @@ async def create_research(
         query=request.query,
         max_revision=request.max_revision,
         user_confirmed=request.user_confirmed,
-        allow_web_after_rag_hit=request.allow_web_after_rag_hit,
-        rag_group=request.rag_group,
+        use_internal_docs=request.use_internal_docs,
+        rag_group=request.rag_group if request.use_internal_docs else None,
         output_length=output_length.value,
         skill_context=skill_context,
         owner_id=_principal_id(principal),
+        channels=request.channels,
+        execution_id=execution_id,
+        organization_research=organization_research,
+        query_understanding=query_understanding,
     )
 
     return ResearchResponse(
@@ -454,7 +905,7 @@ async def get_research_status(session_id: str, principal: Principal = principal_
     if not row:
         raise HTTPException(status_code=404, detail="Session not found")
 
-    review_status = row.get("review_status") or {}
+    review_status = _json_object(row.get("review_status"))
     budget_state = review_status.get("budget_state")
     if row.get("max_tool_calls") is not None:
         budget_state = {
@@ -482,6 +933,341 @@ async def get_research_status(session_id: str, principal: Principal = principal_
     )
 
 
+@router.get('/{session_id}/classifications')
+async def get_classification_versions(session_id: uuid.UUID, principal: Principal = principal_dependency):
+    pool = await get_db_pool()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow('SELECT review_status FROM research_sessions WHERE id=$1::uuid AND owner_id=$2::uuid',
+            str(session_id), _principal_id(principal))
+    if row is None:
+        raise HTTPException(404, 'Session not found')
+    review = _json_object(row['review_status'])
+    findings=review.get('organization_result') or {}
+    initial = findings.get('classification')
+    if initial and findings.get('statistics'):
+        initial={**initial,'statistics':findings['statistics']}
+    return {'versions': ([initial] if initial else []) + review.get('classification_versions', [])}
+
+
+@router.get('/{session_id}/ingestion')
+async def get_ingestion_ledger(session_id:uuid.UUID,include_content:bool=False,principal:Principal=principal_dependency):
+    """Only the authorized task's retained versions; never acquire or reindex."""
+    from app.evidence_ingestion import reconcile_evidence_ledger, ledger_view
+    pool=await get_db_pool()
+    async with pool.acquire() as conn:
+        row=await conn.fetchrow('''SELECT s.owner_id,r.state_snapshot_json FROM research_sessions s
+            LEFT JOIN session_runtime_state r ON r.session_id=s.id WHERE s.id=$1::uuid AND s.owner_id=$2::uuid''',
+            str(session_id),_principal_id(principal))
+    if row is None:raise HTTPException(404,'Session not found')
+    state=_json_object(row['state_snapshot_json'])
+    ledger=state.get('evidence_ledger');persisted=bool(ledger)
+    owner_id=str(row['owner_id'])
+    if ledger and (ledger.get('owner_id')!=owner_id or ledger.get('session_id')!=str(session_id)):
+        raise HTTPException(409,'ingestion_scope_conflict')
+    if not ledger:
+        ledger=reconcile_evidence_ledger(state,None,owner_id=owner_id,session_id=str(session_id))
+    config=state.get('organization_research') or {}
+    corpus=(state.get('organization_result') or {}).get('corpus')
+    return {'persisted':persisted,'origin':'saved_task_ledger' if persisted else 'explicit_legacy_snapshot_projection',
+        'view':ledger_view(ledger,include_content=include_content),'corpus':corpus,
+        'declared_scope':{key:config.get(key) for key in ('scope','corpus')},
+        'effects':{'network_requests':0,'model_calls':0,'index_writes':0}}
+
+
+async def _owned_retained_version(session_id,evidence_id,owner_id):
+    from app.evidence_ingestion import reconcile_evidence_ledger
+    pool=await get_db_pool()
+    async with pool.acquire() as conn:
+        row=await conn.fetchrow('''SELECT r.state_snapshot_json FROM research_sessions s
+            LEFT JOIN session_runtime_state r ON r.session_id=s.id WHERE s.id=$1::uuid AND s.owner_id=$2::uuid''',str(session_id),owner_id)
+    if row is None:raise HTTPException(404,'Retained evidence not found')
+    state=_json_object(row['state_snapshot_json'])
+    ledger=state.get('evidence_ledger') or reconcile_evidence_ledger(state,None,owner_id=owner_id,session_id=str(session_id))
+    if ledger.get('owner_id')!=owner_id or ledger.get('session_id')!=str(session_id):raise HTTPException(409,'retained_evidence_scope_conflict')
+    event=ledger.get('events',{}).get(evidence_id)
+    if not event:raise HTTPException(404,'Retained evidence not found')
+    source=ledger['sources'][event['source_id']]
+    return source,source['versions'][event['version_id']]
+
+
+class ArchiveTaskEvidenceRequest(BaseModel):
+    model_config={'extra':'forbid'}
+    request_id:uuid.UUID
+    version_id:str=Field(min_length=1,max_length=260)
+    group_name:str=Field(min_length=1,max_length=100)
+    name:str|None=Field(default=None,min_length=1,max_length=300)
+
+    @field_validator('group_name','name')
+    @classmethod
+    def bounded_label(cls,value):
+        if value is None:return None
+        value=value.strip()
+        if not value or any(ord(char)<32 for char in value):raise ValueError('archive label must be nonblank without control characters')
+        return value
+
+
+@router.post('/{session_id}/evidence/{evidence_id}/archive')
+async def archive_task_evidence(session_id:uuid.UUID,evidence_id:str,payload:ArchiveTaskEvidenceRequest,
+        principal:Principal=principal_dependency):
+    from app.api.documents import _ingest_source
+    from app.db.retrieval_indexes import IndexPolicy
+    from app.retrieval_features import FeaturePolicy
+    from app.source_lifecycle import RetentionPolicy,lock_owner,prior_operation,record_operation
+    from app.organization_corpus import source_scope
+    from app.channels.execution import public_url
+    from app.channels.models import ChannelError
+    owner=_principal_id(principal)
+    source,version=await _owned_retained_version(session_id,evidence_id,owner)
+    if version['version_id']!=payload.version_id:raise HTTPException(409,'retained_version_changed')
+    if source['source_type']!='web' or version.get('coverage')=='discovery_only' or not version.get('content','').strip():
+        raise HTTPException(422,'archive_requires_acquired_public_source_text_not_search_lead_or_generated_report')
+    fingerprint=identity({'session_id':str(session_id),'evidence_id':evidence_id,**payload.model_dump(mode='json')})
+    pool=await get_db_pool()
+    async with pool.acquire() as conn,conn.transaction():
+        await lock_owner(conn,owner)
+        try:previous=await prior_operation(conn,owner,payload.request_id,fingerprint)
+        except ValueError as error:raise HTTPException(409,str(error)) from None
+        if previous:return previous
+        row=await conn.fetchrow('''SELECT r.state_snapshot_json FROM research_sessions s JOIN session_runtime_state r ON r.session_id=s.id
+            WHERE s.id=$1::uuid AND s.owner_id=$2::uuid''',str(session_id),owner)
+        if row is None:raise HTTPException(404,'Retained evidence not found')
+        state=_json_object(row['state_snapshot_json'])
+        from app.external_evidence import archive_version_allowed
+        ledger=state.get('evidence_ledger') or {}
+        if not archive_version_allowed(source,version,ledger.get('events') or {}):
+            raise HTTPException(409,'archive_requires_confirmed_public_transport_acquisition')
+        try:
+            policy=source_scope(state.get('organization_research'))
+            (policy.admit if policy else public_url)(source.get('source_url') or '')
+        except (ChannelError,ValueError,TypeError):raise HTTPException(409,'current_public_source_scope_not_established') from None
+        archived=await _ingest_source(name=payload.name or str(source.get('title') or source['source_url'])[:300],
+            group_name=payload.group_name,source_type='web',file_ext='md',content=version['content'],owner_id=owner,connection=conn,
+            index_policy=IndexPolicy(mode='direct'),feature_policy=FeaturePolicy(dense=False),
+            retention_policy=RetentionPolicy(reuse_scope='group'),revision_intake_key=str(payload.request_id),
+            metadata={'url':source['source_url'],'title':source.get('title'),
+                'research_evidence_origin':{'session_id':str(session_id),'evidence_id':evidence_id,
+                    'version_id':version['version_id'],'coverage':version.get('coverage'),
+                    'collected_at':version.get('collected_at'),'acquisition':version.get('acquisition')},
+                'archival_semantics':'acquired_retained_text_not_network_bytes_or_independent_fact_verification'})
+        result={**archived,'source_version_id':version['version_id'],'replayed':False,
+            'effects':{'network_requests':0,'model_calls':0,'automatic_search_index':False},
+            'retention':'owned_group_direct_only_explicitly_archived'}
+        await record_operation(conn,owner,payload.request_id,fingerprint,archived['source_id'],
+            'archive_task_evidence','explicit_user_archive_of_retained_source_text',result)
+        return result
+
+
+@router.get('/{session_id}/evidence/{evidence_id}')
+async def get_retained_evidence_quote(session_id:uuid.UUID,evidence_id:str,start:int=0,end:int|None=None,
+        principal:Principal=principal_dependency):
+    source,version=await _owned_retained_version(session_id,evidence_id,_principal_id(principal))
+    text=version['content'];end=min(start+2000,len(text)) if end is None else end
+    if not 0<=start<=end<=len(text) or end-start>4000:raise HTTPException(422,'retained_quote_range_must_be_within_source_and_4000_chars')
+    return {'session_id':str(session_id),'evidence_id':evidence_id,'version_id':version['version_id'],
+        'source_url':source['source_url'],'source_title':source['title'],'text':text[start:end],'start':start,'end':end,
+        'offset_unit':'task_retained_evidence_character','coverage':version['coverage'],
+        'upstream_locator':{key:(version.get('acquisition') or {}).get(key) for key in ('source_document_id','parse_version_id','chunk_reference','returned_span')},
+        'semantics':'retained_source_excerpt_not_fact_verification','effects':{'model_calls':0,'network_requests':0,'index_writes':0}}
+
+
+@router.get('/{session_id}/evidence/{evidence_id}/chunks')
+async def preview_retained_evidence_chunks(session_id:uuid.UUID,evidence_id:str,principal:Principal=principal_dependency):
+    from app.evidence_chunks import build_chunk_plan
+    source,version=await _owned_retained_version(session_id,evidence_id,_principal_id(principal))
+    acquisition=version.get('acquisition') or {}
+    view=build_chunk_plan(version['content'],acquisition.get('document_structure') or acquisition,version['version_id'],size=1800,overlap=150)
+    return {'persisted':False,'origin':'current_chunk_policy_on_immutable_retained_version','view':view,
+        'source_url':source['source_url'],'effects':{'model_calls':0,'network_requests':0,'index_writes':0,'original_report_modified':False}}
+
+
+async def _owned_analysis_source(session_id: uuid.UUID, owner_id: str):
+    pool = await get_db_pool()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow('''SELECT s.id,s.execution_id,s.completed_at,s.status,s.review_status,r.state_snapshot_json
+            FROM research_sessions s LEFT JOIN session_runtime_state r ON r.session_id=s.id
+            WHERE s.id=$1::uuid AND s.owner_id=$2::uuid''',str(session_id),owner_id)
+    if row is None:
+        raise HTTPException(404,'Session not found')
+    if row['status']!='completed':
+        raise HTTPException(409,'research_must_be_completed')
+    review=_json_object(row['review_status'])
+    review['analysis_source_context']={'session_id':str(row['id']),
+        'execution_id':str(row['execution_id']) if row['execution_id'] else None,
+        'completed_at':row['completed_at'].isoformat() if row['completed_at'] else None}
+    if not review.get('organization_research'):
+        raise HTTPException(409,'organization_research_required')
+    return review, _json_object(row['state_snapshot_json']).get('collected_evidence',[])
+
+
+@router.get('/{session_id}/relationships')
+async def get_relationship_view(session_id: uuid.UUID, principal: Principal = principal_dependency):
+    review,evidence=await _owned_analysis_source(session_id,_principal_id(principal))
+    findings=review.get('organization_result') or {}
+    if findings.get('relationship_view'):
+        return {'persisted':True,'view':findings['relationship_view']}
+    return {'persisted':False,'view':build_relationship_view(review['organization_research'],findings,evidence,
+        origin='explicit_legacy_snapshot_projection')}
+
+
+@router.post('/{session_id}/relationships/preview')
+async def preview_relationship_claims(session_id: uuid.UUID,payload:RelationshipPreviewRequest,principal:Principal=principal_dependency):
+    """Review bounded claims against this owner's original sources; never write facts."""
+    review,evidence=await _owned_analysis_source(session_id,_principal_id(principal))
+    if not evidence:
+        raise HTTPException(409,'retained_source_evidence_unavailable')
+    return {'persisted':False,'view':build_relationship_view(review['organization_research'],
+        review.get('organization_result') or {},evidence,payload.model_dump(mode='json'),origin='caller_proposals_not_verified_facts')}
+
+
+@router.get('/{session_id}/technical-reading')
+async def get_technical_reading(session_id:uuid.UUID,principal:Principal=principal_dependency):
+    review,evidence=await _owned_analysis_source(session_id,_principal_id(principal))
+    findings=review.get('organization_result') or {}
+    if findings.get('technical_reading'):return {'persisted':True,'view':findings['technical_reading']}
+    return {'persisted':False,'view':build_technical_cards(review['organization_research'],findings,evidence)}
+
+
+@router.post('/{session_id}/technical-reading/preview')
+async def preview_technical_reading(session_id:uuid.UUID,payload:TechnicalPreviewRequest,principal:Principal=principal_dependency):
+    review,evidence=await _owned_analysis_source(session_id,_principal_id(principal))
+    if not evidence:raise HTTPException(409,'retained_source_evidence_unavailable')
+    return {'persisted':False,'view':build_technical_cards(review['organization_research'],review.get('organization_result') or {},
+        evidence,payload.model_dump(mode='json'))}
+
+
+@router.get('/{session_id}/trends')
+async def get_trend_view(session_id:uuid.UUID,principal:Principal=principal_dependency):
+    review,evidence=await _owned_analysis_source(session_id,_principal_id(principal))
+    findings=review.get('organization_result') or {}
+    if findings.get('trend_view'):return {'persisted':True,'view':findings['trend_view']}
+    return {'persisted':False,'view':build_trend_view(review['organization_research'],findings,evidence)}
+
+
+@router.post('/{session_id}/trends/preview')
+async def preview_trend_view(session_id:uuid.UUID,payload:TrendPreviewRequest,principal:Principal=principal_dependency):
+    review,evidence=await _owned_analysis_source(session_id,_principal_id(principal))
+    if not evidence:raise HTTPException(409,'retained_source_evidence_unavailable')
+    return {'persisted':False,'view':build_trend_view(review['organization_research'],review.get('organization_result') or {},
+        evidence,payload.model_dump(mode='json'))}
+
+
+def _action_source_state(review,evidence):
+    provenance=review['analysis_source_context']
+    return {'task_id':provenance['session_id'],'session':{'execution_id':provenance['execution_id']},
+        'status':'completed','completed_at':provenance['completed_at'],'collected_evidence':evidence}
+
+
+@router.get('/{session_id}/statistics')
+async def get_statistics(session_id:uuid.UUID,classification_snapshot_id:str|None=None,principal:Principal=principal_dependency):
+    """Consume immutable counts; old snapshots get an explicitly read-only projection."""
+    review,evidence=await _owned_analysis_source(session_id,_principal_id(principal))
+    findings=review.get('organization_result') or {}
+    initial=findings.get('classification') or {}
+    if classification_snapshot_id and classification_snapshot_id!=initial.get('snapshot_id'):
+        selected=next((item for item in review.get('classification_versions',[])
+            if item['snapshot_id']==classification_snapshot_id),None)
+        if selected is None:raise HTTPException(404,'Classification snapshot not found')
+        if selected.get('statistics'):return {'persisted':True,'view':selected['statistics']}
+        findings={**findings,'classification':selected}
+    elif findings.get('statistics'):
+        return {'persisted':True,'view':findings['statistics']}
+    provenance=review['analysis_source_context']
+    source_id=provenance['session_id']+':'+str(provenance['execution_id'] or 'execution-not-recorded')
+    return {'persisted':False,'origin':'explicit_legacy_snapshot_projection',
+        'view':build_statistics(review['organization_research'],findings,evidence,source_id=source_id)}
+
+
+@router.get('/{session_id}/actions')
+async def get_action_view(session_id:uuid.UUID,principal:Principal=principal_dependency):
+    review,evidence=await _owned_analysis_source(session_id,_principal_id(principal))
+    findings=review.get('organization_result') or {}
+    if findings.get('actions'):return {'persisted':True,'view':findings['actions']}
+    return {'persisted':False,'view':build_action_view(review['organization_research'],findings,evidence,
+        findings.get('action_proposals'),state=_action_source_state(review,evidence))}
+
+
+@router.post('/{session_id}/actions/preview')
+async def preview_action_view(session_id:uuid.UUID,payload:ActionPreviewRequest,principal:Principal=principal_dependency):
+    review,evidence=await _owned_analysis_source(session_id,_principal_id(principal))
+    if not evidence:raise HTTPException(409,'retained_source_evidence_unavailable')
+    return {'persisted':False,'view':build_action_view(review['organization_research'],review.get('organization_result') or {},
+        evidence,{'action_cards':payload.model_dump(mode='json')['action_cards']},
+        requirements=payload.requirements if 'requirements' in payload.model_fields_set else None,
+        weights=payload.weights,state=_action_source_state(review,evidence))}
+
+
+@router.post('/{session_id}/classifications', status_code=201)
+async def reclassify_research(session_id: uuid.UUID, payload: ReclassificationRequest, principal: Principal = principal_dependency):
+    """Same owner's retained evidence only; append versions without tools or model calls."""
+    pool = await get_db_pool()
+    async with pool.acquire() as conn, conn.transaction():
+        row = await conn.fetchrow('''SELECT status,review_status FROM research_sessions
+            WHERE id=$1::uuid AND owner_id=$2::uuid FOR UPDATE''', str(session_id), _principal_id(principal))
+        if row is None:
+            raise HTTPException(404, 'Session not found')
+        if row['status'] != 'completed':
+            raise HTTPException(409, 'research_must_be_completed')
+        review = _json_object(row['review_status'])
+        config, findings = review.get('organization_research'), review.get('organization_result') or {}
+        if not config or not (findings.get('scope_result') or {}).get('outputs'):
+            raise HTTPException(409, 'no_accepted_publication_sample')
+        try:
+            taxonomy = freeze_taxonomy(payload.taxonomy, config['scope']['disciplines'])
+        except ValueError as error:
+            raise HTTPException(422, str(error)) from None
+        initial = findings.get('classification')
+        saved = review.get('classification_versions', [])
+        versions = ([initial] if initial else []) + saved
+        for prior in versions:
+            if prior['taxonomy']['version'] == taxonomy['version']:
+                if prior['taxonomy'] != taxonomy:
+                    raise HTTPException(409, 'taxonomy_version_already_has_different_rules')
+                return prior
+        if len(versions) >= 20:
+            raise HTTPException(409, 'classification_version_limit_20')
+        state = await conn.fetchval('SELECT state_snapshot_json FROM session_runtime_state WHERE session_id=$1::uuid', str(session_id))
+        evidence = _json_object(state).get('collected_evidence', [])
+        if not evidence:
+            raise HTTPException(409, 'retained_source_evidence_unavailable')
+        snapshot = classify_publications(taxonomy, findings, evidence, config['scope'], reason=payload.reason,
+            previous=versions[-1] if versions else None)
+        statistics=build_statistics(config,{**findings,'classification':snapshot},evidence,source_id=str(session_id))
+        snapshot={**apply_statistics({**findings,'classification':snapshot},statistics)['classification'],
+            'statistics':statistics}
+        await conn.execute('''UPDATE research_sessions SET review_status=jsonb_set(review_status,'{classification_versions}',$3::jsonb)
+            WHERE id=$1::uuid AND owner_id=$2::uuid''', str(session_id), _principal_id(principal), dumps_json(saved + [snapshot]))
+    return snapshot
+
+
+@router.get('/{session_id}/reports')
+async def retained_report_versions(session_id:uuid.UUID,principal:Principal=principal_dependency):
+    pool=await get_db_pool();owner=_principal_id(principal)
+    async with pool.acquire() as conn:
+        if not await conn.fetchval('SELECT 1 FROM research_sessions WHERE id=$1::uuid AND owner_id=$2::uuid',str(session_id),owner):
+            raise HTTPException(404,'Session not found')
+        rows=await conn.fetch('''SELECT report_id,sequence,created_at,payload->>'status' AS status,
+            payload->>'kind' AS kind,payload->'audit'->>'supported_claims' AS supported_claims,
+            payload->'audit'->>'total_claims' AS total_claims FROM research_report_versions
+            WHERE session_id=$1::uuid AND owner_id=$2::uuid ORDER BY sequence DESC''',str(session_id),owner)
+    return {'items':[{**dict(row),'created_at':row['created_at'].isoformat()} for row in rows],
+        'effects':{'model_calls':0,'network_collection':0,'fact_ingestion':False}}
+
+
+@router.get('/{session_id}/reports/{report_id}')
+async def retained_report_version(session_id:uuid.UUID,report_id:str,principal:Principal=principal_dependency):
+    pool=await get_db_pool()
+    async with pool.acquire() as conn:
+        row=await conn.fetchrow('''SELECT v.* FROM research_report_versions v JOIN research_sessions s ON s.id=v.session_id
+            AND s.owner_id=v.owner_id WHERE v.session_id=$1::uuid AND v.owner_id=$2::uuid AND v.report_id=$3''',
+            str(session_id),_principal_id(principal),report_id)
+    if not row:raise HTTPException(404,'Report version not found')
+    payload=_json_object(row['payload'])
+    from app.research_delivery import report_for_reading
+    return {**payload,'reader_report':report_for_reading(payload['report'],payload.get('citations')) if payload['kind']=='report' else None,
+        'report_id':row['report_id'],'sequence':row['sequence'],
+        'created_at':row['created_at'].isoformat()}
+
+
 @router.get("/{session_id}")
 async def get_research_result(session_id: str, principal: Principal = principal_dependency):
     """Get the final research result."""
@@ -489,8 +1275,12 @@ async def get_research_result(session_id: str, principal: Principal = principal_
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
             """
-            SELECT id, user_query, status, final_report, citations, agent_trace, review_status, created_at, completed_at
-                 , skill_context
+            SELECT id, execution_id, user_query, status, final_report, citations, agent_trace, review_status, created_at, completed_at
+                 , skill_context, request_payload,
+                   (SELECT state_snapshot_json -> 'dag' FROM session_runtime_state
+                    WHERE session_id = research_sessions.id) AS execution_plan,
+                   (SELECT state_snapshot_json -> 'analysis_workflow' FROM session_runtime_state
+                    WHERE session_id = research_sessions.id) AS analysis_workflow
             FROM research_sessions
             WHERE id = $1::uuid AND owner_id = $2::uuid
             """,
@@ -511,19 +1301,52 @@ async def get_research_result(session_id: str, principal: Principal = principal_
     if not row:
         raise HTTPException(status_code=404, detail="Session not found")
 
-    citations = [dict(citation) for citation in citation_rows] if citation_rows else _normalize_citations(row["citations"])
+    workflow=_json_object(row.get('analysis_workflow'))
+    frozen_citations=_normalize_citations(row['citations'])
+    locators={item.get('citation_id'):item.get('locator') for item in frozen_citations if item.get('locator')}
+    citations = [{**dict(citation),'locator':locators.get(citation['citation_id'])} for citation in citation_rows] if citation_rows else frozen_citations
 
-    review_status = row.get("review_status") or {}
+    review_status = _json_object(row.get("review_status"))
+    restart_source = _json_object(row.get('request_payload'))
+    from app.research_delivery import build_delivery_view
+    delivery_view = build_delivery_view(task_id=str(row['id']), execution_id=str(row['execution_id']) if row['execution_id'] else None,
+        query=row['user_query'], report=row['final_report'], citations=citations,
+        understanding=review_status.get('query_understanding'), organization_result=review_status.get('organization_result'),
+        audit=review_status.get('final_report_audit')) if row['status'] == 'completed' and row['final_report'] else None
     return {
         "session_id": str(row["id"]),
+        'restart_parameters': {key: restart_source[key] for key in (
+            'channels','max_revision','output_length','use_internal_docs','rag_group',
+            'enabled_skill_ids','disabled_skill_ids','skill_tenant_id','skill_project_id','query_options','delivery','planning_policy',
+            'organization_research') if key in restart_source},
         "query": row["user_query"],
         "status": row["status"],
+        'classification_versions': review_status.get('classification_versions', []),
         "runtime_status": review_status.get("runtime_status"),
         "report": row["final_report"],
+        'delivery_view': delivery_view,
         "citations": citations,
-        "agent_trace": row["agent_trace"],
+        "agent_trace": json.loads(row["agent_trace"]) if isinstance(row["agent_trace"], str) else row["agent_trace"],
         "tool_audit_summary": review_status.get("tool_audit_summary", {}),
-        "skill_context": row.get("skill_context") or {},
+        'ingestion':review_status.get('ingestion'),
+        "skill_context": _json_object(row.get("skill_context")),
+        "organization_research": review_status.get("organization_research"),
+        "organization_result": review_status.get("organization_result"),
+        'query_understanding': review_status.get('query_understanding'),
+        'plan_manifest': review_status.get('plan_manifest'),
+        'plan_history': review_status.get('plan_history', []),
+        'iteration_control': review_status.get('iteration_control'),
+        'planning_policy': review_status.get('planning_policy'),
+        'report_audit': review_status.get('final_report_audit'),
+        'report_editorial': review_status.get('report_editorial'),
+        'budget_state':review_status.get('budget_state'),
+        "execution_plan": _json_object(row.get("execution_plan")),
+        'analysis_progress':{'phase':workflow.get('active_phase'),'status':workflow.get('status'),
+            'completed_steps':len(workflow.get('completed') or {})} if workflow else None,
+        'analysis_recovery_available':bool(row['status']=='paused' and workflow.get('status')=='paused'
+            and workflow.get('schema_version')=='adrs-analysis-questions-v2'
+            and workflow.get('stop_reason') in {'analysis_output_incomplete','analysis_provider_unavailable','model_output_limit'}
+            and int((workflow.get('attempts') or {}).get(workflow.get('active_phase'),2))<2),
         "created_at": row["created_at"].isoformat(),
         "completed_at": row["completed_at"].isoformat() if row["completed_at"] else None,
     }
@@ -568,7 +1391,7 @@ async def get_research_tool_calls(session_id: str, principal: Principal = princi
             node_id=row["node_id"],
             agent_type=row["agent_type"],
             tool_name=row["tool_name"],
-            args_json=row["args_json"] or {},
+            args_json=_json_object(row["args_json"]),
             args_hash=row["args_hash"],
             status=row["status"],
             error_category=row["error_category"],
@@ -581,7 +1404,7 @@ async def get_research_tool_calls(session_id: str, principal: Principal = princi
             decision_id=row["decision_id"],
             approved_by=row["approved_by"],
             server_fingerprint=row["server_fingerprint"],
-            safety_json=row["safety_json"] or {},
+            safety_json=_json_object(row["safety_json"]),
             usage_source=row["usage_source"],
             estimated=bool(row["estimated"]),
             started_at=row["started_at"].isoformat() if row["started_at"] else None,
@@ -642,105 +1465,203 @@ async def resolve_research_approval(
     approval_id: str,
     request: ApprovalActionRequest,
     principal: Principal = principal_dependency,
+    background_tasks: BackgroundTasks = None,
 ):
-    """Resolve an approval request and persist decision for harness-driven resume."""
+    """Resolve one bound decision; resume only after all decisions are final."""
+    from app.graph.approval import resume_approved_state
+
     pool = await get_db_pool()
-    approval_payload: dict[str, Any] | None = None
-    async with pool.acquire() as conn:
+    state_snapshot = None
+    approval_payload = None
+    resolved_status = "approved" if request.action == "approve" else "rejected"
+    execution_id = str(uuid.uuid4())
+    async with pool.acquire() as conn, conn.transaction():
+        session = await conn.fetchrow(
+            """SELECT s.status, s.execution_id, r.state_snapshot_json
+               FROM research_sessions s LEFT JOIN session_runtime_state r ON r.session_id = s.id
+               WHERE s.id = $1::uuid AND s.owner_id = $2::uuid FOR UPDATE OF s""",
+            session_id, principal.id,
+        )
+        if not session:
+            raise HTTPException(status_code=404, detail="Session not found")
         approval = await conn.fetchrow(
-            """
-            SELECT approval_id, session_id, status, request_payload_json
-            FROM approval_requests
-            WHERE approval_id = $1 AND session_id = $2::uuid
-              AND EXISTS (SELECT 1 FROM research_sessions WHERE id = $2::uuid AND owner_id = $3::uuid)
-            """,
-            approval_id,
-            session_id, _principal_id(principal),
+            """SELECT approval_id, session_id, status, request_payload_json
+               FROM approval_requests WHERE approval_id = $1 AND session_id = $2::uuid FOR UPDATE""",
+            approval_id, session_id,
         )
         if not approval:
             raise HTTPException(status_code=404, detail="Approval request not found")
         if approval["status"] not in {"pending", "awaiting_approval"}:
             raise HTTPException(status_code=409, detail="Approval request already resolved")
-        resolved_status = "approved" if request.action == "approve" else "rejected"
+        snapshot = _json_object(session["state_snapshot_json"])
+        approval_payload = _json_object(approval["request_payload_json"])
+        pending = {item["approval_id"]: item for item in snapshot.get("pending_approvals", [])}
+        bound = pending.get(approval_id)
+        if (session["status"] != "paused" or not bound
+                or snapshot.get("session", {}).get("execution_id") != (str(session["execution_id"]) if session["execution_id"] else None)
+                or bound.get("request_payload") != approval_payload):
+            raise HTTPException(status_code=409, detail="approval_checkpoint_unavailable")
+        # Validate before committing a decision, including the rejected case.
+        proposed = {key: {**item, "status": resolved_status if key == approval_id else "approved"}
+                    for key, item in pending.items()}
+        try:
+            resume_approved_state(snapshot, proposed, owner_id=principal.id, session_id=session_id)
+        except (ValueError, KeyError, TypeError) as exc:
+            raise HTTPException(status_code=409, detail="invalid_approval_checkpoint") from exc
         await conn.execute(
-            """
-            UPDATE approval_requests
-            SET status = $1,
-                resolved_at = $2,
-                resolved_by = $3,
-                comment = $4
-            WHERE approval_id = $5 AND session_id = $6::uuid
-            """,
-            resolved_status,
-            utc_now_naive(),
-            request.approved_by,
-            request.comment,
-            approval_id,
+            """UPDATE approval_requests SET status = $1, resolved_at = $2, resolved_by = $3, comment = $4
+               WHERE approval_id = $5 AND session_id = $6::uuid AND status IN ('pending', 'awaiting_approval')""",
+            resolved_status, utc_now_naive(), principal.username, request.comment, approval_id, session_id,
+        )
+        rows = await conn.fetch(
+            "SELECT approval_id, status, request_payload_json, resolved_at, resolved_by, comment FROM approval_requests WHERE session_id = $1::uuid",
             session_id,
         )
-        approval_payload = approval["request_payload_json"] or {}
-    if resolved_status == "approved":
-        harness = HarnessSupervisor(get_settings().harness.state_root)
-        task = harness.get_task(session_id)
-        checkpoint = ((task or {}).get("checkpoint") or {})
-        state_snapshot = checkpoint.get("state_snapshot")
-        if isinstance(state_snapshot, dict):
-            pending = []
-            for item in state_snapshot.get("pending_approvals", []):
-                if not isinstance(item, dict):
-                    continue
-                if item.get("approval_id") == approval_id:
-                    item = {
-                        **item,
-                        "status": "approved",
-                        "resolved_at": utc_now_naive().isoformat(),
-                        "resolved_by": request.approved_by,
-                        "comment": request.comment,
-                    }
-                pending.append(item)
-            state_snapshot["pending_approvals"] = [
-                item for item in pending
-                if item.get("status") not in {"approved", "rejected"}
-            ]
-            state_snapshot["runtime_status"] = RuntimeStatus.RUNNING.value
-            graph = compile_research_graph()
-            config = {"configurable": {"thread_id": session_id}}
-            graph.update_state(config, state_snapshot, as_node="approval_resume")
-            asyncio.create_task(
-                run_research_workflow(
-                    session_id=session_id,
-                    query=state_snapshot.get("user_query", ""),
-                    max_revision=int(state_snapshot.get("session", {}).get("max_revisions", 3) or 3),
-                    user_confirmed=bool(state_snapshot.get("user_confirmed", False)),
-                    allow_web_after_rag_hit=bool(state_snapshot.get("allow_web_after_rag_hit", False)),
-                    rag_group=state_snapshot.get("rag_group"),
-                    output_length=state_snapshot.get("output_length", "medium"),
-                    owner_id=state_snapshot.get("session", {}).get("owner_id"),
-                )
+        resolutions = {row["approval_id"]: {"status": row["status"], "request_payload": _json_object(row["request_payload_json"]),
+                        "resolved_by": row.get("resolved_by"), "comment": row.get("comment")}
+                       for row in rows if row["approval_id"] in pending}
+        if all(key in resolutions and resolutions[key]["status"] in {"approved", "rejected"} for key in pending):
+            try:
+                state_snapshot = resume_approved_state(snapshot, resolutions, owner_id=principal.id, session_id=session_id)
+            except (ValueError, KeyError, TypeError) as exc:
+                raise HTTPException(status_code=409, detail="invalid_approval_checkpoint") from exc
+            state_snapshot["session"]["execution_id"] = execution_id
+            await conn.execute(
+                "UPDATE research_sessions SET status = 'running', completed_at = NULL, execution_id = $3::uuid, updated_at = NOW() WHERE id = $1::uuid AND owner_id = $2::uuid",
+                session_id, principal.id, execution_id,
             )
-    return {
-        "approval_id": approval_id,
-        "session_id": session_id,
-        "status": resolved_status,
-        "approved_by": request.approved_by,
-        "request_payload": approval_payload,
-    }
+            await conn.execute(
+                "UPDATE session_runtime_state SET state_snapshot_json = $2::jsonb, runtime_status = 'running', public_status = 'running', pending_approval_count = 0 WHERE session_id = $1::uuid",
+                session_id, dumps_json(state_snapshot),
+            )
+    if state_snapshot is not None:
+        kwargs = dict(
+            session_id=session_id, query=state_snapshot["user_query"],
+            max_revision=int(state_snapshot.get("session", {}).get("max_revisions", 3)),
+            user_confirmed=bool(state_snapshot.get("user_confirmed", False)),
+            use_internal_docs=bool(state_snapshot.get("use_internal_docs", False)),
+            rag_group=state_snapshot.get("rag_group"), output_length=state_snapshot.get("output_length", "medium"),
+            skill_context=state_snapshot["skill_context"], owner_id=principal.id,
+            channels=state_snapshot.get("session", {}).get("channels", []),
+            resume_state=state_snapshot, execution_id=execution_id,
+        )
+        if background_tasks is not None:
+            background_tasks.add_task(run_research_workflow, **kwargs)
+        else:
+            asyncio.create_task(run_research_workflow(**kwargs))
+    return {"approval_id": approval_id, "session_id": session_id, "status": resolved_status,
+            "approved_by": principal.username, "request_payload": approval_payload,
+            "resumed": state_snapshot is not None}
 
 
 # ==============================================================
 # Background Workflow Execution
 # ==============================================================
 
+@router.post('/{session_id}/analysis/resume')
+async def resume_research_analysis(session_id: str, background_tasks: BackgroundTasks,
+                                   principal: Principal = principal_dependency):
+    """Continue retained questions inside the original root's allowance."""
+    from datetime import UTC, datetime
+    from app.graph.compiler import _build_budget_state, _stage_model_budget, _synthesis_question, _skill_prompt, _agent_skill_hints
+    from app.graph.state import deserialize_evidence
+    from app.research_context import analysis_binding
+    from app.source_lifecycle import current_synthesis_state
+
+    pool=await get_db_pool()
+    async with pool.acquire() as conn:
+        record=await conn.fetchrow('''SELECT s.status,s.execution_id,s.user_query,s.skill_context,s.created_at,
+            r.state_snapshot_json,r.checkpoint_seq FROM research_sessions s
+            JOIN session_runtime_state r ON r.session_id=s.id
+            WHERE s.id=$1::uuid AND s.owner_id=$2::uuid''',session_id,principal.id)
+    if not record:raise HTTPException(404,'Session not found')
+    state=deepcopy(_json_object(record['state_snapshot_json']))
+    root=state.get('session') or {}; workflow=state.get('analysis_workflow') or {}
+    phase=workflow.get('active_phase')
+    reason=workflow.get('stop_reason')
+    if (record['status']!='paused' or state.get('status')!='paused'
+            or state.get('runtime_status')!='analysis_paused'
+            or str(root.get('owner_id'))!=str(principal.id)
+            or str(root.get('session_id'))!=session_id or str(state.get('task_id'))!=session_id
+            or root.get('execution_id')!=str(record['execution_id'])
+            or state.get('user_query')!=record['user_query']
+            or state.get('skill_context')!=_json_object(record['skill_context'])
+            or workflow.get('schema_version')!='adrs-analysis-questions-v2'
+            or workflow.get('status')!='paused' or not isinstance(phase,str)
+            or reason not in {'analysis_output_incomplete','analysis_provider_unavailable','model_output_limit'}
+            or state.get('pending_approvals')):
+        raise HTTPException(409,'analysis_checkpoint_not_recoverable')
+    if int((workflow.get('attempts') or {}).get(phase,0))>=2:
+        raise HTTPException(409,'analysis_phase_attempt_limit')
+    current=await current_synthesis_state(state)
+    if current.get('collected_evidence')!=state.get('collected_evidence'):
+        raise HTTPException(409,'analysis_sources_changed')
+    expected=analysis_binding(_synthesis_question(state),state.get('organization_research'),
+        _skill_prompt(state,'analyst') or None,_agent_skill_hints(state,'analyst'),
+        [deserialize_evidence(item) for item in state.get('collected_evidence',[])])
+    if workflow.get('binding')!=expected:
+        raise HTTPException(409,'analysis_inputs_changed')
+    # Reject missing/future clock identities; never establish a fresh start time.
+    try:
+        started=datetime.fromisoformat(state.get('created_at') or root['created_at'])
+        if started.tzinfo:started=started.astimezone(UTC).replace(tzinfo=None)
+        database_start=record['created_at']
+        if database_start.tzinfo:database_start=database_start.astimezone(UTC).replace(tzinfo=None)
+        started=min(started,database_start)
+        if started>utc_now_naive():raise ValueError('future_start')
+    except (ValueError,TypeError,KeyError):
+        raise HTTPException(409,'analysis_original_deadline_unavailable')
+    state['created_at']=started.isoformat()
+    budget=_build_budget_state(state)
+    allowance=_stage_model_budget({**state,'budget_state':budget},'analyst')
+    import time
+    if (budget.get('hard_stop_reason') or allowance.available()<1024
+            or allowance.deadline is None or time.monotonic()>=allowance.deadline):
+        raise HTTPException(409,'analysis_original_allowance_exhausted')
+    budget['model_stop_reason']=None
+    state.update(status='running',runtime_status='running',budget_state=budget)
+    state['review_status']={**(state.get('review_status') or {}),'blocked':False,'reason':None,
+        'last_error_category':None,'runtime_status':'running','budget_state':budget}
+    execution_id=str(uuid.uuid4())
+    state['session']={**root,'status':'running','execution_id':execution_id}
+    async with pool.acquire() as conn,conn.transaction():
+        locked=await conn.fetchrow('''SELECT s.status,s.execution_id,r.checkpoint_seq
+            FROM research_sessions s JOIN session_runtime_state r ON r.session_id=s.id
+            WHERE s.id=$1::uuid AND s.owner_id=$2::uuid FOR UPDATE OF s,r''',session_id,principal.id)
+        if (not locked or locked['status']!='paused' or locked['execution_id']!=record['execution_id']
+                or locked['checkpoint_seq']!=record['checkpoint_seq']):
+            raise HTTPException(409,'analysis_checkpoint_changed')
+        await conn.execute('''UPDATE research_sessions SET status='running',execution_id=$3::uuid,
+            review_status=$4::jsonb,completed_at=NULL,updated_at=NOW()
+            WHERE id=$1::uuid AND owner_id=$2::uuid''',session_id,principal.id,execution_id,dumps_json(state['review_status']))
+        await conn.execute('''UPDATE session_runtime_state SET state_snapshot_json=$2::jsonb,
+            runtime_status='running',public_status='running',last_heartbeat_at=NOW()
+            WHERE session_id=$1::uuid''',session_id,dumps_json(state))
+    await get_sse_manager().begin_run(session_id)
+    background_tasks.add_task(run_research_workflow,session_id=session_id,query=state['user_query'],
+        max_revision=int(root.get('max_revisions',3)),user_confirmed=bool(state.get('user_confirmed')),
+        use_internal_docs=bool(state.get('use_internal_docs')),rag_group=state.get('rag_group'),
+        output_length=state.get('output_length','medium'),skill_context=state.get('skill_context'),
+        owner_id=principal.id,channels=root.get('channels',[]),resume_state=state,execution_id=execution_id,
+        resume_at='analysis_resume')
+    return {'session_id':session_id,'execution_id':execution_id,'status':'running','resumed':True}
+
 async def run_research_workflow(
     session_id: str,
     query: str,
     max_revision: int = 3,
     user_confirmed: bool = False,
-    allow_web_after_rag_hit: bool = False,
+    use_internal_docs: bool = False,
     rag_group: str | None = None,
     output_length: str = "medium",
     skill_context: dict[str, Any] | None = None,
     owner_id: str | None = None,
+    channels: list[ChannelName] | None = None,
+    resume_state: dict[str, Any] | None = None,
+    execution_id: str | None = None,
+    organization_research: dict[str, Any] | None = None,
+    query_understanding: dict[str, Any] | None = None,
+    resume_at: str = 'approval_resume',
 ):
     """
     Execute the LangGraph research workflow in background.
@@ -758,67 +1679,83 @@ async def run_research_workflow(
     budget = get_research_budget(output_length)
 
     try:
-        # Emit start event
-        await sse.publish(session_id, "workflow_start", {
-            "session_id": session_id,
-            "query": query,
-            "timestamp": utc_now_naive().isoformat(),
-        })
-
-        # Create initial state
-        state = create_initial_state(query, session_id)
-        state.setdefault("session", {})["owner_id"] = owner_id
-        state["session"]["max_revisions"] = max_revision
-        state["session"]["output_length"] = output_length
-        decision = build_guardrail_decision(query)
-        state["guardrail_decision"] = decision.model_dump()
-        state["user_confirmed"] = user_confirmed
-        state["allow_web_after_rag_hit"] = allow_web_after_rag_hit
-        state["rag_group"] = rag_group
-        state["output_length"] = output_length
-        state["retrieval_policy"] = {
-            "mode": "internal_first",
-            "allow_web_after_rag_hit": allow_web_after_rag_hit,
-            "rag_group": rag_group,
-            "rag_hit_count": 0,
-            "web_search_required": None,
-            "web_search_reason": None,
-        }
-        state["session"]["prompt_profile"] = decision.prompt_profile.value
-        state["session"]["enabled_tools"] = (skill_context or {}).get("effective_tool_allowlist") or decision.enabled_tools
-        state["session"]["prompt_template"] = compose_guardrail_prompt(query, decision)
-        state["runtime_status"] = RuntimeStatus.RUNNING.value
-        state["skill_context"] = skill_context or {}
-        state["budget_state"] = {
-            "budget_profile": output_length,
-            "estimated": True,
-            **budget,
-            "used_total_tokens": 0,
-            "used_cost_usd": 0.0,
-            "used_tool_calls": 0,
-            "elapsed_wall_clock_seconds": 0,
-            "hard_stop_reason": None,
-            "warning": False,
-        }
-        state["session"]["harness_state_version"] = 1
-        state["session"]["checkpoint_seq"] = 0
-        state["session"]["skill_context"] = skill_context or {}
-        await runtime_persistence.persist_runtime_snapshot(
+        state = deepcopy(resume_state) if resume_state is not None else create_initial_state(query, session_id)
+        if resume_state is None:
+            from app.model_routing import freeze_model_routing
+            from app.data_governance import model_class
+            state['model_routing']=freeze_model_routing(private=use_internal_docs,
+                data_class=model_class(((query_understanding or {}).get('data_governance') or {}).get('initial_class','internal' if use_internal_docs else 'public')),
+                deep=((query_understanding or {}).get('slots') or {}).get('depth')=='deep',
+                complexity=((query_understanding or {}).get('complexity') or {}).get('level','moderate'))
+            state["organization_research"] = organization_research
+            state['query_understanding'] = deepcopy(query_understanding)
+            state['planning_policy'] = deepcopy((((query_understanding or {}).get('complexity') or {}).get('limits') or {}).get('planning_policy'))
+            state["review_status"] = {"organization_research": organization_research, 'query_understanding':query_understanding}
+            state.setdefault("session", {})["owner_id"] = owner_id
+            state["session"]["channels"] = channels or []
+            state["session"]["max_revisions"] = max_revision
+            state["session"]["output_length"] = output_length
+            extra_constraints = ((query_understanding or {}).get('slots') or {}).get('additional_constraints', '')
+            decision = build_guardrail_decision(query + '\n' + extra_constraints, user_confirmed=user_confirmed)
+            state["guardrail_decision"] = decision.model_dump()
+            state["user_confirmed"] = user_confirmed
+            state["use_internal_docs"] = use_internal_docs
+            state["rag_group"] = rag_group if use_internal_docs else None
+            state["output_length"] = output_length
+            state["retrieval_policy"] = {
+                "mode": "web_with_internal_docs" if use_internal_docs else "public_web",
+                "use_internal_docs": use_internal_docs,
+                "rag_group": state["rag_group"],
+                "rag_hit_count": 0,
+            }
+            state["session"]["prompt_profile"] = decision.prompt_profile.value
+            state["session"]["enabled_tools"] = _task_tool_allowlist(skill_context or {}, decision.enabled_tools)
+            state["session"]["prompt_template"] = compose_guardrail_prompt(query, decision)
+            state["runtime_status"] = RuntimeStatus.RUNNING.value
+            state["skill_context"] = skill_context or {}
+            state["budget_state"] = {
+                "budget_profile": output_length,
+                "estimated": True,
+                **budget,
+                "used_total_tokens": 0,
+                "used_cost_usd": 0.0,
+                "used_tool_calls": 0,
+                "elapsed_wall_clock_seconds": 0,
+                "hard_stop_reason": None,
+                "warning": False,
+            }
+            state["session"]["harness_state_version"] = 1
+            state["session"]["checkpoint_seq"] = 0
+            state["session"]["skill_context"] = skill_context or {}
+        state["session"]["execution_id"] = execution_id
+        persisted = await runtime_persistence.persist_runtime_snapshot(
             session_id=session_id,
             state=state,
             current_batch=[],
             checkpoint_ref=None,
         )
+        if persisted is False:
+            return
+        if resume_state is not None:
+            await sse.begin_run(session_id)
+        await sse.publish(session_id, "workflow_start", {
+            "session_id": session_id, "query": state["user_query"],
+            "organization_research": state.get("organization_research"),
+            'query_understanding': {key: (state.get('query_understanding') or {}).get(key)
+                for key in ('schema_version','interpretation_id','query_type','slots','temporal','complexity','notes')},
+            "timestamp": utc_now_naive().isoformat(),
+        })
         harness.upsert_task(
             session_id=session_id,
             public_status="running",
             runtime_status=RuntimeStatus.RUNNING.value,
             budget=state["budget_state"],
-            current_batch=[],
-            checkpoint_seq=0,
+            current_batch=state.get("current_executing_nodes", []),
+            checkpoint_seq=int(state["session"].get("checkpoint_seq", 0)),
             pending_approval_id=None,
-            used_total_tokens=0,
-            used_cost_usd=0.0,
+            used_total_tokens=int(state["budget_state"].get("used_total_tokens", 0)),
+            used_cost_usd=float(state["budget_state"].get("used_cost_usd", 0)),
+            state_snapshot=state,
             worker_id=settings.harness.worker_id,
         )
 
@@ -827,40 +1764,40 @@ async def run_research_workflow(
 
         # Run with streaming
         config = {
+            'recursion_limit': min(4096, max(64,
+                (PlanningPolicy.model_validate(state.get('planning_policy') or {}).max_plan_nodes + int(budget.get('max_tool_calls') or 0))*6
+                + int(state.get('session', {}).get('max_revisions', 3))*16)),
             "configurable": {
-                "thread_id": session_id,
+                "thread_id": f"{session_id}:{uuid.uuid4()}",
             }
         }
 
-        # Run the graph and accumulate state from all chunks
-        # FIX: Use a dict to accumulate state, not just last chunk
-        accumulated_state: dict[str, Any] = {}
-        last_chunk: dict[str, Any] = {}
-        async for chunk in graph.astream(state, config):
-            # Emit state updates
+        graph_input = state
+        if resume_state is not None:
+            if resume_at not in {'approval_resume','analysis_resume'}:
+                raise ValueError('unsupported_resume_stage')
+            graph.update_state(config, state, as_node=resume_at)
+            graph_input = None
+        accumulated_state = deepcopy(state)
+        last_chunk = accumulated_state
+        checkpoint_seq = int(state["session"].get("checkpoint_seq", 0))
+        async for mode, chunk in graph.astream(graph_input, config, stream_mode=["updates", "values"]):
             if isinstance(chunk, dict):
-                last_chunk = chunk
-                # Merge chunk into accumulated state
-                for update in _iter_state_updates(chunk):
-                    for key, value in update.items():
-                        if key in ACCUMULATING_STATE_KEYS and isinstance(value, list):
-                            accumulated_state.setdefault(key, [])
-                            accumulated_state[key].extend(value)
-                        else:
-                            accumulated_state[key] = value
-
-                        if key == "agent_trace":
-                            # Forward agent trace events to SSE
-                            for event in value:
-                                event_type = event.get("event_type", "trace") if isinstance(event, dict) else "trace"
-                                await sse.publish(session_id, event_type, event)
-                        else:
-                            # Forward other state updates
-                            await sse.publish(session_id, "state_update", {
-                                "key": key,
-                                "value": str(value)[:500] if value else "",
-                            })
-                checkpoint_state = accumulated_state if accumulated_state else last_chunk
+                if mode == "updates":
+                    for update in _iter_state_updates(chunk):
+                        for key, value in update.items():
+                            if key == "agent_trace":
+                                for event in value:
+                                    event_type = event.get("event_type", "trace") if isinstance(event, dict) else "trace"
+                                    await sse.publish(session_id, event_type, event)
+                            elif key in {'tool_result_envelopes','tool_handoffs','accepted_tool_operations'}:
+                                await sse.publish(session_id, 'state_update', {'key':key,'count':len(value or {})})
+                            else:
+                                await sse.publish(session_id, "state_update", {"key": key, "value": str(value)[:500] if value else ""})
+                    continue
+                accumulated_state = deepcopy(chunk)
+                last_chunk = accumulated_state
+                checkpoint_state = accumulated_state
                 checkpoint_runtime = checkpoint_state.get("runtime_status", RuntimeStatus.RUNNING.value)
                 checkpoint_batch = checkpoint_state.get("current_executing_nodes", [])
                 checkpoint_ref = None
@@ -869,15 +1806,17 @@ async def run_research_workflow(
                     checkpoint_ref = getattr(snapshot, "config", None)
                 except (OSError, RuntimeError, TypeError, ValueError):
                     checkpoint_ref = None
-                checkpoint_seq = int(checkpoint_state.get("session", {}).get("checkpoint_seq", 0) or 0) + 1
+                checkpoint_seq += 1
                 checkpoint_state.setdefault("session", {})
                 checkpoint_state["session"]["checkpoint_seq"] = checkpoint_seq
-                await runtime_persistence.persist_runtime_snapshot(
+                persisted = await runtime_persistence.persist_runtime_snapshot(
                     session_id=session_id,
                     state=checkpoint_state,
                     current_batch=checkpoint_batch,
                     checkpoint_ref=str(checkpoint_ref) if checkpoint_ref is not None else None,
                 )
+                if persisted is False:
+                    return
                 pending_approvals = checkpoint_state.get("pending_approvals", [])
                 pending_approval_id = None
                 if pending_approvals:
@@ -894,13 +1833,12 @@ async def run_research_workflow(
                     pending_approval_id=pending_approval_id,
                     used_total_tokens=int((checkpoint_state.get("budget_state") or {}).get("used_total_tokens", 0) or 0),
                     used_cost_usd=float((checkpoint_state.get("budget_state") or {}).get("used_cost_usd", 0.0) or 0.0),
-                    last_error={"category": checkpoint_state.get("review_status", {}).get("last_error_category")},
+                    last_error={"category": (checkpoint_state.get("review_status") or {}).get("last_error_category")},
                     worker_id=settings.harness.worker_id,
                     state_snapshot=checkpoint_state,
                 )
 
-        # Determine final state
-        # Use accumulated state, with fallback to last chunk
+        # Full values snapshots preserve initial context and reducer semantics.
         final_state: dict[str, Any] = accumulated_state if accumulated_state else last_chunk
 
         # Save results to database
@@ -923,6 +1861,11 @@ async def run_research_workflow(
                 pending_approval_count = len(final_state.get("pending_approvals", []))
                 runtime_status = final_state.get("runtime_status", final_state.get("status", TaskStatus.COMPLETED.value))
                 review_status = dict(final_state.get("review_status") or {})
+                review_status["organization_research"] = final_state.get("organization_research")
+                review_status["organization_result"] = final_state.get("organization_result")
+                review_status['query_understanding'] = final_state.get('query_understanding')
+                for key in ('plan_manifest', 'plan_history', 'iteration_control', 'planning_policy'):
+                    review_status[key] = final_state.get(key)
                 tool_audit_rows = normalize_tool_audit_rows(
                     session_id=session_id,
                     tool_histories=tool_histories,
@@ -947,10 +1890,24 @@ async def run_research_workflow(
                 if last_error_category:
                     review_status["last_error_category"] = last_error_category
                 async with conn.transaction():
+                    binding=await conn.fetchrow('SELECT owner_id,execution_id,status FROM research_sessions WHERE id=$1::uuid FOR UPDATE',session_id)
+                    if (not binding or binding['status']=='canceled'
+                            or (execution_id and str(binding['execution_id'])!=str(execution_id))
+                            or (owner_id and str(binding['owner_id'])!=str(owner_id))):return
+                    if binding['owner_id']:
+                        from app.evidence_ingestion import reconcile_evidence_ledger
+                        from app.db.report_delivery import retain_report_version
+                        retained=await conn.fetchval("SELECT state_snapshot_json->'evidence_ledger' FROM session_runtime_state WHERE session_id=$1::uuid",session_id)
+                        retained=_json_object(retained)
+                        archive_state={**final_state,'evidence_ledger':reconcile_evidence_ledger(final_state,retained or None,
+                            owner_id=str(binding['owner_id']),session_id=str(session_id))}
+                        report_version=await retain_report_version(conn,archive_state,review_status,
+                            owner_id=str(binding['owner_id']),session_id=str(session_id))
+                        if report_version:review_status['report_version_id']=report_version
                     await conn.execute(
                         """
                         UPDATE research_sessions
-                        SET status = $1,
+                        SET status = $1::varchar,
                             guardrail_decision = $2::jsonb,
                             guardrail_trace = $3::jsonb,
                             evidence_status = $4::jsonb,
@@ -963,8 +1920,8 @@ async def run_research_workflow(
                             agent_trace = $11::jsonb,
                             total_tokens = $12,
                             total_cost_usd = $13,
-                            updated_at = $14,
-                            completed_at = $14
+                            updated_at = $14::timestamp,
+                            completed_at = CASE WHEN $1::varchar = 'completed' THEN $14::timestamp ELSE NULL END
                         WHERE id = $15::uuid
                         """,
                         final_state.get("status", TaskStatus.COMPLETED.value),
@@ -1116,12 +2073,15 @@ async def run_research_workflow(
                             """,
                             tool_audit_rows,
                         )
-                await runtime_persistence.persist_runtime_snapshot(
+                final_state["review_status"] = review_status
+                persisted = await runtime_persistence.persist_runtime_snapshot(
                     session_id=session_id,
                     state=final_state,
                     current_batch=final_state.get("current_executing_nodes", []),
                     checkpoint_ref="final",
                 )
+                if persisted is False:
+                    return
                 harness.upsert_task(
                     session_id=session_id,
                     public_status=final_state.get("status", public_status_from_runtime(runtime_status)),
@@ -1137,38 +2097,41 @@ async def run_research_workflow(
                 )
                 harness.clear_active_if_idle()
 
-        # Emit completion
-        await sse.publish(session_id, "done", {
-            "session_id": session_id,
-            "status": final_state.get("status", "completed") if final_state else "completed",
-            "timestamp": utc_now_naive().isoformat(),
-        })
+        # Fence terminal events too: an older worker cannot close a resumed stream.
+        pool = await get_db_pool()
+        async with pool.acquire() as conn, conn.transaction():
+            if execution_id and not await conn.fetchval(
+                "SELECT id FROM research_sessions WHERE id = $1::uuid AND execution_id = $2::uuid FOR UPDATE",
+                session_id, execution_id,
+            ):
+                return
+            await sse.publish(session_id, "done", {
+                "session_id": session_id,
+                "status": final_state.get("status", "completed"),
+                "timestamp": utc_now_naive().isoformat(),
+            })
 
         logger.info(f"Research workflow completed: {session_id}")
 
     except Exception as exc:
         logger.exception("Research workflow error for %s", session_id)
 
-        # Emit error
-        await sse.publish(session_id, "workflow_error", {
-            "session_id": session_id,
-            "error": str(exc),
-            "timestamp": utc_now_naive().isoformat(),
-        })
-
-        # Update database status - FIX: properly log errors instead of bare except:pass
         try:
             pool = await get_db_pool()
-            async with pool.acquire() as conn:
+            async with pool.acquire() as conn, conn.transaction():
+                if execution_id and not await conn.fetchval(
+                    "SELECT id FROM research_sessions WHERE id = $1::uuid AND execution_id = $2::uuid FOR UPDATE",
+                    session_id, execution_id,
+                ):
+                    return
                 await conn.execute(
-                    """
-                    UPDATE research_sessions
-                    SET status = 'failed', updated_at = $1
-                    WHERE id = $2::uuid
-                    """,
-                    utc_now_naive(),
-                    session_id,
+                    "UPDATE research_sessions SET status = 'failed', updated_at = $1 WHERE id = $2::uuid",
+                    utc_now_naive(), session_id,
                 )
+                await sse.publish(session_id, "workflow_error", {
+                    "session_id": session_id, "error": str(exc),
+                    "timestamp": utc_now_naive().isoformat(),
+                })
             harness.upsert_task(
                 session_id=session_id,
                 public_status="failed",

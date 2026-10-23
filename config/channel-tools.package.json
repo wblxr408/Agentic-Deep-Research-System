@@ -1,0 +1,9 @@
+{
+  "name": "deepintel-channel-tools",
+  "private": true,
+  "dependencies": {
+    "mcporter": "0.9.0",
+    "@jackwener/opencli": "1.8.8"
+  },
+  "overrides": { "undici": "7.29.1" }
+}

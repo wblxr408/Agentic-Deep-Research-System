@@ -57,7 +57,7 @@ function Header({
         {/* Nav */}
         <nav className="hidden md:flex items-center gap-8">
           <button type="button" onClick={onOpenResearch} className="text-sm text-xmgray-500 hover:text-xmgray-900 transition-colors">研究</button>
-          <button type="button" onClick={onOpenDocs} className="text-sm text-xmgray-500 hover:text-xmgray-900 transition-colors">知识库</button>
+          <button type="button" onClick={onOpenDocs} className="text-sm text-xmgray-500 hover:text-xmgray-900 transition-colors">内部资料</button>
           <button type="button" onClick={onOpenAbout} className="text-sm text-xmgray-500 hover:text-xmgray-900 transition-colors">关于</button>
         </nav>
 
@@ -126,7 +126,7 @@ function HeroSection({ onExplore, onDemo }: { onExplore: () => void; onDemo: () 
 
       {/* Tech tags */}
       <div className="mt-12 flex flex-wrap justify-center gap-3 animate-fade-in" style={{ animationDelay: '0.4s' }}>
-        {['LangGraph', 'Qwen 3.6', 'Playwright', 'RAG', 'Multi-Agent', 'Self-Reflection'].map(tag => (
+        {['LangGraph', 'Qwen 3.6', 'Playwright', '内部资料检索', 'Multi-Agent', 'Self-Reflection'].map(tag => (
           <span key={tag} className="tag">{tag}</span>
         ))}
       </div>
@@ -235,7 +235,7 @@ function FeaturesSection() {
  * MAIN APP
  * ============================================================ */
 function App() {
-  const [view, setView] = useState<'home' | 'research' | 'settings' | 'documents' | 'skills'>('home')
+  const [view, setView] = useState<'home' | 'research' | 'settings' | 'documents' | 'skills'>(() => new URLSearchParams(window.location.search).has('session') ? 'research' : 'home')
   const [auth, setAuth] = useState<{ initialized: boolean; authenticated: boolean } | null>(null)
 
   const refreshAuth = useCallback(async () => {
@@ -248,9 +248,6 @@ function App() {
   }, [])
 
   useEffect(() => { void refreshAuth() }, [refreshAuth])
-
-  if (!auth) return <main className="min-h-screen grid place-items-center text-sm text-xmgray-500">正在验证会话…</main>
-  if (!auth.authenticated) return <AuthGate state={auth} onAuthenticated={() => void refreshAuth()} />
 
   const handleExplore = useCallback(() => {
     setView('research')
@@ -271,6 +268,9 @@ function App() {
   const handleOpenSkills = useCallback(() => {
     setView('skills')
   }, [])
+
+  if (!auth) return <main className="min-h-screen grid place-items-center text-sm text-xmgray-500">正在验证会话…</main>
+  if (!auth.authenticated) return <AuthGate state={auth} onAuthenticated={() => void refreshAuth()} />
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -334,7 +334,7 @@ function QuickLinks({ onOpenResearch, onOpenDocuments, onOpenSkills }: { onOpenR
           <p className="mt-2 text-sm text-xmgray-500">支持短文 / 中篇 / 长篇。</p>
         </button>
         <button className="card p-6 text-left hover:border-xmgray-200" onClick={onOpenDocuments}>
-          <p className="text-sm text-xmgray-400">知识库</p>
+          <p className="text-sm text-xmgray-400">内部资料</p>
           <h3 className="mt-2 text-xl font-semibold text-xmgray-900">管理内部资料源</h3>
           <p className="mt-2 text-sm text-xmgray-500">上传、分组、修改、删除与 chunk 预览。</p>
         </button>

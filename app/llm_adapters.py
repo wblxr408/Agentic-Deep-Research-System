@@ -11,10 +11,11 @@ import httpx
 
 
 class _AnthropicCompletions:
-    def __init__(self, client: httpx.Client, base_url: str, headers: dict[str, str]) -> None:
+    def __init__(self, client: httpx.Client, base_url: str, headers: dict[str, str], timeout=None) -> None:
         self._client = client
         self._base_url = base_url
         self._headers = headers
+        self._timeout = timeout if timeout is not None else httpx.USE_CLIENT_DEFAULT
 
     def create(self, *, model: str, messages: list[dict[str, Any]], stream: bool = False, max_tokens: int = 1024, temperature: float | None = None, **_: Any) -> Any:
         system = "\n\n".join(str(item.get("content", "")) for item in messages if item.get("role") == "system")
@@ -30,7 +31,7 @@ class _AnthropicCompletions:
             body["temperature"] = temperature
         if stream:
             return self._stream(body)
-        response = self._client.post(f"{self._base_url}/v1/messages", headers=self._headers, json=body)
+        response = self._client.post(f"{self._base_url}/v1/messages", headers=self._headers, json=body,timeout=self._timeout)
         response.raise_for_status()
         payload = response.json()
         content = "".join(item.get("text", "") for item in payload.get("content", []) if item.get("type") == "text")
@@ -43,19 +44,33 @@ class _AnthropicCompletions:
         )
 
     def _stream(self, body: dict[str, Any]) -> Iterator[Any]:
-        with self._client.stream("POST", f"{self._base_url}/v1/messages", headers=self._headers, json=body) as response:
+        input_tokens,output_tokens = None,None
+        with self._client.stream("POST", f"{self._base_url}/v1/messages", headers=self._headers, json=body,timeout=self._timeout) as response:
             response.raise_for_status()
             for line in response.iter_lines():
                 if not line.startswith("data: "):
                     continue
                 payload = json.loads(line[6:])
+                if payload.get('type') == 'message_start':
+                    input_tokens = payload.get('message',{}).get('usage',{}).get('input_tokens')
+                if payload.get('type') == 'message_delta':
+                    output_tokens = payload.get('usage',{}).get('output_tokens')
                 delta = payload.get("delta", {}).get("text", "") if payload.get("type") == "content_block_delta" else ""
                 if delta:
                     yield SimpleNamespace(choices=[SimpleNamespace(delta=SimpleNamespace(content=delta))])
+            if input_tokens is not None and output_tokens is not None:
+                yield SimpleNamespace(choices=[],usage=SimpleNamespace(prompt_tokens=input_tokens,
+                    completion_tokens=output_tokens,total_tokens=input_tokens+output_tokens))
 
 
 class AnthropicCompatibleClient:
     """Expose Anthropic Messages as the limited chat.completions surface agents use."""
     def __init__(self, http_client: httpx.Client, base_url: str, headers: dict[str, str]) -> None:
+        self._http_client,self._headers = http_client,headers
         self.chat = SimpleNamespace(completions=_AnthropicCompletions(http_client, base_url, headers))
         self.base_url = base_url
+
+    def with_options(self, *, timeout=None, **_):
+        result = AnthropicCompatibleClient(self._http_client,self.base_url,self._headers)
+        result.chat.completions._timeout = timeout if timeout is not None else httpx.USE_CLIENT_DEFAULT
+        return result

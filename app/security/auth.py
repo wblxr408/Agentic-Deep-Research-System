@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import secrets
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 
 import bcrypt
@@ -24,6 +24,7 @@ class Principal:
     id: str
     username: str
     auth_type: str
+    credential_hash: str | None = field(default=None, repr=False, compare=False)
 
 
 def hash_password(password: str) -> str:
@@ -113,7 +114,34 @@ async def _principal_from_token(raw_token: str, kind: str) -> Principal | None:
         )
         if row:
             await conn.execute(f"UPDATE {table} SET last_used_at = NOW() WHERE token_hash = $1", token_hash(raw_token))
-    return Principal(id=str(row["id"]), username=row["username"], auth_type=kind) if row else None
+    return Principal(id=str(row["id"]), username=row["username"], auth_type=kind, credential_hash=token_hash(raw_token)) if row else None
+
+
+async def stream_principal_valid(principal: Principal, session_id: str) -> bool:
+    """Revalidate the original credential and ownership at the event boundary."""
+    pool = await get_db_pool()
+    async with pool.acquire() as conn:
+        if principal.auth_type == "disabled":
+            if get_settings().security.auth_enabled:
+                return False
+            return bool(await conn.fetchval(
+                "SELECT EXISTS(SELECT 1 FROM research_sessions WHERE id = $1::uuid AND owner_id = $2::uuid)",
+                session_id, principal.id,
+            ))
+        if principal.auth_type not in {"session", "api_token"} or not principal.credential_hash:
+            return False
+        table = "auth_api_tokens" if principal.auth_type == "api_token" else "auth_sessions"
+        return bool(await conn.fetchval(
+            f"""SELECT EXISTS(
+                SELECT 1 FROM {table} t
+                JOIN auth_principals p ON p.id = t.principal_id
+                JOIN research_sessions s ON s.owner_id = p.id
+                WHERE t.token_hash = $1 AND p.id = $2::uuid AND s.id = $3::uuid
+                  AND t.revoked_at IS NULL AND p.is_active = TRUE
+                  AND t.session_version = p.session_version
+                  AND (t.expires_at IS NULL OR t.expires_at > NOW())
+            )""", principal.credential_hash, principal.id, session_id,
+        ))
 
 
 async def get_principal(request: Request, credentials: HTTPAuthorizationCredentials | None = credentials_dependency) -> Principal:

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import hashlib
+import json
+from datetime import UTC, datetime
 from typing import Any
 
 from app.core.time import utc_now_naive
@@ -17,10 +19,12 @@ def _stable_json_hash(value: Any) -> str | None:
 
 
 def public_status_from_runtime(runtime_status: str | None) -> str:
+    if runtime_status in (RuntimeStatus.AWAITING_APPROVAL.value,RuntimeStatus.BUDGET_EXHAUSTED.value,
+                          RuntimeStatus.ANALYSIS_PAUSED.value,RuntimeStatus.REPORT_PAUSED.value):
+        return "paused"
     if runtime_status in (
         RuntimeStatus.PENDING.value,
         RuntimeStatus.APPROVED.value,
-        RuntimeStatus.AWAITING_APPROVAL.value,
     ):
         return "pending"
     if runtime_status in (
@@ -36,6 +40,15 @@ def public_status_from_runtime(runtime_status: str | None) -> str:
     if runtime_status == RuntimeStatus.COMPLETED.value:
         return "completed"
     return "running"
+
+
+def _timestamp(value):
+    if value is None:
+        return None
+    result = datetime.fromisoformat(value) if isinstance(value, str) else value
+    if result.tzinfo is not None:
+        result = result.astimezone(UTC).replace(tzinfo=None)
+    return result
 
 
 def build_runtime_review_status(
@@ -115,14 +128,46 @@ def normalize_tool_audit_rows(
                 dumps_json(safety_json),
                 usage_source,
                 estimated,
-                call.get("started_at"),
-                call.get("completed_at"),
+                _timestamp(call.get("started_at")),
+                _timestamp(call.get("completed_at")),
             ))
     return rows
 
 
 class RuntimePersistence:
     """Crash-safe persistence for runtime state, audits, approvals, and budgets."""
+    async def persist_analysis_checkpoint(self, session_id: str, state: dict[str, Any]) -> int | None:
+        return await self.persist_model_checkpoint(session_id,state)
+
+    async def persist_model_checkpoint(self, session_id: str, state: dict[str, Any]) -> int | None:
+        """Save model progress before dispatch without replacing the evidence ledger."""
+        session=state.get('session') or {}
+        owner,execution=session.get('owner_id'),session.get('execution_id')
+        if (not owner or not execution or str(state.get('task_id'))!=str(session_id)
+                or str(session.get('session_id'))!=str(session_id)):return None
+        pool=await get_db_pool()
+        async with pool.acquire() as conn,conn.transaction():
+            binding=await conn.fetchrow('''SELECT owner_id,execution_id,status FROM research_sessions
+                WHERE id=$1::uuid FOR UPDATE''',session_id)
+            if (not binding or str(binding['owner_id'])!=str(owner) or str(binding['execution_id'])!=str(execution)
+                    or binding['status']!='running'):return None
+            sequence=await conn.fetchval('''UPDATE session_runtime_state SET
+                state_snapshot_json=jsonb_set(jsonb_set(jsonb_set(jsonb_set(jsonb_set(state_snapshot_json,
+                    '{analysis_workflow}',$2::jsonb,true),'{budget_state}',$3::jsonb,true),
+                    '{session}',$4::jsonb,true),'{session,checkpoint_seq}',to_jsonb(checkpoint_seq+1),true),
+                    '{organization_result}',$7::jsonb,true),
+                checkpoint_seq=checkpoint_seq+1,last_heartbeat_at=NOW()
+                WHERE session_id=$1::uuid AND state_snapshot_json->'session'->>'execution_id'=$5
+                    AND COALESCE(state_snapshot_json->'plan_manifest'->>'plan_version','')=$6
+                RETURNING checkpoint_seq''',session_id,dumps_json(state.get('analysis_workflow') or {}),
+                dumps_json(state.get('budget_state') or {}),dumps_json(session),str(execution),
+                str((state.get('plan_manifest') or {}).get('plan_version') or ''),dumps_json(state.get('organization_result')))
+            if sequence is None:return None
+            await conn.execute('''UPDATE research_sessions SET total_tokens=$2,
+                review_status=jsonb_set(COALESCE(review_status,'{}'::jsonb),'{budget_state}',$3::jsonb,true),
+                updated_at=NOW() WHERE id=$1::uuid''',session_id,
+                int((state.get('budget_state') or {}).get('used_total_tokens') or 0),dumps_json(state.get('budget_state') or {}))
+            return sequence
 
     async def persist_runtime_snapshot(
         self,
@@ -131,10 +176,14 @@ class RuntimePersistence:
         state: dict[str, Any],
         current_batch: list[str] | None = None,
         checkpoint_ref: str | None = None,
-    ) -> None:
+    ) -> bool:
         pool = await get_db_pool()
         runtime_status = state.get("runtime_status", RuntimeStatus.RUNNING.value)
         public_status = public_status_from_runtime(runtime_status)
+        # A failed tool does not end the graph while it is still synthesizing.
+        # Only the root workflow publishes its final failure/completion state.
+        if state.get("status") in {"pending", "running", "completed", "failed", "paused"}:
+            public_status = state["status"]
         budget_state = dict(state.get("budget_state") or {})
         pending_approvals = [
             approval for approval in state.get("pending_approvals", [])
@@ -181,8 +230,76 @@ class RuntimePersistence:
             },
         )
 
+        if state.get("organization_research") is not None:
+            review_status["organization_research"] = state["organization_research"]
+        if state.get('organization_result') is not None:
+            review_status['organization_result']=state['organization_result']
         now = utc_now_naive()
+        review_status['query_understanding'] = state.get('query_understanding')
+        for key in ('plan_manifest', 'plan_history', 'iteration_control', 'planning_policy'):
+            if state.get(key) is not None:
+                review_status[key] = state[key]
         async with pool.acquire() as conn, conn.transaction():
+                execution_id = state.get("session", {}).get("execution_id")
+                binding=await conn.fetchrow('SELECT owner_id,execution_id,status FROM research_sessions WHERE id=$1::uuid FOR UPDATE',session_id)
+                if not binding:
+                    return False
+                if binding['status']=='canceled' and public_status!='canceled':return False
+                actual_execution=str(binding['execution_id']) if binding['execution_id'] else None
+                if actual_execution != (str(execution_id) if execution_id else None):return False
+                actual_owner=str(binding['owner_id']) if binding['owner_id'] else None
+                requested_owner=state.get('session',{}).get('owner_id')
+                if requested_owner and str(requested_owner)!=actual_owner:
+                    raise ValueError('runtime_owner_binding_conflict')
+                if state.get('task_id') and str(state['task_id'])!=str(session_id):
+                    raise ValueError('runtime_session_binding_conflict')
+                stored=await conn.fetchrow('''SELECT state_snapshot_json,checkpoint_seq FROM session_runtime_state
+                    WHERE session_id=$1::uuid FOR UPDATE''',session_id)
+                previous=json.loads(stored['state_snapshot_json']) if stored and isinstance(stored['state_snapshot_json'],str) else (
+                    stored['state_snapshot_json'] if stored else {})
+                latest=(previous or {}).get('analysis_workflow') or {}
+                incoming=state.get('analysis_workflow') or {}
+                same_execution=(previous or {}).get('session',{}).get('execution_id')==execution_id
+                missing_completed=not set(latest.get('completed') or {})<=set(incoming.get('completed') or {})
+                newer_attempts=any(count>(incoming.get('attempts') or {}).get(key,0)
+                    for key,count in (latest.get('attempts') or {}).items())
+                newer_status=(latest.get('status') in {'paused','completed'} and incoming.get('status')=='running'
+                    and latest.get('attempts')==incoming.get('attempts'))
+                stale_phase=bool(latest and same_execution and (not incoming or (
+                    latest.get('binding')==incoming.get('binding') and (missing_completed or newer_attempts or newer_status))))
+                prior_budget=(previous or {}).get('budget_state') or {}
+                paid_progress=bool(same_execution and (
+                    int(prior_budget.get('used_total_tokens') or 0)>int(budget_state.get('used_total_tokens') or 0)
+                    or len(prior_budget.get('model_requests') or [])>len(budget_state.get('model_requests') or [])
+                    or not {item.get('upgrade_id') for item in prior_budget.get('capability_upgrades') or []}
+                        <={item.get('upgrade_id') for item in budget_state.get('capability_upgrades') or []}))
+                if stale_phase or paid_progress:
+                    # An earlier graph value can arrive while the analyst is
+                    # saving phases. Keep newer phase results and paid usage;
+                    # final graph values with equal/newer phases still replace.
+                    state['analysis_workflow']=latest
+                    budget_state={**(previous.get('budget_state') or {}),
+                        'elapsed_wall_clock_seconds':max(int(budget_state.get('elapsed_wall_clock_seconds') or 0),
+                            int((previous.get('budget_state') or {}).get('elapsed_wall_clock_seconds') or 0))}
+                    state['budget_state']=budget_state
+                    state['session']={**state.get('session',{}),**previous.get('session',{})}
+                    review_status['budget_state']=budget_state
+                    if paid_progress:
+                        state['organization_result']=previous.get('organization_result')
+                        review_status['organization_result']=previous.get('organization_result')
+                if stored:
+                    state.setdefault('session',{})['checkpoint_seq']=max(int(stored['checkpoint_seq'] or 0),
+                        int(state.get('session',{}).get('checkpoint_seq') or 0))
+                if actual_owner:
+                    from app.evidence_ingestion import reconcile_evidence_ledger
+                    prior=await conn.fetchval("SELECT state_snapshot_json->'evidence_ledger' FROM session_runtime_state WHERE session_id=$1::uuid",session_id)
+                    prior=json.loads(prior) if isinstance(prior,str) else prior
+                    state['evidence_ledger']=reconcile_evidence_ledger(state,prior,owner_id=actual_owner,session_id=str(session_id))
+                    review_status['ingestion']=state['evidence_ledger']['summary']
+                    from app.db.report_delivery import retain_report_version
+                    report_version=await retain_report_version(conn,state,review_status,owner_id=actual_owner,session_id=str(session_id))
+                    if report_version:review_status['report_version_id']=report_version
+                state['review_status']=review_status
                 await conn.execute(
                     """
                     INSERT INTO session_runtime_state (
@@ -196,10 +313,11 @@ class RuntimePersistence:
                         checkpoint_seq,
                         last_checkpoint_ref,
                         last_heartbeat_at,
-                        harness_state_version
+                        harness_state_version,
+                        state_snapshot_json
                     )
                     VALUES (
-                        $1::uuid, $2, $3, $4::jsonb, $5, $6, $7, $8, $9, $10, $11
+                        $1::uuid, $2, $3, $4::jsonb, $5, $6, $7, $8, $9, $10, $11, $12::jsonb
                     )
                     ON CONFLICT (session_id) DO UPDATE SET
                         runtime_status = EXCLUDED.runtime_status,
@@ -208,10 +326,12 @@ class RuntimePersistence:
                         retryable_failure_count = EXCLUDED.retryable_failure_count,
                         terminal_failure_reason = EXCLUDED.terminal_failure_reason,
                         pending_approval_count = EXCLUDED.pending_approval_count,
-                        checkpoint_seq = EXCLUDED.checkpoint_seq,
+                        checkpoint_seq = GREATEST(session_runtime_state.checkpoint_seq, EXCLUDED.checkpoint_seq),
                         last_checkpoint_ref = EXCLUDED.last_checkpoint_ref,
                         last_heartbeat_at = EXCLUDED.last_heartbeat_at,
-                        harness_state_version = EXCLUDED.harness_state_version
+                        harness_state_version = EXCLUDED.harness_state_version,
+                        state_snapshot_json = jsonb_set(EXCLUDED.state_snapshot_json,'{session,checkpoint_seq}',
+                            to_jsonb(GREATEST(session_runtime_state.checkpoint_seq, EXCLUDED.checkpoint_seq)),true)
                     """,
                     session_id,
                     runtime_status,
@@ -224,6 +344,7 @@ class RuntimePersistence:
                     checkpoint_ref,
                     now,
                     int(state.get("session", {}).get("harness_state_version", 1) or 1),
+                    dumps_json(state),
                 )
                 await conn.execute(
                     """
@@ -274,7 +395,7 @@ class RuntimePersistence:
                 await conn.execute(
                     """
                     UPDATE research_sessions
-                    SET status = $1,
+                    SET status = CASE WHEN $1 = 'completed' AND final_report IS NULL THEN status ELSE $1 END,
                         review_status = $2::jsonb,
                         total_tokens = $3,
                         total_cost_usd = $4,
@@ -373,6 +494,7 @@ class RuntimePersistence:
                             resolved_at = EXCLUDED.resolved_at,
                             resolved_by = EXCLUDED.resolved_by,
                             comment = EXCLUDED.comment
+                        WHERE approval_requests.status IN ('pending', 'awaiting_approval')
                         """,
                         [
                             (
@@ -384,8 +506,8 @@ class RuntimePersistence:
                                 approval.get("reason"),
                                 dumps_json(approval.get("request_payload") or {}),
                                 approval.get("status", "pending"),
-                                approval.get("requested_at") or now,
-                                approval.get("resolved_at"),
+                                _timestamp(approval.get("requested_at")) or now,
+                                _timestamp(approval.get("resolved_at")),
                                 approval.get("resolved_by"),
                                 approval.get("comment"),
                             )
@@ -393,3 +515,4 @@ class RuntimePersistence:
                             if approval.get("approval_id")
                         ],
                     )
+        return True

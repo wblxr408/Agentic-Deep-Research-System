@@ -13,6 +13,11 @@ import logging
 import asyncpg
 
 from app.db.text_search import regconfig_sql_literal, resolve_text_search_config
+from app.db.matching import MATCHING_SCHEMA_SQL
+from app.db.presets import PRESET_SCHEMA_SQL
+from app.db.report_delivery import SCHEMA_SQL as REPORT_DELIVERY_SCHEMA_SQL
+from app.db.retrieval_indexes import RETRIEVAL_SCHEMA_SQL
+from app.source_lifecycle import SCHEMA_SQL as LIFECYCLE_SCHEMA_SQL
 
 logger = logging.getLogger(__name__)
 
@@ -43,11 +48,6 @@ ALTER TABLE documents ADD COLUMN IF NOT EXISTS source_name TEXT;
 ALTER TABLE documents ADD COLUMN IF NOT EXISTS source_type VARCHAR(20) DEFAULT 'manual';
 ALTER TABLE documents ADD COLUMN IF NOT EXISTS chunk_index INTEGER DEFAULT 0;
 ALTER TABLE documents ADD COLUMN IF NOT EXISTS chunk_count INTEGER DEFAULT 1;
-
--- Vector similarity index (IVF for approximate nearest neighbor)
-CREATE INDEX IF NOT EXISTS idx_documents_embedding
-    ON documents USING ivfflat (embedding vector_cosine_ops)
-    WITH (lists = 100);
 
 -- Full-text search index
 CREATE INDEX IF NOT EXISTS idx_documents_fts
@@ -84,9 +84,11 @@ CREATE TABLE IF NOT EXISTS research_sessions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_query TEXT NOT NULL,
     status VARCHAR(20) DEFAULT 'pending'
-        CHECK (status IN ('pending', 'running', 'completed', 'failed')),
+        CHECK (status IN ('pending', 'running', 'completed', 'failed', 'paused')),
     research_plan JSONB DEFAULT '[]',
     skill_context JSONB DEFAULT '{}',
+    request_payload JSONB,
+    execution_id UUID,
     guardrail_decision JSONB DEFAULT NULL,
     guardrail_trace JSONB DEFAULT '[]',
     evidence_status JSONB DEFAULT NULL,
@@ -107,6 +109,11 @@ CREATE TABLE IF NOT EXISTS research_sessions (
 );
 
 -- Status query index
+ALTER TABLE research_sessions ADD COLUMN IF NOT EXISTS request_payload JSONB;
+ALTER TABLE research_sessions ADD COLUMN IF NOT EXISTS execution_id UUID;
+ALTER TABLE research_sessions DROP CONSTRAINT IF EXISTS research_sessions_status_check;
+ALTER TABLE research_sessions ADD CONSTRAINT research_sessions_status_check
+    CHECK (status IN ('pending', 'running', 'completed', 'failed', 'paused'));
 CREATE INDEX IF NOT EXISTS idx_sessions_status ON research_sessions (status);
 CREATE INDEX IF NOT EXISTS idx_sessions_created ON research_sessions (created_at DESC);
 
@@ -254,8 +261,10 @@ CREATE TABLE IF NOT EXISTS session_runtime_state (
     checkpoint_seq INTEGER DEFAULT 0,
     last_checkpoint_ref TEXT,
     last_heartbeat_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    harness_state_version INTEGER DEFAULT 1
+    harness_state_version INTEGER DEFAULT 1,
+    state_snapshot_json JSONB
 );
+ALTER TABLE session_runtime_state ADD COLUMN IF NOT EXISTS state_snapshot_json JSONB;
 
 -- ==============================================================
 -- MCP server registry table
@@ -384,6 +393,8 @@ async def run_migration(
         drop_existing: If True, drop existing tables before creating
     """
     logger.info("Starting database migration...")
+    if not isinstance(embed_dimension,int) or isinstance(embed_dimension,bool) or not 1<=embed_dimension<=16000:
+        raise ValueError('embedding_dimension_must_be_between_1_and_16000')
 
     pool = await asyncpg.create_pool(
         database_url,
@@ -399,6 +410,14 @@ async def run_migration(
             if drop_existing:
                 logger.warning("Dropping existing tables (drop_existing=True)")
                 await conn.execute("""
+                    DROP TABLE IF EXISTS document_source_lifecycle;
+                    DROP TABLE IF EXISTS source_access_epochs;
+                    DROP TABLE IF EXISTS source_lifecycle_events;
+                    DROP TABLE IF EXISTS source_index_operations;
+                    DROP TABLE IF EXISTS source_index_heads;
+                    DROP TABLE IF EXISTS retrieval_index_terms;
+                    DROP TABLE IF EXISTS retrieval_index_documents;
+                    DROP TABLE IF EXISTS retrieval_index_generations;
                     DROP TABLE IF EXISTS skill_content CASCADE;
                     DROP TABLE IF EXISTS skill_meta CASCADE;
                     DROP TABLE IF EXISTS skills CASCADE;
@@ -431,16 +450,13 @@ async def run_migration(
                 )
                 await conn.execute(schema)
 
+            await conn.execute(MATCHING_SCHEMA_SQL)
+            await conn.execute(PRESET_SCHEMA_SQL)
+            await conn.execute(REPORT_DELIVERY_SCHEMA_SQL)
+            await conn.execute(RETRIEVAL_SCHEMA_SQL)
+            await conn.execute(LIFECYCLE_SCHEMA_SQL)
             logger.info("Database migration completed successfully")
 
-            # Verify tables
-            tables = await conn.fetch("""
-                SELECT table_name
-                FROM information_schema.tables
-                WHERE table_schema = 'public'
-                ORDER BY table_name
-            """)
-            logger.info(f"Created tables: {[t['table_name'] for t in tables]}")
 
     finally:
         await pool.close()
@@ -461,8 +477,8 @@ def main() -> None:
     parser.add_argument(
         "--dimension",
         type=int,
-        default=1024,
-        help="Embedding dimension (default: 1024)",
+        default=None,
+        help="Embedding dimension (default: configured RAG_EMBED_DIMENSION)",
     )
     args = parser.parse_args()
 
@@ -470,7 +486,7 @@ def main() -> None:
     asyncio.run(
         run_migration(
             database_url=settings.database.url,
-            embed_dimension=args.dimension,
+            embed_dimension=args.dimension if args.dimension is not None else settings.rag.embed_dimension,
             drop_existing=args.drop,
         )
     )

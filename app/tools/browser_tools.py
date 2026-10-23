@@ -8,6 +8,8 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from app.channels.models import ChannelError
+from app.tools.public_browser import PublicBrowserGateway
 
 from langchain_core.tools import tool
 
@@ -28,7 +30,7 @@ def browse_webpage(url: str, max_chars: int = 2000) -> str:
     - Returns structured text
 
     Args:
-        url: The URL to browse (must be a valid http/https URL)
+        url: The public HTTPS URL to browse (GET/HEAD only)
         max_chars: Maximum characters to extract (default 2000)
 
     Returns:
@@ -56,51 +58,58 @@ async def _browse_async(url: str, max_chars: int) -> str:
     """Async implementation of web browsing."""
     from playwright.async_api import async_playwright
 
+    gateway = PublicBrowserGateway()
     try:
+        url = await gateway.prepare(url)
         async with async_playwright() as p:
-            browser = await p.chromium.launch(headless=True)
-            page = await browser.new_page()
+            browser = await p.chromium.launch(headless=True, args=["--force-webrtc-ip-handling-policy=disable_non_proxied_udp"])
+            try:
+                context = await gateway.new_context(browser)
+                page = await context.new_page()
 
-            await page.set_extra_http_headers({
-                "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
-            })
+                await page.set_extra_http_headers({
+                    "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
+                })
 
-            response = await page.goto(url, timeout=30000, wait_until="domcontentloaded")
-            if response is None or response.status >= 400:
+                response = await page.goto(url, timeout=30000, wait_until="domcontentloaded")
+                if response is None or response.status >= 400:
+                    return f"Page returned status {response.status if response else 'None'}"
+
+                content_parts: list[str] = []
+
+                # Extract title
+                title = await page.title()
+                if title:
+                    content_parts.append(f"# {title}\n")
+
+                # Extract headings
+                headings = await page.query_selector_all("h1, h2, h3")
+                for h in headings[:10]:
+                    text = await h.inner_text()
+                    if text and len(text) > 3:
+                        content_parts.append(f"## {text.strip()}\n")
+
+                # Extract paragraphs
+                paragraphs = await page.query_selector_all("article p, main p, .content p")
+                for p in paragraphs[:20]:
+                    text = await p.inner_text()
+                    if len(text) > 30:
+                        content_parts.append(text.strip() + "\n")
+                        if sum(len(c) for c in content_parts) > max_chars:
+                            break
+
+
+                result = "\n".join(content_parts)
+                return result[:max_chars]
+
+            finally:
                 await browser.close()
-                return f"Page returned status {response.status if response else 'None'}"
 
-            content_parts: list[str] = []
-
-            # Extract title
-            title = await page.title()
-            if title:
-                content_parts.append(f"# {title}\n")
-
-            # Extract headings
-            headings = await page.query_selector_all("h1, h2, h3")
-            for h in headings[:10]:
-                text = await h.inner_text()
-                if text and len(text) > 3:
-                    content_parts.append(f"## {text.strip()}\n")
-
-            # Extract paragraphs
-            paragraphs = await page.query_selector_all("article p, main p, .content p")
-            for p in paragraphs[:20]:
-                text = await p.inner_text()
-                if len(text) > 30:
-                    content_parts.append(text.strip() + "\n")
-                    if sum(len(c) for c in content_parts) > max_chars:
-                        break
-
-            await browser.close()
-
-            result = "\n".join(content_parts)
-            return result[:max_chars]
-
-    except (OSError, RuntimeError, TypeError, ValueError, KeyError) as e:
+    except (ChannelError, OSError, RuntimeError, TypeError, ValueError, KeyError) as e:
         logger.error(f"Async browse error for {url}: {e}")
         return f"Error: {e!s}"
+    finally:
+        gateway.close()
 
 
 def get_browser_tools():

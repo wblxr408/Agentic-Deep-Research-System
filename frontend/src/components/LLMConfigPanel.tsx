@@ -12,6 +12,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 
 interface LLMConfig {
+  routing?: Record<string,unknown>
   provider: string
   model: string
   api_key_masked: string
@@ -56,8 +57,10 @@ interface ProvidersResponse {
 async function readErrorMessage(res: Response, fallback: string) {
   const text = await res.text()
   try {
-    const data = JSON.parse(text) as { detail?: string }
-    return data.detail || fallback
+    const data = JSON.parse(text) as { detail?: string|Array<{msg?:string;loc?:Array<string|number>}> }
+    if (typeof data.detail==='string') return data.detail
+    if (Array.isArray(data.detail)) return data.detail.map(item=>`${item.loc?.join('.') || '配置'}：${item.msg || '格式无效'}`).join('；')
+    return fallback
   } catch {
     return text || fallback
   }
@@ -78,6 +81,7 @@ function LLMConfigPanel({ onClose }: LLMConfigPanelProps) {
   const [temperature, setTemperature] = useState(0.7)
   const [maxTokens, setMaxTokens] = useState(8192)
   const [showApiKey, setShowApiKey] = useState(false)
+  const [routingText,setRoutingText]=useState('{}')
 
   // Fallback state
   const [enableFallback, setEnableFallback] = useState(false)
@@ -131,6 +135,7 @@ function LLMConfigPanel({ onClose }: LLMConfigPanelProps) {
       fallback_provider?: string | null
       fallback_model?: string | null
       fallback_api_key?: string | null
+      routing?: Record<string,unknown>
     }) => {
       const res = await fetch('/api/v1/config/llm', {
         method: 'POST',
@@ -171,6 +176,7 @@ function LLMConfigPanel({ onClose }: LLMConfigPanelProps) {
       setApiBase(config.api_base || '')
       setTemperature(config.temperature)
       setMaxTokens(config.max_tokens)
+      setRoutingText(JSON.stringify(config.routing || {},null,2))
 
       if (config.fallback_provider) {
         setEnableFallback(true)
@@ -191,6 +197,16 @@ function LLMConfigPanel({ onClose }: LLMConfigPanelProps) {
       alert('请输入 API Key')
       return
     }
+    let routing:Record<string,unknown>
+    try {
+      if (routingText.length>65536) throw new Error('配置过长')
+      const parsed:unknown=JSON.parse(routingText)
+      if (!parsed || typeof parsed!=='object' || Array.isArray(parsed)) throw new Error('需要JSON对象')
+      routing=parsed as Record<string,unknown>
+    } catch {
+      alert('模型路由配置应为有效JSON对象；可以填写 {} 使用当前主模型。')
+      return
+    }
 
     updateMutation.mutate({
       provider,
@@ -202,11 +218,12 @@ function LLMConfigPanel({ onClose }: LLMConfigPanelProps) {
       fallback_provider: enableFallback ? fallbackProvider : null,
       fallback_model: enableFallback ? fallbackModel : null,
       fallback_api_key: enableFallback ? fallbackApiKey : null,
+      routing,
     })
   }, [
     provider, model, apiKey, apiBase, temperature, maxTokens,
     enableFallback, fallbackProvider, fallbackModel, fallbackApiKey,
-    updateMutation
+    updateMutation,routingText
   ])
 
   // Handle reset
@@ -461,6 +478,16 @@ function LLMConfigPanel({ onClose }: LLMConfigPanelProps) {
           </div>
         </details>
       </div>
+
+      <details className="card mb-6">
+        <summary className="cursor-pointer text-sm font-medium">按阶段选择模型与成本策略</summary>
+        <p className="mt-3 text-xs text-xmgray-500">默认使用当前主模型。高级路由只选择已配置服务内的候选，先检查阶段、能力、质量档位、资料许可与上下文容量，再比较有来源的配置报价；未知价格不会当作免费。</p>
+        <label className="block mt-3 text-sm">路由配置
+          <textarea className="input-xm w-full mt-2 font-mono text-xs" rows={12} value={routingText}
+            maxLength={65536} spellCheck={false} onChange={event=>setRoutingText(event.target.value)} />
+        </label>
+        <p className="mt-2 text-xs text-xmgray-500">私有资料默认不转发备用服务。服务故障回退和研究内容补证分别处理；运行中的任务发现配置变化会停止下一次模型请求。</p>
+      </details>
 
       {/* Fallback Settings */}
       <div className="card p-6 mb-4">

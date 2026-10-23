@@ -7,6 +7,7 @@ Uses BAAI/bge-reranker-v2-m3 for cross-encoder scoring.
 from __future__ import annotations
 
 import logging
+import asyncio
 
 import torch
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
@@ -66,17 +67,21 @@ class Reranker:
         Args:
             query: Search query
             documents: List of document texts to rerank
-            top_n: Number of top results to return
+            top_n: Retained compatibility argument; consumer selects final top_n
             batch_size: Batch size for inference
 
         Returns:
-            List of relevance scores (higher = more relevant)
+            One score per input document in original order, higher = more relevant
         """
         if not documents:
             return []
 
         logger.info(f"Reranker: reranking {len(documents)} documents for query '{query[:50]}'")
 
+        return await asyncio.to_thread(self._score_pairs,query,documents,batch_size)
+
+    def _score_pairs(self,query,documents,batch_size):
+        """One score per input, in original order; the consumer owns ordering."""
         all_scores: list[float] = []
 
         with torch.no_grad():
@@ -95,18 +100,9 @@ class Reranker:
                 inputs = {k: v.to(self.device) for k, v in inputs.items()}
 
                 outputs = self.model(**inputs)
-                scores = outputs.logits.squeeze(-1).float().cpu().tolist()
-
-                # Convert to probabilities using sigmoid (for binary classification)
-                probs = [1 / (1 + abs(s)) * max(0, s) + 0.5 for s in scores]
-                probs = [max(0.0, min(1.0, p)) for p in probs]
-
+                if outputs.logits.ndim!=2 or outputs.logits.shape[-1]!=1:
+                    raise ValueError('reranker_requires_one_logit_per_query_document_pair')
+                probs=torch.sigmoid(outputs.logits.squeeze(-1).float()).cpu().tolist()
                 all_scores.extend(probs)
 
-        # Sort by score descending and return top_n
-        scored = list(zip(documents, all_scores))
-        scored.sort(key=lambda x: x[1], reverse=True)
-        top_scores = [s for _, s in scored[:top_n]]
-
-        logger.info(f"Reranker: top score={top_scores[0] if top_scores else 0:.3f}")
-        return top_scores
+        return all_scores

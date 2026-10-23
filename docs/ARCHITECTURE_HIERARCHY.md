@@ -2,6 +2,12 @@
 
 > 目标：说明当前系统是如何分层组织的，每一层负责什么，以及这些职责落在哪些文件上。
 
+本文描述当前代码分层。2026-10-19 的目标流程、阶段分工、证据准备和执行控制图，以及已有／需改造／需新增清单，统一见 [完整调研流程设计](RESEARCH_WORKFLOW_DESIGN.md)；目标保留四类逻辑研究角色，不表示当前 SearchAgent／BrowserAgent 等兼容模块已经移除。
+
+同日新增领域预览：`app/api/research.py` → `app/research_scope.py`、`app/research_evaluation.py`、`app/research_matching.py` 普通函数，负责[范围／家族](organization-research-scope.md)、[评价适配／归一化与权重配置](research-evaluation-and-weights.md)，尚未连入工作流图。该路径无模型或外部工具调用，读取的公开快照覆盖有限，不增加 Agent 或编排层。
+
+3.2–3.5 的[实际匹配预览](research-matching-preview.md)复用 `research_matching.py`，通过 `app/db/matching.py` 在现有 PostgreSQL 中保存不可覆盖的 owner 证据快照；HTTP 预览检查归属后只读重算。新增独立快照表用于保留多个证据版本，避免改写可变的运行状态。SQLite 已执行相同 DDL／SQL 的新增业务验证，PostgreSQL 实例迁移仍待部署验证。
+
 ## 结论
 
 当前架构属于 **集中式编排的 multi-agent 系统**。

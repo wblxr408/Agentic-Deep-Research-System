@@ -42,18 +42,18 @@
 | 服务 | 用途 | 备注 |
 |------|------|------|
 | LLM API | Qwen / DeepSeek / OpenAI | 需要 API Key，无需本地下载 |
-| HuggingFace | RAG 模型下载 | 需要网络连接下载本地模型 |
+| HuggingFace | 可选内部资料模型 | 显式选择稠密／重排时才需要模型；默认词汇接入与检索不下载模型 |
 | DuckDuckGo | 搜索服务 | 免费，无需 API Key |
 
 ### 1.4 模型下载需求
 
 | 模型类型 | 模型名称 | 大小 | 下载方式 | 是否必需 |
 |----------|----------|------|----------|----------|
-| RAG 嵌入模型 | BAAI/bge-zh-qwen2-int8 | 400MB-1GB | 首次运行自动下载 | ✅ 必需 |
-| RAG 重排序模型 | BAAI/bge-reranker-v2-m3 | 300MB-500MB | 首次运行自动下载 | ⚠️ 可选 |
+| 内部资料嵌入模型 | 配置的SentenceTransformer模型 | 随模型／精度而定，未实测 | 显式启用后加载，新的稠密表示需固定模型提交 | 可选；默认词汇接入／检索无需模型 |
+| 内部资料重排序模型 | 配置的交叉编码器 | 随模型／精度而定，未实测 | 服务器显式启用后加载 | 可选，不可用时保留融合顺序 |
 | Playwright 浏览器 | Chromium | 150MB-200MB | `playwright install chromium` | ✅ 必需 |
 
-**总磁盘空间需求**: 约 850MB-1.7GB（首次部署）
+总磁盘需求需按实际模型／容器／浏览器测量，不从模型名称中的int8推断精度或容量。公开研究默认联网且不启用内部检索；词汇资料接入和检索不要求加载模型。PostgreSQL仍承担会话、引用与配置。OPT-04新代码的选择与配置见[特征契约](versioned-retrieval-features.md)，尚未安装／实跑，全部TODO实施后统一端到端。
 
 ---
 
@@ -91,9 +91,12 @@ BROWSER_POOL_SIZE=3                  # 浏览器池大小
 BROWSER_NAVIGATION_TIMEOUT=30000     # 导航超时(ms)
 
 # ===== RAG 配置 =====
-RAG_EMBEDDING_MODEL=BAAI/bge-m3      # Embedding 模型
-RAG_RERANKER_MODEL=BAAI/bge-reranker-v2-m3  # Reranker 模型
-RAG_TOP_K=15                         # 检索数量
+RAG_EMBED_MODEL=BAAI/bge-zh-qwen2-int8 # 按实际选定模型配置，不保证此名称已可用
+# RAG_EMBED_REVISION=<实际40位模型提交ID>  # 选择稠密编码时必填，不填猜测值
+RAG_ENABLE_DENSE_RETRIEVAL=false      # 默认只用独立词汇路径
+RAG_ENABLE_RERANKER=false            # 与稠密分别选择
+RAG_RERANK_MODEL=BAAI/bge-reranker-v2-m3
+RAG_RETRIEVAL_TOP_K=20
 
 # ===== 工作流配置 =====
 MAX_REVISIONS=3                      # 最大重规划次数
@@ -348,12 +351,14 @@ work_mem = 64MB
 maintenance_work_mem = 128MB
 effective_cache_size = 768MB
 
--- pgvector 索引
-CREATE INDEX ON documents USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
-
--- 全文搜索索引
-CREATE INDEX ON documents USING gin(to_tsvector('chinese', content));
+-- 索引DDL由app/db/retrieval_indexes.py和既有初始化统一维护。
+-- 当前不默认新建IVF；词项Posting、FTS/JSONB GIN与owner/来源B-Tree分别承担查询。
+-- FTS使用实际支持配置，不能假定已有名为chinese的配置。
 ```
+
+OPT-05的[代际／重建／回滚](versioned-retrieval-indexes.md)已接入代码，尚未迁移。仅直接定位的新资料不物化关键词小块；显式建立才发布代际。已有索引／向量和旧资料不自动清理或重建；向量默认在过滤后的兼容范围精确计算。全部TODO实现后才统一端到端，当前不运行部署或索引效果检查。
+
+OPT-06的[生命周期](evidence-lifecycle.md)同样尚未迁移：初始化增加版本族／访问策略、幂等事件和owner epoch表；原DELETE改为Tombstone，显式purge才清理非当前来源。新上传默认task范围，未绑定任务仅本人定位；要供研究复用，需绑定实际本人任务或明确选择group／owner。旧无生命周期来源仅保留本人显式分组路径，不自动认领旧owner。没有自动资料回填、后台清理、重训或服务重启；全部实施后统一通过实际业务确认。
 
 ### 6.2 连接池配置
 
@@ -419,6 +424,20 @@ Response: {
 ---
 
 ## 8. 故障排查
+
+### Windows Docker Desktop 反复启动报错
+
+若后台日志中的首个错误为 `initializing Inference manager` 或 `initializing Secrets Engine`，并包含 `dockerInference`／`engine.sock` 和 `The file cannot be accessed by the system`，参见 [Docker 启动修复与实际数据库验证](acceptance/docker-startup-20261020.md)。这是本机残留通信端点阻塞后台初始化；客户端提示找不到 Linux engine 管道是后续结果。
+
+本机桌面、开始菜单及既有任务栏固定图标的 **Docker Desktop** 已统一接入安全启动脚本。Docker 已退出时，它将两个已知、仅含临时 socket 的目录保存为带唯一后缀的旧目录，再启动 Docker；运行中仅打开界面。可复用启动脚本为 [`scripts/start_docker_desktop.ps1`](../scripts/start_docker_desktop.ps1)，入口安装脚本为 [`scripts/install_docker_safe_start.ps1`](../scripts/install_docker_safe_start.ps1)：
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/install_docker_safe_start.ps1
+```
+
+安装器读取 Docker 的 `AutoStart` 偏好：关闭时移除遗留的 Docker 登录启动项，开启时使该项也走修复入口；不改变用户的自动启动偏好。原快捷方式、启动脚本和注册表原值备份至 `%LOCALAPPDATA%/DockerSafeStart/entrypoints-before-*`。没有现有任务栏图标时不新增固定项。
+
+2026-10-21 已实际复现“任务栏仍直接调用原程序”的遗漏，并通过修复后连续两次任务栏启动、原报告／证据读取及新事务提交；见[本次记录](acceptance/docker-startup-entrypoints-20261021.md)。Docker 更新或重新固定图标后若恢复了原程序入口，可重新执行安装器。直接运行安装目录原程序或 `docker desktop start` 仍会绕过本机恢复；该处理不是 Docker／Windows 底层缺陷的永久修复承诺。
 
 ### 8.1 常见问题
 

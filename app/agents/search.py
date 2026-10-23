@@ -15,7 +15,6 @@ from urllib.parse import parse_qs, unquote, urlparse
 
 from app.config import get_settings
 from app.graph.state import PlanStep, SearchResult
-from app.llm_client import call_chat_with_fallback, create_fallback_llm_client
 
 if TYPE_CHECKING:
     from openai import OpenAI
@@ -42,6 +41,8 @@ Return JSON with a "queries" array of strings."""
         settings = get_settings()
         self.model = settings.llm.model
         self._client: OpenAI | None = None
+        self.last_channel_attempts: list[dict] = []
+        self.last_fusion:dict={}
 
     @property
     def client(self) -> OpenAI:
@@ -89,34 +90,8 @@ Return JSON with a "queries" array of strings."""
         return ranked[:15]  # Top 15 results
 
     def _expand_query(self, query: str, user_query: str) -> list[str]:
-        """Expand a query into multiple search queries."""
-        messages = [
-            {"role": "system", "content": self.EXPAND_PROMPT},
-            {"role": "user", "content": f"Original query: {query}\nContext: {user_query}"},
-        ]
-
-        try:
-            response, response_model, fallback_used = call_chat_with_fallback(
-                self.client,
-                self.model,
-                create_fallback_llm_client(),
-                messages=messages,
-                temperature=0.3,
-                max_tokens=512,
-                response_format={"type": "json_object"},
-            )
-            if fallback_used:
-                self.model = response_model
-            content = response.choices[0].message.content
-            if content:
-                data = json.loads(content)
-                queries = data.get("queries", [])
-                if queries:
-                    return queries[:5]
-        except (OSError, RuntimeError, TypeError, ValueError, KeyError) as e:
-            logger.warning(f"Query expansion failed: {e}")
-
-        return [query]  # Fallback to original
+        """Legacy caller has no frozen expansion options; retain its query."""
+        return [query]
 
     def _execute_search(self, query: str) -> list[SearchResult]:
         """
@@ -201,52 +176,49 @@ Return JSON with a "queries" array of strings."""
 
     def _parse_duckduckgo_html(self, html_text: str, query: str) -> list[SearchResult]:
         """Parse title, URL and snippet from DuckDuckGo HTML without extra deps."""
-        import html as html_lib
+        from html.parser import HTMLParser
 
+        class ResultsParser(HTMLParser):
+            def __init__(self):
+                super().__init__(convert_charrefs=True)
+                self.rows = []
+                self.capture = None
+                self.parts = []
+                self.url = ""
+
+            def handle_starttag(self, tag, attrs):
+                attributes = dict(attrs)
+                classes = attributes.get("class", "").split()
+                if tag == "a" and "result__a" in classes:
+                    self.capture, self.parts = "title", []
+                    self.url = attributes.get("href", "")
+                elif tag in ("a", "div") and "result__snippet" in classes:
+                    self.capture, self.parts = "snippet", []
+
+            def handle_data(self, data):
+                if self.capture:
+                    self.parts.append(data)
+
+            def handle_endtag(self, tag):
+                if self.capture == "title" and tag == "a":
+                    self.rows.append({"url": self.url, "title": "".join(self.parts), "snippet": ""})
+                    self.capture = None
+                elif self.capture == "snippet" and tag in ("a", "div"):
+                    if self.rows:
+                        self.rows[-1]["snippet"] = "".join(self.parts)
+                    self.capture = None
+
+        parser = ResultsParser()
+        parser.feed(html_text)
         results: list[SearchResult] = []
-        blocks = re.findall(
-            r'<div[^>]+class="[^"]*result[^"]*"[^>]*>(.*?)</div>\s*</div>',
-            html_text,
-            flags=re.IGNORECASE | re.DOTALL,
-        )
-        if not blocks:
-            blocks = html_text.split('class="result__body"')
-
-        for block in blocks:
-            link_match = re.search(
-                r'<a[^>]+class="[^"]*result__a[^"]*"[^>]+href="([^"]+)"[^>]*>(.*?)</a>',
-                block,
-                flags=re.IGNORECASE | re.DOTALL,
-            )
-            if not link_match:
+        for row in parser.rows:
+            url = self._normalize_duckduckgo_url(row["url"])
+            title = self._clean_html(row["title"])
+            snippet = self._clean_html(row["snippet"])
+            if not url.startswith("https://") or not title:
                 continue
-
-            raw_url = html_lib.unescape(link_match.group(1))
-            title = self._clean_html(link_match.group(2))
-            snippet_match = re.search(
-                r'<a[^>]+class="[^"]*result__snippet[^"]*"[^>]*>(.*?)</a>|'
-                r'<div[^>]+class="[^"]*result__snippet[^"]*"[^>]*>(.*?)</div>',
-                block,
-                flags=re.IGNORECASE | re.DOTALL,
-            )
-            snippet_html = ""
-            if snippet_match:
-                snippet_html = next((g for g in snippet_match.groups() if g), "")
-            snippet = self._clean_html(snippet_html)
-            url = self._normalize_duckduckgo_url(raw_url)
-
-            if not url or not title:
-                continue
-
-            parsed = urlparse(url)
-            results.append(SearchResult(
-                url=url,
-                title=title,
-                snippet=snippet[:300] or title,
-                relevance_score=0.7,
-                domain=parsed.netloc,
-            ))
-
+            results.append(SearchResult(url=url, title=title, snippet=snippet[:300] or title,
+                                        relevance_score=0.7, domain=urlparse(url).netloc))
             if len(results) >= 10:
                 break
 
@@ -291,13 +263,93 @@ Return JSON with a "queries" array of strings."""
             r.relevance_score = score + 0.1 * overlap
         return sorted(results, key=lambda r: r.relevance_score, reverse=True)
 
-    def execute_search(self, query: str) -> list[SearchResult]:
+    def execute_search(self, query: str, *, channels: list[str] | None = None, owner_id: str | None = None, limit: int = 10, max_calls: int = 24, timeout_seconds: float = 90,
+                       query_variants:list[str]|None=None,fusion:dict|None=None,query_type:str|None=None,source_policy=None) -> list[SearchResult]:
         """
         Execute a single search query (主题 3 工具接口).
 
         直接执行单个搜索查询，供 DAG executor 调用。
         """
-        return self._execute_search(query)
+        from app.channels import ChannelService, CollectionRequest
+        from app.channels.catalog import route_query
+
+        channel, operation, routed_query = route_query(query)
+        self.last_channel_attempts = []
+        self.last_fusion={}
+        from app.candidate_fusion import FusionPolicy,fuse_candidates
+        from app.external_evidence import request_url_identity
+        fusion_policy=FusionPolicy.model_validate(fusion or {}).model_dump(mode='json')
+        if not 1<=limit<=100:raise ValueError('search_result_limit_out_of_range')
+        fusion_policy['global_top_k']=min(limit,fusion_policy['global_top_k'])
+        explicit = channel != "web" or operation == "read" or query.startswith("web:")
+        selected = [channel] if explicit else (channels or [channel])
+        if len(selected) > 8 or len(selected) != len(set(selected)):
+            raise ValueError("select at most eight unique channels")
+        # Preserve the existing plain-web interface and its fallback behavior.
+        if selected == ["web"] and operation == "search" and not channels and owner_id is None and query_variants is None and fusion is None and source_policy is None:
+            return self._execute_search(routed_query)
+        service = ChannelService(owner_id, legacy_search=self._execute_search)
+        import time
+        deadline = time.monotonic() + timeout_seconds
+        used_calls = 0
+        variants=query_variants if query_variants is not None else [query]
+        if not 1<=len(variants)<=4 or len(set(variants))!=len(variants):raise ValueError('invalid_query_variant_count')
+        requests=[]
+        for variant in variants:
+            variant_channel,variant_operation,variant_query=route_query(variant)
+            if variant_channel!=channel or variant_operation!=operation:raise ValueError('query_variant_changed_transport')
+            requests.extend((name,variant_query) for name in selected)
+        fusion_channels={f'{"web" if name=="web" else "platform"}:{position}:{name}':[] for position,(name,_) in enumerate(requests)}
+        fusion_status={name:{'status':'not_attempted'} for name in fusion_channels}
+        observations={}; scope_rejected=[]
+        for position,(name,actual_query) in enumerate(requests):
+            remaining=max_calls-used_calls
+            seconds=deadline-time.monotonic()
+            if remaining<=0 or seconds<=0:break
+            slots=len(requests)-position
+            share=max(1,remaining//slots)
+            result = service.collect(CollectionRequest(channel=name, operation=operation, query=actual_query, limit=min(fusion_policy['per_route_top_k'], 20)),
+                max_calls=share, timeout_seconds=max(0,seconds/slots))
+            used_calls += result.call_count
+            self.last_channel_attempts.extend({**a.model_dump(),'query':actual_query,'allocated_calls':share,
+                'allocated_seconds':max(0,seconds/slots)} for a in result.attempts)
+            group=[SearchResult(url=i.url, title=i.title, snippet=i.content,
+                                       domain=urlparse(i.url).netloc, relevance_score=0.7,
+                                       channel=i.channel, backend=i.backend, collected_at=i.collected_at,data_governance=i.data_governance)
+                          for i in result.items]
+            provider_ranks={id(item):rank for rank,item in enumerate(group,1)}
+            if source_policy:
+                admitted,rejected=source_policy.filter_leads(group)
+                scope_rejected.extend(rejected)
+                admitted_urls={item['url'] for item in admitted}
+                group=[item for item in group if item.url in admitted_urls]
+            route=f'{"web" if name=="web" else "platform"}:{position}:{name}'
+            fusion_status[route]={'status':result.status}
+            for item in group:
+                rank=provider_ranks[id(item)]
+                try:key=request_url_identity(item.url)
+                except (ValueError,TypeError):continue
+                fusion_channels[route].append({'id':key,'score':None,'score_direction':'unscored',
+                    'provider_rank':rank,
+                    'score_meaning':'provider_order_no_comparable_score','content':item.title+' '+item.snippet,
+                    'source_key':key,'record':item})
+                observations.setdefault(key,[]).append({'route':route,'query':actual_query,'provider_rank':rank,
+                    'url':item.url,'channel':item.channel,'backend':item.backend,'collected_at':item.collected_at,
+                    'title':item.title[:500],'snippet':item.snippet[:1000]})
+            if used_calls >= max_calls or time.monotonic() >= deadline:
+                break
+        fused,self.last_fusion=fuse_candidates(fusion_channels,fusion_policy,query=query,query_type=query_type,route_status=fusion_status)
+        self.last_fusion.update(scope_rejected=scope_rejected,requested_limit=limit,returned_count=len(fused),
+            shortfall=max(0,limit-len(fused)),effective_per_route_limit=min(20,fusion_policy['per_route_top_k']))
+        output=[]
+        for row in fused:
+            item=row['record'].model_copy(deep=True)
+            item.candidate_fusion={'version':self.last_fusion['version'],'score':row['fusion_score'],
+                'memberships':row['fusion_routes'],'observations':observations[row['id']],
+                'scope':'discovery_leads_not_full_text_or_support','identity':'version_and_query_preserving_public_URL',
+                'duplicate_groups':[group for group in self.last_fusion['near_duplicate_groups'] if row['id'] in group['candidate_ids']]}
+            output.append(item)
+        return output
 
     def execute_for_node(self, node_query: str, context: str = "") -> list[SearchResult]:
         """兼容接口：根据节点 query 执行搜索。"""

@@ -16,6 +16,7 @@ from fastapi.middleware.gzip import GZipMiddleware
 
 from app.api import (
     auth_router,
+    channels_router,
     backup_router,
     config_router,
     documents_router,
@@ -127,6 +128,7 @@ def create_app() -> FastAPI:
     # Register routes
     app.include_router(health_router)
     app.include_router(auth_router)
+    app.include_router(channels_router)
     app.include_router(backup_router)
     app.include_router(research_router)
     app.include_router(config_router)

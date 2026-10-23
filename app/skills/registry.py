@@ -20,7 +20,7 @@ from app.skills.models import (
     SkillMetaRecord,
     SkillRecord,
 )
-from app.skills.parser import tokenize_query
+from app.skills.parser import tokenize_query, _parse_sections
 from app.skills.service import (
     get_skill_content,
     get_skill_content_batch,
@@ -383,6 +383,10 @@ class SkillRegistry:
     ) -> ResolvedSkillRef:
         result_lookup = {result.skill_id: result for result in match_results}
         match_reason = result_lookup.get(meta.id).reason if meta.id in result_lookup else "manual_enable"
+        try:
+            body_sections, compilation_errors = _parse_sections(content.body), []
+        except ValueError:
+            body_sections, compilation_errors = {}, ['registered_skill_sections_ambiguous']
         return ResolvedSkillRef(
             skill_id=meta.id,
             slug=meta.metadata.slug,
@@ -391,10 +395,21 @@ class SkillRegistry:
             priority=meta.metadata.priority,
             matched_reason=match_reason,
             allowed_tools=meta.metadata.allowed_tools,
+            required_tools=meta.metadata.required_tools,
+            tool_restrictions=meta.metadata.tool_restrictions,
+            stages=meta.metadata.stages,
+            disciplines=meta.metadata.disciplines,
+            templates=meta.metadata.templates,
+            stage_references=meta.metadata.stage_references,
+            reference_sections={key.removeprefix('reference:'): value
+                for key, value in body_sections.items() if key.startswith('reference:')},
+            content_identity=content.content_hash or hashlib.sha256(content.markdown_content.encode()).hexdigest(),
+            compilation_errors=compilation_errors,
             prompt_sections={
                 "overview": content.overview,
                 "prompt": content.prompt,
                 "constraints": content.constraints,
+                **{key: value for key, value in body_sections.items() if key.startswith('stage:')},
             },
             agent_hints=_agent_hints_from_meta(meta),
         )
@@ -473,6 +488,7 @@ class SkillRegistry:
                 "enabled_overrides": enabled_overrides,
                 "disabled_overrides": disabled_overrides,
                 "version_token": self._version_token,
+                'selection_contract': 'adrs-stage-skills-v1',
                 "revision": self._revision,
             },
             ensure_ascii=False,

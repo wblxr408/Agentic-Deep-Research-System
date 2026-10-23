@@ -1,12 +1,16 @@
 """
 BGE Embedder: generates vector embeddings for queries and documents.
 
-Supports BAAI/bge-zh-qwen2-int8 (Chinese-optimized, INT8 quantized).
+Loads the configured SentenceTransformer artifact; quantization is not inferred
+from a repository name.
 """
 
 from __future__ import annotations
 
 import logging
+import asyncio
+import importlib.metadata
+from threading import Lock
 from typing import TYPE_CHECKING
 
 import torch
@@ -27,26 +31,31 @@ class Embedder:
     - Lazy loading to avoid startup latency
     - Automatic device detection (CUDA/CPU)
     - Batch processing for document embedding
-    - INT8 quantized model for memory efficiency
+    - Explicit artifact revision and observed encoding metadata
     """
 
     def __init__(self, model_name: str | None = None, device: str | None = None):
         settings = get_settings()
         self.model_name = model_name or settings.rag.embed_model
+        self.revision = settings.rag.embed_revision
         self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
         self._model: SentenceTransformer | None = None
+        self._load_lock=Lock()
+        self.last_profile:dict|None=None
+        self.last_batch_coverage:list[dict]=[]
         logger.info(f"Embedder: using model={self.model_name}, device={self.device}")
 
     @property
     def model(self):
-        if self._model is None:
+        with self._load_lock:
+            if self._model is not None:return self._model
             try:
                 from sentence_transformers import SentenceTransformer
             except ModuleNotFoundError as exc:
                 raise ModuleNotFoundError(
                     "sentence_transformers is required to load the embedder model"
                 ) from exc
-            self._model = SentenceTransformer(self.model_name, device=self.device)
+            self._model = SentenceTransformer(self.model_name, device=self.device,revision=self.revision,trust_remote_code=False)
             logger.info("Embedder: model loaded successfully")
         return self._model
 
@@ -58,15 +67,9 @@ class Embedder:
             text: Query text
 
         Returns:
-            1024-dimensional embedding vector (list of floats)
+            Observed model-dimensional vector (list of floats)
         """
-        embedding = self.model.encode(
-            text,
-            normalize_embeddings=True,
-            show_progress_bar=False,
-            convert_to_numpy=True,
-        )
-        return embedding.tolist()
+        return (await self.embed_batch([text]))[0]
 
     async def embed_batch(self, texts: list[str], batch_size: int = 32) -> list[list[float]]:
         """
@@ -79,14 +82,41 @@ class Embedder:
         Returns:
             List of embedding vectors
         """
-        embeddings = self.model.encode(
-            texts,
-            batch_size=batch_size,
-            normalize_embeddings=True,
-            show_progress_bar=True,
-            convert_to_numpy=True,
-        )
-        return embeddings.tolist()
+        if not texts:
+            self.last_batch_coverage=[]
+            return []
+        def encode():
+            from app.retrieval_features import identity,VERSION
+            model=self.model
+            vectors=model.encode(texts,batch_size=batch_size,normalize_embeddings=True,
+                show_progress_bar=False,convert_to_numpy=True).tolist()
+            default_prompt_name=getattr(model,'default_prompt_name',None)
+            prompt=(getattr(model,'prompts',{}) or {}).get(default_prompt_name,'')
+            profile={'schema_version':VERSION,'model':self.model_name,'requested_revision':self.revision,
+                'dimension':len(vectors[0]),'normalization':'l2','encoder_method':'SentenceTransformer.encode',
+                'sentence_transformers_version':importlib.metadata.version('sentence-transformers'),
+                'torch_version':torch.__version__,'transformers_version':importlib.metadata.version('transformers'),
+                'maximum_sequence_tokens':getattr(model,'max_seq_length',None),
+                'default_prompt_name':default_prompt_name,'default_prompt_digest':identity(prompt),
+                'model_reference_kind':'pinned_commit' if self.revision else 'unfrozen_reference',
+                'quantization':'not_inferred_from_model_name'}
+            profile['encoding_profile_id']=identity(profile)
+            coverage=[]
+            tokenizer=getattr(model,'tokenizer',None)
+            maximum=profile['maximum_sequence_tokens']
+            for text in texts:
+                try:
+                    tokens=tokenizer(prompt+text,add_special_tokens=True,truncation=False,return_attention_mask=False,return_token_type_ids=False)['input_ids'] if tokenizer else None
+                    token_count=len(tokens) if tokens is not None else None
+                    coverage.append({'input_characters':len(text),'input_tokens_with_default_prompt':token_count,
+                        'maximum_sequence_tokens':maximum,'truncated':token_count>maximum if token_count is not None and isinstance(maximum,int) else None,
+                        'status':'tokenizer_length_observed' if token_count is not None else 'token_length_unknown',
+                        'offset_semantics':'encoder_input_length_not_original_text_remapping'})
+                except (TypeError,ValueError,KeyError,AttributeError):
+                    coverage.append({'input_characters':len(text),'status':'token_length_unknown','truncated':None})
+            self.last_profile=profile;self.last_batch_coverage=coverage
+            return vectors
+        return await asyncio.to_thread(encode)
 
     @property
     def dimension(self) -> int:

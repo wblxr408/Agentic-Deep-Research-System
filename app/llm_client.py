@@ -49,6 +49,7 @@ def get_llm_client_config() -> dict[str, Any]:
             "fallback_provider": runtime_config.fallback_provider,
             "fallback_model": runtime_config.fallback_model,
             "fallback_api_key": runtime_config.fallback_api_key,
+            "routing": runtime_config.routing,
         }
 
     # Fallback to environment variables
@@ -63,6 +64,7 @@ def get_llm_client_config() -> dict[str, Any]:
         "fallback_provider": settings.llm.fallback_provider,
         "fallback_model": settings.llm.fallback_model,
         "fallback_api_key": settings.llm.fallback_api_key,
+        "routing": settings.llm.routing,
     }
 
 
@@ -153,9 +155,14 @@ def call_chat_with_fallback(
     try:
         return primary_client.chat.completions.create(model=primary_model, **kwargs), primary_model, False
     except Exception as primary_error:
+        from app.llm_budget import BudgetedClient, TokenBudgetExceeded
+        if isinstance(primary_error, TokenBudgetExceeded):
+            raise
         if fallback is None:
             raise
         fallback_client, fallback_model = fallback
+        if isinstance(primary_client, BudgetedClient):
+            fallback_client = BudgetedClient(fallback_client,primary_client.budget,primary_client.purpose)
         logger.warning("Primary LLM request failed before response; using fallback: %s", type(primary_error).__name__)
         return fallback_client.chat.completions.create(model=fallback_model, **kwargs), fallback_model, True
 

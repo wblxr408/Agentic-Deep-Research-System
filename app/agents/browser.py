@@ -1,45 +1,28 @@
 """
-Browser Agent: Full Browser Use Implementation.
+受控网页取证：读取、滚动及提取正文、表格和页面元数据。
 
-===============================================================
-Browser Use = AI Agent 最热门方向之一
-
-本模块实现了完整的 Browser Use 范式，Agent 可以：
-
-1. **OPEN** - 自主打开任意网页
-2. **SEARCH** - 页面内搜索 / 关键词定位
-3. **SCROLL** - 滚动加载动态内容 / 翻页
-4. **EXTRACT** - 提取结构化数据（文章、表格、列表）
-5. **ANALYZE** - 理解页面内容，决策下一步
-
-对比 Operator / Manus / Browser Use：
-- Operator: 端到端任务自动化，视觉理解
-- Manus: 多步骤浏览器任务规划
-- Browser Use: 直接浏览器操作 + LLM 决策
-
-本实现特色：
-- Query-to-URL: 将自然语言查询转换为搜索 URL
-- Progressive Loading: 滚动触发动态内容加载
-- Smart Scrolling: 智能滚动检测（到底/加载更多）
-- Multi-step Navigation: 支持页面链式导航
-- Structured Data Extraction: 表格、列表、JSON-LD 提取
-- Accessibility Tree: 无障碍树用于元素定位
-
-===============================================================
+主流程在原根期限和调用份额内运行公开HTTP网关，记录实际请求。
+浏览入口不调用页面分析模型；综合、下一步规划及事实核对由根角色负责。
+旧PageAnalyzer辅助类未接入取证通道，不能视为已计量的研究工作流。
 """
 
 from __future__ import annotations
 
 import asyncio
 import logging
+import re
 import time
+from datetime import UTC,datetime
 from typing import TYPE_CHECKING, Any, ClassVar
 
 from playwright.async_api import Error as PlaywrightError
 
 from app.config import get_settings
+from app.bibliography import bibtex_entries
 from app.graph.state import BrowserResult, Citation, PageType, PlanStep
 from app.llm_client import call_chat_with_fallback, create_fallback_llm_client
+from app.channels.models import ChannelError
+from app.tools.public_browser import PublicBrowserGateway
 
 if TYPE_CHECKING:
     from playwright.async_api import Browser, Page, Playwright
@@ -336,6 +319,14 @@ class StructuredExtractor:
             ("og:title", 'meta[property="og:title"]'),
             ("og:description", 'meta[property="og:description"]'),
             ("article:published_time", 'meta[property="article:published_time"]'),
+            ('article:modified_time','meta[property="article:modified_time"]'),
+            ('event:start_time','meta[property="event:start_time"]'),
+            ('citation_title', 'meta[name="citation_title"]'),
+            ('citation_date', 'meta[name="citation_date"]'),
+            ('citation_publication_date', 'meta[name="citation_publication_date"]'),
+            ('citation_conference_title', 'meta[name="citation_conference_title"]'),
+            ('citation_journal_title', 'meta[name="citation_journal_title"]'),
+            ('citation_doi', 'meta[name="citation_doi"]'),
         ]
         for name, selector in meta_tags:
             try:
@@ -347,6 +338,21 @@ class StructuredExtractor:
             except (OSError, PlaywrightError, RuntimeError, TypeError, ValueError):
                 continue
         return metadata
+
+    async def extract_bibliography(self, page: Page) -> str:
+        """Preserve publisher bibliography text, including hidden citation panels."""
+        blocks = []
+        seen = set()
+        for element in (await page.query_selector_all('pre, code, textarea, [class*="bibtex"], [id*="bibtex"]'))[:30]:
+            value = (await element.text_content() or '').strip()
+            for entry in bibtex_entries(value):
+                identity = ' '.join(entry.split())
+                if len(entry) <= 3000 and identity not in seen:
+                    seen.add(identity)
+                    blocks.append(entry)
+            if len(blocks) >= 3:
+                break
+        return '\n\n'.join(blocks)
 
     async def extract_links(self, page: Page) -> list[dict[str, str]]:
         """提取所有外链（用于页面链式导航）。"""
@@ -454,22 +460,8 @@ Return ONLY valid JSON."""
 
 class BrowserAgent:
     """
-    完整的 Browser Use Agent。
-
-    实现五步 Browser Use 范式：
-    1. OPEN   - 打开任意 URL 或搜索查询
-    2. SEARCH - 页面内搜索 / 关键词定位
-    3. SCROLL - 滚动加载动态内容
-    4. EXTRACT - 提取结构化数据
-    5. ANALYZE - 理解内容，决策下一步
-
-    设计亮点：
-    - 三级提取（Snippet/Skim/Deep）管理 token 消耗
-    - 智能滚动处理动态加载页面
-    - 结构化数据提取（表格/JSON-LD）
-    - 页面内容分析 + AI 决策下一步
-    - 异步浏览器池并发操作
-    - 完整的资源清理
+    兼容既有工具名称的受控读取器，支持三级文字提取及页面结构。
+    根入口显式传入原调用份额／期限，完成后关闭自己的浏览资源。
     """
 
     def __init__(self):
@@ -482,7 +474,6 @@ class BrowserAgent:
         self._url_discovery = URLDiscovery()
         self._scroller = SmartScroller()
         self._extractor = StructuredExtractor()
-        self._analyzer = PageAnalyzer()
 
     async def _ensure_browser(self) -> Browser:
         """Lazily initialize Playwright browser."""
@@ -502,6 +493,7 @@ class BrowserAgent:
                         "--disable-blink-features=AutomationControlled",
                         "--disable-dev-shm-usage",
                         "--no-sandbox",
+                        "--force-webrtc-ip-handling-policy=disable_non_proxied_udp",
                     ],
                 )
                 self._playwright = playwright_instance
@@ -539,6 +531,9 @@ class BrowserAgent:
         user_query: str,
         extraction_level: str = "deep",
         max_chars: int = 8000,
+        analyze_page: bool = False,
+        max_calls:int=64,
+        timeout_seconds:float=45,
     ) -> BrowserResult:
         """
         主入口：接收查询或 URL，执行完整的 Browser Use 流程。
@@ -546,7 +541,7 @@ class BrowserAgent:
         Step 1 OPEN  - 如果是查询，先转换为 URL
         Step 2 SCROLL - 智能滚动加载内容
         Step 3 EXTRACT - 结构化数据提取
-        Step 4 ANALYZE - AI 分析页面内容
+        综合与规划由根Analyst／Planner接收保留资料后执行。
 
         Args:
             query_or_url: 搜索查询或直接 URL
@@ -557,13 +552,20 @@ class BrowserAgent:
         Returns:
             BrowserResult with full extraction
         """
-        browser = await self._ensure_browser()
-        page = await browser.new_page()
+        if analyze_page:raise ValueError('page_model_analysis_belongs_to_root_analyst')
         start_time = time.time()
+        request_started_at=datetime.now(UTC).isoformat()
+        context = None
+        completed=False
+        gateway = PublicBrowserGateway(timeout=timeout_seconds,max_requests=max_calls)
 
         try:
             # ===== STEP 1: OPEN =====
             url = self._resolve_target(query_or_url)
+            url = await gateway.prepare(url)
+            browser = await self._ensure_browser()
+            context = await gateway.new_context(browser)
+            page = await context.new_page()
             logger.info(f"Browser Use Step 1 OPEN: {url}")
 
             await self._navigate_with_retry(page, url)
@@ -589,15 +591,26 @@ class BrowserAgent:
             title = await page.title() or url
 
             structured = await self._extractor.extract_all(page)
-            structured.get("metadata", {})
+            bibliography = await self._extractor.extract_bibliography(page)
+            metadata = structured.get('metadata', {})
+            publication_metadata = '\n'.join(f'{key}: {value}' for key, value in metadata.items()
+                if key.startswith('citation_') or key == 'article:published_time')
+            source_fields = '\n\n'.join(part for part in (bibliography, publication_metadata) if part)
+            if source_fields:
+                content = source_fields[:4000] + '\n\n' + content
             structured.get("tables", [])
 
             # ===== STEP 4: ANALYZE =====
-            analysis = await self._analyzer.analyze_and_plan(content, user_query)
+            analysis = {
+                'page_type':page_type.value,'confidence':0.0,'key_information':[],
+                'model_analysis':'not_requested'}
             logger.info(f"Browser Use Step 4 ANALYZE: type={analysis.get('page_type')}, "
                         f"confidence={analysis.get('confidence')}")
 
             # 构建 Citation
+            from app.channels.execution import public_url
+            url=page.url
+            public_url(url)
             citation = Citation(
                 source_url=url,
                 source_title=title,
@@ -611,6 +624,9 @@ class BrowserAgent:
             logger.info(f"Browser Use complete: {url} in {elapsed_ms}ms, "
                         f"{len(content)} chars, {analysis.get('page_type')}")
 
+            completed=True
+            from app.external_evidence import source_time_declarations
+            response_headers=gateway.primary_response.headers if gateway.primary_response else {}
             return BrowserResult(
                 url=url,
                 page_type=page_type,
@@ -620,13 +636,31 @@ class BrowserAgent:
                 extraction_level=extraction_level,
                 tokens_estimate=len(content) // 4,
                 citation=citation.source_url,
+                channel='web',backend='public-browser',
+                collected_at=datetime.now(UTC).isoformat(),
+                acquisition={'format':'html','coverage':'page_text','truncated':len(content)>max_chars,
+                    'requested_url':query_or_url,'final_url':url,'page_metadata':metadata,
+                    'table_count':len(structured.get('tables',[])),
+                    'source_fetched_at':request_started_at,
+                    'source_etag':response_headers.get('etag'),'source_last_modified':response_headers.get('last-modified'),
+                    'source_cache_control':', '.join(gateway.cache_controls),'source_expires':response_headers.get('expires'),
+                    'source_time_declarations':source_time_declarations(metadata,response_headers),
+                    'http_headers_scope':'initial_main_document_cache_controls_include_observed_resources',
+                    'text_scope':'controlled_rendered_page_text_may_include_dynamic_content',
+                    'metadata_status':'page_declarations_not_independently_verified'},
             )
 
-        except (OSError, PlaywrightError, RuntimeError, TypeError, ValueError) as e:
+        except (ChannelError, OSError, PlaywrightError, RuntimeError, TypeError, ValueError) as e:
             logger.error(f"Browser Use failed for {query_or_url}: {e}")
             return self._fallback_result(query_or_url, error_message=str(e))
         finally:
-            await page.close()
+            try:
+                if context is not None:await context.close()
+            finally:
+                gateway.close()
+                self.last_channel_attempts=[{'channel':'web','backend':'public-browser','call_count':gateway.budget.used,
+                    'status':'success' if completed else 'failed',
+                    'result_count':int(completed),'remaining_request_allowance':max(0,gateway.budget.max_calls-gateway.budget.used)}]
 
     async def _navigate_with_retry(
         self,
@@ -762,7 +796,7 @@ class BrowserAgent:
             for h in headings[:20]:
                 text = (await h.inner_text()).strip()
                 if text and len(text) > 3:
-                    tag = h.evaluate("el => el.tagName")
+                    tag = await h.evaluate("el => el.tagName")
                     level = min(int(tag[1]), 4)
                     prefix = "#" * level
                     parts.append(f"{prefix} {text}")
@@ -811,14 +845,30 @@ class BrowserAgent:
     # Entry Points
     # ==============================================================
 
-    def execute_browse(self, query: str) -> list[BrowserResult]:
+    def execute_browse(self, query: str, *, owner_id: str | None = None, max_calls: int = 8, timeout_seconds: float = 90, analyze_page: bool = False,force_browser:bool=False) -> list[BrowserResult]:
         """同步入口：供 DAG executor 调用。"""
-        try:
-            return asyncio.run(self._async_browse(query))
-        except RuntimeError:
-            import nest_asyncio
-            nest_asyncio.apply()
-            return asyncio.run(self._async_browse(query))
+        from app.channels import ChannelService, CollectionRequest
+        from app.channels.catalog import route_query
+        channel, operation, value = route_query(query)
+        self.last_channel_attempts = []
+        if not force_browser and operation == "read" and (channel != "web" or query.startswith("web:")):
+            result = ChannelService(owner_id).collect(CollectionRequest(channel=channel, operation="read", query=value), max_calls=max_calls, timeout_seconds=timeout_seconds)
+            self.last_channel_attempts = [a.model_dump() for a in result.attempts]
+            if not result.items:
+                return [self._fallback_result(value, error_message=result.attempts[-1].error_category if result.attempts else "empty_content")]
+            return [BrowserResult(url=i.url, title=i.title, extracted_content=i.content,
+                                  acquisition={'data_governance':i.data_governance},
+                                  citations=[i.url], citation=i.url, extraction_level="deep",
+                                  channel=i.channel, backend=i.backend, collected_at=i.collected_at)
+                    for i in result.items]
+        async def invoke():
+            try:
+                async with asyncio.timeout(timeout_seconds):
+                    return await self._async_browse(query,analyze_page=analyze_page,max_calls=max_calls,timeout_seconds=timeout_seconds)
+            finally:await self._cleanup_browser()
+        try:asyncio.get_running_loop()
+        except RuntimeError:return asyncio.run(invoke())
+        raise RuntimeError('await_async_browse_in_running_event_loop')
 
     def execute(self, plan_steps: list[PlanStep]) -> list[BrowserResult]:
         """多步入口：处理 PlanStep 列表。"""
@@ -833,7 +883,7 @@ class BrowserAgent:
 
         return results
 
-    async def _async_browse(self, query: str) -> list[BrowserResult]:
+    async def _async_browse(self, query: str, *, analyze_page: bool = False,max_calls:int=64,timeout_seconds:float=45) -> list[BrowserResult]:
         """异步执行。"""
         async with self._semaphore:
             result = await self.open_and_browse(
@@ -841,6 +891,8 @@ class BrowserAgent:
                 user_query=query,
                 extraction_level="deep",
                 max_chars=self.cfg.deep_max_chars,
+                analyze_page=analyze_page,
+                max_calls=max_calls,timeout_seconds=timeout_seconds,
             )
             return [result]
 

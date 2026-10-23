@@ -1,0 +1,90 @@
+# OPT-04：同源特征视图与编码成本
+
+2026-10-21，代码／契约已接入，尚未运行。实施任务和最后验收见[OpenSpec](../openspec/changes/add-versioned-retrieval-features/tasks.md)。按用户要求，全部ORG／OPT／跨模块实现之后统一端到端，不先行安装模型、调用新接口或执行测试／门禁。
+
+## 目标、现状与选择
+
+此前上传总是生成嵌入，RAG在全文查询前依赖嵌入器；没有实际表示版本。新增`app/retrieval_features.py`普通函数，以同一解析／分块版本生成词汇、实体／时间、模态覆盖及稠密表示记录。来源保留完整计划，小块只带自己的特征。任务内网上证据仍不自动向量化。特征表示属于OPT-04，实际索引算法／发布属于OPT-05，查询排序／融合属于OPT-11–13。
+
+| 子项 | 当前实现／决定 | 候选、成本及重新考虑条件 |
+| --- | --- | --- |
+| 04.1 词汇 | Unicode NFKC／casefold规范词项与原始位置分别保存；英文／技术标识、中文单字／相邻二元组可选；复用03实体词典 | 默认不做词干化，保留技术标识，不声称规则词项具有NER消歧质量。实际召回缺口出现后比较学科词表／分词器 |
+| 04.2 相关性 | 小块TF、源内DF、平滑IDF及归一TF-IDF，保留N、平均长度、覆盖及重叠口径 | 当前PostgreSQL `ts_rank`不是BM25；跨源BM25必须用当前授权查询范围统计，不能直接比较各来源局部IDF |
+| 04.3 学习稀疏 | 明确`not_selected`，现阶段采用词汇稀疏表示 | SPLADE通过模型学习稀疏扩展，不能把TF-IDF改名为SPLADE。增加LSR／SPLADE／DeepImpact前需固定模型／词表、适配索引并有质量／费用收益 |
+| 04.4 稠密 | 新接入默认关闭，可显式启用现有SentenceTransformer归一单向量；保存实际编码profile、维度、库版本、token上限和输入长度覆盖 | 不新建双塔训练。启用需服务端固定40位模型提交；失败回滚整次接入。编码与查询配置相符才能比较，旧无身份向量不猜 |
+| 04.5 细粒度 | 保存词项原文区间，供精确定位使用；语义token矩阵／多向量／Late Interaction未选 | ColBERT把文档编码为token矩阵并以MaxSim交互，当前单向量或字面位置不能冒充该能力。实际精细召回收益足够后再选专用模型／索引 |
+| 04.6 行为 | 当前缺少适当授权曝光／点击／用户历史及训练目标，未采用协同过滤、Item2Vec、序列模型／行为双塔 | 不自动收集新行为。已有工具轨迹是执行记录，不能当兴趣标签；跨任务不同主题不预设稳定偏好 |
+| 04.7 BSR | `unresolved_definition`可见，尚无唯一的体系定义／输入输出 | 保留待查证，不擅自展开缩写或把其他特征改名；具体来源明确后再决定 |
+| 04.8 实体 | 复用字典提及、来源／偏移、分类及已知字段；身份消歧和确认关系保持独立 | 模型NER／关系抽取没有收益证据，不默认调用。机构／人员／地点共现不产生合作／任职事实；已有组织关系模块继续按来源审核 |
+| 04.9 模态 | 文字／结构独立视图，保留实际图片指针数量和原位置，明确`image_embeddings=false` | 当前未保存原图编码输入，不调用联合图文模型、不跟随资源URL。图注可有文字特征，不能当作理解图内内容 |
+| 04.10 时序 | 显式来源日期、as_of、窗口及半衰期，保存推导依据；未来／未知日期不产生虚假新鲜度 | 来源日期为用户声明而非自动核实，不从正文日期猜发表时间；研究趋势仍用组织趋势模块的跨年同口径证据 |
+
+上述候选取舍遵循主TODO开头的“候选不代表全部选用”。未采用不是运行成功；后续若选择这些模型，需要新的数据／模型／索引及真实场景证据。
+
+后续OPT-05的[真实Posting与范围BM25](versioned-retrieval-indexes.md)现已接入代码、未迁移；FTS `ts_rank`仍是单独回退，不能把它计作BM25。新增direct选择不物化关键词小块，之后显式发布才建立检索代际。
+
+## 生成契约、统计与位置
+
+`FeaturePolicy`版本为`adrs-retrieval-features-v1`，词项策略为`adrs-mixed-literal-v1`：
+
+| 字段 | 默认及边界 |
+| --- | --- |
+| `dense` | false；仅在用户选择后生成嵌入 |
+| `cjk_mode` | both；可选characters／bigrams。单字符／二元组为规则词项，不宣称语言学分词 |
+| `max_token_events` | 1024／块，可选128–2048；达到上限显示截断，不代表词项在后文不存在 |
+| `source_date`／`as_of` | 默认null；声明来源日期时必须同时声明计算时点 |
+| `half_life_days` | 730，可选30–3650；`2^(-age_days/half_life_days)`为产品规则 |
+| `window_start`／`window_end` | 可空，拒绝倒置；仅对明确日期判断in_window |
+
+每个规范词项保留TF和最多两个实际原文字面位置；词项最长128字符，超长值省略有计数。位置为Python Unicode字符，起点含、终点不含；NFKC及casefold可能改变词项长度，不能用规范词项长度重建原位置。中文与英文连续出现时分别切分，技术字面如C++／C#后缀保留。
+
+源内IDF为`log((N+1)/(df+1))+1`，TF为`1+log(count)`，最后L2归一。N是本来源实际保留特征的小块数量，重叠小块分别计数；不是全文全集、跨库文档数或论文数量。该局部权重用于解释该表示，后续全库排序需要重新取得相应授权范围统计。没有词项时权重为空而非造分。
+
+源特征计划上限8MiB；包括词项位置／TF-IDF和统计的最终表示超限时，保留逻辑块、版本、范围及明确的省略状态。中间预算变化会使旧IDF cohort失效，因此省略旧权重，不保留陈旧权重。若整体预算必须省略全部词汇增强，token_count／平均长度为未知，document_count指可用特征数为0，total_chunk_count仍保留，不能解释为资料没有内容。来源正文和03原位置计划继续保留。
+
+## 稠密编码与独立词汇检索
+
+上传选择dense时先检查服务端`RAG_EMBED_REVISION`是40位模型提交ID；不自动填写未知提交。沿用配置模型的`SentenceTransformer.encode`、L2归一，禁止远程自定义代码。实际编码后保存模型引用、请求revision、维度、SentenceTransformers／Transformers／Torch库版本、序列token上限、默认prompt名／摘要及编码profile_id。不从仓库名中的`int8`推断量化已生效，也不把未观测的运行commit另造为已核值。
+
+每块记录含默认prompt的输入token数、模型上限及截断／未知。该覆盖是编码器输入边界，不是PDF页码或原文的精确截断重映射。向量数量、维度、finite及L2范数不成立则502且不提交来源；不补零／截断向量。相同owner／组／原资料、解析／分块／特征策略与声明编码配置复用已提交表示；修改词项／时间／编码配置形成独立表示，旧任务不改写。
+
+默认检索只用当前owner／组／active来源的全文和已存词项；不加载嵌入或重排模型。服务端可分别设置`RAG_ENABLE_DENSE_RETRIEVAL=true`及`RAG_ENABLE_RERANKER=true`。稠密查询只取实际encoding_profile_id相同的向量，模型或向量查询不可用保留词汇路径。词汇、稠密和重排的实际通道状态附结果及节点记录；空结果不能用来推断模型已可用。最终空结果／错误的产品展示继续由后续查询执行模块完善。
+
+复核现有可选重排调用时发现旧实现先排序分数再与原文顺序配对，会把分数分给另一段文字。现已改为输入顺序的一文一分，消费方绑定ID后排序；单logit经sigmoid，形状／finite／数量异常保留融合顺序。该修复没有新模型调用证据，质量和预算归集仍待OPT-13／18及最后统一端到端。
+
+## ACI与交互
+
+资料管理为三种接入方式共用特征设置：稠密选择、中文词项、上限和可选日期／窗口。批次固定开始时的配置。来源详情可看词项／位置、统计口径、编码／时间／模态、未采用原因和完整JSON；只读展示不触发模型。
+
+| 操作 | 输入／输出及边界 |
+| --- | --- |
+| POST `/api/v1/documents/sources` | 既有请求加`feature_policy`；未知字段／非法日期或窗口422，缺少固定模型revision时409。默认不编码 |
+| POST `/api/v1/documents/upload` | 表单加`feature_policy_json`（最多4000字符），同一FeaturePolicy；无效JSON422，编码失败502且事务不提交；取消稠密或配置模型后可显式重试 |
+| GET `/api/v1/documents/sources/{id}/features` | 按实际认证owner读既有计划，页面最多20个块，`include_chunks=true`完整下载；旧无计划legacy_gap，不自动追认。来源版本冲突409，非本人／缺失404 |
+| RAG／`knowledge_base_search` | 保留原参数与有限父级，增加实际通道状态、特征profile／实际编码／时间依据；主流程Evidence acquisition沿用这些引用。没有自动训练、图像出站或跨任务搜索 |
+
+`feature_plan`、`feature_profile`和`dense_profile`为服务器管理字段，普通metadata编辑不能改写；和接入事务／幂等绑定。来源及向量查询当前owner、组、状态继续是权威；特征不构成授权。
+
+资料列表显式使用`GET /sources?summary=true`，只取编辑需要的普通metadata和版本信息，省略正文及完整解析／分块／特征计划，避免每次列出所有资料就传输多份大对象。原API未指定summary时保留既有完整读取；各详情API按owner读取对应计划。
+
+## 参考与选型依据
+
+- [SentenceTransformer API](https://sbert.net/docs/package_reference/sentence_transformer/model.html)：当前文档支持revision、一般encode和查询／文档专用接口。项目继续用已有版本通用encode并记录身份，不假定依赖下限版本已经具有全部新API。
+- [SPLADE作者仓库](https://github.com/naver/splade)：学习稀疏与词面TF-IDF分别表达；这里仅用于候选方法核对。
+- [ColBERT作者仓库](https://github.com/stanford-futuredata/ColBERT)：token矩阵和MaxSim与当前单向量、词项位置的区别。
+- 用户指定[AI-RecommenderSystem的YoutubeDNN实际输入代码](https://github.com/zhongqiangwu960812/AI-RecommenderSystem/blob/master/Recall/YoutubeDNN/utils.py)已按需在线读取：依赖user_id、article_id、expo_time、历史序列及负采样，不能直接用于当前任务证据；[协同过滤实现定位](https://github.com/zhongqiangwu960812/AI-RecommenderSystem/blob/9b64f48f14076ad8e84d8472379dbff54ac2c220/Recall/CollaborativeFiltering/CF_For_NewsRec/CFModel.py)同样以历史点击为输入。未克隆、下载训练集、复制实现或运行推荐模型。前两次浏览器获取仓库目录失败，随后通过GitHub连接器实际读代码；不是凭目录名作数据适配结论。
+
+这些资料说明方法与API，不构成项目效果证据。
+
+## 安全引用与实施状态
+
+复用A2ABreak v1.0 [11项适用性](OPTIMIZATION_TODO.md#安全方案引用与规划状态)，本次采用以下条目的“工程解决方案／验收办法”，均待项目统一端到端：
+
+| 方案 | 执行点及需验行为 |
+| --- | --- |
+| [A2AB-03 上下文归属与跨租户隔离](C:/Users/wblxr/basic-memory/engineering/security/a2abreak/solutions/A2AB-03%20上下文归属与跨租户隔离.md) | 特征API和检索绑定数据库owner；B知道A来源ID不能读取词项／编码信息 |
+| [A2AB-06 并发状态版本与审批绑定](C:/Users/wblxr/basic-memory/engineering/security/a2abreak/solutions/A2AB-06%20并发状态版本与审批绑定.md) | 特征配置进入接入幂等／事务，重试不重复编码提交；版本变化生成独立表示 |
+| [A2AB-08 结构化授权请求与权限不放大](C:/Users/wblxr/basic-memory/engineering/security/a2abreak/solutions/A2AB-08%20结构化授权请求与权限不放大.md) | 请求策略不能扩大来源／owner／模型执行权限；图像指针不自动出站 |
+| [A2AB-10 委派环路检测与全链预算](C:/Users/wblxr/basic-memory/engineering/security/a2abreak/solutions/A2AB-10%20委派环路检测与全链预算.md) | 无新增Agent／训练循环，词项及元数据有界，模型编码需显式选择；研究总预算沿用，完整辅助调用成本归集继续OPT-18 |
+
+没有新增Card、Webhook、远程凭据／委派、独立分块协议或流；其余编号沿原评估。本轮仅源码与契约审阅，无解析／编码／上传／查询实跑或非端到端检查。下一OPT-05，全部实现后统一检查真实词项、成本选择、实际编码／不兼容拒绝、独立词汇路径、权限和日期／模态未知。

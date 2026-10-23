@@ -17,6 +17,8 @@ class SkillParseError(ValueError):
 
 
 def parse_skill_markdown(markdown_content: str) -> tuple[SkillMetadata, str, dict[str, str]]:
+    if len(markdown_content) > 65536:
+        raise SkillParseError('Skill markdown exceeds the 65536-character limit')
     text = markdown_content.strip()
     match = FRONTMATTER_PATTERN.match(text)
     if not match:
@@ -44,6 +46,8 @@ def _parse_sections(body: str) -> dict[str, str]:
     sections: dict[str, str] = {}
     for index, match in enumerate(matches):
         title = match.group("title").strip().lower()
+        if title in sections and (title in {'prompt', 'constraints'} or title.startswith(('stage:', 'reference:'))):
+            raise SkillParseError('Duplicate instruction or inline reference section')
         start = match.end()
         end = matches[index + 1].start() if index + 1 < len(matches) else len(body)
         sections[title] = body[start:end].strip()

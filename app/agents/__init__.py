@@ -5,7 +5,7 @@ Each agent is a self-contained unit responsible for a specific task:
 - PlannerAgent: decomposes queries into execution plans
 - SearchAgent: executes web search with query expansion
 - BrowserAgent: autonomous web browsing and content extraction
-- RAGAgent: hybrid retrieval from the knowledge base
+- RAGAgent: optional hybrid retrieval from user-maintained internal documents
 - AnalystAgent: synthesizes evidence into coherent analysis
 - ReflectionAgent: validates quality and detects hallucinations
 - ReportAgent: generates final Markdown reports

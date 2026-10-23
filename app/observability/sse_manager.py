@@ -111,13 +111,25 @@ class SSEManager:
         except asyncio.QueueFull:
             logger.warning(f"SSE queue full for session {session_id}, dropping event")
 
-    async def stream(self, session_id: str) -> AsyncGenerator[dict[str, Any], None]:
+    async def stream(self, session_id: str, *, authorize=None) -> AsyncGenerator[dict[str, Any], None]:
         """
         Stream events to a client via SSE.
 
         Yields event dictionaries suitable for EventSourceResponse.
         """
         queue = await self._get_queue(session_id)
+
+        async def permitted():
+            if authorize is None:
+                return True
+            try:
+                return bool(await authorize())
+            except Exception:
+                logger.warning("SSE authorization unavailable; closing connection")
+                return False
+
+        if not await permitted():
+            return
 
         # Send initial connection event
         yield {
@@ -132,13 +144,22 @@ class SSEManager:
                 history = list(self._events_per_session.get(session_id, []))
 
             for event in history:
+                if not await permitted():
+                    return
                 yield {
                     "event": event["type"],
                     "data": json.dumps(event["data"], ensure_ascii=False),
                 }
 
             while True:
-                event = await queue.get()
+                if not await permitted():
+                    return
+                try:
+                    event = await asyncio.wait_for(queue.get(), timeout=1)
+                except asyncio.TimeoutError:
+                    continue
+                if not await permitted():
+                    return
                 yield {
                     "event": event["type"],
                     "data": json.dumps(event["data"], ensure_ascii=False),
@@ -146,6 +167,14 @@ class SSEManager:
         except asyncio.CancelledError:
             logger.info(f"SSE stream cancelled for session {session_id}")
             raise
+
+    async def begin_run(self, session_id: str) -> None:
+        """Start a resumed event segment without replaying an old done event."""
+        queue = await self._get_queue(session_id)
+        async with self._locks[session_id]:
+            self._events_per_session[session_id] = []
+            while not queue.empty():
+                queue.get_nowait()
 
     def get_history(self, session_id: str) -> list[dict]:
         """Get the event history for a session."""

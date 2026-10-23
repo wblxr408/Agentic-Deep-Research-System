@@ -1,0 +1,290 @@
+[
+  {
+    "source_id": "public-ccf-2012",
+    "scheme_id": "ccf",
+    "edition": "2012",
+    "metric_year": 2012,
+    "provider": "CCF (issued PDF, public mirror)",
+    "source_url": "https://risame.github.io/sun/ccf.pdf",
+    "retrieved_on": "2026-10-19",
+    "access": "public",
+    "coverage": "partial",
+    "records": [
+      {
+        "target_id": "dblp:conf/nsdi",
+        "track": "main",
+        "category": "Computer networks",
+        "raw_value": "B"
+      },
+      {
+        "target_id": "dblp:conf/sigcomm",
+        "track": "main",
+        "category": "Computer networks",
+        "raw_value": "A"
+      }
+    ]
+  },
+  {
+    "source_id": "public-ccf-2022",
+    "scheme_id": "ccf",
+    "edition": "2022",
+    "metric_year": 2022,
+    "provider": "CCF (issued PDF, public mirror)",
+    "source_url": "https://scdm-shu.github.io/ccf/2022-CCF-Ranking.pdf",
+    "retrieved_on": "2026-10-19",
+    "access": "public",
+    "coverage": "partial",
+    "records": [
+      {
+        "target_id": "dblp:conf/nsdi",
+        "track": "main",
+        "category": "Computer networks",
+        "raw_value": "A"
+      },
+      {
+        "target_id": "dblp:conf/sigcomm",
+        "track": "main",
+        "category": "Computer networks",
+        "raw_value": "A"
+      }
+    ]
+  },
+  {
+    "source_id": "public-icore-2023",
+    "scheme_id": "icore",
+    "edition": "CORE2023",
+    "metric_year": 2023,
+    "provider": "ICORE",
+    "source_url": "https://portal.core.edu.au/conf-ranks/?search=SIGCOMM&by=all&source=CORE2023&sort=atitle&page=1",
+    "retrieved_on": "2026-10-19",
+    "access": "public",
+    "coverage": "partial",
+    "records": [
+      {
+        "target_id": "dblp:conf/sigcomm",
+        "track": "main",
+        "category": "4606",
+        "raw_value": "A*"
+      }
+    ]
+  },
+  {
+    "source_id": "public-icore-2026",
+    "scheme_id": "icore",
+    "edition": "ICORE2026",
+    "metric_year": 2026,
+    "provider": "ICORE",
+    "source_url": "https://portal.core.edu.au/conf-ranks/?search=SIGCOMM&by=all&source=ICORE2026&sort=atitle&page=1",
+    "retrieved_on": "2026-10-19",
+    "access": "public",
+    "coverage": "partial",
+    "records": [
+      {
+        "target_id": "dblp:conf/sigcomm",
+        "track": "main",
+        "category": "4606",
+        "raw_value": "A*"
+      }
+    ]
+  },
+  {
+    "source_id": "public-abdc-2010",
+    "scheme_id": "abdc",
+    "edition": "2010",
+    "metric_year": 2010,
+    "provider": "ABDC",
+    "source_url": "https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx",
+    "retrieved_on": "2026-10-19",
+    "access": "public",
+    "coverage": "partial",
+    "records": [
+      {
+        "target_id": "issn:0047-2506",
+        "track": "journal",
+        "category": "1503",
+        "raw_value": "A*"
+      },
+      {
+        "target_id": "issn:1478-6990",
+        "track": "journal",
+        "category": "1503",
+        "raw_value": "A*"
+      }
+    ]
+  },
+  {
+    "source_id": "public-abdc-2013",
+    "scheme_id": "abdc",
+    "edition": "2013",
+    "metric_year": 2013,
+    "provider": "ABDC",
+    "source_url": "https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx",
+    "retrieved_on": "2026-10-19",
+    "access": "public",
+    "coverage": "partial",
+    "records": [
+      {
+        "target_id": "issn:0047-2506",
+        "track": "journal",
+        "category": "1503",
+        "raw_value": "A*"
+      },
+      {
+        "target_id": "issn:1478-6990",
+        "track": "journal",
+        "category": "1503",
+        "raw_value": "A*"
+      }
+    ]
+  },
+  {
+    "source_id": "public-abdc-2016",
+    "scheme_id": "abdc",
+    "edition": "2016",
+    "metric_year": 2016,
+    "provider": "ABDC",
+    "source_url": "https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx",
+    "retrieved_on": "2026-10-19",
+    "access": "public",
+    "coverage": "partial",
+    "records": [
+      {
+        "target_id": "issn:0047-2506",
+        "track": "journal",
+        "category": "1503",
+        "raw_value": "A*"
+      },
+      {
+        "target_id": "issn:1478-6990",
+        "track": "journal",
+        "category": "1503",
+        "raw_value": "A*"
+      }
+    ]
+  },
+  {
+    "source_id": "public-abdc-2019",
+    "scheme_id": "abdc",
+    "edition": "2019",
+    "metric_year": 2019,
+    "provider": "ABDC",
+    "source_url": "https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx",
+    "retrieved_on": "2026-10-19",
+    "access": "public",
+    "coverage": "partial",
+    "records": [
+      {
+        "target_id": "issn:0047-2506",
+        "track": "journal",
+        "category": "1503",
+        "raw_value": "A*"
+      },
+      {
+        "target_id": "issn:1478-6990",
+        "track": "journal",
+        "category": "1503",
+        "raw_value": "A*"
+      }
+    ]
+  },
+  {
+    "source_id": "public-abdc-2022",
+    "scheme_id": "abdc",
+    "edition": "2022",
+    "metric_year": 2022,
+    "provider": "ABDC",
+    "source_url": "https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx",
+    "retrieved_on": "2026-10-19",
+    "access": "public",
+    "coverage": "partial",
+    "records": [
+      {
+        "target_id": "issn:0047-2506",
+        "track": "journal",
+        "category": "3507",
+        "raw_value": "A*"
+      },
+      {
+        "target_id": "issn:1478-6990",
+        "track": "journal",
+        "category": "3507",
+        "raw_value": "A*"
+      }
+    ]
+  },
+  {
+    "source_id": "public-abdc-2025",
+    "scheme_id": "abdc",
+    "edition": "2025",
+    "metric_year": 2025,
+    "provider": "ABDC",
+    "source_url": "https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx",
+    "retrieved_on": "2026-10-19",
+    "access": "public",
+    "coverage": "partial",
+    "records": [
+      {
+        "target_id": "issn:0047-2506",
+        "track": "journal",
+        "category": "3507",
+        "raw_value": "A*"
+      },
+      {
+        "target_id": "issn:1478-6990",
+        "track": "journal",
+        "category": "3507",
+        "raw_value": "A*"
+      }
+    ]
+  },
+  {
+    "source_id": "openalex-W1951724000-fwci-2026-10-19",
+    "scheme_id": "fwci",
+    "edition": "OpenAlex snapshot 2026-10-19",
+    "metric_year": 2026,
+    "provider": "OpenAlex",
+    "source_url": "https://api.openalex.org/works/W1951724000",
+    "retrieved_on": "2026-10-19",
+    "access": "public",
+    "authorized": false,
+    "coverage": "partial",
+    "provider_updated_at": "2026-10-19T09:35:57.686232",
+    "records": [
+      {
+        "target_id": "openalex:W1951724000",
+        "track": "work",
+        "category": "https://openalex.org/subfields/2613 | Statistics and Probability",
+        "raw_value": 3266.5958,
+        "status": "available",
+        "publication_year": 2015,
+        "document_type": "article",
+        "citation_cutoff": "2018-12-31"
+      }
+    ]
+  },
+  {
+    "source_id": "openalex-W1951724000-citation_percentile-2026-10-19",
+    "scheme_id": "citation_percentile",
+    "edition": "OpenAlex snapshot 2026-10-19",
+    "metric_year": 2026,
+    "provider": "OpenAlex",
+    "source_url": "https://api.openalex.org/works/W1951724000",
+    "retrieved_on": "2026-10-19",
+    "access": "public",
+    "authorized": false,
+    "coverage": "partial",
+    "provider_updated_at": "2026-10-19T09:35:57.686232",
+    "records": [
+      {
+        "target_id": "openalex:W1951724000",
+        "track": "work",
+        "category": "https://openalex.org/subfields/2613 | Statistics and Probability",
+        "raw_value": 1.0,
+        "status": "available",
+        "publication_year": 2015,
+        "document_type": "article",
+        "citation_cutoff": "2018-12-31"
+      }
+    ]
+  }
+]

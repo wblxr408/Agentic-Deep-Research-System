@@ -13,6 +13,7 @@ RUN apt-get update && apt-get install -y \
     curl \
     git \
     build-essential \
+    fonts-noto-cjk \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies
@@ -25,6 +26,7 @@ RUN playwright install --with-deps chromium
 
 # Copy application code
 COPY app/ ./app/
+COPY config/ ./config/
 COPY docs/SPEC.md ./docs/SPEC.md
 COPY README.md .
 

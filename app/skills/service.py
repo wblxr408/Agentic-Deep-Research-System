@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 from typing import Any
 
 from fastapi import HTTPException
@@ -117,13 +118,14 @@ def _content_hash(markdown_content: str) -> str:
 
 
 def _row_to_meta(row: Any) -> SkillMetaRecord:
-    metadata_json = dict(row["metadata_json"] or {})
+    raw_metadata = row['metadata_json']
+    metadata_json = dict(json.loads(raw_metadata) if isinstance(raw_metadata, str) else raw_metadata or {})
     metadata_json["version"] = int(row["current_version"])
     metadata = SkillMetadata.model_validate(metadata_json)
     return SkillMetaRecord(
         id=str(row["id"]),
         metadata=metadata,
-        coarse_terms=list(row["coarse_terms_json"] or []),
+        coarse_terms=list(json.loads(row['coarse_terms_json']) if isinstance(row['coarse_terms_json'], str) else row['coarse_terms_json'] or []),
         created_at=row["created_at"],
         updated_at=row["updated_at"],
         is_deleted=bool(row["is_deleted"]),

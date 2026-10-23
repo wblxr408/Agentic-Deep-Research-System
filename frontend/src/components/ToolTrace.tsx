@@ -121,6 +121,16 @@ function ToolTrace({ events }: ToolTraceProps) {
     const callIndexById = new Map<string, number>()
 
     events.forEach((e, idx) => {
+      if (Array.isArray(e.data.channel_attempts)) {
+        e.data.channel_attempts.forEach((attempt, attemptIndex) => {
+          if (!isRecord(attempt)) return
+          calls.push({ id: `channel-${idx}-${attemptIndex}`, toolName: `${getString(attempt.channel) || 'channel'} / ${getString(attempt.backend) || 'backend'}`,
+            status: attempt.status === 'success' ? 'success' : 'error', duration: Number(attempt.duration_ms) || 0,
+            query:getString(attempt.query),
+            error: getString(attempt.error_category) })
+        })
+        return
+      }
       if (e.type === 'tool_start' || e.type === 'tool_call') {
         const toolName = getToolName(e.data)
         const callId = getString(e.data.call_id) ?? `tool-${idx}`
@@ -130,7 +140,7 @@ function ToolTrace({ events }: ToolTraceProps) {
           toolName,
           status: 'running',
           agent: getString(e.data.agent),
-          query: getQuery(e.data)?.slice(0, 40),
+          query: getQuery(e.data),
         })
       } else if (e.type === 'tool_complete' || e.type === 'tool_result') {
         const toolName = getToolName(e.data)
@@ -185,6 +195,22 @@ function ToolTrace({ events }: ToolTraceProps) {
 
   return (
     <div className="space-y-2.5">
+      {events.map((event,index)=>isRecord(event.data.candidate_fusion)&&<details key={`fusion-${index}`} className="rounded-lg border p-2 text-xs">
+        <summary className="cursor-pointer">联网候选融合与来源记录</summary>
+        <pre className="whitespace-pre-wrap break-all text-[10px]">{JSON.stringify(event.data.candidate_fusion,null,2)}</pre>
+      </details>)}
+      {events.map((event,index)=>Array.isArray(event.data.retrieval_channels)&&<details key={`retrieval-${index}`} className="rounded-lg border p-2 text-xs">
+        <summary className="cursor-pointer">内部资料筛选与检索记录</summary>
+        {event.data.retrieval_channels.filter(isRecord).map((item,position)=><div key={position} className="mt-2 space-y-1">
+          <p>{getString(item.query)||'当前检索'} · {getString(item.status)||getString(item.lexical)}</p>
+          {typeof item.returned_total==='number'&&<p>返回 {item.returned_total} 项；请求目标 {Number(item.requested_top_k)||0} 项。
+            {Number(item.returned_shortfall)>0&&'结果不足，保持原筛选范围。'}</p>}
+          {isRecord(item.filter_selectivity)&&<p>本人有效范围内观察 {Number(item.filter_selectivity.observed_authorized_chunks)||0} 块，
+            其中 {Number(item.filter_selectivity.retained_in_observed)||0} 块符合业务条件。
+            {item.filter_selectivity.scope_complete===false&&'此观察有数量上限，不代表整个资料集比例。'}</p>}
+          <pre className="whitespace-pre-wrap break-all text-[10px]">{JSON.stringify(item,null,2)}</pre>
+        </div>)}
+      </details>)}
       {toolCalls.map((call) => (
         <div
           key={call.id}
@@ -219,7 +245,7 @@ function ToolTrace({ events }: ToolTraceProps) {
               )}
             </div>
             {call.query && (
-              <p className="text-[10px] text-xmgray-400 truncate mt-0.5 pl-9">{call.query}</p>
+              <p title={call.query} className="text-[10px] text-xmgray-400 truncate mt-0.5 pl-9">{call.query}</p>
             )}
             {call.error && (
               <p className="text-[10px] text-red-500 truncate mt-0.5 pl-9">{call.error}</p>
