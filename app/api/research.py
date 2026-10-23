@@ -1815,6 +1815,10 @@ async def run_research_workflow(
             state["session"]["checkpoint_seq"] = 0
             state["session"]["skill_context"] = skill_context or {}
         state["session"]["execution_id"] = execution_id
+        # The execution decorator has claimed a running root. Initial state
+        # defaults are pending and must not undo that admission in the first save.
+        state['status']=TaskStatus.RUNNING.value
+        state['session']['status']=TaskStatus.RUNNING.value
         persisted = await runtime_persistence.persist_runtime_snapshot(
             session_id=session_id,
             state=state,

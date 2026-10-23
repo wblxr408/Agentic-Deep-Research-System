@@ -72,7 +72,13 @@ def install_log_redaction():
         record=previous(*args,**kwargs)
         try:
             if isinstance(record.msg,dict):record.msg=projection(record.msg)
-            record.msg=redact_text(record.getMessage());record.args=()
+            if record.name=='uvicorn.access' and isinstance(record.args,tuple) and len(record.args)==5:
+                # Uvicorn's AccessFormatter unpacks these five typed arguments.
+                # Redact their content without destroying its formatting contract.
+                record.msg=redact_text(str(record.msg))
+                record.args=tuple(projection(value) for value in record.args)
+            else:
+                record.msg=redact_text(record.getMessage());record.args=()
             if record.exc_info:
                 record.exc_text=redact_text(''.join(traceback.format_exception(*record.exc_info)))
                 record.exc_info=None
