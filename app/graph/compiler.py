@@ -2639,6 +2639,12 @@ async def report_node(state: ResearchState) -> dict:
         paused['organization_result']=organization_result
         return paused
 
+    current=await current_synthesis_state(state)
+    if current.get('collected_evidence')!=state.get('collected_evidence'):
+        state['evidence_access_gaps']=current.get('evidence_access_gaps',[])
+        paused=_model_budget_pause(state,agent,'report',TokenBudgetExceeded('report_sources_changed_before_publication'),report=report,citations=citations)
+        paused['organization_result']=organization_result
+        return paused
     if session_id:
         await sse.publish(session_id,EventType.REPORT_CHUNK.value,
             {'agent':'report','chunk':report,'is_partial':False,'reviewed':True})
