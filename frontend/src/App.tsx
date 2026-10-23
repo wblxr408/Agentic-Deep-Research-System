@@ -9,7 +9,7 @@
  * - Smooth micro-interactions
  */
 
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import ResearchDashboard from './components/ResearchDashboard'
 import LLMConfigPanel from './components/LLMConfigPanel'
@@ -237,14 +237,33 @@ function FeaturesSection() {
 function App() {
   const [view, setView] = useState<'home' | 'research' | 'settings' | 'documents' | 'skills'>(() => new URLSearchParams(window.location.search).has('session') ? 'research' : 'home')
   const [auth, setAuth] = useState<{ initialized: boolean; authenticated: boolean } | null>(null)
+  const [authError,setAuthError]=useState<string|null>(null)
+  const authRequest=useRef(0)
 
   const refreshAuth = useCallback(async () => {
-    const status = await fetch('/api/v1/auth/status', { credentials: 'include' }).then(response => response.json())
-    let authenticated = false
-    if (status.initialized) {
-      authenticated = await fetch('/api/v1/auth/me', { credentials: 'include' }).then(response => response.ok).catch(() => false)
+    const request=++authRequest.current
+    const controller=new AbortController()
+    const timeout=window.setTimeout(()=>controller.abort(),10000)
+    setAuth(null)
+    setAuthError(null)
+    try {
+      const response=await fetch('/api/v1/auth/status',{credentials:'include',signal:controller.signal})
+      if(!response.ok)throw new Error('暂时无法读取登录状态，请重新连接。')
+      const status=await response.json() as {initialized?:unknown}
+      if(typeof status.initialized!=='boolean')throw new Error('登录状态响应无效，请重新连接。')
+      let authenticated=false
+      if(status.initialized) {
+        const me=await fetch('/api/v1/auth/me',{credentials:'include',signal:controller.signal})
+        if(!me.ok&&![401,403].includes(me.status))throw new Error('暂时无法验证会话，请重新连接。')
+        authenticated=me.ok
+      }
+      if(request===authRequest.current)setAuth({initialized:status.initialized,authenticated})
+    } catch(error) {
+      if(request===authRequest.current)setAuthError(controller.signal.aborted?'连接超时，请重新连接。':
+        error instanceof Error&&error.message.startsWith('暂时无法')?error.message:'无法连接研究服务，请重试。')
+    } finally {
+      window.clearTimeout(timeout)
     }
-    setAuth({ initialized: status.initialized, authenticated })
   }, [])
 
   useEffect(() => { void refreshAuth() }, [refreshAuth])
@@ -269,7 +288,12 @@ function App() {
     setView('skills')
   }, [])
 
-  if (!auth) return <main className="min-h-screen grid place-items-center text-sm text-xmgray-500">正在验证会话…</main>
+  if (!auth) return <main className="min-h-screen grid place-items-center text-sm text-xmgray-500">
+    {authError?<section className="max-w-sm space-y-4 p-6" aria-label="研究服务连接">
+      <p role="alert">{authError}</p>
+      <button className="btn-primary rounded-md" onClick={()=>void refreshAuth()}>重新连接</button>
+    </section>:<p role="status">正在验证会话…</p>}
+  </main>
   if (!auth.authenticated) return <AuthGate state={auth} onAuthenticated={() => void refreshAuth()} />
 
   return (
