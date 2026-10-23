@@ -171,6 +171,8 @@ class RAGAgent:
                         return rows
                     finally:contract['duration_ms']=int((time.monotonic()-started)*1000)
                 if contracts['dense']['status']=='requested':
+                    encoded_at=time.monotonic()
+                    embedding_status='failed'
                     try:
                         dense_configuration(self.rag_cfg)
                         embedder=await self._get_embedder()
@@ -178,10 +180,19 @@ class RAGAgent:
                         validate_vectors([query_embedding],1,self.rag_cfg.embed_dimension)
                         query_profile=embedder.last_profile
                         channel_status['dense']='encoded_compatible_profiles_only'
+                        embedding_status='completed'
                     except (CapabilityUnavailable,OSError,RuntimeError,ValueError,TypeError,ModuleNotFoundError):
                         query_embedding=None;channel_status['dense']='unavailable_lexical_path_retained'
                         contracts['dense'].update(status='failed',reason='encoding_unavailable')
                         logger.warning('Dense retrieval unavailable; retaining independent lexical path')
+                    finally:
+                        channel_status.setdefault('resource_usage',[]).append({'kind':'query_embedding',
+                            'execution':'local_model','status':embedding_status,
+                            'attempt_scope':'configuration_and_dispatch_including_cooldown_not_proof_inference_started',
+                            'duration_ms':round((time.monotonic()-encoded_at)*1000),
+                            'input_characters':len(step.target_query),'input_documents':1,
+                            'encoding_profile_id':(query_profile or {}).get('encoding_profile_id'),
+                            'provider_charge_usd':None,'cost_basis':'local_compute_not_priced_no_provider_invoice'})
                 lexical_query=lexical_view(step.target_query)
                 query_terms=list(lexical_query['terms'])[:128]
                 channel_status['query_terms_used']=len(query_terms)
@@ -342,6 +353,7 @@ class RAGAgent:
                     except (CapabilityUnavailable,OSError,RuntimeError,ValueError,ModuleNotFoundError):
                         channel_status['reranker']='unavailable_fusion_order_retained'
                 if reranker is not None:
+                    reranked_at=time.monotonic()
                     try:
                         reranked = await capability_registry.run(
                             "reranker",
@@ -356,6 +368,14 @@ class RAGAgent:
                     except (CapabilityUnavailable,OSError,RuntimeError,TypeError,ValueError,ModuleNotFoundError):
                         channel_status['reranker']='unavailable_fusion_order_retained'
                         reranked = [fusion_scores[doc_id] for doc_id in top_ids]
+                    finally:
+                        channel_status.setdefault('resource_usage',[]).append({'kind':'reranking',
+                            'execution':'local_model','status':channel_status['reranker'],
+                            'attempt_scope':'dispatch_including_cooldown_not_proof_inference_started',
+                            'duration_ms':round((time.monotonic()-reranked_at)*1000),
+                            'input_characters':sum(len(text) for text in rerank_docs)+len(step.target_query)*len(rerank_docs),
+                            'input_documents':len(rerank_docs),'model':getattr(reranker,'model_name',None),
+                            'provider_charge_usd':None,'cost_basis':'local_compute_not_priced_no_provider_invoice'})
                 else:
                     reranked = [fusion_scores[doc_id] for doc_id in top_ids]
 

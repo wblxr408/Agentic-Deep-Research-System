@@ -11,6 +11,7 @@ interface Quality {
   agent:{tool_calls:number;failed_or_stopped_calls:number;user_confirmed_task_complete:boolean}
   statistics_review:{available:boolean;issues:Array<{reason:string;metric_id?:string}>;input_conflicts?:unknown[]}
   feedback:Event[];historical_feedback_count:number;improvement_candidates:Array<{kind:string;basis:string;action:string}>
+  runtime_ledger?:unknown
 }
 type Kind='adopted'|'corrected'|'task_complete'|'opened'|'ranking_assessment'|'answer_assessment'
 const labels:Record<Kind,string>={adopted:'已采纳',corrected:'纠错',task_complete:'已满足研究目标',opened:'已阅读',ranking_assessment:'标注检索相关性',answer_assessment:'评价报告内容'}
@@ -75,6 +76,7 @@ export default function ResearchQuality({sessionId}:{sessionId:string}) {
         来源支持审核 {value.answer.model_audit_supported_claims??'未知'} / {value.answer.model_audit_total_claims??'未知'} 项，{value.answer.audit_complete?'已完成记录':'尚不完整'}。</p>
       <p className="text-xs">统计快照：{!value.statistics_review.available?'本任务无统计快照':value.statistics_review.issues.length?`${value.statistics_review.issues.length}处算术或集合差异`:'未记录算术或集合差异'}。解析准确率和真实全集召回率需要独立标注。</p>
       <details className="my-2"><summary>资料覆盖与统计依据</summary><pre className="overflow-auto whitespace-pre-wrap text-xs">{JSON.stringify({data:value.data,statistics:value.statistics_review},null,2)}</pre></details>
+      <details className="my-2"><summary>模型、工具与本地计算用量</summary><p className="text-xs">已知价格的小计与未定价项目分开；本地计算时间不折算为虚构账单，也不重复计入绘图模型费用。</p><pre className="max-h-96 overflow-auto whitespace-pre-wrap text-xs">{JSON.stringify(value.runtime_ledger,null,2)}</pre></details>
       {!!value.improvement_candidates.length&&<ul className="my-2 list-disc pl-5">{value.improvement_candidates.map(item=><li key={item.kind}>{item.action}</li>)}</ul>}
       <div className="my-3 space-y-2 border-t pt-3">
         <label className="block">反馈类型<select className="input-xm ml-2" value={kind} disabled={busy} onChange={event=>setKind(event.target.value as Kind)}>

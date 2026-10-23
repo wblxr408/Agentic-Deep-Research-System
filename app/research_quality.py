@@ -202,6 +202,7 @@ def quality_view(state,feedback):
     supported=audit.get('supported_claims');total=audit.get('total_claims')
     complete_audit=bool(audit and not audit.get('audit_incomplete') and not audit.get('budget_incomplete'))
     statistics=statistics_review(result.get('statistics'))
+    from app.runtime_accounting import runtime_ledger
     suggestions=[]
     if audit.get('needs_review') or not complete_audit:suggestions.append({'kind':'evidence_or_writing','basis':'saved_claim_audit_incomplete_or_requests_revision','action':'按具体主张补读或修订后重新审核'})
     if statistics['issues']:suggestions.append({'kind':'statistics','basis':'frozen_arithmetic_discrepancies','action':'先修正来源集合和统计口径，再生成同一快照的正文与图表'})
@@ -225,7 +226,7 @@ def quality_view(state,feedback):
             'offline_replay':'requires_separate_dataset_scope_current_access_budget_and_execution_authorization',
             'ab_and_canary':'not_configured_no_traffic_split_or_deployment_effect',
             'minimum_comparison':'compare_tasks_only_with_explicit_same_scope_and_question_no_causal_claim'},
-        'cost':state.get('budget_state') or review.get('budget_state'),
+        'cost':state.get('budget_state') or review.get('budget_state'),'runtime_ledger':runtime_ledger(state),
         'effects':{'model_calls':0,'network_collection':0,'fact_ingestion':False,'retuning':False}}
 
 
@@ -243,7 +244,7 @@ def compare_quality(states):
         rows.append({'session_id':state['task_id'],'binding_id':view['binding_id'],
             'delivery_satisfies_saved_audit':bool(state.get('status')=='completed' and audit and not audit.get('needs_review',True)
                 and not audit.get('audit_incomplete') and not audit.get('budget_incomplete')),
-            'source_coverage':view['data'],'answer':view['answer'],'cost':view['cost'],
+            'source_coverage':view['data'],'answer':view['answer'],'cost':view['cost'],'runtime_ledger':view['runtime_ledger'],
             'retrieval_policy':understanding.get('internal_retrieval'),'fusion_policy':understanding.get('candidate_fusion'),
             'ranked_return_count':sum(len(run['candidates']) for run in view['retrieval_runs']),
             'limitations':'different_source_outcomes_and_provider_conditions_are_not_controlled'})

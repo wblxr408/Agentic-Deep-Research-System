@@ -31,6 +31,8 @@ OPT-16资料治理和披露源码已接入：冻结资料级别／模型上限�
 
 ## Migration Plan
 
+OPT-18.a1在原ModelTokenBudget和实际RAG／绘图边界增加身份与耗时收据，普通runtime_accounting读取现有根记录，分离模型参考费用／工具／本地资源，不二次加聚合量或把未知当免费。本人质量／已有任务比较展示相同账本，性能分位数有样本数量和观察范围，未有总体SLA结论。未新增服务或预算owner，缓存／取消等18.a2仍在实施；ACI见docs/runtime-accounting-cache.md，源码未运行。
+
 OPT-17选择原状态上的普通质量函数和同库research_quality_feedback事件；无新评估Agent／自动实验。实际DAG返回排名用于显式人工相关性，完整池标签才产生池内Recall／MRR／NDCG，未知不补0。用户采纳／纠错与模型来源审核分别保留，反馈绑定当前正文／来源／计划／执行，不自动变事实或配置。算术核对冻结成员及图表series，已有本人任务只做同问题／范围／交付的观察比较；真实全库质量、因果提升与缺少标签的正确率保持未知。ACI及A2AB v1.0适用性见docs/research-quality-feedback.md，DDL与功能未运行。
 
 OPT-14采用已有Analyst／Report内的普通evidence_selection及research_context，按当前问题、显式成果引用、全文覆盖和来源组组织有界原文，不新增摘要模型／Agent。与原账本共享保留文字身份，原引用编号与页码／字符位置保持；context_selection_version进入analysis_binding，旧阶段输入不可无声混用。模型只获得必要证据字段，诊断与版本身份留研究记录；普通研究同样保存上下文，context_gaps不单独触发外网重规划。现有语义审核、关系／趋势proof、统计／图表及一次缺条件补读继续负责实际支持边界，未配置的Late Interaction／语义去重不冒称可用。ACI、安全方案与统一场景见docs/evidence-context-selection.md，源码完成未运行。

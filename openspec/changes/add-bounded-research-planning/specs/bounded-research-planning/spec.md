@@ -136,3 +136,11 @@ The system SHALL organize literal retained excerpts by the current question and 
 - **THEN** 相同参数只形成一个反馈事件，异参或旧快照拒绝新增
 - **AND** 纠错与采纳不覆盖原报告或自动授权新研究
 
+### Requirement: Runtime receipts preserve unknown monetary cost
+系统 SHALL 沿原根预占／结算记录真实模型请求身份及耗时，将模型、工具和本地资源观察分开。未定价项目 MUST 保持未知，不能把已有数值计数冒充完整账单，也不能把绘图模型费用再计入本地渲染项。
+
+#### Scenario: Local resources and unpriced requests are present
+- **WHEN** 本机Embedding／重排／绘图产生耗时记录，或模型／工具缺少可靠价格与用量
+- **THEN** 已知参考费用只作为小计，完整金额保持未知
+- **AND** 性能分位数带实际样本数量及缺失量，不宣称总体SLA或虚构节省比例
+

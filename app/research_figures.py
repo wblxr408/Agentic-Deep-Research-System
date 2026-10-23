@@ -125,6 +125,13 @@ def figure_requests(charts,pages):
 
 
 def execute_drawing(view, policy, *, client, model, budget):
+    started=time.monotonic()
+    result=_execute_drawing(view,policy,client=client,model=model,budget=budget)
+    return {**result,'duration_ms':round((time.monotonic()-started)*1000),
+        'cache_status':'not_attempted','timing_scope':'plan_request_and_local_renderer_not_whole_research'}
+
+
+def _execute_drawing(view, policy, *, client, model, budget):
     from app.query_understanding import identity
     selected=figure_requests(view.get('charts') or [],view.get('pages') or [])
     record={'version':VERSION,'status':'blocked','skills':policy.get('skills',[]),
@@ -196,9 +203,11 @@ def execute_drawing(view, policy, *, client, model, budget):
             environment={key:value for key,value in os.environ.items()
                 if key.upper() in {'PATH','SYSTEMROOT','WINDIR','TEMP','TMP','LANG','LC_ALL'}}
             environment.update(PYTHONUTF8='1',MPLCONFIGDIR=directory,MPLBACKEND='Agg')
+            render_started=time.monotonic()
             result=subprocess.run([sys.executable,'-I',str(Path(__file__).resolve().with_name('figure_renderer.py'))],
                 input=payload,text=True,encoding='utf-8',capture_output=True,timeout=seconds,
                 cwd=directory,env=environment,creationflags=getattr(subprocess,'CREATE_NO_WINDOW',0))
+            record['renderer_duration_ms']=round((time.monotonic()-render_started)*1000)
         if result.returncode:return {**record,'reason':'drawing_renderer_failed','renderer_error':result.stderr[-1800:]}
         if len(result.stdout.encode('utf-8'))>24000000:return {**record,'reason':'drawing_asset_limit'}
         rendered=json.loads(result.stdout)

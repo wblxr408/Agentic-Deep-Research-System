@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 import threading
 import time
+from uuid import uuid4
 from types import SimpleNamespace
 from typing import Any
 
@@ -92,7 +93,8 @@ class ModelTokenBudget:
             request['max_tokens'] = completion_cap
             reservation = prompt_bound + completion_cap
             self.inflight += reservation
-            record = {'purpose':purpose, 'model':request.get('model'), 'prompt_bound':prompt_bound,
+            record = {'call_id':str(uuid4()),'started_monotonic':time.monotonic(),
+                'purpose':purpose, 'model':request.get('model'), 'prompt_bound':prompt_bound,
                 'output_cap':completion_cap,'reserved_tokens':reservation,'status':'inflight'}
             if route:record['routing']=dict(route)
             self.calls.append(record)
@@ -113,6 +115,8 @@ class ModelTokenBudget:
         with self._lock:
             if record['status'] != 'inflight':
                 return
+            started=record.pop('started_monotonic',None)
+            record['duration_ms']=max(0,round((time.monotonic()-started)*1000)) if started is not None else None
             charge = total if total is not None and not interrupted else max(total or 0, record['reserved_tokens'])
             self.inflight -= record['reserved_tokens']
             self.spent += charge
