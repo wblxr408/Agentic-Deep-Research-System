@@ -60,6 +60,7 @@ interface ResearchResult {
   agent_trace: unknown[]
   execution_plan?: { nodes: Array<{ node_id: string; node_type: string; query: string; status: string }> }
   restart_parameters?: Record<string, unknown>
+  export_view?: unknown
   skill_context?: {
     auto_matched_skill_ids?: string[]
     manually_enabled_skill_ids?: string[]
@@ -706,7 +707,7 @@ function ResearchDashboard({ onBack }: ResearchDashboardProps) {
           {result && <UnderstandingSummary value={result.query_understanding} />}
           {result && <ResearchPlanSummary status={result.status} plan={result.plan_manifest} dag={result.execution_plan} history={result.plan_history} control={result.iteration_control} />}
           {result&&['completed','paused','failed'].includes(result.status)&&<ResearchConfigurationEditor key={`configure-${result.session_id}`}
-            query={result.query} parameters={result.restart_parameters} onStarted={handleRestartedResearch}/>}
+            query={typeof result.restart_parameters?.query==='string'?result.restart_parameters.query:result.query} parameters={result.restart_parameters} onStarted={handleRestartedResearch}/>}
           {result?.organization_research && <section className="card p-5 text-sm text-xmgray-700" aria-label="本次组织研究范围">
             <h3 className="font-medium">本次组织研究范围</h3>
             <p className="mt-2">{result.organization_research.scope.entities.map(entity => entity.name).join('、') || '范围内候选发现'} · {result.organization_research.scope.disciplines.join('、')}</p>
@@ -714,7 +715,7 @@ function ResearchDashboard({ onBack }: ResearchDashboardProps) {
             {typeof result.organization_result?.evidence_count==='number' && <p className="mt-2 text-xs text-xmgray-500">取得 {result.organization_result.evidence_count} 条有来源证据，按证据 ID 去重；这是证据数量，成果归属与论文统计仍需核验。</p>}
           </section>}
           {result?.status === 'completed' && result.organization_research && <ResearchMatchingPanel key={result.session_id}
-            sessionId={result.session_id} query={result.query} scope={result.organization_research.scope}
+            sessionId={result.session_id} query={typeof result.restart_parameters?.query==='string'?result.restart_parameters.query:result.query} scope={result.organization_research.scope}
             disciplines={result.organization_research.scope.disciplines} restartParameters={result.restart_parameters}
             purpose={result.organization_research.purpose} modules={result.organization_research.modules}
             corpus={result.organization_research.corpus}

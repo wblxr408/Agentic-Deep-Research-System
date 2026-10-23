@@ -23,6 +23,8 @@ class McpToolRequest:
     owner_id: str | None = None
     node_id: str | None = None
     revision_count: int = 0
+    data_class: str = 'internal'
+    data_policy_id: str | None = None
 
 
 @dataclass
@@ -71,6 +73,23 @@ class McpPolicyProxy:
             )
 
         secret_policy = self._coerce_policy(registry["secret_policy_json"])
+        allowed_classes=secret_policy.get('allowed_data_classes',['public'])
+        tool_classes=secret_policy.get('tool_data_classes',{})
+        if not isinstance(tool_classes,dict):
+            return McpToolResult(status='terminal_error',error_category='data_governance',error_message='invalid MCP per-tool data-class policy')
+        per_tool=tool_classes.get(request.tool_name)
+        valid={'public','internal','confidential','regulated'}
+        if (not isinstance(request.data_class,str) or request.data_class not in valid or not isinstance(allowed_classes,list)
+                or any(not isinstance(value,str) or value not in valid for value in allowed_classes)
+                or (request.tool_name in tool_classes and (not isinstance(per_tool,list)
+                    or any(not isinstance(value,str) or value not in valid for value in per_tool)))):
+            return McpToolResult(status='terminal_error',error_category='data_governance',error_message='invalid MCP data-class policy')
+        admitted=set(allowed_classes)&(set(per_tool) if per_tool is not None else valid)
+        if request.data_class not in admitted:
+            return McpToolResult(status='terminal_error',error_category='data_governance',error_message='MCP destination does not allow this task data class')
+        from app.disclosure import projection
+        if projection(request.requested_args)!=request.requested_args:
+            return McpToolResult(status='terminal_error',error_category='data_governance',error_message='access credentials cannot be MCP query data')
         allowed_tools = set(registry["allowed_tools_json"] or [])
         if request.tool_name not in allowed_tools:
             return McpToolResult(
@@ -165,6 +184,7 @@ class McpPolicyProxy:
             )
 
         redacted, redaction_applied = self._redact(payload, secret_policy=secret_policy)
+        safe=projection(redacted);redaction_applied=redaction_applied or safe!=redacted;redacted=safe
         summary_chars = self._summary_chars(secret_policy)
         summary = str(redacted)[:summary_chars]
         return McpToolResult(

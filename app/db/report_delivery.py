@@ -111,6 +111,8 @@ async def retain_report_version(conn,state,review,*,owner_id,session_id):
         'statistics_id':(result.get('statistics') or {}).get('snapshot_id'),
         'figure_snapshot':'current_file_assets_not_duplicated_in_text_history; historical_figure_availability_not_asserted',
         'automatic_fact_ingestion':False}
+    from app.disclosure import report_history_projection
+    payload=report_history_projection(payload)
     report_id='report:'+identity(payload)
     if await conn.fetchval('SELECT 1 FROM research_report_versions WHERE session_id=$1::uuid AND owner_id=$2::uuid AND report_id=$3',str(session_id),str(owner_id),report_id):return report_id
     # Bounded by the original task's finite revisions and paid budget; never delete history to fit.

@@ -110,3 +110,16 @@ The system SHALL organize literal retained excerpts by the current question and 
 - **THEN** question-level selected excerpts, retained versions and actual positions are available
 - **AND** engineering diagnostics are not injected as report-body writing material
 
+### Requirement: Data egress and reader disclosure remain distinct
+系统 SHALL 冻结资料声明、可外传模型类别和可公开查询，并按实际源提高限制；MCP工具的出站类别 MUST 同时满足注册表和逐工具声明。展示脱敏 MUST NOT 修改原始授权参数、审批绑定或证据位置。
+
+#### Scenario: A report exposes access credentials
+- **WHEN** 生成正文在完整输出检查中包含已识别访问凭据或需要脱敏的访问URL
+- **THEN** 正文不作为流式完成报告发布，任务保留脱敏草稿并要求重新审核
+- **AND** 新历史、SSE、日志、引用及导出使用披露投影，不能沿用原稿支持结论作为脱敏新稿的审核结论
+
+#### Scenario: The owner reuses a protected original source
+- **WHEN** 已鉴权本人打开原文或编辑原研究配置
+- **THEN** 沿原权限保留真实材料身份与访问URL，复制新任务重新预览当前许可
+- **AND** 报告JSON仅使用独立export_view，排除原材料和重开参数，不宣称原始存储已全面加密
+

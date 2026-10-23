@@ -196,6 +196,8 @@ class AgentTracer:
         """Emit an event to logs and SSE."""
         if not self.enabled:
             return
+        from app.disclosure import projection
+        data=projection(data)
 
         # Structured log
         logger.info(

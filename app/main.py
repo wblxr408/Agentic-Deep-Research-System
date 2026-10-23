@@ -28,6 +28,7 @@ from app.api.config import load_runtime_llm_config_from_db
 from app.config import get_settings
 from app.db.connection import close_db, init_db
 from app.security.middleware import SecurityHeadersMiddleware
+from app.disclosure import install_log_redaction,structured_log_projection
 from app.skills import get_skill_registry
 
 # ==============================================================
@@ -36,6 +37,7 @@ from app.skills import get_skill_registry
 
 def setup_logging():
     """Configure structured logging with structlog."""
+    install_log_redaction()
     structlog.configure(
         processors=[
             structlog.stdlib.filter_by_level,
@@ -44,6 +46,7 @@ def setup_logging():
             structlog.processors.TimeStamper(fmt="iso"),
             structlog.processors.StackInfoRenderer(),
             structlog.processors.format_exc_info,
+            structured_log_projection,
             structlog.processors.JSONRenderer()
                 if sys.stderr.isatty() is False
                 else structlog.dev.ConsoleRenderer(),

@@ -15,6 +15,7 @@ export interface ReportArtifact {
   plan_manifest?: unknown
   plan_history?: unknown
   iteration_control?: unknown
+  export_view?: unknown
 }
 
 const css = `
@@ -45,19 +46,10 @@ export default function ReportDownloads({ result, reportElement }: { result: Rep
         if (!content) throw new Error('本报告没有单独的技术附录。')
       }
       else if (format === 'md') content = readerReport
-      else if (format === 'json') content = JSON.stringify({
-        schema_version: 'adrs-report-export-v2', session_id: result.session_id, query: result.query,
-        created_at: result.created_at, completed_at: result.completed_at, status: result.status,
-        report: readerReport, citations: result.citations,
-        research_record: { stored_report: result.report, report_audit: result.report_audit || null, editorial: result.report_editorial || null },
-        budget_state:result.budget_state || null,
-        organization_research: result.organization_research || null,
-        organization_result: result.organization_result || null,
-        classification_versions: result.classification_versions || [],
-        delivery_view: result.delivery_view || null, query_understanding: result.query_understanding || null,
-        plan_manifest: result.plan_manifest || null, plan_history: result.plan_history || [],
-        iteration_control: result.iteration_control || null,
-      }, null, 2)
+      else if (format === 'json') {
+        if (!result.export_view) throw new Error('尚未取得服务端生成的导出视图，请重新读取报告。')
+        content = JSON.stringify(result.export_view, null, 2)
+      }
       else {
         if (!reportElement) throw new Error('报告预览尚未就绪，请稍后重试。')
         // Reuse the actual rendered report. Native details remain usable without

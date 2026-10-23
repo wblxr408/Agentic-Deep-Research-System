@@ -89,6 +89,8 @@ class SSEManager:
             event_type: Type of event (e.g., "thought", "tool_call")
             data: Event payload
         """
+        from app.disclosure import projection
+        data=projection(data)
         queue = await self._get_queue(session_id)
 
         event = {

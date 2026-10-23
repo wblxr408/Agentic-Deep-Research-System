@@ -447,14 +447,17 @@ Evidence Sources:
 
     def _build_citations(self, evidence_list: list[Evidence]) -> list[Citation]:
         """Build a stable citation list from collected evidence."""
+        from app.disclosure import projection
         citations: list[Citation] = []
         for i, ev in enumerate(evidence_list, 1):
+            view=projection({'source_url':ev.source_url or '', 'source_title':ev.source_title or f'Source {i}',
+                'extracted_evidence':ev.content})
             citations.append(Citation(
                 citation_id=f"citation:{i}",
-                source_url=ev.source_url or "",
-                source_title=ev.source_title or f"Source {i}",
+                source_url=view['source_url'],
+                source_title=view['source_title'],
                 source_type=ev.source_type,
-                extracted_evidence=ev.content[:300],
+                extracted_evidence=view['extracted_evidence'][:300],
                 relevance_score=0.5,
                 locator={'evidence_id':ev.evidence_id,'start':0,'end':min(len(ev.content),300),
                     'offset_unit':'task_retained_evidence_character','source_type':ev.source_type,

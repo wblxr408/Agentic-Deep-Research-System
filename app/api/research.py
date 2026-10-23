@@ -25,6 +25,7 @@ from app.db.json import dumps_json
 from app.db.matching import load_matching_snapshot, save_matching_snapshot
 from app.db.presets import PresetInput, PresetUpdate, load_preset, insert_preset, preset_record
 from app.db.report_delivery import TemplateSave,load_template,save_template,template_record
+from app.disclosure import projection,redact_text,report_history_projection,VERSION as DISCLOSURE_VERSION
 from app.governance import HarnessSupervisor, RuntimePersistence
 from app.governance.runtime import normalize_tool_audit_rows, public_status_from_runtime
 from app.graph.compiler import compile_research_graph
@@ -1261,7 +1262,7 @@ async def retained_report_version(session_id:uuid.UUID,report_id:str,principal:P
             AND s.owner_id=v.owner_id WHERE v.session_id=$1::uuid AND v.owner_id=$2::uuid AND v.report_id=$3''',
             str(session_id),_principal_id(principal),report_id)
     if not row:raise HTTPException(404,'Report version not found')
-    payload=_json_object(row['payload'])
+    payload=report_history_projection(_json_object(row['payload']))
     from app.research_delivery import report_for_reading
     return {**payload,'reader_report':report_for_reading(payload['report'],payload.get('citations')) if payload['kind']=='report' else None,
         'report_id':row['report_id'],'sequence':row['sequence'],
@@ -1304,7 +1305,7 @@ async def get_research_result(session_id: str, principal: Principal = principal_
     workflow=_json_object(row.get('analysis_workflow'))
     frozen_citations=_normalize_citations(row['citations'])
     locators={item.get('citation_id'):item.get('locator') for item in frozen_citations if item.get('locator')}
-    citations = [{**dict(citation),'locator':locators.get(citation['citation_id'])} for citation in citation_rows] if citation_rows else frozen_citations
+    citations = projection([{**dict(citation),'locator':locators.get(citation['citation_id'])} for citation in citation_rows] if citation_rows else frozen_citations)
 
     review_status = _json_object(row.get("review_status"))
     restart_source = _json_object(row.get('request_payload'))
@@ -1313,12 +1314,8 @@ async def get_research_result(session_id: str, principal: Principal = principal_
         query=row['user_query'], report=row['final_report'], citations=citations,
         understanding=review_status.get('query_understanding'), organization_result=review_status.get('organization_result'),
         audit=review_status.get('final_report_audit')) if row['status'] == 'completed' and row['final_report'] else None
-    return {
+    result = {
         "session_id": str(row["id"]),
-        'restart_parameters': {key: restart_source[key] for key in (
-            'channels','max_revision','output_length','use_internal_docs','rag_group',
-            'enabled_skill_ids','disabled_skill_ids','skill_tenant_id','skill_project_id','query_options','delivery','planning_policy',
-            'organization_research') if key in restart_source},
         "query": row["user_query"],
         "status": row["status"],
         'classification_versions': review_status.get('classification_versions', []),
@@ -1350,6 +1347,27 @@ async def get_research_result(session_id: str, principal: Principal = principal_
         "created_at": row["created_at"].isoformat(),
         "completed_at": row["completed_at"].isoformat() if row["completed_at"] else None,
     }
+    safe=projection(result)
+    changed=safe.get('report')!=result.get('report')
+    safe['disclosure']={'version':DISCLOSURE_VERSION,'report_redacted':changed,'requires_reaudit':changed}
+    if changed:
+        safe['report_audit']={**(safe.get('report_audit') or {}),'needs_review':True,'disclosure_requires_revision':True}
+        safe['delivery_view']={**(safe.get('delivery_view') or {}),'delivery_complete':False}
+    # Export is an explicit projection, never a copy of the owner-only restart
+    # configuration or of the original retained-material endpoints.
+    safe['export_view']={
+        'schema_version':'adrs-report-export-v3','disclosure':safe['disclosure'],
+        **{key:safe.get(key) for key in ('session_id','query','status','created_at','completed_at','report',
+            'citations','delivery_view','organization_research','organization_result','classification_versions',
+            'query_understanding','plan_manifest','plan_history','iteration_control','budget_state')},
+        'research_record':{'stored_report':safe['report'],'report_audit':safe.get('report_audit'),
+            'editorial':safe.get('report_editorial')},
+    }
+    safe['restart_parameters']={'query':row['user_query'],**{key:restart_source[key] for key in (
+        'channels','max_revision','output_length','use_internal_docs','rag_group',
+        'enabled_skill_ids','disabled_skill_ids','skill_tenant_id','skill_project_id','query_options','delivery','planning_policy',
+        'organization_research') if key in restart_source}}
+    return safe
 
 
 @router.get("/{session_id}/tool-calls", response_model=list[ToolCallAuditRecord])
@@ -1391,20 +1409,20 @@ async def get_research_tool_calls(session_id: str, principal: Principal = princi
             node_id=row["node_id"],
             agent_type=row["agent_type"],
             tool_name=row["tool_name"],
-            args_json=_json_object(row["args_json"]),
+            args_json=projection(_json_object(row["args_json"])),
             args_hash=row["args_hash"],
             status=row["status"],
             error_category=row["error_category"],
-            error_message=row["error_message"],
+            error_message=redact_text(row["error_message"]),
             retry_count=int(row["retry_count"] or 0),
-            result_summary=row["result_summary"],
+            result_summary=redact_text(row["result_summary"]),
             result_hash=row["result_hash"],
             tokens_used=int(row["tokens_used"] or 0),
             cost_usd=float(row["cost_usd"] or 0.0),
             decision_id=row["decision_id"],
             approved_by=row["approved_by"],
             server_fingerprint=row["server_fingerprint"],
-            safety_json=_json_object(row["safety_json"]),
+            safety_json=projection(_json_object(row["safety_json"])),
             usage_source=row["usage_source"],
             estimated=bool(row["estimated"]),
             started_at=row["started_at"].isoformat() if row["started_at"] else None,

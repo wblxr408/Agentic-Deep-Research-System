@@ -373,6 +373,7 @@ def _agent_model_usage(agent):
 
 def _model_budget_pause(state, agent, stage, error, *, report=None, citations=None):
     from app.db.report_delivery import report_binding
+    from app.disclosure import projection,redact_text,VERSION as disclosure_version
     session,budget = _apply_llm_usage_to_state(state,stage,_agent_model_usage(agent))
     budget['model_stop_reason'] = error.reason
     budget_stop=error.reason in {'token_budget_exhausted','model_time_reservation_exhausted',
@@ -382,7 +383,7 @@ def _model_budget_pause(state, agent, stage, error, *, report=None, citations=No
     recoverable=stage=='analyst' and error.reason in {'analysis_output_incomplete','analysis_provider_unavailable','model_output_limit'}
     route_error=error.reason.startswith('model_rout') or error.reason in {'no_eligible_model_route',
         'model_endpoint_changed','model_context_capability_exceeded'}
-    data_error=any(value in error.reason for value in ('data_class','access_credentials','data_governance'))
+    data_error=any(value in error.reason for value in ('data_class','access_credentials','data_governance','report_disclosure'))
     result = {'session':session,'budget_state':budget,'status':'paused',
         'runtime_status':'analysis_paused' if recoverable else 'budget_exhausted' if budget_stop
             else 'report_paused' if stage=='report' else 'analysis_paused',
@@ -391,7 +392,7 @@ def _model_budget_pause(state, agent, stage, error, *, report=None, citations=No
             'report_payload_kind':('report' if report is not None else 'partial_response') if stage=='report' else None,
             'last_error_category':'data_governance' if data_error else 'model_routing' if route_error else 'budget_exceeded' if budget_stop else 'report_quality' if stage=='report' else 'analysis_incomplete',
             'final_report_audit':getattr(agent,'last_audit',None),
-            'partial_model_response':getattr(agent,'last_partial_response',None)},
+            'partial_model_response':redact_text(getattr(agent,'last_partial_response',None))},
         'agent_trace':[{'agent':stage,'event_type':'agent_error',
             'content':'资料外传范围或访问凭据校验未满足，原材料和用量已保留；请查看研究记录。' if data_error
                 else '当前阶段没有满足配置与资料许可的模型，已保留任务；请查看模型配置及研究记录。' if route_error
@@ -404,7 +405,12 @@ def _model_budget_pause(state, agent, stage, error, *, report=None, citations=No
             stage+'_context':agent.last_context_manifest,
             **({'module_report':agent.last_module_report} if getattr(agent,'last_module_report',None) else {})}
     if report is not None:
-        result.update(final_report=report,citations=[item.model_dump() for item in citations or []])
+        safe_report=redact_text(report)
+        result.update(final_report=safe_report,citations=projection([item.model_dump() for item in citations or []]))
+        if safe_report!=report:
+            result['review_status']['disclosure']={'version':disclosure_version,'blocked':True,'requires_reaudit':True}
+            result['review_status']['final_report_audit']={**projection(getattr(agent,'last_audit',None) or {}),
+                'needs_review':True,'disclosure_requires_revision':True}
     if getattr(agent,'last_writing_plan',None):
         result['organization_result']={**(result.get('organization_result') or state.get('organization_result') or {}),
             'writing_plan':agent.last_writing_plan}
@@ -776,6 +782,8 @@ def _append_trace_event(
     event = AgentEvent(agent=agent, event_type=event_type.value, content=content).model_dump()
     if metadata:
         event.update(metadata)
+    from app.disclosure import projection
+    event=projection(event)
     state.setdefault("agent_trace", []).append(event)
     return event
 
@@ -793,10 +801,11 @@ def _finish_tool_history(
     tool_call["completed_at"] = utc_now_naive().isoformat()
     started_at = datetime.fromisoformat(tool_call["started_at"])
     tool_call["duration_ms"] = int((utc_now_naive() - started_at).total_seconds() * 1000)
+    from app.disclosure import redact_text
     if result_summary is not None:
-        tool_call["result_summary"] = result_summary[:200]
+        tool_call["result_summary"] = redact_text(result_summary)[:200]
     if error is not None:
-        tool_call["error"] = error
+        tool_call["error"] = redact_text(error)
 
 
 def _update_tool_safety(history: dict[str, Any], **metadata: Any) -> None:
@@ -2375,6 +2384,7 @@ async def report_node(state: ResearchState) -> dict:
     """
     from app.agents.report import ReportAgent, ReportContractError
     from app.db.report_delivery import report_binding
+    from app.disclosure import ensure_report_disclosure,redact_text
     from app.source_lifecycle import current_synthesis_state
     state=await current_synthesis_state(state)
     from app.organization_findings import findings_context
@@ -2394,7 +2404,6 @@ async def report_node(state: ResearchState) -> dict:
     verification = state.get("verification")
     session_id = state.get("task_id")
     sse = get_sse_manager()
-    pending_tasks = []
 
     start_event = _append_trace_event(state, EventType.AGENT_START, "report", "Generating final report")
     organization_result = state.get('organization_result')
@@ -2466,9 +2475,6 @@ async def report_node(state: ResearchState) -> dict:
     agent.model_routing=state.get('model_routing')
 
     loop=asyncio.get_running_loop()
-    def post_report_event(event_type,payload):
-        def publish():pending_tasks.append(asyncio.create_task(sse.publish(session_id,event_type,payload)))
-        if session_id:loop.call_soon_threadsafe(publish)
 
     async def save_report_upgrade(decision):
         from app.governance.runtime import RuntimePersistence
@@ -2495,22 +2501,6 @@ async def report_node(state: ResearchState) -> dict:
             raise TokenBudgetExceeded('model_upgrade_checkpoint_unavailable') from error
     agent.on_capability_upgrade=on_report_upgrade
 
-    def on_chunk(chunk: str) -> None:
-        post_report_event(EventType.REPORT_CHUNK.value, {
-                    "agent": "report",
-                    "chunk": chunk,
-                    "is_partial": True,
-                })
-
-    def on_citation(citation) -> None:
-        post_report_event(EventType.REPORT_CITATION.value, {
-                    "agent": "report",
-                    "citation_id": citation.citation_id,
-                    "source": citation.source_title or citation.source_url or "",
-                    "source_url": citation.source_url,
-                    "source_title": citation.source_title,
-                })
-
     report_budget = _build_budget_state(state)
     remaining_report_tokens = max(0, int(report_budget.get("max_total_tokens") or 0)
                                   - int(report_budget.get("used_total_tokens") or 0))
@@ -2526,8 +2516,10 @@ async def report_node(state: ResearchState) -> dict:
             output_length=state.get("output_length") or state.get("session", {}).get("output_length"),
             skill_prompt=_skill_prompt(state, 'report') or None,
             report_hints=_agent_skill_hints(state, "report"),
-            on_chunk=on_chunk,
-            on_citation=on_citation,
+            # Provider streaming still settles actual usage. Reader publication
+            # waits for the complete output, evidence audit and disclosure gate.
+            on_chunk=None,
+            on_citation=None,
             verification_token_budget=remaining_report_tokens,
             verification_timeout_seconds=remaining_report_seconds,
             organization_research=state.get("organization_research"),
@@ -2535,13 +2527,9 @@ async def report_node(state: ResearchState) -> dict:
             query_understanding=state.get('query_understanding'),
         )
     except TokenBudgetExceeded as error:
-        if pending_tasks:
-            await asyncio.gather(*pending_tasks)
         return _model_budget_pause(state,agent,'report',error,
             report=agent.last_draft,citations=agent.last_citations)
     except ReportContractError:
-        if pending_tasks:
-            await asyncio.gather(*pending_tasks)
         session, budget_state = _apply_llm_usage_to_state(state, 'report', _agent_model_usage(agent))
         session['status'] = TaskStatus.FAILED.value
         return {'status': TaskStatus.FAILED.value, 'runtime_status': RuntimeStatus.RETRYABLE_FAILED.value,
@@ -2551,12 +2539,10 @@ async def report_node(state: ResearchState) -> dict:
             'review_status': {'blocked': True, 'retryable': True, 'last_error_category': 'report_contract_invalid',
                 'output_stage':'report','report_binding':report_binding(state),
                 'report_payload_kind':'partial_response',
-                'partial_model_response': agent.last_partial_response},
+                'partial_model_response': redact_text(agent.last_partial_response)},
             'agent_trace': [{'agent': 'report', 'event_type': 'agent_error',
                 'content': '报告结构未通过校验；原始输出与用量已保留，可在剩余额度内修订。'}]}
     except StreamInterruptedError:
-        if pending_tasks:
-            await asyncio.gather(*pending_tasks)
         session,budget_state = _apply_llm_usage_to_state(state,'report',_agent_model_usage(agent))
         session["status"] = TaskStatus.FAILED.value
         return {
@@ -2569,7 +2555,7 @@ async def report_node(state: ResearchState) -> dict:
                 "last_error_category": "llm_stream_interrupted",
                 'output_stage':'report','report_binding':report_binding(state),
                 'report_payload_kind':'partial_response',
-                'partial_model_response':agent.last_partial_response,
+                'partial_model_response':redact_text(agent.last_partial_response),
                 "retryable": True,
             },
             "errors": ["llm_stream_interrupted_after_output"],
@@ -2592,22 +2578,24 @@ async def report_node(state: ResearchState) -> dict:
     # Statistics, provenance, configuration and audit belong to the saved
     # research record. The reader's report ends with its research and sources.
     if (agent.last_audit or {}).get('budget_incomplete') or (agent.last_audit or {}).get('audit_incomplete'):
-        if pending_tasks:
-            await asyncio.gather(*pending_tasks)
         audit_reason='final_audit_budget_exhausted' if (agent.last_audit or {}).get('budget_incomplete') else 'final_audit_incomplete'
         paused = _model_budget_pause(state,agent,'report',TokenBudgetExceeded(audit_reason),
             report=report,citations=citations)
         paused['organization_result'] = organization_result
         return paused
     if not agent.last_audit or (agent.last_audit or {}).get('needs_review',True):
-        if pending_tasks:
-            await asyncio.gather(*pending_tasks)
         paused=_model_budget_pause(state,agent,'report',TokenBudgetExceeded('final_report_needs_revision'),
             report=report,citations=citations)
         paused['organization_result']=organization_result
         return paused
     if not agent.request_budget.complete_audit(agent.last_audit):
         paused=_model_budget_pause(state,agent,'report',TokenBudgetExceeded('final_audit_reservation_not_released'),report=report,citations=citations)
+        paused['organization_result']=organization_result
+        return paused
+    try:
+        ensure_report_disclosure(report)
+    except TokenBudgetExceeded as error:
+        paused=_model_budget_pause(state,agent,'report',error,report=report,citations=citations)
         paused['organization_result']=organization_result
         return paused
     drawing_mode=((state.get('query_understanding') or {}).get('delivery') or {}).get('drawing_mode','builtin')
@@ -2651,8 +2639,14 @@ async def report_node(state: ResearchState) -> dict:
         paused['organization_result']=organization_result
         return paused
 
-    if pending_tasks:
-        await asyncio.gather(*pending_tasks)
+    if session_id:
+        await sse.publish(session_id,EventType.REPORT_CHUNK.value,
+            {'agent':'report','chunk':report,'is_partial':False,'reviewed':True})
+        for citation in citations:
+            await sse.publish(session_id,EventType.REPORT_CITATION.value,{
+                'agent':'report','citation_id':citation.citation_id,
+                'source':citation.source_title or citation.source_url or '',
+                'source_url':citation.source_url,'source_title':citation.source_title})
 
     # 更新会话状态
     session["status"] = TaskStatus.COMPLETED.value
@@ -2858,7 +2852,10 @@ async def mcp_node(state: ResearchState) -> dict:
             owner_id=state.get("session", {}).get("owner_id"),
             node_id=node.node_id,
             revision_count=state.get("revision_count", 0),
+            data_class=((state.get('query_understanding') or {}).get('network_context') or {}).get('data_class','internal'),
+            data_policy_id=((state.get('query_understanding') or {}).get('network_context') or {}).get('policy_id'),
         )
+        _update_tool_safety(tool_history,data_class=request.data_class,data_policy_id=request.data_policy_id)
         for approval in state.get("approval_decisions", []):
             if (approval.get("status") == "approved" and approval.get("node_id") == node.node_id
                     and approval.get("bound_query") == node.query
