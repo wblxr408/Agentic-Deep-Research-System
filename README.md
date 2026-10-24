@@ -14,8 +14,8 @@ ADRS 面向企业、高校和科研实验室的研究发展分析：从公开论
 | 取证与内部资料 | 搜索、受控网页／PDF读取、任务原文版本与定位、显式归档、分块／词汇特征／索引及生命周期已接入。网上证据默认保存在本任务，内部检索由用户明确启用。[工具ACI与五类执行计划](docs/RESEARCH_EXECUTION_PLAYBOOK.md) |
 | 深读、演进与行动 | 同一Analyst按问题分阶段分析，取得、选段、成果归属和语义支持分别保存。真实任务已完成十二步分析，完整自动报告仍待通过。[分阶段分析及恢复](docs/question-analysis-workflow.md) |
 | 图文模板与绘图 | 预设／自定义页面、主文／技术附录、内置图及报告级／单图Skill选择已接入；固定Matplotlib适配器生成SVG、PNG与单图PDF。依赖已部署，专业绘图与跨学科可读性待实际交付。[绘图契约](docs/research-figure-skills.md) |
-| 预算、恢复与取消 | 实际请求准入、主备结算、审核预留、未知价格、持久收据和本人取消已接入。新长任务采用有限策略2；同根分析恢复和最多一次报告续作不重置原额度／期限。[预算说明](docs/model-token-budget.md) · [取消与收据](docs/research-cancellation.md) |
-| 审核、历史与反馈 | 原子主张审核、一次定位修订、未支持稿停止正常交付、原稿／响应历史及显式反馈已接入。模型核对与真实人类试读分别记录。[事实质量](docs/report-evidence-semantics.md) · [历史与模板](docs/report-history-templates.md) · [质量反馈](docs/research-quality-feedback.md) |
+| 预算、恢复与取消 | 实际准入、主备结算、已消费审核预留扣用、未知价格、持久收据和本人取消已接入。新长任务采用有限策略2；同根恢复不重置原额度／期限。[预算说明](docs/model-token-budget.md) · [取消与收据](docs/research-cancellation.md) |
+| 审核、历史与反馈 | 全部主张覆盖、原文与任务方法分别核对、一次分批定位修订及相同输入原判复用已接入。未支持稿暂停，原稿／响应／实际费用保留，模型核对与人类试读分记；新成本／质量结果待完整旅程。[事实质量](docs/report-evidence-semantics.md) · [历史与模板](docs/report-history-templates.md) · [质量反馈](docs/research-quality-feedback.md) |
 
 原有人工整编的北大图文稿及历史专项运行继续保留，范围见[2026-10-22记录](docs/acceptance/pku-deep-research-20261022.md)。它们不替代本轮全链自动交付。新增DDL和本机依赖已用于真实旅程；未运行的业务边界继续留在TODO，不再用“未部署”代替当前实际状态。
 
@@ -43,7 +43,7 @@ flowchart TB
     A["Analyst：成果身份与逐问题分析<br/>机制、实验条件、演进与行动；保存阶段结果"]
     F["Reflection：分析检查与有限补证判断"]
     R["Report：主文、技术附录与固定引用<br/>结构修订最多一轮"]
-    Q["完整来源支持审核与程序统计校验"]
+    Q["逐主张原文／任务方法核对与统计校验"]
     V["定位正文修订：最多一次"]
     G["内置图，或所选Skill与固定绘图程序"]
     H["原资料／配置复核、披露与交付装配"]
@@ -86,11 +86,11 @@ flowchart TB
 | 缓存   | Redis                     | 会话缓存、SSE 状态、运行时配置   |
 | 前端   | React + Vite + TypeScript | 研究界面与实时输出               |
 
-新增[报告口径与导出](docs/organization-report-export.md)：报告保存当次对象、原始／生效权重、目录版本、实际来源与缺口，提供 Markdown、完整研究 JSON 和离线 HTML 下载。[真实新研究消费记录](docs/acceptance/organization-report-export-20261021.md)覆盖 PostgreSQL、界面、三种实际下载及断网展开；图像模板与正文全面审核仍继续实施。
+新增[报告口径与导出](docs/organization-report-export.md)：研究数据保存当次对象、权重、目录版本与来源，读者报告保留发现、条件、图表和引用；提供Markdown、完整研究JSON和离线HTML。[2026-10-21历史专项记录](docs/acceptance/organization-report-export-20261021.md)覆盖PostgreSQL、界面、下载及断网展开；当前图像模板与正文全面审核已接源码，整条自动深入研究仍待本轮统一交付。
 
 已交付[腾讯 Harp 公开有界运行案例](docs/acceptance/tencent-network-case-20261021.md)：新的真实模型／取证任务保留来源、月精度日期、预算、失败和下载产物；生成正文仍需复核，同名搜索噪声及审计缺口随案例公开，不当成精准检索或战略研判已通过。
 
-当前实际使用步骤、来源可用性和限制见[组织研究使用说明](docs/organization-research-guide.md)与[现状规格](docs/SPEC.md#13-功能范围)。[独立高校／混合对象／材料学案例](docs/acceptance/organization-cross-domain-20261021.md)验证真实样本、学科适用性及同证据改权重；原报告和取证保持不变。CCF／ICORE／ABDC 等只有部分公开样本，JCR 等授权数据及本次成果的自动指标赋值仍有缺口。目的模块、完整分类／关系／深读／趋势／行动、图像模板和全文审核继续实施；当前 completed 状态不表示报告全部主张已核实。
+当前使用步骤及来源限制见[组织研究使用说明](docs/organization-research-guide.md)与[现状规格](docs/SPEC.md#13-功能范围)。[独立高校／混合对象／材料学历史案例](docs/acceptance/organization-cross-domain-20261021.md)覆盖有界样本、学科适用性及同证据改权重，保留当时的报告和取证。CCF／ICORE／ABDC只有部分公开样本，JCR等授权数据及自动赋值仍有缺口。当前新报告在完整依据核对支持后才正常交付；历史专项completed不回算为当前审核通过，模型支持也不代表人工确认。
 
 ## 核心能力
 
