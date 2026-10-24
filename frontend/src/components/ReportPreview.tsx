@@ -18,6 +18,7 @@ import type { DeliveryView } from './ReportDeliveryView'
 interface ReportPreviewProps {
   reportAudit?: {needs_review?:boolean;audit_incomplete?:boolean;total_claims?:number;supported_claims?:number;
     source_supported_claims?:number;method_supported_claims?:number;
+    reused_supported_claims?:number;newly_checked_claims?:number;
     revision_requests?:Array<{claim_id:string;text:string;reason:string;requested_action:string}>}|null
   report: string
   citations: RetainedCitation[]
@@ -143,6 +144,7 @@ function ReportPreview({
         {reportAudit && <section aria-label="报告内容核对">
           <p>陈述核对支持 {reportAudit.supported_claims ?? 0} / {reportAudit.total_claims ?? 0} 项。
             {typeof reportAudit.source_supported_claims==='number' && <>其中原文支持 {reportAudit.source_supported_claims} 项，任务方法依据支持 {reportAudit.method_supported_claims ?? 0} 项。</>}
+            {typeof reportAudit.reused_supported_claims==='number' && <>复用相同输入的原判 {reportAudit.reused_supported_claims} 项，本轮新判 {reportAudit.newly_checked_claims ?? 0} 项。</>}
             {reportAudit.audit_incomplete?'本轮核对尚未完成。':reportAudit.needs_review?'当前稿有需要补证或调整的陈述。':''}</p>
           {!!reportAudit.revision_requests?.length && <details><summary>需要调整的陈述</summary>
             <ol className="list-decimal pl-5 space-y-2">{reportAudit.revision_requests.map(item=><li key={item.claim_id}>

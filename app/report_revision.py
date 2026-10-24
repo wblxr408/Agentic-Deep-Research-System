@@ -38,22 +38,34 @@ def revise_report_claims(content, record, audit, *, configuration, statistics, e
         for row in failed:
             for ex in row['excerpts']:
                 excerpts[ex['excerpt_id']]={field:ex[field] for field in ('excerpt_id','evidence_id','citation_id','quote')}
-    reply=None
+    reply=None;replies=[];request_attempts=0;replacements={}
     def retain(reason,attempted=False):
         audit['revision_attempt']={'attempted':attempted,'status':reason,'paragraph_count':len(targets),
-            'raw_response':reply}
+            'raw_response':reply,'raw_responses':list(replies),'request_attempts':request_attempts,
+            'completed_paragraph_ids':list(replacements)}
         return content,record,audit
-    if not targets or len(targets)>12:return retain('unmapped_or_too_many_paragraphs')
-    payload=json.dumps({'paragraphs':targets,'excerpts':list(excerpts.values())},ensure_ascii=False)
-    messages=[{'role':'system','content':
+    if not targets:return retain('unmapped_paragraphs')
+    batches=[];batch=[];size=0
+    for target in targets:
+        item_size=len(target['text'].encode('utf-8'))
+        if batch and (len(batch)>=8 or size+item_size>6000):
+            batches.append(batch);batch=[];size=0
+        batch.append(target);size+=item_size
+    if batch:batches.append(batch)
+    instructions=(
         'Correct only the supplied paragraphs against their cited excerpts. Preserve supported facts, '
         'conditions and scope. Narrow or remove unsupported clauses; resolve contradictions using the evidence. '
         'Do not invent a result, endorse an action on behalf of an author, add claims, change citation numbers '
         'or introduce statistic placeholders. Do not replace substance with generic defensive language. '
         'Keep factual premises distinct from the proposed interpretation or action. '
         'Return JSON {"repairs":[{"paragraph_id":"exact supplied ID","text":"corrected plain prose"}]}, '
-        'exactly once for every supplied ID; no other fields.'},
-        {'role':'user','content':untrusted_context('report_content_correction',payload,limit=len(payload))}]
+        'exactly once for every supplied ID; no other fields.')
+    def correction_messages(items):
+        needed={key for item in items for issue in item['issues'] for key in issue['excerpt_ids']}
+        payload=json.dumps({'paragraphs':items,'excerpts':[value for key,value in excerpts.items() if key in needed]},ensure_ascii=False)
+        return [{'role':'system','content':instructions},
+            {'role':'user','content':untrusted_context('report_content_correction',payload,limit=len(payload))}]
+    messages=correction_messages(batches[0])
     required=request_token_bound(messages,response_format={'type':'json_object'})+1024
     if budget.available('report')<required or budget.available('audit')<2048:
         return retain('original_allowance_insufficient')
@@ -67,18 +79,25 @@ def revise_report_claims(content, record, audit, *, configuration, statistics, e
             'conflicting_claim_count':len(conflicts)},required)
         if replacement is not None:client,model=replacement
     try:
-        response=client.chat.completions.create(model=model,messages=messages,temperature=0,
-            max_tokens=min(4096,budget.available('report')-required+1024),response_format={'type':'json_object'})
-        reply=response.choices[0].message.content
-        if response.choices[0].finish_reason!='stop':return retain('correction_incomplete',True)
-        changes=json.loads(reply).get('repairs',[])
-        ids=[item['paragraph_id'] for item in changes]
-        expected={item['paragraph_id'] for item in targets}
-        if set(ids)!=expected or len(ids)!=len(expected):return retain('correction_ids_invalid',True)
+        for batch in batches:
+            messages=correction_messages(batch)
+            prompt_bound=request_token_bound(messages,response_format={'type':'json_object'})
+            if budget.available('report')<prompt_bound+1024 or budget.available('audit')<2048:
+                return retain('original_allowance_insufficient',bool(request_attempts))
+            output_cap=8192 if len(batch)==1 and len(batch[0]['text'].encode('utf-8'))>6000 else 4096
+            request_attempts+=1
+            response=client.chat.completions.create(model=model,messages=messages,temperature=0,
+                max_tokens=min(output_cap,budget.available('report')-prompt_bound),response_format={'type':'json_object'})
+            reply=response.choices[0].message.content;replies.append(reply)
+            if response.choices[0].finish_reason!='stop':return retain('correction_incomplete',True)
+            changes=json.loads(reply).get('repairs',[])
+            ids=[item['paragraph_id'] for item in changes]
+            expected={item['paragraph_id'] for item in batch}
+            if set(ids)!=expected or len(ids)!=len(expected):return retain('correction_ids_invalid',True)
+            replacements.update({item['paragraph_id']:item['text'] for item in changes})
         original=record['raw_model_response'].strip()
         if original.startswith('```json') and original.endswith('```'):original=original[7:-3].strip()
         draft=ModuleReportDraft.model_validate_json(original).model_dump(mode='json')
-        replacements={item['paragraph_id']:item['text'] for item in changes}
         for target in targets:
             text=replacements[target['paragraph_id']]
             if not isinstance(text,str) or not text.strip():return retain('empty_correction',True)
@@ -96,10 +115,11 @@ def revise_report_claims(content, record, audit, *, configuration, statistics, e
             for binding in item.get('statistic_bindings',[])]
         new_audit=audit_report(revised,evidence,client=budgeted_client(client,budget,'audit'),model=model,
             token_budget=budget.available('audit'),deadline=deadline,bound_statistics=bound,
-            paragraph_kinds=module_paragraph_kinds(new_record), task_context=task_context)
+            paragraph_kinds=module_paragraph_kinds(new_record), task_context=task_context,previous_audit=audit)
         new_record['semantic_revision']={'original_record':deepcopy(record),'original_audit':deepcopy(audit),
-            'revised_paragraph_ids':ids,'attempts':1}
-        new_audit['revision_attempt']={'attempted':True,'status':'reaudited','paragraph_count':len(targets)}
+            'revised_paragraph_ids':list(replacements),'attempts':1,'request_attempts':request_attempts}
+        new_audit['revision_attempt']={'attempted':True,'status':'reaudited','paragraph_count':len(targets),
+            'request_attempts':request_attempts,'raw_responses':list(replies)}
         return revised,new_record,new_audit
     except (APIError,OSError,ValueError,KeyError,TypeError,AttributeError,StopIteration,TokenBudgetExceeded) as error:
         return retain(type(error).__name__,True)

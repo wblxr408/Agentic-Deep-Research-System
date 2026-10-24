@@ -10,12 +10,14 @@ import math
 import re
 import time
 from collections import Counter
+from copy import deepcopy
 from typing import Any
 
 from app.graph.state import Evidence
 from app.security.prompt_security import untrusted_context
 
 _CITATION = re.compile(r"\[(?:citation:)?(\d+)\](?!\()")
+AUDIT_CONTRACT_VERSION = 'adrs-claim-support-v2-local-passages'
 
 
 def canonicalize_report_citations(text: str) -> str:
@@ -292,7 +294,8 @@ def audit_report(report: str, evidence: list[Evidence], *, client: Any, model: s
                  deadline: float | None = None, cross_language_retrieval: bool = False,
                  bound_statistics: list[dict] | None = None,
                  paragraph_kinds: dict[str, str] | None = None,
-                 task_context: dict | None = None) -> dict:
+                 task_context: dict | None = None,
+                 previous_audit: dict | None = None) -> dict:
     from app.llm_budget import BudgetedClient, ModelTokenBudget, TokenBudgetExceeded, request_token_bound
     if client is not None and not isinstance(client,BudgetedClient):
         client = BudgetedClient(client,ModelTokenBudget(token_budget if token_budget is not None else 12000,
@@ -309,6 +312,19 @@ def audit_report(report: str, evidence: list[Evidence], *, client: Any, model: s
     rows = []
     pending = []
     by_id = {ev.evidence_id: ev for ev in evidence}
+    from app.organization_purpose import report_prose
+    def paragraph_statistics(paragraph):
+        scope = _CITATION.sub('', paragraph).strip()
+        return [item for item in bound_statistics or []
+            if report_prose(item.get('rendered_paragraph', '')).strip()==scope]
+    def reuse_key(row):
+        return (row['text'],row['paragraph_context'],tuple(row['citation_ids']),
+                row.get('citation_scope'),row.get('declared_kind'))
+    reusable = {}
+    if (previous_audit or {}).get('audit_contract_version')==AUDIT_CONTRACT_VERSION and previous_audit.get('audit_model')==model:
+        for old in previous_audit.get('claims', []):
+            if old.get('status')=='supported' and old.get('model_verdict')=='supported':
+                reusable.setdefault(reuse_key(old), []).append(old)
     for i, claim in enumerate(claims):
         ids = claim["citation_ids"]
         declared_kind = (paragraph_kinds or {}).get(claim['paragraph_context'])
@@ -322,8 +338,29 @@ def audit_report(report: str, evidence: list[Evidence], *, client: Any, model: s
                "human_review_status": "not_reviewed", "source_checks": [], "excerpts": excerpts,
                "retrieval_query": retrieval_query,
                "declared_kind": declared_kind, 'allowed_method_ids': method_ids,
+               'statistic_context':paragraph_statistics(claim['paragraph_context']),
                "reason": "Explicit claim limit" if i >= claim_limit else "Awaiting source support judgement"}
         rows.append(row)
+        if i < claim_limit and not invalid:
+            for old in reusable.get(reuse_key(row), []):
+                if old.get('excerpts')!=excerpts or old.get('statistic_context')!=row['statistic_context']:
+                    continue
+                if old.get('support_basis')=='task_method':
+                    checks=old.get('method_checks') or []
+                    valid=previous_audit.get('task_method_context')==task_context and bool(checks) and all(check.get('method_id') in method_ids and
+                        check.get('value')==(task_context or {}).get(check.get('method_id')) for check in checks)
+                else:
+                    checks=old.get('source_checks') or []
+                    valid=bool(checks) and all(check.get('quote_valid') and check.get('evidence_id') in by_id and
+                        by_id[check['evidence_id']].content[check['quote_start']:check['quote_end']]==check.get('source_quote')
+                        for check in checks)
+                if not valid:continue
+                for key in ('status','model_verdict','model_confidence','reason','support_basis','source_checks','method_checks'):
+                    if key in old:row[key]=deepcopy(old[key])
+                row['verification_reused']=True
+                row['reused_from_claim_id']=old['claim_id']
+                break
+        if row.get('verification_reused'):continue
         if i < claim_limit and not invalid and (ids and excerpts or method_ids):
             pending.append(row)
 
@@ -334,7 +371,6 @@ def audit_report(report: str, evidence: list[Evidence], *, client: Any, model: s
         contexts={row['paragraph_id']:row['paragraph_context'] for row in batch if row.get('paragraph_id')}
         # A binding proves only its own assembled paragraph. Sending every
         # report binding in every call repeats unrelated prose and statistics.
-        from app.organization_purpose import report_prose
         scope={_CITATION.sub('',text).strip() for text in contexts.values()}
         statistics=[item for item in bound_statistics or []
             if report_prose(item.get('rendered_paragraph','')).strip() in scope]
@@ -474,6 +510,10 @@ def audit_report(report: str, evidence: list[Evidence], *, client: Any, model: s
     method_supported = sum(row['status']=='supported' and row.get('support_basis')=='task_method' for row in rows)
     source_claims = sum(not row.get('allowed_method_ids') for row in rows)
     return {"schema_version": "2", "verification_kind": "model_judgement_with_source_or_frozen_task_provenance",
+            'audit_contract_version':AUDIT_CONTRACT_VERSION,'audit_model':model,
+            'task_method_context':deepcopy(task_context) if any(row.get('allowed_method_ids') for row in rows) else None,
+            'reused_supported_claims':sum(bool(row.get('verification_reused')) for row in rows),
+            'newly_checked_claims':sum(row['model_verdict'] is not None and not row.get('verification_reused') for row in rows),
             "human_review_status": "not_reviewed", "total_claims": len(rows),
             "checked_claims": sum(row['model_verdict'] is not None for row in rows),
             'method_supported_claims':method_supported, 'source_supported_claims':supported-method_supported,
