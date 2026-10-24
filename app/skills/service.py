@@ -223,7 +223,8 @@ async def get_skill_content(skill_id: str, version: int, owner_id: str) -> Skill
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
             """
-            SELECT skill_id, version, markdown_content, body, overview, prompt, constraints, content_hash, created_at
+            SELECT content.skill_id, content.version, content.markdown_content, content.body, content.overview,
+                   content.prompt, content.constraints, content.content_hash, content.created_at
             FROM skill_content content
             JOIN skill_meta meta ON meta.id = content.skill_id
             WHERE content.skill_id = $1::uuid AND content.version = $2 AND meta.owner_id = $3::uuid
@@ -247,7 +248,8 @@ async def get_skill_content_batch(skill_refs: list[tuple[str, int]], owner_id: s
         for skill_id, version in skill_refs:
             row = await conn.fetchrow(
                 """
-                SELECT skill_id, version, markdown_content, body, overview, prompt, constraints, content_hash, created_at
+                SELECT content.skill_id, content.version, content.markdown_content, content.body, content.overview,
+                       content.prompt, content.constraints, content.content_hash, content.created_at
                 FROM skill_content content
                 JOIN skill_meta meta ON meta.id = content.skill_id
                 WHERE content.skill_id = $1::uuid AND content.version = $2 AND meta.owner_id = $3::uuid
