@@ -562,22 +562,22 @@ def findings_context(result: dict | None) -> str:
     from app.organization_deep_dive import technical_context
     from app.organization_trends import trend_context
     from app.organization_actions import action_context
+    # This context has one consumer: the report writer. Operational adoption
+    # errors, raw sample totals and version identities remain in the root record;
+    # the writer receives only its separate computed-statistics registry.
     data={
-        'views': scoped['views'], 'summary': scoped['summary'], 'outputs': scoped['outputs'][:30],
-        'comparison_groups': result['comparison_groups'], 'relationship_coverage': result['relationship_coverage'],
-        'pending_records': result['pending_records'][:30], 'recommendations': result['recommendations'],
+        'outputs': scoped['outputs'][:30], 'recommendations': result['recommendations'],
         'classification': {key: (result.get('classification') or {}).get(key) for key in
             ('taxonomy', 'annual', 'interpretation', 'unobserved_years')},
         'relationship_view': relationship_context(result.get('relationship_view')),
         'technical_reading': technical_context(result.get('technical_reading')),
         'trend_view': trend_context(result.get('trend_view')),
         'actions': action_context(result.get('actions')),
-        'statistics_snapshot_id': (result.get('statistics') or {}).get('snapshot_id'),
     }
-    sections=['\n\n确定性样本与定位记录：数量按各自单位使用；仅覆盖本次采纳及取得材料，完整数据保存在研究记录。']
-    labels={'views':'对象样本','summary':'采纳样本口径','outputs':'采纳成果与署名','technical_reading':'逐项技术条件',
+    sections=['\n\n报告分析所用的成果、实验条件与研究依据；样本数值仅使用另行提供的统计注册表。']
+    labels={'outputs':'成果与发表署名','technical_reading':'逐项技术条件',
         'relationship_view':'关系依据','trend_view':'演进与交叉验证依据','actions':'行动依据',
-        'pending_records':'未采纳原因','classification':'学科分类','recommendations':'建议前提'}
+        'classification':'学科分类','recommendations':'建议前提'}
     for key,value in data.items():
         if value is None:continue
         sections.append('## '+labels.get(key,key))

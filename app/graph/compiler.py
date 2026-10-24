@@ -2551,8 +2551,7 @@ async def report_node(state: ResearchState) -> dict:
     try:
         report, citations = await asyncio.to_thread(agent.generate_stream,
             user_query=_synthesis_question(state),
-            analysis=state["analysis"] + findings_context(organization_result)
-                + ('\n本次样本基线：' + json.dumps(corpus, ensure_ascii=False) if corpus else ''),
+            analysis=state["analysis"] + findings_context(organization_result),
             evidence_list=evidence_list,
             reflection=verification,
             output_length=state.get("output_length") or state.get("session", {}).get("output_length"),
