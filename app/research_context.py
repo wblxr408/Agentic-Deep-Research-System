@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import re
+from copy import deepcopy
 
 from app.claim_verification import select_excerpts
 from app.llm_budget import TokenBudgetExceeded, request_token_bound
@@ -20,6 +21,7 @@ CONDITION_QUERIES = {
 }
 
 IDENTITY_CONTEXT_VERSION = 'adrs-publication-identity-v2'
+QUESTION_SEED_VERSION = 'adrs-question-publication-seed-v2'
 
 
 def analysis_binding(query, configuration, skills, hints, evidence):
@@ -28,6 +30,7 @@ def analysis_binding(query, configuration, skills, hints, evidence):
     from app.evidence_selection import VERSION as SELECTION_VERSION
     return identity({'version':'adrs-analysis-questions-v2','query':query,'configuration':configuration,
         'identity_context_version':IDENTITY_CONTEXT_VERSION,
+        'question_seed_version':QUESTION_SEED_VERSION,
         'context_selection_version':SELECTION_VERSION,
         'skills':skills,'hints':hints,'evidence':[
             {'id':item.evidence_id,'url':item.source_url,'content':item.content,'acquisition':item.acquisition}
@@ -65,6 +68,33 @@ def identity_batches(evidence):
 
 def encoded(value) -> str:
     return json.dumps(value, ensure_ascii=False, separators=(',', ':'))
+
+
+def question_seed(seed, *, deep=False, max_bytes=12000):
+    """Keep every assigned deep-reading identity, without repeating attribution.
+
+    Full validated affiliations remain in the root. Deep reading consumes the
+    accepted work identity and its source mapping, not another attribution
+    extraction. Actual provider admission still bounds the complete message.
+    """
+    value=deepcopy(seed or {})
+    value.pop('pending_records',None)
+    value['omitted_output_ids']=[]
+    if deep:
+        value['outputs']=[{key:item for key,item in output.items() if key!='affiliations'}
+            for output in value.get('outputs',[])]
+        value['attribution_context']='server_accepted_affiliations_retained_in_root_not_reextracted_here'
+    else:
+        while value.get('outputs') and len(encoded(value).encode('utf-8'))>max_bytes:
+            removed=value['outputs'].pop()
+            value['omitted_output_ids'].append(removed['output_id'])
+            value.get('publication_metadata',{}).pop(removed['output_id'],None)
+    manifest={'version':QUESTION_SEED_VERSION,'selected_output_ids':[item['output_id'] for item in value.get('outputs',[])],
+        'omitted_output_ids':list(value['omitted_output_ids']),
+        'all_assigned_identities_required':deep,'retained_seed_bytes':len(encoded(value).encode('utf-8')),
+        'affiliation_details':'retained_in_root' if deep else 'included_for_selected_outputs',
+        'source_reading_and_semantic_support':'not_established_by_seed_presence'}
+    return value,manifest
 
 
 def byte_prefix(text: str, limit: int) -> str:

@@ -6,6 +6,17 @@
 
 ## ADDED Requirements
 
+### Requirement: Assigned deep-reading works remain in the question input
+系统 SHALL 保留每个深读分组指定的全部采纳成果ID及其题名、日期、来源和证据映射，不为局部种子字节上限删除对象。完整署名证明可保留在根而不重复加入不负责归属抽取的深读阶段；实际完整请求仍 MUST 经过原预算、容量、期限及资料权限准入。
+
+#### Scenario: Large accepted affiliation records
+- **WHEN** 深读组的完整署名记录使旧种子上限超限
+- **THEN** 系统使用原采纳身份投影，不删除指定成果；实际完整请求仍装不下时保留阶段并暂停，不派发缺对象请求冒充完成
+
+#### Scenario: Old question-seed contract resumes
+- **WHEN** 工作流使用旧问题种子契约，或阶段输入绑定不同
+- **THEN** 不跨版本复用阶段，不清空旧尝试后重新派发；旧结果可按原权限读取，根用量／期限不重置
+
 ### Requirement: Located technical conditions reach writing source context
 系统 SHALL 将本次深读卡的合格原文proof在当前保留证据中重新核对，将仍有效的位置作为同源相邻条件选段线索，不以摘要代替来源、不扩展权限或预算。系统 SHALL 在研究记录中保留实际选中与遗漏，选段命中 MUST NOT 被当作科学支持或整篇已读证明。
 

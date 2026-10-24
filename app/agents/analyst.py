@@ -96,13 +96,17 @@ Return a JSON object with these fields:
     def _analyze_workflow(self, user_query, evidence_list, skill_prompt, analyst_hints,
                           configuration, resume_state, on_progress):
         """Sequential questions share one analyst, root allowance and checkpoint."""
-        from app.research_context import analysis_binding, identity_batches
+        from app.research_context import analysis_binding, identity_batches, QUESTION_SEED_VERSION
         from app.organization_purpose import MODULES
         from app.organization_findings import build_organization_findings
         modules=list(configuration.get('modules') or [])
         binding=analysis_binding(user_query,configuration,skill_prompt,analyst_hints,evidence_list)
+        if isinstance(resume_state,dict) and resume_state and resume_state.get('question_seed_version')!=QUESTION_SEED_VERSION:
+            self.last_workflow=deepcopy(resume_state)
+            raise TokenBudgetExceeded('analysis_context_contract_changed')
         workflow=deepcopy(resume_state) if isinstance(resume_state,dict) and resume_state.get('binding')==binding else {
-            'schema_version':'adrs-analysis-questions-v2','binding':binding,'completed':{},'attempts':{},'status':'running'}
+            'schema_version':'adrs-analysis-questions-v2','binding':binding,'question_seed_version':QUESTION_SEED_VERSION,
+            'completed':{},'attempts':{},'status':'running'}
         self.last_workflow=workflow
 
         def progress():
@@ -328,6 +332,7 @@ Return a JSON object with these fields:
         self.last_partial_response = None
         self.last_context_manifest = {}
         context_seed=_seed or {}
+        seed_manifest=None
         if organization_research:
             from app.organization_findings import EXTRACTION_INSTRUCTIONS
             if _phase!='question':system_prompt += '\n\n' + EXTRACTION_INSTRUCTIONS
@@ -336,14 +341,9 @@ Return a JSON object with these fields:
                     'Use the server-retained publication IDs below; do not re-extract or modify publications/affiliations. '
                     'Cite existing source numbers, preserve experiment conditions, and use literal proof excerpts for structured fields. '
                     'Prefix new observation/event IDs with the selected module name to avoid cross-question collisions.')
-                seed=deepcopy(_seed or {})
-                seed.pop('pending_records',None)
-                seed['omitted_output_ids']=[]
-                while seed.get('outputs') and len(json.dumps(seed,ensure_ascii=False).encode('utf-8'))>12000:
-                    removed=seed['outputs'].pop()
-                    seed['omitted_output_ids'].append(removed['output_id'])
-                    seed.get('publication_metadata',{}).pop(removed['output_id'],None)
-                seed_text=json.dumps(seed,ensure_ascii=False)
+                from app.research_context import question_seed, encoded
+                seed,seed_manifest=question_seed(_seed,deep='deep_dive' in organization_research.get('modules',[]))
+                seed_text=encoded(seed)
                 context_seed=seed
                 system_prompt += '\n'+untrusted_context('retained_publication_records',seed_text,limit=len(seed_text))
                 if seed.get('reading_focus'):
@@ -403,10 +403,12 @@ Please provide a comprehensive analysis addressing the research question. Use [c
 Also provide the structured JSON output."""
             },
             ]
+            if seed_manifest is not None:manifest['publication_seed']=seed_manifest
             return messages, manifest
         # Resolve the permitted context capacity before packing optional text.
         # This constructs a client but does not dispatch a model request.
         active_client=self.client
+        if seed_manifest is not None:self.last_context_manifest={'publication_seed':seed_manifest}
         messages, self.last_context_manifest = fit_messages(build_messages, self.request_budget,
             'research', _output_tokens, max_bytes=getattr(self,'context_expansion_bytes',36000) if organization_research else 10000,
             request_extra={'response_format': {'type': 'json_object'}} if organization_research else None)
