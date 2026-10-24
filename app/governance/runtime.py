@@ -405,10 +405,16 @@ class RuntimePersistence:
                     int(sum(1 for usage in budget_state.get("llm_usage", []) if usage.get("estimated"))),
                     now,
                 )
+                retained_draft=state.get('final_report')
+                save_paused_draft=bool(public_status=='paused' and review_status.get('output_stage')=='report'
+                    and review_status.get('report_payload_kind')=='report'
+                    and isinstance(retained_draft,str) and retained_draft.strip())
                 await conn.execute(
                     """
                     UPDATE research_sessions
                     SET status = CASE WHEN $1 = 'completed' AND final_report IS NULL THEN status ELSE $1 END,
+                        final_report=CASE WHEN $7::boolean THEN $8::text ELSE final_report END,
+                        citations=CASE WHEN $7::boolean THEN $9::jsonb ELSE citations END,
                         review_status = $2::jsonb,
                         total_tokens = $3,
                         total_cost_usd = $4,
@@ -421,6 +427,9 @@ class RuntimePersistence:
                     float(state.get("session", {}).get("total_cost_usd", budget_state.get("used_cost_usd", 0.0)) or 0.0),
                     now,
                     session_id,
+                    save_paused_draft,
+                    retained_draft if save_paused_draft else None,
+                    dumps_json(state.get('citations') or []),
                 )
                 if tool_audit_rows:
                     await conn.executemany(
