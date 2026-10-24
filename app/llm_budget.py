@@ -35,6 +35,9 @@ class ModelTokenBudget:
         self.audit_reserve = min(self.limit, max(0, int(audit_reserve)))
         self.deadline = deadline
         self.audit_seconds = max(0, audit_seconds)
+        self.initial_audit_reserve = self.audit_reserve
+        self.initial_audit_seconds = self.audit_seconds
+        self._audit_intervals: list[tuple[float, float]] = []
         self.calls: list[dict] = []
         self.spent = 0
         self.inflight = 0
@@ -52,12 +55,32 @@ class ModelTokenBudget:
         self._lock = threading.Lock()
 
     def available(self, purpose: str = 'research') -> int:
-        held = self.audit_reserve if purpose != 'audit' else 0
+        held = self.remaining_audit_tokens() if purpose != 'audit' else 0
         remaining=max(0, self.limit - self.spent - self.inflight - held)
         return min(remaining,self.context_limit) if self.context_limit else remaining
 
     def call_deadline(self, purpose: str) -> float | None:
-        return None if self.deadline is None else self.deadline - (self.audit_seconds if purpose != 'audit' else 0)
+        return None if self.deadline is None else self.deadline - (self.remaining_audit_seconds() if purpose != 'audit' else 0)
+
+    def remaining_audit_tokens(self) -> int:
+        accounted = sum(row['reserved_tokens'] if row['status']=='inflight' else row.get('total_tokens', 0)
+                        for row in self.calls if row['purpose']=='audit')
+        return max(0, self.audit_reserve-accounted)
+
+    def remaining_audit_seconds(self) -> float:
+        # Union actual audit intervals, including a dispatched call still in
+        # flight. Concurrent audit calls must not double-spend wall time.
+        now = time.monotonic()
+        intervals = list(self._audit_intervals)
+        for row in self.calls:
+            start = row.get('started_monotonic')
+            if row['purpose']=='audit' and row['status']=='inflight' and row.get('dispatch_status')=='dispatch_attempted' and start is not None:
+                intervals.append((start, now))
+        used, latest = 0.0, None
+        for start, end in sorted(intervals):
+            used += max(0.0, end-max(start, latest if latest is not None else start))
+            latest = max(end, latest if latest is not None else end)
+        return max(0.0, self.audit_seconds-used)
 
     def complete_audit(self,audit:dict) -> bool:
         """Release a finished phase's hold; never add allowance or move deadline."""
@@ -67,7 +90,7 @@ class ModelTokenBudget:
             if self.inflight:return False
             if self.audit_reserve or self.audit_seconds:
                 self.phase_events.append({'phase':'audit','status':'completed_reservation_released',
-                    'released_tokens':self.audit_reserve,'released_seconds':self.audit_seconds,
+                    'released_tokens':self.remaining_audit_tokens(),'released_seconds':self.remaining_audit_seconds(),
                     'limit_unchanged':True,'original_deadline_unchanged':True})
                 self.audit_reserve=0;self.audit_seconds=0
         return True
@@ -135,7 +158,10 @@ class ModelTokenBudget:
             if record['status'] != 'inflight':
                 return
             started=record.pop('started_monotonic',None)
-            record['duration_ms']=max(0,round((time.monotonic()-started)*1000)) if started is not None else None
+            finished=time.monotonic()
+            record['duration_ms']=max(0,round((finished-started)*1000)) if started is not None else None
+            if started is not None and record['purpose']=='audit':
+                self._audit_intervals.append((started,finished))
             charge = total if total is not None and not interrupted else max(total or 0, record['reserved_tokens'])
             self.inflight -= record['reserved_tokens']
             self.spent += charge
@@ -159,6 +185,9 @@ class ModelTokenBudget:
     def usage(self) -> dict:
         settled = [row for row in self.calls if row['status'] != 'inflight']
         return {'total_tokens':self.spent,'capability_upgrades':list(self.capability_upgrades),
+            'audit_reservation':{'initial_tokens':self.initial_audit_reserve,
+                'remaining_tokens':self.remaining_audit_tokens(),'initial_seconds':self.initial_audit_seconds,
+                'remaining_seconds':self.remaining_audit_seconds()},
             'phase_events':list(self.phase_events),
             'data_governance_events':list(self.data_events[-64:]),
             'routing_decisions':list(self.routing_decisions[-32:]),'prompt_tokens':sum(row['prompt_tokens'] for row in settled),
