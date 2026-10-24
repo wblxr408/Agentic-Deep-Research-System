@@ -48,6 +48,8 @@
 
 ## 其他缓存、调度与维护的选定路径
 
+2026-10-24云端接续对照：主TODO 18.a2c及实施账本已记录本节选定路径完成源码，而OpenSpec 9.2c尚未同步。此次按`app/external_evidence.py`的`freshness／reusable_task_source`、`app/graph/compiler.py`的类别重试及有界调度、`app/security/capabilities.py`的串行分发／冷却、`app/db/retrieval_indexes.py`的事务版本检查与激活／关闭，以及`app/source_lifecycle.py`和`app/execution_control.py`的既有边界进行人工源码和文档对照，仅同步9.2c源码状态。没有执行任何探针或测试，9.3及18.b、U4继续待完整业务旅程；不因勾选源码记录声称竞态、容量或回滚已通过。
+
 | 范围 | 本轮采用及实际控制点 | 备选及重新考虑条件 |
 | --- | --- | --- |
 | 网页原文复用 | `external_evidence.reusable_task_source`按同任务已保留原文、实际请求／跳转URL、公共读取后端及当前冻结新鲜度筛选；排除搜索片段、no-store／no-cache、过期或未来时间，尊重max-age／Expires。读取前仍走当前出站与研究样本口径检查。最近版本选择改用同一实际取得时间，兼容旧collected_at缺失或无时区。 | 不做跨任务共享查询结果或语义答案缓存；需有真实重复量、当前权限／版本和可测命中收益再评估。 |
