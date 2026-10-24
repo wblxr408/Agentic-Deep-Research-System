@@ -197,9 +197,20 @@ def _build_budget_state(state: ResearchState) -> dict[str, Any]:
         "max_wall_clock_seconds",
         "budget_profile",
         "estimated",
+        "budget_policy_version",
+        "audit_token_reserve",
+        "report_token_reserve",
+        "audit_seconds_reserve",
     ):
         if key in existing_budget and existing_budget[key] is not None:
             configured[key] = existing_budget[key]
+    if 'max_total_tokens' in existing_budget and existing_budget.get('budget_policy_version',1)==1:
+        # Old roots retain their original envelope and reservation policy.
+        # A new profile must never enlarge or re-time an existing task.
+        configured.update(budget_policy_version=1,
+            audit_token_reserve=min(12000,int(configured['max_total_tokens'])//5),
+            report_token_reserve=min(12000,int(configured['max_total_tokens'])//5),
+            audit_seconds_reserve=min(90,float(configured['max_wall_clock_seconds'])*.2))
     tool_histories = [
         history for history in state.get("tool_histories", [])
         if isinstance(history, dict)
@@ -272,8 +283,8 @@ def _build_budget_state(state: ResearchState) -> dict[str, Any]:
         **configured,
         "used_total_tokens": used_total_tokens,
         'legacy_unattributed_tokens':legacy_tokens,
-        'audit_token_reserve':min(12000,int(configured['max_total_tokens'])//5),
-        'report_token_reserve':min(12000,int(configured['max_total_tokens'])//5),
+        'audit_token_reserve':configured['audit_token_reserve'],
+        'report_token_reserve':configured['report_token_reserve'],
         'token_usage_estimated':bool(existing_budget.get('token_usage_estimated')) or legacy_tokens > 0
             or any(row.get('estimated') for row in model_usage)
             or any(row.get('estimated') or row.get('status')=='inflight' for row in existing_budget.get('model_requests') or []),
@@ -363,10 +374,10 @@ def _apply_llm_usage_to_state(
 def _stage_model_budget(state: ResearchState, stage: str) -> ModelTokenBudget:
     root = _build_budget_state(state)
     remaining = max(0,int(root['max_total_tokens'])-int(root['used_total_tokens']))
-    audit = min(12000,int(root['max_total_tokens'])//5)
-    report = min(12000,int(root['max_total_tokens'])//5)
+    audit = min(int(root['max_total_tokens']),max(0,int(root['audit_token_reserve'])))
+    report = min(max(0,int(root['max_total_tokens'])-audit),max(0,int(root['report_token_reserve'])))
     seconds = max(0,float(root['max_wall_clock_seconds'])-float(root['elapsed_wall_clock_seconds']))
-    audit_seconds = min(90,float(root['max_wall_clock_seconds'])*.2)
+    audit_seconds = min(float(root['max_wall_clock_seconds']),max(0,float(root['audit_seconds_reserve'])))
     meter=ModelTokenBudget(remaining if stage == 'report' else max(0,remaining-audit-report),
         audit_reserve=audit if stage == 'report' else 0,
         deadline=time.monotonic()+max(0,seconds-(0 if stage == 'report' else audit_seconds)),

@@ -69,10 +69,10 @@ RESEARCH_LENGTH_BUDGETS: dict[ResearchLength, dict[str, int | float]] = {
         "rag_max_results": 12,
         "citation_max": 30,
         "browser_max_results": 3,
-        "max_total_tokens": 120000,
+        "max_total_tokens": 240000,
         "max_cost_usd": 1.00,
         "max_tool_calls": 24,
-        "max_wall_clock_seconds": 900,
+        "max_wall_clock_seconds": 2700,
         "max_retries_per_tool": 3,
     },
 }
@@ -90,7 +90,12 @@ def normalize_research_length(value: str | ResearchLength | None) -> ResearchLen
 
 def get_research_budget(value: str | ResearchLength | None) -> dict[str, int | float]:
     length = normalize_research_length(value)
-    return dict(RESEARCH_LENGTH_BUDGETS[length])
+    budget=dict(RESEARCH_LENGTH_BUDGETS[length])
+    budget.update(budget_policy_version=2,
+        audit_token_reserve=60000 if length==ResearchLength.LONG else min(12000,int(budget['max_total_tokens'])//5),
+        report_token_reserve=24000 if length==ResearchLength.LONG else min(12000,int(budget['max_total_tokens'])//5),
+        audit_seconds_reserve=480 if length==ResearchLength.LONG else min(90,float(budget['max_wall_clock_seconds'])*.2))
+    return budget
 
 
 BASE_GUARDRAIL_PREFIX = """你是一个研究型 Agent。
