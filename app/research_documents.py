@@ -18,7 +18,7 @@ MAX_PDF_PAGES = 80
 
 def scholarly_text_sections(text: str) -> list[dict]:
     """Locate substantial retained sections; a TOC alone supplies no body."""
-    headings=list(re.finditer(r'(?im)^(?:\d+(?:\.\d+)*\.?\s+)?(?P<label>introduction|materials\s+and\s+methods|methods|methodology|experimental(?:\s+(?:setup|design))?|evaluation|results?(?:\s+and\s+discussion)?|discussion|conclusions?|limitations|references|引言|研究方法|实验方法|实验结果|讨论|结论|参考文献)\s*$',text))
+    headings=list(re.finditer(r'(?im)^(?:\d+(?:\.\d+)*\.?\s+)?(?P<label>introduction|main(?:\s+text)?|materials\s+and\s+methods|methods|methodology|experimental(?:\s+(?:setup|design))?|evaluation|results?(?:\s+and\s+discussion)?|discussion|conclusions?|limitations|references|引言|研究方法|实验方法|实验结果|讨论|结论|参考文献)\s*$',text))
     sections=[]
     for index,heading in enumerate(headings):
         end=headings[index+1].start() if index+1<len(headings) else len(text)

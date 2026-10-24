@@ -272,13 +272,19 @@ def _read_corpus_source(url: str, configuration: dict, *, timeout: float,on_requ
             labels=' '.join(section['label'].casefold() for section in sections)
             # Require article metadata and substantial method/result sections;
             # a landing-page abstract/TOC does not establish full article text.
-            substantial=lambda terms:any(any(term in section['label'].casefold() for term in terms)
-                and section['end']-section['body_start']>=400 for section in sections)
+            substantial=lambda terms,minimum=400:any(any(term in section['label'].casefold() for term in terms)
+                and section['end']-section['body_start']>=minimum for section in sections)
+            # Nature research articles can put results under Main and conclude
+            # before Methods. Require substantial bodies, not a navigation TOC.
+            nature_main=(urlsplit(response.url).hostname in {'nature.com','www.nature.com'}
+                and substantial(('main',),2000) and substantial(('conclusion',)))
             if (not acquisition['truncated'] and 'citation_title:' in text[:16000]
                 and substantial(('method','experimental','evaluation','研究方法','实验方法'))
-                and substantial(('result','discussion','实验结果','讨论')) and ('references' in labels or '参考文献' in labels)):
+                and (substantial(('result','discussion','实验结果','讨论')) or nature_main)
+                and ('references' in labels or '参考文献' in labels)):
                 acquisition['coverage']='full_text'
-                acquisition['full_text_basis']='publisher_article_metadata_and_substantial_method_result_reference_sections'
+                acquisition['full_text_basis']=('publisher_article_metadata_and_substantial_main_method_conclusion_reference_sections'
+                    if nature_main else 'publisher_article_metadata_and_substantial_method_result_reference_sections')
     else:
         raise ChannelError('unsupported_content_type')
     if not text.strip():

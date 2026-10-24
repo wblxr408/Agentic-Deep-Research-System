@@ -4,6 +4,8 @@
 
 ## 日期取证的精度与依据（2026-10-24增量）
 
+U3的GNoME页面实际保留80280字符，含Methods约37000字符、Conclusion约1800字符及References，但结果正文名为Main，旧规则因此只标页面文本。新读取认识独立Main标题；Nature原始文章还须有出版题名元数据、至少2000字符Main、实质方法／结论、参考文献且未截断，才记录对应HTML正文依据。目录／摘要页不据字数直接升级；正文取得不代表模型已读全文或图像／补充材料完整。旧来源不回填，待新完整旅程证明。
+
 A6真实研究已取得DistServe、dLoRA、LoongServe、RLHFuse原文，但英文月份／日期范围未被ISO字面匹配认可，导致发表采纳数为零。`organization_findings`现按实际日历解析英文月名、月日范围及ISO日期；仍先核对原文片段、主论文标题与发表署名。含Received／Accepted／Revised／Correction的片段不作为该论文发表日期，歧义或非法日期不采用。
 
 正式会议论文的首页论文集／ACM引用块可支持论文集月份或年份，记录`conference_proceedings_month/year`依据，不能据会议活动日期声明精确发表日；普通日期记`literal_publication_date/year`，出版元数据仍优先。模型的原提议保存在`proposed_publication_date`。年精度不因范围截止日在年中而自动细化或默认为一月一日，交叠仍保留待补证；抽取要求使用原文实际支持的最细精度。不同日期的片段不通过择取匹配值化解冲突。源码改动不改写旧根结果；须后续完整研究验证实际采纳、统计、图表与报告。
