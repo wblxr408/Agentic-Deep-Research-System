@@ -165,7 +165,7 @@ def _literal_date_support(quote: str, value: str, *, proceedings: bool) -> tuple
         rf'\b(?P<month>{months})\.?\s+(?P<day>\d{{1,2}})(?:\s*[-–—]\s*(?P<last>\d{{1,2}}))?,?\s+(?P<year>\d{{4}})\b',
         rf'\b(?P<day>\d{{1,2}})(?:\s*[-–—]\s*(?P<last>\d{{1,2}}))?\s+(?P<month>{months})\.?\s+(?P<year>\d{{4}})\b',
         rf'\b(?P<month>{months})\.?\s+(?P<year>\d{{4}})\b',
-        r'(?<!\d)(?P<year>\d{4})[-/](?P<month_number>\d{2})(?:[-/](?P<day>\d{2}))?(?![-/\d])',
+        r'(?<![\w/-])(?P<year>\d{4})[-/](?P<month_number>\d{2})(?:[-/](?P<day>\d{2}))?(?![\w/-])',
     )
     candidates = {}
     for pattern in patterns:
@@ -185,7 +185,8 @@ def _literal_date_support(quote: str, value: str, *, proceedings: bool) -> tuple
     if not candidates:
         # A standalone year remains a year. Do not match digits inside another
         # date, an identifier, or a longer number.
-        if precision == 'year' and re.search(r'(?<![\w/-])' + re.escape(value) + r'(?![\w/-])', quote):
+        years=set(re.findall(r'(?<![\w/-])(?:18|19|20|21|22)\d{2}(?![\w/-])',quote))
+        if precision == 'year' and years == {value}:
             return value, 'literal_publication_year'
         return None
     if len(candidates) != 1:
