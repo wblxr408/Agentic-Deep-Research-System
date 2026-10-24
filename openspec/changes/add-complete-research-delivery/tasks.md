@@ -67,6 +67,8 @@
 
 ## 8. Cross-module execution and ACI documentation
 
+- [x] 8.4 连续实施后按真实消费者归并ORG、18模块、FLOW的必要源码／未采用候选／待完整旅程矩阵，修正U2／U4最小输入及来源public与任务initial_class的区别；记录本轮实际源码提交，不以矩阵替代运行通过。（文档内容审阅，未执行检查或旅程）
+
 - [x] 8.1 五类代表性计划、实际请求与工具输入示例、输入／输出／错误／恢复ACI索引归并至docs/RESEARCH_EXECUTION_PLAYBOOK.md；文档审阅，未运行示例。
 - [x] 8.2 ORG、OPT-01—18及六项讨论的源码／候选／取舍／故障／重评条件归并至docs/IMPLEMENTATION_LEDGER.md；历史复合验收与当前源码状态分开。
 - [x] 8.3 同步主TODO的X.2—X.6、模块状态表、README及完整流程入口；没有将源码完成升级为运行通过，也未执行任何检查。
