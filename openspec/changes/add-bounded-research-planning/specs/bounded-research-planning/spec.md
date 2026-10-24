@@ -5,6 +5,18 @@
 
 ## ADDED Requirements
 
+### Requirement: Frozen root tool retry allowance
+系统 SHALL 在根预算重建、失败记忆及调度中保留已知工具重试上限，包含显式零；缺少预算字段时 SHALL 优先沿用已记录的失败记忆上限，不能因默认profile变化放大原根尝试范围。节点限制只能收紧，既有失败及用量 MUST 保留。
+
+#### Scenario: Retries are explicitly disabled
+- **WHEN** 原根的工具重试上限为零
+- **THEN** 未执行过的节点仍可在其他原准入条件满足时首次调用，但失败后不自动重新派发
+- **AND** 失败记忆不得把首次未执行节点误标为重复失败，也不得给已耗尽节点显示未来backoff等待
+
+#### Scenario: A stopped root retains its recorded retry bound
+- **WHEN** 恢复预算缺少重试上限，但原失败记忆已经记录该上限
+- **THEN** 重建及实际派发沿该记录和更严格节点上限，不用当前profile替换，不重置原次数、费用或截止时间
+
 ### Requirement: Bounded external acquisition and task reuse
 系统 SHALL 将普通HTTP跳转、页面资源和可选渲染纳入原调用份额及期限；任务浏览入口 MUST NOT 运行独立未计量页面分析。新根 SHALL 冻结读取模式、任务缓存及实时抓取年龄，URL请求身份不得丢弃文档版本或query语义。
 

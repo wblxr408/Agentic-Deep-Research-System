@@ -204,6 +204,8 @@ def _build_budget_state(state: ResearchState) -> dict[str, Any]:
     ):
         if key in existing_budget and existing_budget[key] is not None:
             configured[key] = existing_budget[key]
+    configured['max_retries_per_tool'] = _tool_retry_limit(
+        existing_budget, configured, state.get('failure_memory'))
     if 'max_total_tokens' in existing_budget and existing_budget.get('budget_policy_version',1)==1:
         # Old roots retain their original envelope and reservation policy.
         # A new profile must never enlarge or re-time an existing task.
@@ -444,14 +446,19 @@ def _node_identifier(node: PlanNode) -> str:
     return f"{node.node_type}:{node.query.strip().lower()}"
 
 
+def _tool_retry_limit(budget: dict, defaults: dict, failure_memory: dict | None = None) -> int:
+    """Retain an explicit zero and any known original-root retry envelope."""
+    for source in (budget, failure_memory or {}, defaults):
+        value = source.get('max_retries_per_tool')
+        if value is not None:
+            return max(0, int(value))
+    return 2
+
+
 def _build_failure_memory(state: ResearchState, dag: DAGDefinition) -> dict[str, Any]:
     """Summarize failures so retries and replanning can avoid repeating mistakes."""
     budget = dict(_research_budget(state))
-    max_retries = int(
-        (state.get("budget_state") or {}).get("max_retries_per_tool")
-        or budget.get("max_retries_per_tool")
-        or 2
-    )
+    max_retries = _tool_retry_limit(state.get('budget_state') or {}, budget, state.get('failure_memory'))
     records: dict[str, dict[str, Any]] = {}
     repeated_terminal_nodes: list[str] = []
 
@@ -475,7 +482,14 @@ def _build_failure_memory(state: ResearchState, dag: DAGDefinition) -> dict[str,
         record["last_error"] = node.last_error or record["last_error"]
         record["retry_count"] = max(previous_retry_count, int(node.retry_count or 0))
         record["terminal_failure"] = bool(record["terminal_failure"] or node.terminal_failure)
-        if node.status == StepStatus.FAILED and node.last_error_category and not node.terminal_failure:
+        attempted = node.status == StepStatus.FAILED or record['retry_count'] > 0
+        exhausted = attempted and record['retry_count'] >= min(max_retries, max(0, int(node.max_retries)))
+        if record['terminal_failure'] or exhausted:
+            record['repeat_blocked'] = True
+            record['next_retry_at'] = None
+            record['backoff_seconds'] = 0
+            repeated_terminal_nodes.append(node.node_id)
+        elif not record['repeat_blocked'] and node.status == StepStatus.FAILED and node.last_error_category:
             existing_next_retry_at = record.get("next_retry_at")
             if not existing_next_retry_at or previous_retry_count != int(node.retry_count or 0):
                 next_retry_at, backoff_seconds = _compute_next_retry_at(
@@ -484,9 +498,6 @@ def _build_failure_memory(state: ResearchState, dag: DAGDefinition) -> dict[str,
                 )
                 record["next_retry_at"] = next_retry_at
                 record["backoff_seconds"] = backoff_seconds
-        if record["terminal_failure"] or record["retry_count"] >= min(max_retries, max(0, int(node.max_retries))):
-            record["repeat_blocked"] = True
-            repeated_terminal_nodes.append(node.node_id)
 
     return {
         "records": list(records.values()),
@@ -535,11 +546,7 @@ def _should_retry_node(
     if node.last_error_category is None:
         return False, "missing_error_category"
 
-    max_retries = int(
-        budget_state.get("max_retries_per_tool")
-        or _research_budget({"output_length": None}).get("max_retries_per_tool")
-        or 2
-    )
+    max_retries = _tool_retry_limit(budget_state, _research_budget({'output_length': None}), failure_memory)
     max_retries = min(max_retries, max(0, int(node.max_retries)))
     if int(node.retry_count or 0) >= max_retries:
         return False, "max_retries_reached"
