@@ -103,6 +103,11 @@ Extract the actual primary work on a publication page, not unrelated bibliograph
 Title, date and author affiliation must refer to the same primary work; quote the
 publication author list, not a biography or present-day appointment. If only a year
 is known return that year; never invent January 1 or a publication day/month.
+Use the finest publication precision actually supported. A primary conference
+paper's proceedings cover or ACM reference block such as July 10–12, 2024
+supports proceedings month 2024-07, not a precise publication day. Preserve that
+literal date range in date_proof. Received/accepted/revised dates, later errata,
+and dates of works in the bibliography are not this work's publication date.
 Do not use retrieval timestamps as publication dates. Do not manufacture grants,
 formal partnerships, venue IDs, family links, metrics, totals or rankings.
 Each selected object should have a source-backed interpretation/recommendation
@@ -141,6 +146,60 @@ def _publication_url(value: str) -> str:
     split = urlsplit(value)
     query = [(key, val) for key, val in parse_qsl(split.query) if not key.startswith('utm_') and key not in {'gclid', 'fbclid'}]
     return urlunsplit((split.scheme, split.netloc.lower(), split.path.rstrip('/'), urlencode(query), ''))
+
+
+def _literal_date_support(quote: str, value: str, *, proceedings: bool) -> tuple[str, str] | None:
+    """Match a literal calendar date without requiring its ISO spelling in prose.
+
+    A conference range establishes an issue month/year, never a publication day.
+    Multiple different dates in one excerpt remain ambiguous rather than picking
+    the one matching the model proposal. No coarse proposal is silently refined.
+    """
+    if re.search(r'\b(?:received|accepted|revised|correction|erratum)\b', quote, re.I):
+        return None
+    lower, upper, precision = _date_bounds(value)
+    names = {name.casefold(): index for index in range(1, 13)
+             for name in (calendar.month_name[index], calendar.month_abbr[index])}
+    months = '|'.join(re.escape(name) for name in sorted(names, key=len, reverse=True))
+    patterns = (
+        rf'\b(?P<month>{months})\.?\s+(?P<day>\d{{1,2}})(?:\s*[-–—]\s*(?P<last>\d{{1,2}}))?,?\s+(?P<year>\d{{4}})\b',
+        rf'\b(?P<day>\d{{1,2}})(?:\s*[-–—]\s*(?P<last>\d{{1,2}}))?\s+(?P<month>{months})\.?\s+(?P<year>\d{{4}})\b',
+        rf'\b(?P<month>{months})\.?\s+(?P<year>\d{{4}})\b',
+        r'(?<!\d)(?P<year>\d{4})[-/](?P<month_number>\d{2})(?:[-/](?P<day>\d{2}))?(?![-/\d])',
+    )
+    candidates = {}
+    for pattern in patterns:
+        for match in re.finditer(pattern, quote, re.I):
+            fields = match.groupdict()
+            try:
+                year = int(fields['year'])
+                month = int(fields['month_number']) if fields.get('month_number') else names[fields['month'].casefold()]
+                day = int(fields['day']) if fields.get('day') else 1
+                last = int(fields['last']) if fields.get('last') else day if fields.get('day') else calendar.monthrange(year, month)[1]
+                start, end = date(year, month, day), date(year, month, last)
+                if end < start:
+                    return None
+            except (KeyError, ValueError):
+                return None
+            candidates[(start, end)] = (match[0], bool(fields.get('last')))
+    if not candidates:
+        # A standalone year remains a year. Do not match digits inside another
+        # date, an identifier, or a longer number.
+        if precision == 'year' and re.search(r'(?<![\w/-])' + re.escape(value) + r'(?![\w/-])', quote):
+            return value, 'literal_publication_year'
+        return None
+    if len(candidates) != 1:
+        return None
+    (start, end), (literal, explicit_range) = next(iter(candidates.items()))
+    if not lower <= start <= end <= upper:
+        return None
+    if explicit_range and not proceedings:
+        return None
+    if proceedings:
+        if precision == 'day':
+            return None
+        return literal, 'conference_proceedings_' + precision
+    return literal, 'literal_publication_date'
 
 
 def _publisher_date_fields(source: dict, title: str, value: str) -> list[str]:
@@ -287,6 +346,7 @@ def build_organization_findings(configuration: dict | None, evidence: list[dict]
                 lower, upper, precision = _date_bounds(publication.publication_date)
                 provider_fields = _publisher_date_fields(source, publication.title, publication.publication_date)
             date_evidence_id = publication.title_proof.evidence_id
+            date_basis = 'publisher_fields'
             if provider_fields:
                 for field in provider_fields:
                     check(Proof(evidence_id=date_evidence_id, quote=field))
@@ -296,8 +356,14 @@ def build_organization_findings(configuration: dict | None, evidence: list[dict]
                 date_source = check(publication.date_proof)
                 if not _contains(date_source['content'], publication.title):
                     raise ValueError('date proof is not tied to the same publication')
-                if publication.publication_date not in publication.date_proof.quote.replace('/', '-'):
+                date_opening = date_source['content'][:16000 if (date_source.get('acquisition') or {}).get('format') == 'pdf' else 4000]
+                proceedings = publication.output_type == 'conference_paper' and bool(
+                    re.search(r'\b(?:proceedings|ACM reference format)\b', date_opening, re.I))
+                supported = _literal_date_support(publication.date_proof.quote, publication.publication_date,
+                                                  proceedings=proceedings)
+                if not supported or (proceedings and not _contains(date_opening, supported[0])):
                     raise ValueError('publication date was not present at its declared precision')
+                date_basis = supported[1]
                 date_evidence_id = publication.date_proof.evidence_id
             from app.organization_corpus import date_membership
             membership = date_membership(lower, upper, scope.start_date, scope.end_date)
@@ -372,7 +438,7 @@ def build_organization_findings(configuration: dict | None, evidence: list[dict]
             canonical[key] = output
             publication_meta[output.output_id] = {'output_type': publication.output_type, 'venue': venue,
                 'year': lower.year, 'evidence_ids': sorted(evidence_ids), 'identity_basis': 'primary_source_url',
-                'date_basis': 'publisher_fields' if provider_fields else 'literal_model_proposed_excerpt'}
+                'date_basis': date_basis, 'proposed_publication_date': publication.publication_date}
         except ValueError as error:
             pending.append({'kind': 'publication', 'id': publication.output_id, 'title': publication.title,
                 'reason': str(error), 'reason_code': reason_code, 'proposed_record': publication.model_dump(mode='json')})

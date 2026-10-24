@@ -2,6 +2,12 @@
 
 新组织研究使用 `adrs-organization-run-v4` 冻结 `corpus`，样本结果为 `adrs-corpus-v1`。本项把“打算检索什么”“实际取得什么”“哪些发表记录可以纳入”分别保存；不将网页、搜索线索、发表或研究家族混成一个数量，也不以受限样本冒充现实成果全集。
 
+## 日期取证的精度与依据（2026-10-24增量）
+
+A6真实研究已取得DistServe、dLoRA、LoongServe、RLHFuse原文，但英文月份／日期范围未被ISO字面匹配认可，导致发表采纳数为零。`organization_findings`现按实际日历解析英文月名、月日范围及ISO日期；仍先核对原文片段、主论文标题与发表署名。含Received／Accepted／Revised／Correction的片段不作为该论文发表日期，歧义或非法日期不采用。
+
+正式会议论文的首页论文集／ACM引用块可支持论文集月份或年份，记录`conference_proceedings_month/year`依据，不能据会议活动日期声明精确发表日；普通日期记`literal_publication_date/year`，出版元数据仍优先。模型的原提议保存在`proposed_publication_date`。年精度不因范围截止日在年中而自动细化或默认为一月一日，交叠仍保留待补证；抽取要求使用原文实际支持的最细精度。不同日期的片段不通过择取匹配值化解冲突。源码改动不改写旧根结果；须后续完整研究验证实际采纳、统计、图表与报告。
+
 ## 声明与输入
 
 `POST /api/v1/research` 的 `organization_research.corpus` 可省略，默认采用原渠道和出站边界下的检索与对象种子。不显式设置来源范围时，不自动套用出版商白名单。旧 v3 结果不补写今天的样本声明。
