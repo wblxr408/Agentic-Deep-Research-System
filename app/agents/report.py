@@ -314,13 +314,20 @@ Evidence Sources:
                 ))
 
             content = "".join(chunks).strip()
+            # A later correction can be refused before dispatch. Keep this
+            # actual response already, rather than losing it at that boundary.
+            self.last_partial_response = ''.join(chunks)
             if finish_reason == 'length':
                 raise TokenBudgetExceeded('model_output_limit')
             if module_mode:
+                from app.organization_purpose import normalize_report_envelope
+                normalized_raw,normalizations=normalize_report_envelope(content,organization_research['modules'],len(citations))
+                content=normalized_raw
                 content, self.last_module_report = assemble_module_report(content, organization_research, len(citations), statistics=organization_statistics)
+                if normalizations:self.last_module_report['envelope_normalizations']=normalizations
                 if self.last_module_report['issues']:
                     first_record = self.last_module_report
-                    first_raw = ''.join(chunks)
+                    first_raw = normalized_raw
                     from app.research_context import encoded
                     rejected = first_record['rejected_paragraphs']
                     local_repair = bool(rejected) and not first_record['validation_errors']
@@ -380,6 +387,7 @@ Evidence Sources:
                 content = self._fallback_report(user_query, evidence_list, citations)
                 self._emit_fallback_chunks(content, on_chunk)
 
+            self.last_draft = content
             audit_tokens = self.request_budget.available('audit')
             bound_statistics=[]
             if self.last_module_report:
@@ -422,13 +430,14 @@ Evidence Sources:
             raise
         except TokenBudgetExceeded:
             self.last_usage = self.request_budget.usage()
-            self.last_partial_response = ''.join(chunks)
-            self.last_draft = self.last_partial_response if not module_mode else None
+            if chunks:self.last_partial_response = ''.join(chunks)
+            if not module_mode:self.last_draft = self.last_partial_response
             raise
         except StreamInterruptedError:
             # Do not replace a partially emitted report with a second model's
             # response; the workflow must mark this as recoverable instead.
             self.last_usage = self.request_budget.usage()
+            if chunks:self.last_partial_response = ''.join(chunks)
             raise
         except (OSError, RuntimeError, TypeError, ValueError, KeyError, AttributeError) as e:
             logger.error(f"Report generation error: {e}")

@@ -113,11 +113,14 @@ def module_report_instructions(configuration: dict) -> str:
         'The summary answers the actual research question, rather than listing chapter names. Never fill missing evidence with invented facts. '
         'Do not write sections, modules or product/partner pages that were not selected. '
         'When computed_statistics is present, sample counts, sample percentages and family/label totals '
+        'and counts of acquired full texts or sources '
         'must use literal placeholders {stat:metric_id} from its metric_registry. '
         'For example use {stat:sample:publications}, never recalculate or type an aggregate number. '
         'A percentage metric already includes its percent sign; do not append another sign. '
         'Unknown values stay unknown. Publication dates and source-supported experimental measurements '
         'are separate from sample aggregates and must retain their original source citations. '
+        'Use citations as integer arrays even for one reference, e.g. [4], never a scalar 4. '
+        'Put technical appendix paragraphs only inside their selected module appendix array, not a top-level appendix. '
         'The server assembles only requested module IDs; an extra or missing module is recorded separately.'
         + REPORT_WRITING_GUIDANCE
         + analysis_instructions(configuration))
@@ -147,6 +150,47 @@ def report_prose(text: str) -> str:
     """Render plain paragraph data identically for assembly and issue mapping."""
     text = re.sub(r'\[citation:\d+\]', '', text)
     return re.sub(r'([\\`*_{}\[\]()#+.!|>~-])', r'\\\1', escape(text, quote=False))
+
+
+def normalize_report_envelope(raw: str, selected: list[str], citation_count: int) -> tuple[str, list[dict]]:
+    """Preserve prose and reference identity for two unambiguous format slips.
+
+    No new paragraphs, sources, statistics or module IDs are generated. Unknown
+    shapes are left for the existing strict contract and bounded correction.
+    """
+    try:
+        text=raw.strip()
+        if text.startswith('```json') and text.endswith('```'):text=text[7:-3].strip()
+        value=json.loads(text)
+    except (ValueError,TypeError):return raw,[]
+    if not isinstance(value,dict):return raw,[]
+    changes=[]
+    def paragraphs(items,path):
+        if not isinstance(items,list):return
+        for index,item in enumerate(items):
+            if not isinstance(item,dict):continue
+            number=item.get('citations')
+            if type(number) is int and 1<=number<=citation_count:
+                item['citations']=[number]
+                changes.append({'kind':'singleton_citation_array','path':[*path,index,'citations']})
+    paragraphs(value.get('summary'),['summary'])
+    paragraphs(value.get('appendix'),['appendix'])
+    modules=value.get('modules')
+    if isinstance(modules,list):
+        for index,module in enumerate(modules):
+            if not isinstance(module,dict):continue
+            for key in ('paragraphs','appendix'):paragraphs(module.get(key),['modules',index,key])
+        appendix=value.get('appendix')
+        targets=[module for module in modules if isinstance(module,dict) and module.get('module_id')=='deep_dive']
+        if ('deep_dive' in selected and len(targets)==1 and isinstance(appendix,list) and appendix
+                and isinstance(targets[0].get('appendix',[]),list)):
+            try:
+                for item in appendix:ModuleParagraph.model_validate(item)
+            except ValueError:pass
+            else:
+                targets[0]['appendix']=[*targets[0].get('appendix',[]),*value.pop('appendix')]
+                changes.append({'kind':'technical_appendix_relocated','to_module':'deep_dive','paragraphs':len(appendix)})
+    return (json.dumps(value,ensure_ascii=False),changes) if changes else (raw,[])
 
 
 def assemble_module_report(raw: str, configuration: dict, citation_count: int, *, statistics: dict | None = None) -> tuple[str, dict]:
