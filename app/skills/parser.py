@@ -46,6 +46,9 @@ def _parse_sections(body: str) -> dict[str, str]:
     sections: dict[str, str] = {}
     for index, match in enumerate(matches):
         title = match.group("title").strip().lower()
+        kind,separator,name=title.partition(':')
+        if separator and kind.strip() in {'stage','reference'}:
+            title=kind.strip()+':'+name.strip()
         if title in sections and (title in {'prompt', 'constraints'} or title.startswith(('stage:', 'reference:'))):
             raise SkillParseError('Duplicate instruction or inline reference section')
         start = match.end()
