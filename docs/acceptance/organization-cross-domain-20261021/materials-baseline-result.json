@@ -1,0 +1,3713 @@
+{
+  "session_id": "12a0450a-0bdd-4bb7-acc9-576da7bf675e",
+  "restart_parameters": {
+    "channels": [],
+    "max_revision": 1,
+    "output_length": "short",
+    "use_internal_docs": false,
+    "rag_group": null,
+    "enabled_skill_ids": [],
+    "disabled_skill_ids": [],
+    "skill_tenant_id": null,
+    "skill_project_id": null
+  },
+  "query": "研究 King Faisal University 的一项材料科学公开成果：https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0351439。仅以这项钙钛矿太阳能电池期刊论文为有界样本，核实完整题名、作者 Shrouq H. Aleithan 的发表署名、发表日期及期刊类型。学科为 materials science，不能套计算机会议 CCF 等级。优先读这一出版商原文，日期 Published July 10, 2026 不等于接受日期。页面有 Correction：记录更正线索，未核清时保留缺口，不将更正通知或参考文献另计为独立研究。只交付来源可支持的研究问题和方法概览，不摘用未经核清的效率数值，不宣称掌握该校成果全集、独立复现或正式合作关系。",
+  "status": "completed",
+  "runtime_status": "completed",
+  "report": "# King Faisal University 钙钛矿太阳能电池论文核实报告（有界样本）\n\n> Generated: 2026-10-21 | Research Depth: Comprehensive\n> 范围：仅以 PLOS ONE 论文页面（DOI 10.1371/journal.pone.0351439）为有界样本；不代表 KFU 成果全集。\n\n## Executive Summary\n本报告仅核实一项期刊论文的四项书目事实：完整题名、Shrouq H. Aleithan 的发表署名、发表日期与期刊类型，并记录页面上的 Correction 线索。四项书目事实均有出版商原文直接支持（HIGH 置信度）；KFU 单位归属为基于作者列表结构的判读（MEDIUM）。更正通知的实质内容与论文效率数值均未核清，保留为缺口，不予摘用。\n\n## 1. Background and Context\n研究契约将 King Faisal University（KFU）列为待定实体，学科为 materials science，主题为 perovskite，时间窗为 2026-01-01 至 2026-10-21。本样本论文发表于 2026-07-10，落在窗口内，主题与学科匹配 [citation:1]。按契约要求，官网/出版商页面出现机构名称本身不证明成果归属，抓取时间不证明发表时间，因此本报告将\"书目事实\"与\"归属判读\"分层陈述。\n\n## 2. Key Findings\n\n### 2.1 书目事实核实（HIGH 置信度）\n| 核实项 | 结果 | 依据 |\n|---|---|---|\n| 完整题名 | Enhancing perovskite solar cells efficiency via dual surface passivation | 页面标题与 citation_title 元数据一致 [citation:1][citation:2] |\n| 发表署名 | Aleithan SH（与 Refka Sai 并列，标注 \"Contributed equally to this work\"） | 作者信息区 [citation:1][citation:2] |\n| 发表日期 | Published: July 10, 2026 | citation_date \"Jul 10, 2026\" 一致 [citation:1][citation:2] |\n| 期刊类型 | PLOS ONE，开放获取综合性期刊（journal_article） | citation_journal_title [citation:1][citation:2] |\n\n题名在页面标题与元数据中重复一致出现 [citation:1]。作者区显示 \"Contributed equally to this work with: Refka Sai, Shrouq H. Aleithan\"，正式引用行为 \"Sai R, Aleithan SH (2026)\" [citation:1][citation:2]。期刊为 PLOS ONE，属综合性期刊论文，**不适用计算机会议 CCF 等级**，不应套用 [citation:1]。\n\n### 2.2 日期区分与单位归属（分层置信度）\n页面明确区分 Received: July 5, 2025；Accepted: May 27, 2026；Published: July 10, 2026 [citation:1][citation:2]。**Published 2026-07-10 不等于接受日期 2026-05-27**，二者不可混同（HIGH）。\n\n作者区列出两个单位：University of Carthage, Carthage, Tunisia（ORCID 0000-0002-1266-7625）与 Department of Physics, College of Science, King Faisal University, Al-Ahsa, Saudi Arabia（ORCID 0000-0001-6194-5962）[citation:1][citation:2]。页面文本未逐行将姓名与单位一一配对，故\"Aleithan 对应 KFU 单位\"属基于作者列表结构的合理判读，**置信度 MEDIUM**，需人工复核。\n\n### 2.3 Correction 线索（存在性 HIGH，实质内容 LOW）\n页面载有 \"20 Aug 2026: Sai R, Aleithan SH (2026) Correction: Enhancing perovskite solar cells efficiency via dual surface passivation. PLOS ONE 21(8): e0356803\" [citation:1][citation:2]。更正通知**不计为独立研究成果**；其更正涉及的具体数据或表述未在样本中核清，保留为缺口。\n\n## 3. Data and Statistics\n- 样本论文数：**1**（有界样本，非 KFU 成果全集）。\n- 关键日期：Received 2025-07-05；Accepted 2026-05-27；Published 2026-07-10；Correction 2026-08-20 [citation:1][citation:2]。\n- 作者数：2（Refka Sai、Shrouq H. Aleithan），标注同等贡献 [citation:1][citation:2]。\n- 效率/电压数值：**未核清，不摘用**（任务约束）。\n\n## 4. Expert Perspectives\n> 说明：本节为分析性判断，非外部专家引述。\n\n从方法学看，页面章节结构为 Introduction、Materials and methods（2.1 Materials and layer preparation、2.2 Characterization）、Result and discussion、Conclusion [citation:1][citation:2]。摘要开篇指出\"有效缺陷钝化对实现高性能钙钛矿太阳能电池至关重要\"，并提及维度工程路径 [citation:2]。这些仅支持\"研究问题与方法概览\"层面的陈述，不足以支撑对效率结论的独立评价。\n\n## 5. Conclusions and Recommendations\n1. **四项书目事实可确认**：题名、Aleithan SH 署名、Published 2026-07-10、PLOS ONE 期刊论文（HIGH）[citation:1][citation:2]。\n2. **KFU 归属为 MEDIUM 判读**，建议人工复核作者-单位配对后再作为机构成果引用。\n3. **引用任何数值前先查阅更正通知全文**（PLOS ONE 21(8): e0356803），当前更正实质内容为待核缺口 [citation:1][citation:2]。\n4. 不得据此宣称掌握 KFU 成果全集、独立复现或正式合作关系；共著不等于机构协议。\n\n## References\n[citation:1] Sai R, Aleithan SH. Enhancing perovskite solar cells efficiency via dual surface passivation. PLOS ONE 21(7): e0351439. https://doi.org/10.1371/journal.pone.0351439（页面元数据与作者信息区）\n[citation:2] 同上页面：作者贡献标注、单位与 ORCID、Correction 通知（2026-08-20, PLOS ONE 21(8): e0356803）及摘要开篇段落\n\n---\n**置信度声明**：模型估计置信度 55%；人工复核：未复核。该数值不代表原文核验通过。\n\n## 核验结果\n\n自动来源支持：0/26 项；人工复核：未复核。模型置信度不代表人工确认。\n支持状态来自模型语义判断与原文引语校验，不能保证结论为真。\n\n- claim:1 [missing_citation] Generated: 2026-10-21 | Research Depth: Comprehensive — Awaiting source support judgement\n- claim:2 [missing_citation] 范围：仅以 PLOS ONE 论文页面（DOI 10.1371/journal.pone.0351439）为有界样本；不代表 KFU 成果全集。 — Awaiting source support judgement\n- claim:3 [missing_citation] 本报告仅核实一项期刊论文的四项书目事实：完整题名、Shrouq H. — Awaiting source support judgement\n- claim:4 [missing_citation] Aleithan 的发表署名、发表日期与期刊类型，并记录页面上的 Correction 线索。四项书目事实均有出版商原文直接支持（HIGH 置信度）；KFU 单位归属为基于作者列表结构的判读（MEDIUM）。更正通知的实质内容与论文效率数值均未核清，保留为缺口，不予摘用。 — Awaiting source support judgement\n- claim:5 [not_checked] 研究契约将 King Faisal University（KFU）列为待定实体，学科为 materials science，主题为 perovskite，时间窗为 2026-01-01 至 2026-10-21。本样本论文发表于 2026-07-10，落在窗口内，主题与学科匹配 [citation:1]。按契约要求，官网/出版商页面出现机构名称本身不证明成果归属，抓取时间不证明发表时间，因此本报告将\"书目事实\"与\"归属判读\"分层陈述。 — Verification token/time budget exhausted\n- claim:6 [not_checked] | 完整题名 | Enhancing perovskite solar cells efficiency via dual surface passivation | 页面标题与 citation_title 元数据一致 [citation:1][citation:2] | — Verification token/time budget exhausted\n- claim:7 [not_checked] | 发表署名 | Aleithan SH（与 Refka Sai 并列，标注 \"Contributed equally to this work\"） | 作者信息区 [citation:1][citation:2] | — Verification token/time budget exhausted\n- claim:8 [not_checked] | 发表日期 | Published: July 10, 2026 | citation_date \"Jul 10, 2026\" 一致 [citation:1][citation:2] | — Verification token/time budget exhausted\n- claim:9 [not_checked] | 期刊类型 | PLOS ONE，开放获取综合性期刊（journal_article） | citation_journal_title [citation:1][citation:2] | — Verification token/time budget exhausted\n- claim:10 [not_checked] 题名在页面标题与元数据中重复一致出现 [citation:1]。作者区显示 \"Contributed equally to this work with: Refka Sai, Shrouq H. — Verification token/time budget exhausted\n- claim:11 [not_checked] Aleithan\"，正式引用行为 \"Sai R, Aleithan SH (2026)\" [citation:1][citation:2]。期刊为 PLOS ONE，属综合性期刊论文，**不适用计算机会议 CCF 等级**，不应套用 [citation:1]。 — Verification token/time budget exhausted\n- claim:12 [not_checked] 页面明确区分 Received: July 5, 2025；Accepted: May 27, 2026；Published: July 10, 2026 [citation:1][citation:2]。**Published 2026-07-10 不等于接受日期 2026-05-27**，二者不可混同（HIGH）。 — Verification token/time budget exhausted\n- claim:13 [not_checked] 作者区列出两个单位：University of Carthage, Carthage, Tunisia（ORCID 0000-0002-1266-7625）与 Department of Physics, College of Science, King Faisal University, Al-Ahsa, Saudi Arabia（ORCID 0000-0001-6194-5962）[citation:1][citation:2]。页面文本未逐行将姓名与单位一一配对，故\"Aleithan 对应 KFU 单位\"属基于作者列表结构的合理判读，**置信度 MEDIUM**，需人工复核。 — Verification token/time budget exhausted\n- claim:14 [missing_citation] 页面载有 \"20 Aug 2026: Sai R, Aleithan SH (2026) Correction: Enhancing perovskite solar cells efficiency via dual surface passivation. — Awaiting source support judgement\n- claim:15 [not_checked] PLOS ONE 21(8): e0356803\" [citation:1][citation:2]。更正通知**不计为独立研究成果**；其更正涉及的具体数据或表述未在样本中核清，保留为缺口。 — Verification token/time budget exhausted\n- claim:16 [missing_citation] 样本论文数：**1**（有界样本，非 KFU 成果全集）。 — Awaiting source support judgement\n- claim:17 [not_checked] 关键日期：Received 2025-07-05；Accepted 2026-05-27；Published 2026-07-10；Correction 2026-08-20 [citation:1][citation:2]。 — Verification token/time budget exhausted\n- claim:18 [missing_citation] 作者数：2（Refka Sai、Shrouq H. — Awaiting source support judgement\n- claim:19 [not_checked] Aleithan），标注同等贡献 [citation:1][citation:2]。 — Verification token/time budget exhausted\n- claim:20 [missing_citation] 效率/电压数值：**未核清，不摘用**（任务约束）。 — Awaiting source support judgement\n- claim:21 [missing_citation] 说明：本节为分析性判断，非外部专家引述。 — Awaiting source support judgement\n- claim:22 [not_checked] 从方法学看，页面章节结构为 Introduction、Materials and methods（2.1 Materials and layer preparation、2.2 Characterization）、Result and discussion、Conclusion [citation:1][citation:2]。摘要开篇指出\"有效缺陷钝化对实现高性能钙钛矿太阳能电池至关重要\"，并提及维度工程路径 [citation:2]。这些仅支持\"研究问题与方法概览\"层面的陈述，不足以支撑对效率结论的独立评价。 — Verification token/time budget exhausted\n- claim:23 [not_checked] **四项书目事实可确认**：题名、Aleithan SH 署名、Published 2026-07-10、PLOS ONE 期刊论文（HIGH）[citation:1][citation:2]。 — Verification token/time budget exhausted\n- claim:24 [missing_citation] **KFU 归属为 MEDIUM 判读**，建议人工复核作者-单位配对后再作为机构成果引用。 — Awaiting source support judgement\n- claim:25 [not_checked] **引用任何数值前先查阅更正通知全文**（PLOS ONE 21(8): e0356803），当前更正实质内容为待核缺口 [citation:1][citation:2]。 — Verification token/time budget exhausted\n- claim:26 [missing_citation] 不得据此宣称掌握 KFU 成果全集、独立复现或正式合作关系；共著不等于机构协议。 — Awaiting source support judgement\n\n## 研究对象、口径与冻结配置\n主题：perovskite；学科：materials science；时间：2026-01-01 至 2026-10-21。\n对象类型：university；请求冻结时间：2026-10-21T04:52:17.733054+00:00。实际采集时间逐来源保留。\n范围规则：adrs-organization-scope-v2；配置版本：materials-case-20261021-v1；权重规则：adrs-weight-rules-v1；预设版本：adrs-presets-v1。\n分别保留发表记录与研究家族；同成果可归属多个对象，汇总取并集，未关联版本按独立发表计数。\n偏好配置不等于已完成评分；结果页只读重排不改写本报告的配置、事实或证据。\n### 对象与来源\n- King Faisal University（university；pending）：<https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0351439>\n### 原始与生效权重\n| 维度 | 原始权重 | 开启 | 生效权重 |\n| --- | ---: | --- | ---: |\n| 主题相关性 | 6.0 | 是 | 60.00% |\n| 证据完整度 | 4.0 | 是 | 40.00% |\n### 成果表现组内权重\n| 项目 | 原始权重 | 开启 | 组内生效权重 |\n| --- | ---: | --- | ---: |\n| venue | 1.0 | 是 | 0.00% |\n| paper | 1.0 | 是 | 0.00% |\n### 指标组内权重\n| 项目 | 原始权重 | 开启 | 组内生效权重 |\n| --- | ---: | --- | ---: |\n| 未显式配置 | — | — | — |\n### 有序偏好映射（产品偏好，非官方等价）\n- ccf／adrs-preference-map-v1：A=1.0；B=0.6666666666666667；C=0.33333333333333337\n- icore／adrs-preference-map-v1：A*=1.0；A=0.75；B=0.5；C=0.25\n- abdc／adrs-preference-map-v1：A*=1.0；A=0.75；B=0.5；C=0.25\n- ajg／adrs-preference-map-v1：4*=1.0；4=0.8；3=0.6；2=0.4；1=0.19999999999999996\n- jcr_quartile／adrs-preference-map-v1：Q1=1.0；Q2=0.75；Q3=0.5；Q4=0.25\n- cas_partition／adrs-preference-map-v1：1=1.0；2=0.75；3=0.5；4=0.25\n### 评价口径及可用性\n目录版本：adrs-evaluation-catalog-v1；适配规则：adrs-evaluation-adapters-v1。目录样本不代表本次成果已核定评价。\n- ccf：部分公开样本；<https://www.ccf.org.cn/Academic_Evaluation/By_category/>；尚未核定本次成果。\n- icore：部分公开样本；<https://portal.core.edu.au/conf-ranks/>；尚未核定本次成果。\n- wos_scie：需授权导入／尚无公开样本；<https://mjl.clarivate.com/>；尚未核定本次成果。\n- wos_ssci：需授权导入／尚无公开样本；<https://mjl.clarivate.com/>；尚未核定本次成果。\n- wos_ahci：需授权导入／尚无公开样本；<https://mjl.clarivate.com/>；尚未核定本次成果。\n- wos_esci：需授权导入／尚无公开样本；<https://mjl.clarivate.com/>；尚未核定本次成果。\n- scopus：需授权导入／尚无公开样本；<https://www.scopus.com/sources>；尚未核定本次成果。\n- jcr_jif：需授权导入／尚无公开样本；<https://jcr.clarivate.com/>；尚未核定本次成果。\n- jcr_quartile：需授权导入／尚无公开样本；<https://jcr.clarivate.com/>；尚未核定本次成果。\n- jcr_jci：需授权导入／尚无公开样本；<https://jcr.clarivate.com/>；尚未核定本次成果。\n- cas_partition：需授权导入／尚无公开样本；<https://www.fenqubiao.com/>；尚未核定本次成果。\n- citescore：需授权导入／尚无公开样本；<https://www.scopus.com/sources>；尚未核定本次成果。\n- citescore_percentile：需授权导入／尚无公开样本；<https://www.scopus.com/sources>；尚未核定本次成果。\n- sjr：需授权导入／尚无公开样本；<https://www.scimagojr.com/>；尚未核定本次成果。\n- snip：需授权导入／尚无公开样本；<https://www.scopus.com/sources>；尚未核定本次成果。\n- abdc：部分公开样本；<https://abdc.edu.au/abdc-journal-quality-list/>；尚未核定本次成果。\n- ajg：需授权导入／尚无公开样本；<https://charteredabs.org/academic-journal-guide>；尚未核定本次成果。\n- citation_percentile：部分公开样本；<https://help.openalex.org/data/works/citations/>；尚未核定本次成果。\n- cnci：需授权导入／尚无公开样本；<https://incites.help.clarivate.com/Content/Indicators-Handbook/ih-normalized-citation-impact.htm>；尚未核定本次成果。\n- fwci：部分公开样本；<https://help.openalex.org/data/works/citations/>；尚未核定本次成果。\n- ccf／2012／指标年 2012：public，partial；<https://risame.github.io/sun/ccf.pdf>\n- ccf／2022／指标年 2022：public，partial；<https://scdm-shu.github.io/ccf/2022-CCF-Ranking.pdf>\n- icore／CORE2023／指标年 2023：public，partial；<https://portal.core.edu.au/conf-ranks/?search=SIGCOMM&by=all&source=CORE2023&sort=atitle&page=1>\n- icore／ICORE2026／指标年 2026：public，partial；<https://portal.core.edu.au/conf-ranks/?search=SIGCOMM&by=all&source=ICORE2026&sort=atitle&page=1>\n- abdc／2010／指标年 2010：public，partial；<https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx>\n- abdc／2013／指标年 2013：public，partial；<https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx>\n- abdc／2016／指标年 2016：public，partial；<https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx>\n- abdc／2019／指标年 2019：public，partial；<https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx>\n- abdc／2022／指标年 2022：public，partial；<https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx>\n- abdc／2025／指标年 2025：public，partial；<https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx>\n- fwci／OpenAlex snapshot 2026-10-19／指标年 2026：public，partial；<https://api.openalex.org/works/W1951724000>\n- citation_percentile／OpenAlex snapshot 2026-10-19／指标年 2026：public，partial；<https://api.openalex.org/works/W1951724000>\n### 实际取证来源\n- ev-cde6fff0：Enhancing perovskite solar cells efficiency via dual surface passivation \\| PLOS One；<https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0351439>；采集 2026-10-21T04:53:04.924512。\n- ev-200c30e0：Enhancing perovskite solar cells efficiency via dual surface passivation \\| PLOS One；<https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0351439>；采集 2026-10-21T04:53:03.406916。\n### 缺失与解释边界\n- 证据索引不等于机构成果全集或已核实合作关系。\n- 仅覆盖本次取得的样本；空样本不代表现实中零成果，来源未覆盖年份不补零。\n- 学科比较组使用请求标签，尚未逐篇核定学科；不输出跨学科或载体的统一质量榜。\n- 原文位置与引用检查不等于独立语义复核；模型推断、建议和未来情景仍须复核。\n- 评价目录为冻结的部分样本及授权要求，未自动应用到本次成果；缺失指标不作零分或最低等级。\n- coauthorship 关系尚无已纳入的直接依据；不表示该关系不存在。\n- funding 关系尚无已纳入的直接依据；不表示该关系不存在。\n- citation 关系尚无已纳入的直接依据；不表示该关系不存在。\n- 待核 Enhancing perovskite solar cells efficiency via dual surface passivation：publication date was not present at its declared precision\n\n\n## 可复核样本与对象比较\n计数由结构化记录计算，仅覆盖本次取得并通过原文校验的样本；未链接版本暂按单条发表独立计数。\n| 对象 | 发表记录 | 研究家族 |\n| --- | ---: | ---: |\n| King Faisal University | 0 | 0 |\n| 去重汇总 | 0 | 0 |\n相同成果可分别归属多个对象，合并总量取成果／家族并集，不相加各对象行。\n### 同口径样本比较\n未确立可比的有来源成果组。\n### 已纳入成果与依据\n### 缺口与解释边界\n待核记录 1 项；未确立的关系：coauthorship、funding、citation。未取得证据不表示关系不存在。\n机构署名按所选名称／别名与发表来源对照；不推出当前任职、正式协议、内部研发投入或科研质量优劣。跨载体／年份不汇成统一质量榜。\n- 待核：Enhancing perovskite solar cells efficiency via dual surface passivation：publication date was not present at its declared precision\n### 后续评估建议（模型判断，待复核）\n- 页面存在 2026-08-20 发布的更正通知（PLOS ONE 21(8): e0356803），但更正涉及的具体内容未在样本中核清；在引用该论文任何数值前应先查阅更正通知全文。 [citation:1]\n",
+  "citations": [
+    {
+      "citation_id": "citation:1",
+      "source_url": "https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0351439",
+      "source_title": "Enhancing perovskite solar cells efficiency via dual surface passivation | PLOS One",
+      "source_type": "web",
+      "extracted_evidence": "citation_title: Enhancing perovskite solar cells efficiency via dual surface passivation\ncitation_date: Jul 10, 2026\ncitation_journal_title: PLOS ONE\ncitation_doi: 10.1371/journal.pone.0351439\n\n# PLOS One\n\n### Submit Your Manuscript\n\n# Enhancing perovskite solar cells efficiency via dual surface pas",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T04:53:35.386612"
+    },
+    {
+      "citation_id": "citation:2",
+      "source_url": "https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0351439",
+      "source_title": "Enhancing perovskite solar cells efficiency via dual surface passivation | PLOS One",
+      "source_type": "web",
+      "extracted_evidence": "citation_title: Enhancing perovskite solar cells efficiency via dual surface passivation\ncitation_date: Jul 10, 2026\ncitation_journal_title: PLOS ONE\ncitation_doi: 10.1371/journal.pone.0351439\n\n# PLOS One\n\n### Submit Your Manuscript\n\n# Enhancing perovskite solar cells efficiency via dual surface pas",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T04:53:35.386612"
+    }
+  ],
+  "agent_trace": [
+    {
+      "agent": "planner",
+      "content": "Planning research for: 研究 King Faisal University 的一项材料科学公开成果：https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0351439。仅以这项钙钛矿太阳能电池期刊论文为有界样本，核实完整题名、作者 Shrouq H. Aleithan 的发表署名、发表日期及期刊类型。学科为 materials science，不能套计算机会议 CCF 等级。优先读这一出版商原文，日期 Published July 10, 2026 不等于接受日期。页面有 Correction：记录更正线索，未核清时保留缺口，不将更正通知或参考文献另计为独立研究。只交付来源可支持的研究问题和方法概览，不摘用未经核清的效率数值，不宣称掌握该校成果全集、独立复现或正式合作关系。",
+      "timestamp": "2026-10-21T04:52:19.864915",
+      "event_type": "agent_start"
+    },
+    {
+      "agent": "planner",
+      "content": "Generated DAG 'KFU Perovskite Solar Cell PLOS ONE Article Verification (Bounded Sample)' with 8 nodes, execution order: [['n1', 'n2', 'n3', 'n7'], ['n4', 'n5', 'n6'], ['analyst']]",
+      "timestamp": "2026-10-21T04:52:25.385827",
+      "event_type": "agent_complete"
+    },
+    {
+      "agent": "dag_executor",
+      "content": "Executing batch: ['n1', 'n2', 'n3', 'n7'] (parallel)",
+      "timestamp": "2026-10-21T04:52:26.000917",
+      "event_type": "agent_start"
+    },
+    {
+      "agent": "browser",
+      "content": "Executing 1 browser nodes",
+      "timestamp": "2026-10-21T04:52:26.449439",
+      "event_type": "agent_start"
+    },
+    {
+      "args": {
+        "url": "https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0351439",
+        "query": "https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0351439"
+      },
+      "agent": "browser",
+      "content": "Browsing: https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0351439",
+      "timestamp": "2026-10-21T04:52:26.449439",
+      "tool_name": "browse_webpage",
+      "event_type": "tool_start"
+    },
+    {
+      "agent": "browser",
+      "status": "success",
+      "content": "Extracted 1 pages for: https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0351439",
+      "timestamp": "2026-10-21T04:53:04.924512",
+      "tool_name": "browse_webpage",
+      "event_type": "tool_complete",
+      "result_summary": "1 browser pages"
+    },
+    {
+      "agent": "browser",
+      "content": "Collected 1 evidence from browser",
+      "timestamp": "2026-10-21T04:53:04.924512",
+      "event_type": "agent_complete"
+    },
+    {
+      "agent": "browser",
+      "content": "Executing 1 browser nodes",
+      "timestamp": "2026-10-21T04:52:26.449439",
+      "event_type": "agent_start"
+    },
+    {
+      "args": {
+        "url": "https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0351439",
+        "query": "https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0351439"
+      },
+      "agent": "browser",
+      "content": "Browsing: https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0351439",
+      "timestamp": "2026-10-21T04:52:26.449439",
+      "tool_name": "browse_webpage",
+      "event_type": "tool_start"
+    },
+    {
+      "agent": "browser",
+      "status": "success",
+      "content": "Extracted 1 pages for: https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0351439",
+      "timestamp": "2026-10-21T04:53:03.406916",
+      "tool_name": "browse_webpage",
+      "event_type": "tool_complete",
+      "result_summary": "1 browser pages"
+    },
+    {
+      "agent": "browser",
+      "content": "Collected 1 evidence from browser",
+      "timestamp": "2026-10-21T04:53:03.407421",
+      "event_type": "agent_complete"
+    },
+    {
+      "agent": "browser",
+      "content": "Executing 1 browser nodes",
+      "timestamp": "2026-10-21T04:52:26.449439",
+      "event_type": "agent_start"
+    },
+    {
+      "args": {
+        "url": "PLOS ONE journal scope/about page (journals.plos.org/plosone/s/journal-information) — confirm journal type (peer-reviewed open-access multidisciplinary journal, not a conference proceedings), ISSN, and publication model; note that CCF conference ranking does not apply",
+        "query": "PLOS ONE journal scope/about page (journals.plos.org/plosone/s/journal-information) — confirm journal type (peer-reviewed open-access multidisciplinary journal, not a conference proceedings), ISSN, and publication model; note that CCF conference ranking does not apply"
+      },
+      "agent": "browser",
+      "content": "Browsing: PLOS ONE journal scope/about page (journals.plos.org/plosone/s/journal-information) — confirm journal type (peer-reviewed open-access multidisciplinary journal, not a conference proceedings), ISSN, and publication model; note that CCF conference ranking does not apply",
+      "timestamp": "2026-10-21T04:52:26.449439",
+      "tool_name": "browse_webpage",
+      "event_type": "tool_start"
+    },
+    {
+      "agent": "browser",
+      "content": "Collected 0 evidence from browser",
+      "timestamp": "2026-10-21T04:52:26.449439",
+      "event_type": "agent_complete"
+    },
+    {
+      "agent": "search",
+      "content": "Executing 1 search nodes",
+      "timestamp": "2026-10-21T04:52:26.452141",
+      "event_type": "agent_start"
+    },
+    {
+      "args": {
+        "query": "King Faisal University materials science perovskite research — background context only on the institution's research activity in this area; treat as background, do not infer that this article represents the institution's full output or any formal collaboration"
+      },
+      "agent": "search",
+      "content": "Searching: King Faisal University materials science perovskite research — background context only on the institution's research activity in this area; treat as background, do not infer that this article represents the institution's full output or any formal collaboration",
+      "timestamp": "2026-10-21T04:52:26.452141",
+      "tool_name": "duckduckgo_search",
+      "event_type": "tool_start"
+    },
+    {
+      "agent": "search",
+      "content": "渠道采集结果",
+      "timestamp": "2026-10-21T04:52:28.439534",
+      "event_type": "tool_error",
+      "channel_attempts": [
+        {
+          "status": "failed",
+          "backend": "duckduckgo",
+          "channel": "web",
+          "call_count": 1,
+          "duration_ms": 1969,
+          "result_count": 0,
+          "error_category": "access_denied"
+        },
+        {
+          "status": "failed",
+          "backend": "bing-rss",
+          "channel": "web",
+          "call_count": 0,
+          "duration_ms": 0,
+          "result_count": 0,
+          "error_category": "budget_exceeded"
+        }
+      ]
+    },
+    {
+      "agent": "search",
+      "error": "budget_exceeded",
+      "status": "error",
+      "content": "Search failed: budget_exceeded",
+      "timestamp": "2026-10-21T04:52:28.439534",
+      "tool_name": "duckduckgo_search",
+      "event_type": "tool_error"
+    },
+    {
+      "agent": "search",
+      "content": "Collected 0 evidence from search",
+      "timestamp": "2026-10-21T04:52:28.439534",
+      "event_type": "agent_complete"
+    },
+    {
+      "agent": "budget_guardrail",
+      "content": "Budget warning: tool_calls=4, tokens=2881, cost=0.0, wall_clock=47s",
+      "timestamp": "2026-10-21T04:53:05.577340",
+      "event_type": "agent_complete",
+      "budget_state": {
+        "warning": true,
+        "estimated": true,
+        "citation_max": 8,
+        "max_cost_usd": 0.2,
+        "used_cost_usd": 0.0,
+        "budget_profile": "short",
+        "max_tool_calls": 6,
+        "rag_max_results": 4,
+        "used_tool_calls": 4,
+        "hard_stop_reason": null,
+        "max_total_tokens": 20000,
+        "report_max_tokens": 3000,
+        "used_total_tokens": 2881,
+        "search_max_queries": 2,
+        "search_max_results": 5,
+        "browser_max_results": 1,
+        "max_retries_per_tool": 1,
+        "max_wall_clock_seconds": 180,
+        "elapsed_wall_clock_seconds": 47
+      }
+    },
+    {
+      "agent": "failure_memory",
+      "content": "Captured 6 failure memory records",
+      "timestamp": "2026-10-21T04:53:05.577340",
+      "event_type": "agent_complete",
+      "failure_memory": {
+        "records": [
+          {
+            "query": "https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0351439",
+            "node_type": "browser",
+            "last_error": null,
+            "retry_count": 0,
+            "next_retry_at": null,
+            "repeat_blocked": false,
+            "backoff_seconds": 0,
+            "terminal_failure": false,
+            "last_error_category": null
+          },
+          {
+            "query": "PLOS ONE journal scope/about page (journals.plos.org/plosone/s/journal-information) — confirm journal type (peer-reviewed open-access multidisciplinary journal, not a conference proceedings), ISSN, and publication model; note that CCF conference ranking does not apply",
+            "node_type": "browser",
+            "last_error": "uri_format_error:url",
+            "retry_count": 0,
+            "next_retry_at": null,
+            "repeat_blocked": true,
+            "backoff_seconds": 0,
+            "terminal_failure": true,
+            "last_error_category": "schema_validation"
+          },
+          {
+            "query": "PLOS ONE correction notice for 10.1371/journal.pone.0351439 — locate the linked Correction article (title, date, nature of correction) to record the correction lead",
+            "node_type": "search",
+            "last_error": null,
+            "retry_count": 0,
+            "next_retry_at": null,
+            "repeat_blocked": false,
+            "backoff_seconds": 0,
+            "terminal_failure": false,
+            "last_error_category": null
+          },
+          {
+            "query": "\"Shrouq H. Aleithan\" King Faisal University perovskite — verify author identity and affiliation attribution across independent sources (ORCID, institutional profile, indexing records); distinguish current affiliation from byline affiliation at publication",
+            "node_type": "search",
+            "last_error": null,
+            "retry_count": 0,
+            "next_retry_at": null,
+            "repeat_blocked": false,
+            "backoff_seconds": 0,
+            "terminal_failure": false,
+            "last_error_category": null
+          },
+          {
+            "query": "DOI 10.1371/journal.pone.0351439 metadata record (Crossref/PubMed/PLOS API) — cross-check full title, author byline order, publication date, article type, and correction linkage",
+            "node_type": "search",
+            "last_error": null,
+            "retry_count": 0,
+            "next_retry_at": null,
+            "repeat_blocked": false,
+            "backoff_seconds": 0,
+            "terminal_failure": false,
+            "last_error_category": null
+          },
+          {
+            "query": "King Faisal University materials science perovskite research — background context only on the institution's research activity in this area; treat as background, do not infer that this article represents the institution's full output or any formal collaboration",
+            "node_type": "search",
+            "last_error": "budget_exceeded",
+            "retry_count": 1,
+            "next_retry_at": null,
+            "repeat_blocked": true,
+            "backoff_seconds": 0,
+            "terminal_failure": true,
+            "last_error_category": "budget_exceeded"
+          }
+        ],
+        "max_retries_per_tool": 1,
+        "repeat_blocked_nodes": [
+          "n3",
+          "n7"
+        ]
+      }
+    },
+    {
+      "agent": "budget_guardrail",
+      "content": "Budget warning: tool_calls=4, tokens=2881, cost=0.0, wall_clock=47s",
+      "timestamp": "2026-10-21T04:53:05.577340",
+      "event_type": "agent_complete",
+      "budget_state": {
+        "warning": true,
+        "estimated": true,
+        "citation_max": 8,
+        "max_cost_usd": 0.2,
+        "used_cost_usd": 0.0,
+        "budget_profile": "short",
+        "max_tool_calls": 6,
+        "rag_max_results": 4,
+        "used_tool_calls": 4,
+        "hard_stop_reason": null,
+        "max_total_tokens": 20000,
+        "report_max_tokens": 3000,
+        "used_total_tokens": 2881,
+        "search_max_queries": 2,
+        "search_max_results": 5,
+        "browser_max_results": 1,
+        "max_retries_per_tool": 1,
+        "max_wall_clock_seconds": 180,
+        "elapsed_wall_clock_seconds": 47
+      }
+    },
+    {
+      "agent": "failure_memory",
+      "content": "Captured 6 failure memory records",
+      "timestamp": "2026-10-21T04:53:05.577340",
+      "event_type": "agent_complete",
+      "failure_memory": {
+        "records": [
+          {
+            "query": "https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0351439",
+            "node_type": "browser",
+            "last_error": null,
+            "retry_count": 0,
+            "next_retry_at": null,
+            "repeat_blocked": false,
+            "backoff_seconds": 0,
+            "terminal_failure": false,
+            "last_error_category": null
+          },
+          {
+            "query": "PLOS ONE journal scope/about page (journals.plos.org/plosone/s/journal-information) — confirm journal type (peer-reviewed open-access multidisciplinary journal, not a conference proceedings), ISSN, and publication model; note that CCF conference ranking does not apply",
+            "node_type": "browser",
+            "last_error": "uri_format_error:url",
+            "retry_count": 0,
+            "next_retry_at": null,
+            "repeat_blocked": true,
+            "backoff_seconds": 0,
+            "terminal_failure": true,
+            "last_error_category": "schema_validation"
+          },
+          {
+            "query": "PLOS ONE correction notice for 10.1371/journal.pone.0351439 — locate the linked Correction article (title, date, nature of correction) to record the correction lead",
+            "node_type": "search",
+            "last_error": null,
+            "retry_count": 0,
+            "next_retry_at": null,
+            "repeat_blocked": false,
+            "backoff_seconds": 0,
+            "terminal_failure": false,
+            "last_error_category": null
+          },
+          {
+            "query": "\"Shrouq H. Aleithan\" King Faisal University perovskite — verify author identity and affiliation attribution across independent sources (ORCID, institutional profile, indexing records); distinguish current affiliation from byline affiliation at publication",
+            "node_type": "search",
+            "last_error": null,
+            "retry_count": 0,
+            "next_retry_at": null,
+            "repeat_blocked": false,
+            "backoff_seconds": 0,
+            "terminal_failure": false,
+            "last_error_category": null
+          },
+          {
+            "query": "DOI 10.1371/journal.pone.0351439 metadata record (Crossref/PubMed/PLOS API) — cross-check full title, author byline order, publication date, article type, and correction linkage",
+            "node_type": "search",
+            "last_error": null,
+            "retry_count": 0,
+            "next_retry_at": null,
+            "repeat_blocked": false,
+            "backoff_seconds": 0,
+            "terminal_failure": false,
+            "last_error_category": null
+          },
+          {
+            "query": "King Faisal University materials science perovskite research — background context only on the institution's research activity in this area; treat as background, do not infer that this article represents the institution's full output or any formal collaboration",
+            "node_type": "search",
+            "last_error": "budget_exceeded",
+            "retry_count": 1,
+            "next_retry_at": null,
+            "repeat_blocked": true,
+            "backoff_seconds": 0,
+            "terminal_failure": true,
+            "last_error_category": "budget_exceeded"
+          }
+        ],
+        "max_retries_per_tool": 1,
+        "repeat_blocked_nodes": [
+          "n3",
+          "n7"
+        ]
+      }
+    },
+    {
+      "agent": "dag_executor",
+      "content": "Executing batch: ['n4', 'n5', 'n6'] (parallel)",
+      "timestamp": "2026-10-21T04:53:06.007769",
+      "event_type": "agent_start"
+    },
+    {
+      "agent": "search",
+      "content": "Executing 1 search nodes",
+      "timestamp": "2026-10-21T04:53:06.430879",
+      "event_type": "agent_start"
+    },
+    {
+      "args": {
+        "query": "PLOS ONE correction notice for 10.1371/journal.pone.0351439 — locate the linked Correction article (title, date, nature of correction) to record the correction lead"
+      },
+      "agent": "search",
+      "content": "Searching: PLOS ONE correction notice for 10.1371/journal.pone.0351439 — locate the linked Correction article (title, date, nature of correction) to record the correction lead",
+      "timestamp": "2026-10-21T04:53:06.430879",
+      "tool_name": "duckduckgo_search",
+      "event_type": "tool_start"
+    },
+    {
+      "agent": "search",
+      "content": "渠道采集结果",
+      "timestamp": "2026-10-21T04:53:07.776930",
+      "event_type": "tool_error",
+      "channel_attempts": [
+        {
+          "status": "failed",
+          "backend": "duckduckgo",
+          "channel": "web",
+          "call_count": 1,
+          "duration_ms": 1327,
+          "result_count": 0,
+          "error_category": "access_denied"
+        },
+        {
+          "status": "failed",
+          "backend": "bing-rss",
+          "channel": "web",
+          "call_count": 0,
+          "duration_ms": 0,
+          "result_count": 0,
+          "error_category": "budget_exceeded"
+        }
+      ]
+    },
+    {
+      "agent": "search",
+      "error": "budget_exceeded",
+      "status": "error",
+      "content": "Search failed: budget_exceeded",
+      "timestamp": "2026-10-21T04:53:07.776930",
+      "tool_name": "duckduckgo_search",
+      "event_type": "tool_error"
+    },
+    {
+      "agent": "search",
+      "content": "Collected 0 evidence from search",
+      "timestamp": "2026-10-21T04:53:07.776930",
+      "event_type": "agent_complete"
+    },
+    {
+      "agent": "search",
+      "content": "Executing 1 search nodes",
+      "timestamp": "2026-10-21T04:53:06.430879",
+      "event_type": "agent_start"
+    },
+    {
+      "args": {
+        "query": "\"Shrouq H. Aleithan\" King Faisal University perovskite — verify author identity and affiliation attribution across independent sources (ORCID, institutional profile, indexing records); distinguish current affiliation from byline affiliation at publication"
+      },
+      "agent": "search",
+      "content": "Searching: \"Shrouq H. Aleithan\" King Faisal University perovskite — verify author identity and affiliation attribution across independent sources (ORCID, institutional profile, indexing records); distinguish current affiliation from byline affiliation at publication",
+      "timestamp": "2026-10-21T04:53:06.430879",
+      "tool_name": "duckduckgo_search",
+      "event_type": "tool_start"
+    },
+    {
+      "agent": "search",
+      "content": "渠道采集结果",
+      "timestamp": "2026-10-21T04:53:07.811019",
+      "event_type": "tool_error",
+      "channel_attempts": [
+        {
+          "status": "failed",
+          "backend": "duckduckgo",
+          "channel": "web",
+          "call_count": 1,
+          "duration_ms": 1342,
+          "result_count": 0,
+          "error_category": "access_denied"
+        },
+        {
+          "status": "failed",
+          "backend": "bing-rss",
+          "channel": "web",
+          "call_count": 0,
+          "duration_ms": 0,
+          "result_count": 0,
+          "error_category": "budget_exceeded"
+        }
+      ]
+    },
+    {
+      "agent": "search",
+      "error": "budget_exceeded",
+      "status": "error",
+      "content": "Search failed: budget_exceeded",
+      "timestamp": "2026-10-21T04:53:07.811019",
+      "tool_name": "duckduckgo_search",
+      "event_type": "tool_error"
+    },
+    {
+      "agent": "search",
+      "content": "Collected 0 evidence from search",
+      "timestamp": "2026-10-21T04:53:07.811019",
+      "event_type": "agent_complete"
+    },
+    {
+      "agent": "search",
+      "content": "Executing 1 search nodes",
+      "timestamp": "2026-10-21T04:53:06.430879",
+      "event_type": "agent_start"
+    },
+    {
+      "agent": "search",
+      "content": "Collected 0 evidence from search",
+      "timestamp": "2026-10-21T04:53:06.430879",
+      "event_type": "agent_complete"
+    },
+    {
+      "agent": "budget_guardrail",
+      "content": "Budget breaker triggered: tool_call_limit. Skipped 0 pending tool nodes.",
+      "timestamp": "2026-10-21T04:53:08.259254",
+      "event_type": "agent_complete",
+      "budget_state": {
+        "warning": false,
+        "estimated": true,
+        "citation_max": 8,
+        "max_cost_usd": 0.2,
+        "used_cost_usd": 0.0,
+        "budget_profile": "short",
+        "max_tool_calls": 6,
+        "rag_max_results": 4,
+        "used_tool_calls": 6,
+        "hard_stop_reason": "tool_call_limit",
+        "max_total_tokens": 20000,
+        "report_max_tokens": 3000,
+        "used_total_tokens": 2881,
+        "search_max_queries": 2,
+        "search_max_results": 5,
+        "browser_max_results": 1,
+        "max_retries_per_tool": 1,
+        "max_wall_clock_seconds": 180,
+        "elapsed_wall_clock_seconds": 50
+      },
+      "skipped_nodes": []
+    },
+    {
+      "agent": "failure_memory",
+      "content": "Captured 6 failure memory records",
+      "timestamp": "2026-10-21T04:53:08.259254",
+      "event_type": "agent_complete",
+      "failure_memory": {
+        "records": [
+          {
+            "query": "https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0351439",
+            "node_type": "browser",
+            "last_error": null,
+            "retry_count": 0,
+            "next_retry_at": null,
+            "repeat_blocked": false,
+            "backoff_seconds": 0,
+            "terminal_failure": false,
+            "last_error_category": null
+          },
+          {
+            "query": "PLOS ONE journal scope/about page (journals.plos.org/plosone/s/journal-information) — confirm journal type (peer-reviewed open-access multidisciplinary journal, not a conference proceedings), ISSN, and publication model; note that CCF conference ranking does not apply",
+            "node_type": "browser",
+            "last_error": "uri_format_error:url",
+            "retry_count": 0,
+            "next_retry_at": null,
+            "repeat_blocked": true,
+            "backoff_seconds": 0,
+            "terminal_failure": true,
+            "last_error_category": "schema_validation"
+          },
+          {
+            "query": "PLOS ONE correction notice for 10.1371/journal.pone.0351439 — locate the linked Correction article (title, date, nature of correction) to record the correction lead",
+            "node_type": "search",
+            "last_error": "budget_exceeded",
+            "retry_count": 1,
+            "next_retry_at": null,
+            "repeat_blocked": true,
+            "backoff_seconds": 0,
+            "terminal_failure": true,
+            "last_error_category": "budget_exceeded"
+          },
+          {
+            "query": "\"Shrouq H. Aleithan\" King Faisal University perovskite — verify author identity and affiliation attribution across independent sources (ORCID, institutional profile, indexing records); distinguish current affiliation from byline affiliation at publication",
+            "node_type": "search",
+            "last_error": "budget_exceeded",
+            "retry_count": 1,
+            "next_retry_at": null,
+            "repeat_blocked": true,
+            "backoff_seconds": 0,
+            "terminal_failure": true,
+            "last_error_category": "budget_exceeded"
+          },
+          {
+            "query": "DOI 10.1371/journal.pone.0351439 metadata record (Crossref/PubMed/PLOS API) — cross-check full title, author byline order, publication date, article type, and correction linkage",
+            "node_type": "search",
+            "last_error": null,
+            "retry_count": 0,
+            "next_retry_at": null,
+            "repeat_blocked": false,
+            "backoff_seconds": 0,
+            "terminal_failure": false,
+            "last_error_category": "budget_exceeded"
+          },
+          {
+            "query": "King Faisal University materials science perovskite research — background context only on the institution's research activity in this area; treat as background, do not infer that this article represents the institution's full output or any formal collaboration",
+            "node_type": "search",
+            "last_error": "budget_exceeded",
+            "retry_count": 1,
+            "next_retry_at": null,
+            "repeat_blocked": true,
+            "backoff_seconds": 0,
+            "terminal_failure": true,
+            "last_error_category": "budget_exceeded"
+          }
+        ],
+        "max_retries_per_tool": 1,
+        "repeat_blocked_nodes": [
+          "n3",
+          "n4",
+          "n5",
+          "n7"
+        ]
+      }
+    },
+    {
+      "agent": "budget_guardrail",
+      "content": "Budget breaker triggered: tool_call_limit. Skipped 0 pending tool nodes.",
+      "timestamp": "2026-10-21T04:53:08.259254",
+      "event_type": "agent_complete",
+      "budget_state": {
+        "warning": false,
+        "estimated": true,
+        "citation_max": 8,
+        "max_cost_usd": 0.2,
+        "used_cost_usd": 0.0,
+        "budget_profile": "short",
+        "max_tool_calls": 6,
+        "rag_max_results": 4,
+        "used_tool_calls": 6,
+        "hard_stop_reason": "tool_call_limit",
+        "max_total_tokens": 20000,
+        "report_max_tokens": 3000,
+        "used_total_tokens": 2881,
+        "search_max_queries": 2,
+        "search_max_results": 5,
+        "browser_max_results": 1,
+        "max_retries_per_tool": 1,
+        "max_wall_clock_seconds": 180,
+        "elapsed_wall_clock_seconds": 50
+      },
+      "skipped_nodes": []
+    },
+    {
+      "agent": "failure_memory",
+      "content": "Captured 6 failure memory records",
+      "timestamp": "2026-10-21T04:53:08.259254",
+      "event_type": "agent_complete",
+      "failure_memory": {
+        "records": [
+          {
+            "query": "https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0351439",
+            "node_type": "browser",
+            "last_error": null,
+            "retry_count": 0,
+            "next_retry_at": null,
+            "repeat_blocked": false,
+            "backoff_seconds": 0,
+            "terminal_failure": false,
+            "last_error_category": null
+          },
+          {
+            "query": "PLOS ONE journal scope/about page (journals.plos.org/plosone/s/journal-information) — confirm journal type (peer-reviewed open-access multidisciplinary journal, not a conference proceedings), ISSN, and publication model; note that CCF conference ranking does not apply",
+            "node_type": "browser",
+            "last_error": "uri_format_error:url",
+            "retry_count": 0,
+            "next_retry_at": null,
+            "repeat_blocked": true,
+            "backoff_seconds": 0,
+            "terminal_failure": true,
+            "last_error_category": "schema_validation"
+          },
+          {
+            "query": "PLOS ONE correction notice for 10.1371/journal.pone.0351439 — locate the linked Correction article (title, date, nature of correction) to record the correction lead",
+            "node_type": "search",
+            "last_error": "budget_exceeded",
+            "retry_count": 1,
+            "next_retry_at": null,
+            "repeat_blocked": true,
+            "backoff_seconds": 0,
+            "terminal_failure": true,
+            "last_error_category": "budget_exceeded"
+          },
+          {
+            "query": "\"Shrouq H. Aleithan\" King Faisal University perovskite — verify author identity and affiliation attribution across independent sources (ORCID, institutional profile, indexing records); distinguish current affiliation from byline affiliation at publication",
+            "node_type": "search",
+            "last_error": "budget_exceeded",
+            "retry_count": 1,
+            "next_retry_at": null,
+            "repeat_blocked": true,
+            "backoff_seconds": 0,
+            "terminal_failure": true,
+            "last_error_category": "budget_exceeded"
+          },
+          {
+            "query": "DOI 10.1371/journal.pone.0351439 metadata record (Crossref/PubMed/PLOS API) — cross-check full title, author byline order, publication date, article type, and correction linkage",
+            "node_type": "search",
+            "last_error": null,
+            "retry_count": 0,
+            "next_retry_at": null,
+            "repeat_blocked": false,
+            "backoff_seconds": 0,
+            "terminal_failure": false,
+            "last_error_category": "budget_exceeded"
+          },
+          {
+            "query": "King Faisal University materials science perovskite research — background context only on the institution's research activity in this area; treat as background, do not infer that this article represents the institution's full output or any formal collaboration",
+            "node_type": "search",
+            "last_error": "budget_exceeded",
+            "retry_count": 1,
+            "next_retry_at": null,
+            "repeat_blocked": true,
+            "backoff_seconds": 0,
+            "terminal_failure": true,
+            "last_error_category": "budget_exceeded"
+          }
+        ],
+        "max_retries_per_tool": 1,
+        "repeat_blocked_nodes": [
+          "n3",
+          "n4",
+          "n5",
+          "n7"
+        ]
+      }
+    },
+    {
+      "agent": "analyst",
+      "content": "Analyzing 2 evidence items",
+      "timestamp": "2026-10-21T04:53:08.704407",
+      "event_type": "agent_start"
+    },
+    {
+      "agent": "analyst",
+      "content": "Analysis complete",
+      "timestamp": "2026-10-21T04:53:18.231230",
+      "event_type": "agent_complete"
+    },
+    {
+      "agent": "analyst",
+      "content": "Analyzing 2 evidence items",
+      "timestamp": "2026-10-21T04:53:08.704407",
+      "event_type": "agent_start"
+    },
+    {
+      "agent": "analyst",
+      "content": "Analysis complete",
+      "timestamp": "2026-10-21T04:53:18.231230",
+      "event_type": "agent_complete"
+    },
+    {
+      "agent": "analyst",
+      "content": "Generated 2409 chars of analysis from 2 evidence items",
+      "timestamp": "2026-10-21T04:53:18.231230",
+      "event_type": "agent_complete"
+    },
+    {
+      "agent": "reflection",
+      "content": "Validating analysis with 2 evidence items",
+      "timestamp": "2026-10-21T04:53:18.666188",
+      "event_type": "agent_start"
+    },
+    {
+      "agent": "reflection",
+      "content": "Verification failed: confidence=0.55, hallucination_rate=50.00%, needs_revision=True",
+      "timestamp": "2026-10-21T04:53:25.728304",
+      "event_type": "agent_complete"
+    },
+    {
+      "agent": "reflection",
+      "content": "Verification: confidence=0.55, needs_revision=True",
+      "timestamp": "2026-10-21T04:53:25.728304",
+      "event_type": "agent_complete"
+    },
+    {
+      "agent": "report",
+      "content": "Generating final report",
+      "timestamp": "2026-10-21T04:53:26.166845",
+      "event_type": "agent_start"
+    },
+    {
+      "agent": "report",
+      "content": "Report generated: 13488 chars",
+      "timestamp": "2026-10-21T04:53:34.768555",
+      "event_type": "agent_complete"
+    },
+    {
+      "agent": "report",
+      "content": "Generating final report",
+      "timestamp": "2026-10-21T04:53:26.166845",
+      "event_type": "agent_start"
+    },
+    {
+      "agent": "report",
+      "content": "Report generated: 13488 chars",
+      "timestamp": "2026-10-21T04:53:34.768555",
+      "event_type": "agent_complete"
+    },
+    {
+      "agent": "report",
+      "content": "Report: 13488 chars, 2 citations",
+      "timestamp": "2026-10-21T04:53:34.768555",
+      "event_type": "agent_complete"
+    }
+  ],
+  "tool_audit_summary": {
+    "error_calls": 4,
+    "total_calls": 6,
+    "persisted_calls": 6
+  },
+  "skill_context": {
+    "match_results": [],
+    "scope_filters": {
+      "tenant_id": null,
+      "project_id": null
+    },
+    "match_cache_key": "skill_match:677e442e4b33475704f8e6712d4c7357122d889a35d7f2b89ab67c6f8671c312",
+    "resolved_skills": [],
+    "registry_revision": 1,
+    "candidate_skill_ids": [],
+    "effective_skill_ids": [],
+    "snapshot_created_at": "2026-10-21T04:52:17.726567",
+    "effective_agent_hints": {},
+    "truncated_skill_count": 0,
+    "auto_matched_skill_ids": [],
+    "effective_tool_allowlist": [],
+    "effective_prompt_sections": {
+      "prompt": "",
+      "overview": "",
+      "constraints": ""
+    },
+    "manually_enabled_skill_ids": [],
+    "manually_disabled_skill_ids": []
+  },
+  "organization_research": {
+    "scope": {
+      "topic": "perovskite",
+      "end_date": "2026-10-21",
+      "entities": [
+        {
+          "name": "King Faisal University",
+          "type": "university",
+          "aliases": [],
+          "entity_id": "kfu",
+          "unit_kind": "organization",
+          "source_urls": [
+            "https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0351439"
+          ],
+          "resolution_status": "pending"
+        }
+      ],
+      "start_date": "2026-01-01",
+      "disciplines": [
+        "materials science"
+      ],
+      "organization_types": [
+        "university"
+      ]
+    },
+    "weights": {
+      "preset": "custom",
+      "weights": {
+        "topic_relevance": 6.0,
+        "evidence_completeness": 4.0
+      },
+      "mappings": [],
+      "config_version": "materials-case-20261021-v1",
+      "metric_weights": {},
+      "performance_groups": {
+        "paper": 1.0,
+        "venue": 1.0
+      }
+    },
+    "schema_version": "adrs-organization-run-v2",
+    "evidence_cutoff": "2026-10-21T04:52:17.733054+00:00",
+    "selected_preset": null,
+    "catalog_manifest": {
+      "schemes": [
+        {
+          "level": "venue",
+          "family": "directory",
+          "adapter": "exact_catalogue",
+          "editions": [],
+          "scheme_id": "ccf",
+          "source_url": "https://www.ccf.org.cn/Academic_Evaluation/By_category/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "directory",
+          "adapter": "exact_catalogue",
+          "editions": [],
+          "scheme_id": "icore",
+          "source_url": "https://portal.core.edu.au/conf-ranks/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "index",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "wos_scie",
+          "source_url": "https://mjl.clarivate.com/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "index",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "wos_ssci",
+          "source_url": "https://mjl.clarivate.com/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "index",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "wos_ahci",
+          "source_url": "https://mjl.clarivate.com/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "index",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "wos_esci",
+          "source_url": "https://mjl.clarivate.com/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "index",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "scopus",
+          "source_url": "https://www.scopus.com/sources",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "journal_metric",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "jcr_jif",
+          "source_url": "https://jcr.clarivate.com/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "journal_metric",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "jcr_quartile",
+          "source_url": "https://jcr.clarivate.com/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "journal_metric",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "jcr_jci",
+          "source_url": "https://jcr.clarivate.com/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "journal_metric",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "cas_partition",
+          "source_url": "https://www.fenqubiao.com/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "journal_metric",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "citescore",
+          "source_url": "https://www.scopus.com/sources",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "journal_metric",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "citescore_percentile",
+          "source_url": "https://www.scopus.com/sources",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "journal_metric",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "sjr",
+          "source_url": "https://www.scimagojr.com/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "journal_metric",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "snip",
+          "source_url": "https://www.scopus.com/sources",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "directory",
+          "adapter": "exact_catalogue",
+          "editions": [],
+          "scheme_id": "abdc",
+          "source_url": "https://abdc.edu.au/abdc-journal-quality-list/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "directory",
+          "adapter": "exact_catalogue",
+          "editions": [],
+          "scheme_id": "ajg",
+          "source_url": "https://charteredabs.org/academic-journal-guide",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "work",
+          "family": "paper_metric",
+          "adapter": "paper_metric",
+          "editions": [],
+          "scheme_id": "citation_percentile",
+          "source_url": "https://help.openalex.org/data/works/citations/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "work",
+          "family": "paper_metric",
+          "adapter": "paper_metric",
+          "editions": [],
+          "scheme_id": "cnci",
+          "source_url": "https://incites.help.clarivate.com/Content/Indicators-Handbook/ih-normalized-citation-impact.htm",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "work",
+          "family": "paper_metric",
+          "adapter": "paper_metric",
+          "editions": [],
+          "scheme_id": "fwci",
+          "source_url": "https://help.openalex.org/data/works/citations/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        }
+      ],
+      "sources": [
+        {
+          "access": "public",
+          "edition": "2012",
+          "records": [
+            {
+              "track": "main",
+              "status": "available",
+              "category": "Computer networks",
+              "raw_value": "B",
+              "target_id": "dblp:conf/nsdi",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            },
+            {
+              "track": "main",
+              "status": "available",
+              "category": "Computer networks",
+              "raw_value": "A",
+              "target_id": "dblp:conf/sigcomm",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            }
+          ],
+          "coverage": "partial",
+          "provider": "CCF (issued PDF, public mirror)",
+          "scheme_id": "ccf",
+          "source_id": "public-ccf-2012",
+          "authorized": false,
+          "source_url": "https://risame.github.io/sun/ccf.pdf",
+          "metric_year": 2012,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": null
+        },
+        {
+          "access": "public",
+          "edition": "2022",
+          "records": [
+            {
+              "track": "main",
+              "status": "available",
+              "category": "Computer networks",
+              "raw_value": "A",
+              "target_id": "dblp:conf/nsdi",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            },
+            {
+              "track": "main",
+              "status": "available",
+              "category": "Computer networks",
+              "raw_value": "A",
+              "target_id": "dblp:conf/sigcomm",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            }
+          ],
+          "coverage": "partial",
+          "provider": "CCF (issued PDF, public mirror)",
+          "scheme_id": "ccf",
+          "source_id": "public-ccf-2022",
+          "authorized": false,
+          "source_url": "https://scdm-shu.github.io/ccf/2022-CCF-Ranking.pdf",
+          "metric_year": 2022,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": null
+        },
+        {
+          "access": "public",
+          "edition": "CORE2023",
+          "records": [
+            {
+              "track": "main",
+              "status": "available",
+              "category": "4606",
+              "raw_value": "A*",
+              "target_id": "dblp:conf/sigcomm",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            }
+          ],
+          "coverage": "partial",
+          "provider": "ICORE",
+          "scheme_id": "icore",
+          "source_id": "public-icore-2023",
+          "authorized": false,
+          "source_url": "https://portal.core.edu.au/conf-ranks/?search=SIGCOMM&by=all&source=CORE2023&sort=atitle&page=1",
+          "metric_year": 2023,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": null
+        },
+        {
+          "access": "public",
+          "edition": "ICORE2026",
+          "records": [
+            {
+              "track": "main",
+              "status": "available",
+              "category": "4606",
+              "raw_value": "A*",
+              "target_id": "dblp:conf/sigcomm",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            }
+          ],
+          "coverage": "partial",
+          "provider": "ICORE",
+          "scheme_id": "icore",
+          "source_id": "public-icore-2026",
+          "authorized": false,
+          "source_url": "https://portal.core.edu.au/conf-ranks/?search=SIGCOMM&by=all&source=ICORE2026&sort=atitle&page=1",
+          "metric_year": 2026,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": null
+        },
+        {
+          "access": "public",
+          "edition": "2010",
+          "records": [
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "1503",
+              "raw_value": "A*",
+              "target_id": "issn:0047-2506",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            },
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "1503",
+              "raw_value": "A*",
+              "target_id": "issn:1478-6990",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            }
+          ],
+          "coverage": "partial",
+          "provider": "ABDC",
+          "scheme_id": "abdc",
+          "source_id": "public-abdc-2010",
+          "authorized": false,
+          "source_url": "https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx",
+          "metric_year": 2010,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": null
+        },
+        {
+          "access": "public",
+          "edition": "2013",
+          "records": [
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "1503",
+              "raw_value": "A*",
+              "target_id": "issn:0047-2506",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            },
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "1503",
+              "raw_value": "A*",
+              "target_id": "issn:1478-6990",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            }
+          ],
+          "coverage": "partial",
+          "provider": "ABDC",
+          "scheme_id": "abdc",
+          "source_id": "public-abdc-2013",
+          "authorized": false,
+          "source_url": "https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx",
+          "metric_year": 2013,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": null
+        },
+        {
+          "access": "public",
+          "edition": "2016",
+          "records": [
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "1503",
+              "raw_value": "A*",
+              "target_id": "issn:0047-2506",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            },
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "1503",
+              "raw_value": "A*",
+              "target_id": "issn:1478-6990",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            }
+          ],
+          "coverage": "partial",
+          "provider": "ABDC",
+          "scheme_id": "abdc",
+          "source_id": "public-abdc-2016",
+          "authorized": false,
+          "source_url": "https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx",
+          "metric_year": 2016,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": null
+        },
+        {
+          "access": "public",
+          "edition": "2019",
+          "records": [
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "1503",
+              "raw_value": "A*",
+              "target_id": "issn:0047-2506",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            },
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "1503",
+              "raw_value": "A*",
+              "target_id": "issn:1478-6990",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            }
+          ],
+          "coverage": "partial",
+          "provider": "ABDC",
+          "scheme_id": "abdc",
+          "source_id": "public-abdc-2019",
+          "authorized": false,
+          "source_url": "https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx",
+          "metric_year": 2019,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": null
+        },
+        {
+          "access": "public",
+          "edition": "2022",
+          "records": [
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "3507",
+              "raw_value": "A*",
+              "target_id": "issn:0047-2506",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            },
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "3507",
+              "raw_value": "A*",
+              "target_id": "issn:1478-6990",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            }
+          ],
+          "coverage": "partial",
+          "provider": "ABDC",
+          "scheme_id": "abdc",
+          "source_id": "public-abdc-2022",
+          "authorized": false,
+          "source_url": "https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx",
+          "metric_year": 2022,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": null
+        },
+        {
+          "access": "public",
+          "edition": "2025",
+          "records": [
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "3507",
+              "raw_value": "A*",
+              "target_id": "issn:0047-2506",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            },
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "3507",
+              "raw_value": "A*",
+              "target_id": "issn:1478-6990",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            }
+          ],
+          "coverage": "partial",
+          "provider": "ABDC",
+          "scheme_id": "abdc",
+          "source_id": "public-abdc-2025",
+          "authorized": false,
+          "source_url": "https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx",
+          "metric_year": 2025,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": null
+        },
+        {
+          "access": "public",
+          "edition": "OpenAlex snapshot 2026-10-19",
+          "records": [
+            {
+              "track": "work",
+              "status": "available",
+              "category": "https://openalex.org/subfields/2613 | Statistics and Probability",
+              "raw_value": 3266.5958,
+              "target_id": "openalex:W1951724000",
+              "document_type": "article",
+              "citation_cutoff": "2018-12-31",
+              "publication_year": 2015
+            }
+          ],
+          "coverage": "partial",
+          "provider": "OpenAlex",
+          "scheme_id": "fwci",
+          "source_id": "openalex-W1951724000-fwci-2026-10-19",
+          "authorized": false,
+          "source_url": "https://api.openalex.org/works/W1951724000",
+          "metric_year": 2026,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": "2026-10-19T09:35:57.686232"
+        },
+        {
+          "access": "public",
+          "edition": "OpenAlex snapshot 2026-10-19",
+          "records": [
+            {
+              "track": "work",
+              "status": "available",
+              "category": "https://openalex.org/subfields/2613 | Statistics and Probability",
+              "raw_value": 1.0,
+              "target_id": "openalex:W1951724000",
+              "document_type": "article",
+              "citation_cutoff": "2018-12-31",
+              "publication_year": 2015
+            }
+          ],
+          "coverage": "partial",
+          "provider": "OpenAlex",
+          "scheme_id": "citation_percentile",
+          "source_id": "openalex-W1951724000-citation_percentile-2026-10-19",
+          "authorized": false,
+          "source_url": "https://api.openalex.org/works/W1951724000",
+          "metric_year": 2026,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": "2026-10-19T09:35:57.686232"
+        }
+      ],
+      "captured_at": "2026-10-21T04:52:17.733054+00:00",
+      "schema_version": "adrs-evaluation-catalog-v1",
+      "availability_note": "Frozen public samples and import requirements; not a live lookup or verified evaluation of collected evidence.",
+      "applied_to_evidence": false,
+      "adapter_rule_version": "adrs-evaluation-adapters-v1"
+    },
+    "effective_weights": {
+      "mappings": [
+        {
+          "scores": {
+            "A": 1.0,
+            "B": 0.6666666666666667,
+            "C": 0.33333333333333337
+          },
+          "version": "adrs-preference-map-v1",
+          "scheme_id": "ccf"
+        },
+        {
+          "scores": {
+            "A": 0.75,
+            "B": 0.5,
+            "C": 0.25,
+            "A*": 1.0
+          },
+          "version": "adrs-preference-map-v1",
+          "scheme_id": "icore"
+        },
+        {
+          "scores": {
+            "A": 0.75,
+            "B": 0.5,
+            "C": 0.25,
+            "A*": 1.0
+          },
+          "version": "adrs-preference-map-v1",
+          "scheme_id": "abdc"
+        },
+        {
+          "scores": {
+            "1": 0.19999999999999996,
+            "2": 0.4,
+            "3": 0.6,
+            "4": 0.8,
+            "4*": 1.0
+          },
+          "version": "adrs-preference-map-v1",
+          "scheme_id": "ajg"
+        },
+        {
+          "scores": {
+            "Q1": 1.0,
+            "Q2": 0.75,
+            "Q3": 0.5,
+            "Q4": 0.25
+          },
+          "version": "adrs-preference-map-v1",
+          "scheme_id": "jcr_quartile"
+        },
+        {
+          "scores": {
+            "1": 1.0,
+            "2": 0.75,
+            "3": 0.5,
+            "4": 0.25
+          },
+          "version": "adrs-preference-map-v1",
+          "scheme_id": "cas_partition"
+        }
+      ],
+      "semantics": "preference_configuration_only",
+      "raw_config": {
+        "preset": "custom",
+        "weights": {
+          "topic_relevance": {
+            "weight": 6.0,
+            "enabled": true
+          },
+          "evidence_completeness": {
+            "weight": 4.0,
+            "enabled": true
+          }
+        },
+        "metric_weights": {},
+        "performance_groups": {
+          "paper": {
+            "weight": 1.0,
+            "enabled": true
+          },
+          "venue": {
+            "weight": 1.0,
+            "enabled": true
+          }
+        }
+      },
+      "rule_version": "adrs-weight-rules-v1",
+      "config_version": "materials-case-20261021-v1",
+      "preset_version": "adrs-presets-v1",
+      "effective_groups": {
+        "paper": 0.0,
+        "venue": 0.0
+      },
+      "effective_weights": {
+        "topic_relevance": 0.6000000000000001,
+        "evidence_completeness": 0.4
+      },
+      "effective_metric_weights": {}
+    },
+    "scope_rule_version": "adrs-organization-scope-v2"
+  },
+  "organization_result": {
+    "gaps": [
+      "证据索引不等于机构成果全集或已核实合作关系。"
+    ],
+    "scope": {
+      "topic": "perovskite",
+      "end_date": "2026-10-21",
+      "entities": [
+        {
+          "name": "King Faisal University",
+          "type": "university",
+          "aliases": [],
+          "entity_id": "kfu",
+          "unit_kind": "organization",
+          "source_urls": [
+            "https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0351439"
+          ],
+          "resolution_status": "pending"
+        }
+      ],
+      "start_date": "2026-01-01",
+      "disciplines": [
+        "materials science"
+      ],
+      "organization_types": [
+        "university"
+      ]
+    },
+    "coverage": "retrieved_sample_not_real_world_census",
+    "extraction": {
+      "status": "returned",
+      "finish_reason": "stop",
+      "response_fields": [
+        "analysis_text",
+        "organization_data"
+      ]
+    },
+    "inferences": [
+      {
+        "kind": "inference",
+        "statement": "该 PLOS ONE 论文是本次有界样本中唯一可核实的 KFU 关联成果；作者列表中 Aleithan SH 的署名单位显示为 King Faisal University 物理系，但页面未逐行配对姓名与单位，故归属判读为中等置信度，建议以作者贡献声明或机构库记录进一步确认。",
+        "entity_ids": [
+          "kfu"
+        ],
+        "evidence_ids": [
+          "ev-cde6fff0",
+          "ev-cde6fff0"
+        ],
+        "verification_status": "model_interpretation_requires_review"
+      },
+      {
+        "kind": "inference",
+        "statement": "该论文为 PLOS ONE 综合性开放获取期刊文章，不适用计算机会议 CCF 等级；学科归类为 materials science（钙钛矿太阳能电池），发表于 2026-07-10，落在契约时间窗内。",
+        "entity_ids": [
+          "kfu"
+        ],
+        "evidence_ids": [
+          "ev-cde6fff0",
+          "ev-cde6fff0"
+        ],
+        "verification_status": "model_interpretation_requires_review"
+      }
+    ],
+    "object_views": [
+      {
+        "gaps": [
+          "对象提及及来源域名仅是证据定位，不证明作者署名或时间归属；成果需继续核验。"
+        ],
+        "name": "King Faisal University",
+        "type": "university",
+        "entity_id": "kfu",
+        "resolution_status": "pending",
+        "mention_evidence_ids": [
+          "ev-cde6fff0",
+          "ev-200c30e0"
+        ],
+        "publication_attribution": "pending",
+        "source_domain_evidence_ids": [
+          "ev-cde6fff0",
+          "ev-200c30e0"
+        ]
+      }
+    ],
+    "scope_result": {
+      "scope": {
+        "topic": "perovskite",
+        "end_date": "2026-10-21",
+        "entities": [
+          {
+            "name": "King Faisal University",
+            "type": "university",
+            "aliases": [],
+            "entity_id": "kfu",
+            "unit_kind": "organization",
+            "source_urls": [
+              "https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0351439"
+            ],
+            "resolution_status": "pending"
+          }
+        ],
+        "start_date": "2026-01-01",
+        "disciplines": [
+          "materials science"
+        ],
+        "organization_types": [
+          "university"
+        ]
+      },
+      "views": [
+        {
+          "name": "King Faisal University",
+          "type": "university",
+          "entity_id": "kfu",
+          "output_ids": [],
+          "output_count": 0,
+          "counting_method": "full",
+          "direct_output_ids": [],
+          "publication_count": 0,
+          "research_family_ids": [],
+          "inherited_output_ids": [],
+          "research_family_count": 0,
+          "unlinked_publication_count": 0
+        }
+      ],
+      "outputs": [],
+      "summary": {
+        "output_ids": [],
+        "output_count": 0,
+        "counting_method": "full",
+        "publication_count": 0,
+        "research_family_ids": [],
+        "research_family_count": 0,
+        "unlinked_publication_count": 0
+      },
+      "verification": {
+        "source_status": "provided_records_only",
+        "external_sources_checked": false
+      },
+      "relationships": [],
+      "schema_version": "2",
+      "selection_mode": "named_entities",
+      "discovery_query": null,
+      "relation_counts": {
+        "funding": 0,
+        "citation": 0,
+        "coauthorship": 0
+      },
+      "output_relations": [],
+      "research_families": [],
+      "selected_entities": [
+        {
+          "name": "King Faisal University",
+          "type": "university",
+          "aliases": [],
+          "entity_id": "kfu",
+          "unit_kind": "organization",
+          "source_urls": [
+            "https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0351439"
+          ],
+          "resolution_status": "pending"
+        }
+      ],
+      "pending_entity_ids": [
+        "kfu"
+      ],
+      "excluded_candidates": [],
+      "current_affiliations": [],
+      "undated_relationship_count": 0
+    },
+    "counting_unit": "retrieved_evidence_not_publications",
+    "source_checks": {
+      "proofs": [
+        {
+          "end": 88,
+          "quote": "Enhancing perovskite solar cells efficiency via dual surface passivation",
+          "start": 16,
+          "source_url": "https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0351439",
+          "evidence_id": "ev-cde6fff0"
+        },
+        {
+          "end": 3484,
+          "quote": "Received: July 5, 2025; Accepted: May 27, 2026; Published: July 10, 2026",
+          "start": 3412,
+          "source_url": "https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0351439",
+          "evidence_id": "ev-cde6fff0"
+        },
+        {
+          "end": 1413,
+          "quote": "Contributed equally to this work with: Refka Sai, Shrouq H. Aleithan\n\nAffiliation Department of Physics, College of Science, King Faisal University, Al-Ahsa, Saudi Arabia",
+          "start": 1243,
+          "source_url": "https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0351439",
+          "evidence_id": "ev-cde6fff0"
+        },
+        {
+          "end": 3308,
+          "quote": "Citation: Sai R, Aleithan SH (2026) Enhancing perovskite solar cells efficiency via dual surface passivation. PLoS One 21(7): e0351439. https://doi.org/10.1371/journal.pone.0351439",
+          "start": 3128,
+          "source_url": "https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0351439",
+          "evidence_id": "ev-cde6fff0"
+        },
+        {
+          "end": 1665,
+          "quote": "20 Aug 2026: Sai R, Aleithan SH (2026) Correction: Enhancing perovskite solar cells efficiency via dual surface passivation. PLOS ONE 21(8): e0356803. https://doi.org/10.1371/journal.pone.0356803 View correction",
+          "start": 1454,
+          "source_url": "https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0351439",
+          "evidence_id": "ev-cde6fff0"
+        },
+        {
+          "end": 149,
+          "quote": "citation_journal_title: PLOS ONE",
+          "start": 117,
+          "source_url": "https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0351439",
+          "evidence_id": "ev-cde6fff0"
+        }
+      ],
+      "status": "source_quote_and_reference_checked_not_independent_semantic_review",
+      "accepted_output_count": 0,
+      "available_evidence_ids": [
+        "ev-cde6fff0",
+        "ev-200c30e0"
+      ],
+      "analyst_excerpt_evidence_ids": [
+        "ev-cde6fff0",
+        "ev-200c30e0"
+      ]
+    },
+    "evidence_count": 2,
+    "report_summary": {
+      "gaps": [
+        "证据索引不等于机构成果全集或已核实合作关系。",
+        "仅覆盖本次取得的样本；空样本不代表现实中零成果，来源未覆盖年份不补零。",
+        "学科比较组使用请求标签，尚未逐篇核定学科；不输出跨学科或载体的统一质量榜。",
+        "原文位置与引用检查不等于独立语义复核；模型推断、建议和未来情景仍须复核。",
+        "评价目录为冻结的部分样本及授权要求，未自动应用到本次成果；缺失指标不作零分或最低等级。",
+        "coauthorship 关系尚无已纳入的直接依据；不表示该关系不存在。",
+        "funding 关系尚无已纳入的直接依据；不表示该关系不存在。",
+        "citation 关系尚无已纳入的直接依据；不表示该关系不存在。"
+      ],
+      "sample": {
+        "views": [
+          {
+            "name": "King Faisal University",
+            "type": "university",
+            "entity_id": "kfu",
+            "output_ids": [],
+            "output_count": 0,
+            "counting_method": "full",
+            "direct_output_ids": [],
+            "publication_count": 0,
+            "research_family_ids": [],
+            "inherited_output_ids": [],
+            "research_family_count": 0,
+            "unlinked_publication_count": 0
+          }
+        ],
+        "summary": {
+          "output_ids": [],
+          "output_count": 0,
+          "counting_method": "full",
+          "publication_count": 0,
+          "research_family_ids": [],
+          "research_family_count": 0,
+          "unlinked_publication_count": 0
+        },
+        "coverage": "retrieved_sample_not_real_world_census",
+        "entities": [
+          {
+            "name": "King Faisal University",
+            "type": "university",
+            "aliases": [],
+            "entity_id": "kfu",
+            "unit_kind": "organization",
+            "source_urls": [
+              "https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0351439"
+            ],
+            "resolution_status": "pending"
+          }
+        ],
+        "counting_note": "分别保留发表记录与研究家族；同成果可归属多个对象，汇总取并集，未关联版本按独立发表计数。",
+        "counting_rule": "per_object_full_count_and_union_deduplication",
+        "comparison_groups": []
+      },
+      "sources": [
+        {
+          "source_url": "https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0351439",
+          "evidence_id": "ev-cde6fff0",
+          "source_type": "web",
+          "collected_at": "2026-10-21T04:53:04.924512",
+          "source_title": "Enhancing perovskite solar cells efficiency via dual surface passivation | PLOS One"
+        },
+        {
+          "source_url": "https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0351439",
+          "evidence_id": "ev-200c30e0",
+          "source_type": "web",
+          "collected_at": "2026-10-21T04:53:03.406916",
+          "source_title": "Enhancing perovskite solar cells efficiency via dual surface passivation | PLOS One"
+        }
+      ],
+      "weights": {
+        "mappings": [
+          {
+            "scores": {
+              "A": 1.0,
+              "B": 0.6666666666666667,
+              "C": 0.33333333333333337
+            },
+            "version": "adrs-preference-map-v1",
+            "scheme_id": "ccf"
+          },
+          {
+            "scores": {
+              "A": 0.75,
+              "B": 0.5,
+              "C": 0.25,
+              "A*": 1.0
+            },
+            "version": "adrs-preference-map-v1",
+            "scheme_id": "icore"
+          },
+          {
+            "scores": {
+              "A": 0.75,
+              "B": 0.5,
+              "C": 0.25,
+              "A*": 1.0
+            },
+            "version": "adrs-preference-map-v1",
+            "scheme_id": "abdc"
+          },
+          {
+            "scores": {
+              "1": 0.19999999999999996,
+              "2": 0.4,
+              "3": 0.6,
+              "4": 0.8,
+              "4*": 1.0
+            },
+            "version": "adrs-preference-map-v1",
+            "scheme_id": "ajg"
+          },
+          {
+            "scores": {
+              "Q1": 1.0,
+              "Q2": 0.75,
+              "Q3": 0.5,
+              "Q4": 0.25
+            },
+            "version": "adrs-preference-map-v1",
+            "scheme_id": "jcr_quartile"
+          },
+          {
+            "scores": {
+              "1": 1.0,
+              "2": 0.75,
+              "3": 0.5,
+              "4": 0.25
+            },
+            "version": "adrs-preference-map-v1",
+            "scheme_id": "cas_partition"
+          }
+        ],
+        "semantics": "preference_configuration_only",
+        "raw_config": {
+          "preset": "custom",
+          "weights": {
+            "topic_relevance": {
+              "weight": 6.0,
+              "enabled": true
+            },
+            "evidence_completeness": {
+              "weight": 4.0,
+              "enabled": true
+            }
+          },
+          "metric_weights": {},
+          "performance_groups": {
+            "paper": {
+              "weight": 1.0,
+              "enabled": true
+            },
+            "venue": {
+              "weight": 1.0,
+              "enabled": true
+            }
+          }
+        },
+        "rule_version": "adrs-weight-rules-v1",
+        "config_version": "materials-case-20261021-v1",
+        "preset_version": "adrs-presets-v1",
+        "effective_groups": {
+          "paper": 0.0,
+          "venue": 0.0
+        },
+        "effective_weights": {
+          "topic_relevance": 0.6000000000000001,
+          "evidence_completeness": 0.4
+        },
+        "effective_metric_weights": {}
+      },
+      "versions": {
+        "schema_version": "adrs-organization-run-v2",
+        "scope_rule_version": "adrs-organization-scope-v2"
+      },
+      "evaluation": {
+        "schemes": [
+          {
+            "level": "venue",
+            "family": "directory",
+            "adapter": "exact_catalogue",
+            "editions": [],
+            "scheme_id": "ccf",
+            "source_url": "https://www.ccf.org.cn/Academic_Evaluation/By_category/",
+            "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+            "availability": "import_only"
+          },
+          {
+            "level": "venue",
+            "family": "directory",
+            "adapter": "exact_catalogue",
+            "editions": [],
+            "scheme_id": "icore",
+            "source_url": "https://portal.core.edu.au/conf-ranks/",
+            "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+            "availability": "import_only"
+          },
+          {
+            "level": "venue",
+            "family": "index",
+            "adapter": "authorized_metric",
+            "editions": [],
+            "scheme_id": "wos_scie",
+            "source_url": "https://mjl.clarivate.com/",
+            "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+            "availability": "import_only"
+          },
+          {
+            "level": "venue",
+            "family": "index",
+            "adapter": "authorized_metric",
+            "editions": [],
+            "scheme_id": "wos_ssci",
+            "source_url": "https://mjl.clarivate.com/",
+            "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+            "availability": "import_only"
+          },
+          {
+            "level": "venue",
+            "family": "index",
+            "adapter": "authorized_metric",
+            "editions": [],
+            "scheme_id": "wos_ahci",
+            "source_url": "https://mjl.clarivate.com/",
+            "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+            "availability": "import_only"
+          },
+          {
+            "level": "venue",
+            "family": "index",
+            "adapter": "authorized_metric",
+            "editions": [],
+            "scheme_id": "wos_esci",
+            "source_url": "https://mjl.clarivate.com/",
+            "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+            "availability": "import_only"
+          },
+          {
+            "level": "venue",
+            "family": "index",
+            "adapter": "authorized_metric",
+            "editions": [],
+            "scheme_id": "scopus",
+            "source_url": "https://www.scopus.com/sources",
+            "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+            "availability": "import_only"
+          },
+          {
+            "level": "venue",
+            "family": "journal_metric",
+            "adapter": "authorized_metric",
+            "editions": [],
+            "scheme_id": "jcr_jif",
+            "source_url": "https://jcr.clarivate.com/",
+            "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+            "availability": "import_only"
+          },
+          {
+            "level": "venue",
+            "family": "journal_metric",
+            "adapter": "authorized_metric",
+            "editions": [],
+            "scheme_id": "jcr_quartile",
+            "source_url": "https://jcr.clarivate.com/",
+            "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+            "availability": "import_only"
+          },
+          {
+            "level": "venue",
+            "family": "journal_metric",
+            "adapter": "authorized_metric",
+            "editions": [],
+            "scheme_id": "jcr_jci",
+            "source_url": "https://jcr.clarivate.com/",
+            "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+            "availability": "import_only"
+          },
+          {
+            "level": "venue",
+            "family": "journal_metric",
+            "adapter": "authorized_metric",
+            "editions": [],
+            "scheme_id": "cas_partition",
+            "source_url": "https://www.fenqubiao.com/",
+            "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+            "availability": "import_only"
+          },
+          {
+            "level": "venue",
+            "family": "journal_metric",
+            "adapter": "authorized_metric",
+            "editions": [],
+            "scheme_id": "citescore",
+            "source_url": "https://www.scopus.com/sources",
+            "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+            "availability": "import_only"
+          },
+          {
+            "level": "venue",
+            "family": "journal_metric",
+            "adapter": "authorized_metric",
+            "editions": [],
+            "scheme_id": "citescore_percentile",
+            "source_url": "https://www.scopus.com/sources",
+            "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+            "availability": "import_only"
+          },
+          {
+            "level": "venue",
+            "family": "journal_metric",
+            "adapter": "authorized_metric",
+            "editions": [],
+            "scheme_id": "sjr",
+            "source_url": "https://www.scimagojr.com/",
+            "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+            "availability": "import_only"
+          },
+          {
+            "level": "venue",
+            "family": "journal_metric",
+            "adapter": "authorized_metric",
+            "editions": [],
+            "scheme_id": "snip",
+            "source_url": "https://www.scopus.com/sources",
+            "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+            "availability": "import_only"
+          },
+          {
+            "level": "venue",
+            "family": "directory",
+            "adapter": "exact_catalogue",
+            "editions": [],
+            "scheme_id": "abdc",
+            "source_url": "https://abdc.edu.au/abdc-journal-quality-list/",
+            "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+            "availability": "import_only"
+          },
+          {
+            "level": "venue",
+            "family": "directory",
+            "adapter": "exact_catalogue",
+            "editions": [],
+            "scheme_id": "ajg",
+            "source_url": "https://charteredabs.org/academic-journal-guide",
+            "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+            "availability": "import_only"
+          },
+          {
+            "level": "work",
+            "family": "paper_metric",
+            "adapter": "paper_metric",
+            "editions": [],
+            "scheme_id": "citation_percentile",
+            "source_url": "https://help.openalex.org/data/works/citations/",
+            "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+            "availability": "import_only"
+          },
+          {
+            "level": "work",
+            "family": "paper_metric",
+            "adapter": "paper_metric",
+            "editions": [],
+            "scheme_id": "cnci",
+            "source_url": "https://incites.help.clarivate.com/Content/Indicators-Handbook/ih-normalized-citation-impact.htm",
+            "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+            "availability": "import_only"
+          },
+          {
+            "level": "work",
+            "family": "paper_metric",
+            "adapter": "paper_metric",
+            "editions": [],
+            "scheme_id": "fwci",
+            "source_url": "https://help.openalex.org/data/works/citations/",
+            "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+            "availability": "import_only"
+          }
+        ],
+        "sources": [
+          {
+            "access": "public",
+            "edition": "2012",
+            "records": [
+              {
+                "track": "main",
+                "status": "available",
+                "category": "Computer networks",
+                "raw_value": "B",
+                "target_id": "dblp:conf/nsdi",
+                "document_type": null,
+                "citation_cutoff": null,
+                "publication_year": null
+              },
+              {
+                "track": "main",
+                "status": "available",
+                "category": "Computer networks",
+                "raw_value": "A",
+                "target_id": "dblp:conf/sigcomm",
+                "document_type": null,
+                "citation_cutoff": null,
+                "publication_year": null
+              }
+            ],
+            "coverage": "partial",
+            "provider": "CCF (issued PDF, public mirror)",
+            "scheme_id": "ccf",
+            "source_id": "public-ccf-2012",
+            "authorized": false,
+            "source_url": "https://risame.github.io/sun/ccf.pdf",
+            "metric_year": 2012,
+            "retrieved_on": "2026-10-19",
+            "provider_updated_at": null
+          },
+          {
+            "access": "public",
+            "edition": "2022",
+            "records": [
+              {
+                "track": "main",
+                "status": "available",
+                "category": "Computer networks",
+                "raw_value": "A",
+                "target_id": "dblp:conf/nsdi",
+                "document_type": null,
+                "citation_cutoff": null,
+                "publication_year": null
+              },
+              {
+                "track": "main",
+                "status": "available",
+                "category": "Computer networks",
+                "raw_value": "A",
+                "target_id": "dblp:conf/sigcomm",
+                "document_type": null,
+                "citation_cutoff": null,
+                "publication_year": null
+              }
+            ],
+            "coverage": "partial",
+            "provider": "CCF (issued PDF, public mirror)",
+            "scheme_id": "ccf",
+            "source_id": "public-ccf-2022",
+            "authorized": false,
+            "source_url": "https://scdm-shu.github.io/ccf/2022-CCF-Ranking.pdf",
+            "metric_year": 2022,
+            "retrieved_on": "2026-10-19",
+            "provider_updated_at": null
+          },
+          {
+            "access": "public",
+            "edition": "CORE2023",
+            "records": [
+              {
+                "track": "main",
+                "status": "available",
+                "category": "4606",
+                "raw_value": "A*",
+                "target_id": "dblp:conf/sigcomm",
+                "document_type": null,
+                "citation_cutoff": null,
+                "publication_year": null
+              }
+            ],
+            "coverage": "partial",
+            "provider": "ICORE",
+            "scheme_id": "icore",
+            "source_id": "public-icore-2023",
+            "authorized": false,
+            "source_url": "https://portal.core.edu.au/conf-ranks/?search=SIGCOMM&by=all&source=CORE2023&sort=atitle&page=1",
+            "metric_year": 2023,
+            "retrieved_on": "2026-10-19",
+            "provider_updated_at": null
+          },
+          {
+            "access": "public",
+            "edition": "ICORE2026",
+            "records": [
+              {
+                "track": "main",
+                "status": "available",
+                "category": "4606",
+                "raw_value": "A*",
+                "target_id": "dblp:conf/sigcomm",
+                "document_type": null,
+                "citation_cutoff": null,
+                "publication_year": null
+              }
+            ],
+            "coverage": "partial",
+            "provider": "ICORE",
+            "scheme_id": "icore",
+            "source_id": "public-icore-2026",
+            "authorized": false,
+            "source_url": "https://portal.core.edu.au/conf-ranks/?search=SIGCOMM&by=all&source=ICORE2026&sort=atitle&page=1",
+            "metric_year": 2026,
+            "retrieved_on": "2026-10-19",
+            "provider_updated_at": null
+          },
+          {
+            "access": "public",
+            "edition": "2010",
+            "records": [
+              {
+                "track": "journal",
+                "status": "available",
+                "category": "1503",
+                "raw_value": "A*",
+                "target_id": "issn:0047-2506",
+                "document_type": null,
+                "citation_cutoff": null,
+                "publication_year": null
+              },
+              {
+                "track": "journal",
+                "status": "available",
+                "category": "1503",
+                "raw_value": "A*",
+                "target_id": "issn:1478-6990",
+                "document_type": null,
+                "citation_cutoff": null,
+                "publication_year": null
+              }
+            ],
+            "coverage": "partial",
+            "provider": "ABDC",
+            "scheme_id": "abdc",
+            "source_id": "public-abdc-2010",
+            "authorized": false,
+            "source_url": "https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx",
+            "metric_year": 2010,
+            "retrieved_on": "2026-10-19",
+            "provider_updated_at": null
+          },
+          {
+            "access": "public",
+            "edition": "2013",
+            "records": [
+              {
+                "track": "journal",
+                "status": "available",
+                "category": "1503",
+                "raw_value": "A*",
+                "target_id": "issn:0047-2506",
+                "document_type": null,
+                "citation_cutoff": null,
+                "publication_year": null
+              },
+              {
+                "track": "journal",
+                "status": "available",
+                "category": "1503",
+                "raw_value": "A*",
+                "target_id": "issn:1478-6990",
+                "document_type": null,
+                "citation_cutoff": null,
+                "publication_year": null
+              }
+            ],
+            "coverage": "partial",
+            "provider": "ABDC",
+            "scheme_id": "abdc",
+            "source_id": "public-abdc-2013",
+            "authorized": false,
+            "source_url": "https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx",
+            "metric_year": 2013,
+            "retrieved_on": "2026-10-19",
+            "provider_updated_at": null
+          },
+          {
+            "access": "public",
+            "edition": "2016",
+            "records": [
+              {
+                "track": "journal",
+                "status": "available",
+                "category": "1503",
+                "raw_value": "A*",
+                "target_id": "issn:0047-2506",
+                "document_type": null,
+                "citation_cutoff": null,
+                "publication_year": null
+              },
+              {
+                "track": "journal",
+                "status": "available",
+                "category": "1503",
+                "raw_value": "A*",
+                "target_id": "issn:1478-6990",
+                "document_type": null,
+                "citation_cutoff": null,
+                "publication_year": null
+              }
+            ],
+            "coverage": "partial",
+            "provider": "ABDC",
+            "scheme_id": "abdc",
+            "source_id": "public-abdc-2016",
+            "authorized": false,
+            "source_url": "https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx",
+            "metric_year": 2016,
+            "retrieved_on": "2026-10-19",
+            "provider_updated_at": null
+          },
+          {
+            "access": "public",
+            "edition": "2019",
+            "records": [
+              {
+                "track": "journal",
+                "status": "available",
+                "category": "1503",
+                "raw_value": "A*",
+                "target_id": "issn:0047-2506",
+                "document_type": null,
+                "citation_cutoff": null,
+                "publication_year": null
+              },
+              {
+                "track": "journal",
+                "status": "available",
+                "category": "1503",
+                "raw_value": "A*",
+                "target_id": "issn:1478-6990",
+                "document_type": null,
+                "citation_cutoff": null,
+                "publication_year": null
+              }
+            ],
+            "coverage": "partial",
+            "provider": "ABDC",
+            "scheme_id": "abdc",
+            "source_id": "public-abdc-2019",
+            "authorized": false,
+            "source_url": "https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx",
+            "metric_year": 2019,
+            "retrieved_on": "2026-10-19",
+            "provider_updated_at": null
+          },
+          {
+            "access": "public",
+            "edition": "2022",
+            "records": [
+              {
+                "track": "journal",
+                "status": "available",
+                "category": "3507",
+                "raw_value": "A*",
+                "target_id": "issn:0047-2506",
+                "document_type": null,
+                "citation_cutoff": null,
+                "publication_year": null
+              },
+              {
+                "track": "journal",
+                "status": "available",
+                "category": "3507",
+                "raw_value": "A*",
+                "target_id": "issn:1478-6990",
+                "document_type": null,
+                "citation_cutoff": null,
+                "publication_year": null
+              }
+            ],
+            "coverage": "partial",
+            "provider": "ABDC",
+            "scheme_id": "abdc",
+            "source_id": "public-abdc-2022",
+            "authorized": false,
+            "source_url": "https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx",
+            "metric_year": 2022,
+            "retrieved_on": "2026-10-19",
+            "provider_updated_at": null
+          },
+          {
+            "access": "public",
+            "edition": "2025",
+            "records": [
+              {
+                "track": "journal",
+                "status": "available",
+                "category": "3507",
+                "raw_value": "A*",
+                "target_id": "issn:0047-2506",
+                "document_type": null,
+                "citation_cutoff": null,
+                "publication_year": null
+              },
+              {
+                "track": "journal",
+                "status": "available",
+                "category": "3507",
+                "raw_value": "A*",
+                "target_id": "issn:1478-6990",
+                "document_type": null,
+                "citation_cutoff": null,
+                "publication_year": null
+              }
+            ],
+            "coverage": "partial",
+            "provider": "ABDC",
+            "scheme_id": "abdc",
+            "source_id": "public-abdc-2025",
+            "authorized": false,
+            "source_url": "https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx",
+            "metric_year": 2025,
+            "retrieved_on": "2026-10-19",
+            "provider_updated_at": null
+          },
+          {
+            "access": "public",
+            "edition": "OpenAlex snapshot 2026-10-19",
+            "records": [
+              {
+                "track": "work",
+                "status": "available",
+                "category": "https://openalex.org/subfields/2613 | Statistics and Probability",
+                "raw_value": 3266.5958,
+                "target_id": "openalex:W1951724000",
+                "document_type": "article",
+                "citation_cutoff": "2018-12-31",
+                "publication_year": 2015
+              }
+            ],
+            "coverage": "partial",
+            "provider": "OpenAlex",
+            "scheme_id": "fwci",
+            "source_id": "openalex-W1951724000-fwci-2026-10-19",
+            "authorized": false,
+            "source_url": "https://api.openalex.org/works/W1951724000",
+            "metric_year": 2026,
+            "retrieved_on": "2026-10-19",
+            "provider_updated_at": "2026-10-19T09:35:57.686232"
+          },
+          {
+            "access": "public",
+            "edition": "OpenAlex snapshot 2026-10-19",
+            "records": [
+              {
+                "track": "work",
+                "status": "available",
+                "category": "https://openalex.org/subfields/2613 | Statistics and Probability",
+                "raw_value": 1.0,
+                "target_id": "openalex:W1951724000",
+                "document_type": "article",
+                "citation_cutoff": "2018-12-31",
+                "publication_year": 2015
+              }
+            ],
+            "coverage": "partial",
+            "provider": "OpenAlex",
+            "scheme_id": "citation_percentile",
+            "source_id": "openalex-W1951724000-citation_percentile-2026-10-19",
+            "authorized": false,
+            "source_url": "https://api.openalex.org/works/W1951724000",
+            "metric_year": 2026,
+            "retrieved_on": "2026-10-19",
+            "provider_updated_at": "2026-10-19T09:35:57.686232"
+          }
+        ],
+        "applied_to_evidence": false,
+        "adapter_rule_version": "adrs-evaluation-adapters-v1",
+        "catalog_schema_version": "adrs-evaluation-catalog-v1"
+      },
+      "configuration": {
+        "scope": {
+          "topic": "perovskite",
+          "end_date": "2026-10-21",
+          "entities": [
+            {
+              "name": "King Faisal University",
+              "type": "university",
+              "aliases": [],
+              "entity_id": "kfu",
+              "unit_kind": "organization",
+              "source_urls": [
+                "https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0351439"
+              ],
+              "resolution_status": "pending"
+            }
+          ],
+          "start_date": "2026-01-01",
+          "disciplines": [
+            "materials science"
+          ],
+          "organization_types": [
+            "university"
+          ]
+        },
+        "weights": {
+          "preset": "custom",
+          "weights": {
+            "topic_relevance": 6.0,
+            "evidence_completeness": 4.0
+          },
+          "mappings": [],
+          "config_version": "materials-case-20261021-v1",
+          "metric_weights": {},
+          "performance_groups": {
+            "paper": 1.0,
+            "venue": 1.0
+          }
+        },
+        "schema_version": "adrs-organization-run-v2",
+        "evidence_cutoff": "2026-10-21T04:52:17.733054+00:00",
+        "selected_preset": null,
+        "catalog_manifest": {
+          "schemes": [
+            {
+              "level": "venue",
+              "family": "directory",
+              "adapter": "exact_catalogue",
+              "editions": [],
+              "scheme_id": "ccf",
+              "source_url": "https://www.ccf.org.cn/Academic_Evaluation/By_category/",
+              "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+              "availability": "import_only"
+            },
+            {
+              "level": "venue",
+              "family": "directory",
+              "adapter": "exact_catalogue",
+              "editions": [],
+              "scheme_id": "icore",
+              "source_url": "https://portal.core.edu.au/conf-ranks/",
+              "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+              "availability": "import_only"
+            },
+            {
+              "level": "venue",
+              "family": "index",
+              "adapter": "authorized_metric",
+              "editions": [],
+              "scheme_id": "wos_scie",
+              "source_url": "https://mjl.clarivate.com/",
+              "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+              "availability": "import_only"
+            },
+            {
+              "level": "venue",
+              "family": "index",
+              "adapter": "authorized_metric",
+              "editions": [],
+              "scheme_id": "wos_ssci",
+              "source_url": "https://mjl.clarivate.com/",
+              "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+              "availability": "import_only"
+            },
+            {
+              "level": "venue",
+              "family": "index",
+              "adapter": "authorized_metric",
+              "editions": [],
+              "scheme_id": "wos_ahci",
+              "source_url": "https://mjl.clarivate.com/",
+              "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+              "availability": "import_only"
+            },
+            {
+              "level": "venue",
+              "family": "index",
+              "adapter": "authorized_metric",
+              "editions": [],
+              "scheme_id": "wos_esci",
+              "source_url": "https://mjl.clarivate.com/",
+              "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+              "availability": "import_only"
+            },
+            {
+              "level": "venue",
+              "family": "index",
+              "adapter": "authorized_metric",
+              "editions": [],
+              "scheme_id": "scopus",
+              "source_url": "https://www.scopus.com/sources",
+              "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+              "availability": "import_only"
+            },
+            {
+              "level": "venue",
+              "family": "journal_metric",
+              "adapter": "authorized_metric",
+              "editions": [],
+              "scheme_id": "jcr_jif",
+              "source_url": "https://jcr.clarivate.com/",
+              "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+              "availability": "import_only"
+            },
+            {
+              "level": "venue",
+              "family": "journal_metric",
+              "adapter": "authorized_metric",
+              "editions": [],
+              "scheme_id": "jcr_quartile",
+              "source_url": "https://jcr.clarivate.com/",
+              "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+              "availability": "import_only"
+            },
+            {
+              "level": "venue",
+              "family": "journal_metric",
+              "adapter": "authorized_metric",
+              "editions": [],
+              "scheme_id": "jcr_jci",
+              "source_url": "https://jcr.clarivate.com/",
+              "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+              "availability": "import_only"
+            },
+            {
+              "level": "venue",
+              "family": "journal_metric",
+              "adapter": "authorized_metric",
+              "editions": [],
+              "scheme_id": "cas_partition",
+              "source_url": "https://www.fenqubiao.com/",
+              "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+              "availability": "import_only"
+            },
+            {
+              "level": "venue",
+              "family": "journal_metric",
+              "adapter": "authorized_metric",
+              "editions": [],
+              "scheme_id": "citescore",
+              "source_url": "https://www.scopus.com/sources",
+              "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+              "availability": "import_only"
+            },
+            {
+              "level": "venue",
+              "family": "journal_metric",
+              "adapter": "authorized_metric",
+              "editions": [],
+              "scheme_id": "citescore_percentile",
+              "source_url": "https://www.scopus.com/sources",
+              "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+              "availability": "import_only"
+            },
+            {
+              "level": "venue",
+              "family": "journal_metric",
+              "adapter": "authorized_metric",
+              "editions": [],
+              "scheme_id": "sjr",
+              "source_url": "https://www.scimagojr.com/",
+              "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+              "availability": "import_only"
+            },
+            {
+              "level": "venue",
+              "family": "journal_metric",
+              "adapter": "authorized_metric",
+              "editions": [],
+              "scheme_id": "snip",
+              "source_url": "https://www.scopus.com/sources",
+              "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+              "availability": "import_only"
+            },
+            {
+              "level": "venue",
+              "family": "directory",
+              "adapter": "exact_catalogue",
+              "editions": [],
+              "scheme_id": "abdc",
+              "source_url": "https://abdc.edu.au/abdc-journal-quality-list/",
+              "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+              "availability": "import_only"
+            },
+            {
+              "level": "venue",
+              "family": "directory",
+              "adapter": "exact_catalogue",
+              "editions": [],
+              "scheme_id": "ajg",
+              "source_url": "https://charteredabs.org/academic-journal-guide",
+              "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+              "availability": "import_only"
+            },
+            {
+              "level": "work",
+              "family": "paper_metric",
+              "adapter": "paper_metric",
+              "editions": [],
+              "scheme_id": "citation_percentile",
+              "source_url": "https://help.openalex.org/data/works/citations/",
+              "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+              "availability": "import_only"
+            },
+            {
+              "level": "work",
+              "family": "paper_metric",
+              "adapter": "paper_metric",
+              "editions": [],
+              "scheme_id": "cnci",
+              "source_url": "https://incites.help.clarivate.com/Content/Indicators-Handbook/ih-normalized-citation-impact.htm",
+              "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+              "availability": "import_only"
+            },
+            {
+              "level": "work",
+              "family": "paper_metric",
+              "adapter": "paper_metric",
+              "editions": [],
+              "scheme_id": "fwci",
+              "source_url": "https://help.openalex.org/data/works/citations/",
+              "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+              "availability": "import_only"
+            }
+          ],
+          "sources": [
+            {
+              "access": "public",
+              "edition": "2012",
+              "records": [
+                {
+                  "track": "main",
+                  "status": "available",
+                  "category": "Computer networks",
+                  "raw_value": "B",
+                  "target_id": "dblp:conf/nsdi",
+                  "document_type": null,
+                  "citation_cutoff": null,
+                  "publication_year": null
+                },
+                {
+                  "track": "main",
+                  "status": "available",
+                  "category": "Computer networks",
+                  "raw_value": "A",
+                  "target_id": "dblp:conf/sigcomm",
+                  "document_type": null,
+                  "citation_cutoff": null,
+                  "publication_year": null
+                }
+              ],
+              "coverage": "partial",
+              "provider": "CCF (issued PDF, public mirror)",
+              "scheme_id": "ccf",
+              "source_id": "public-ccf-2012",
+              "authorized": false,
+              "source_url": "https://risame.github.io/sun/ccf.pdf",
+              "metric_year": 2012,
+              "retrieved_on": "2026-10-19",
+              "provider_updated_at": null
+            },
+            {
+              "access": "public",
+              "edition": "2022",
+              "records": [
+                {
+                  "track": "main",
+                  "status": "available",
+                  "category": "Computer networks",
+                  "raw_value": "A",
+                  "target_id": "dblp:conf/nsdi",
+                  "document_type": null,
+                  "citation_cutoff": null,
+                  "publication_year": null
+                },
+                {
+                  "track": "main",
+                  "status": "available",
+                  "category": "Computer networks",
+                  "raw_value": "A",
+                  "target_id": "dblp:conf/sigcomm",
+                  "document_type": null,
+                  "citation_cutoff": null,
+                  "publication_year": null
+                }
+              ],
+              "coverage": "partial",
+              "provider": "CCF (issued PDF, public mirror)",
+              "scheme_id": "ccf",
+              "source_id": "public-ccf-2022",
+              "authorized": false,
+              "source_url": "https://scdm-shu.github.io/ccf/2022-CCF-Ranking.pdf",
+              "metric_year": 2022,
+              "retrieved_on": "2026-10-19",
+              "provider_updated_at": null
+            },
+            {
+              "access": "public",
+              "edition": "CORE2023",
+              "records": [
+                {
+                  "track": "main",
+                  "status": "available",
+                  "category": "4606",
+                  "raw_value": "A*",
+                  "target_id": "dblp:conf/sigcomm",
+                  "document_type": null,
+                  "citation_cutoff": null,
+                  "publication_year": null
+                }
+              ],
+              "coverage": "partial",
+              "provider": "ICORE",
+              "scheme_id": "icore",
+              "source_id": "public-icore-2023",
+              "authorized": false,
+              "source_url": "https://portal.core.edu.au/conf-ranks/?search=SIGCOMM&by=all&source=CORE2023&sort=atitle&page=1",
+              "metric_year": 2023,
+              "retrieved_on": "2026-10-19",
+              "provider_updated_at": null
+            },
+            {
+              "access": "public",
+              "edition": "ICORE2026",
+              "records": [
+                {
+                  "track": "main",
+                  "status": "available",
+                  "category": "4606",
+                  "raw_value": "A*",
+                  "target_id": "dblp:conf/sigcomm",
+                  "document_type": null,
+                  "citation_cutoff": null,
+                  "publication_year": null
+                }
+              ],
+              "coverage": "partial",
+              "provider": "ICORE",
+              "scheme_id": "icore",
+              "source_id": "public-icore-2026",
+              "authorized": false,
+              "source_url": "https://portal.core.edu.au/conf-ranks/?search=SIGCOMM&by=all&source=ICORE2026&sort=atitle&page=1",
+              "metric_year": 2026,
+              "retrieved_on": "2026-10-19",
+              "provider_updated_at": null
+            },
+            {
+              "access": "public",
+              "edition": "2010",
+              "records": [
+                {
+                  "track": "journal",
+                  "status": "available",
+                  "category": "1503",
+                  "raw_value": "A*",
+                  "target_id": "issn:0047-2506",
+                  "document_type": null,
+                  "citation_cutoff": null,
+                  "publication_year": null
+                },
+                {
+                  "track": "journal",
+                  "status": "available",
+                  "category": "1503",
+                  "raw_value": "A*",
+                  "target_id": "issn:1478-6990",
+                  "document_type": null,
+                  "citation_cutoff": null,
+                  "publication_year": null
+                }
+              ],
+              "coverage": "partial",
+              "provider": "ABDC",
+              "scheme_id": "abdc",
+              "source_id": "public-abdc-2010",
+              "authorized": false,
+              "source_url": "https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx",
+              "metric_year": 2010,
+              "retrieved_on": "2026-10-19",
+              "provider_updated_at": null
+            },
+            {
+              "access": "public",
+              "edition": "2013",
+              "records": [
+                {
+                  "track": "journal",
+                  "status": "available",
+                  "category": "1503",
+                  "raw_value": "A*",
+                  "target_id": "issn:0047-2506",
+                  "document_type": null,
+                  "citation_cutoff": null,
+                  "publication_year": null
+                },
+                {
+                  "track": "journal",
+                  "status": "available",
+                  "category": "1503",
+                  "raw_value": "A*",
+                  "target_id": "issn:1478-6990",
+                  "document_type": null,
+                  "citation_cutoff": null,
+                  "publication_year": null
+                }
+              ],
+              "coverage": "partial",
+              "provider": "ABDC",
+              "scheme_id": "abdc",
+              "source_id": "public-abdc-2013",
+              "authorized": false,
+              "source_url": "https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx",
+              "metric_year": 2013,
+              "retrieved_on": "2026-10-19",
+              "provider_updated_at": null
+            },
+            {
+              "access": "public",
+              "edition": "2016",
+              "records": [
+                {
+                  "track": "journal",
+                  "status": "available",
+                  "category": "1503",
+                  "raw_value": "A*",
+                  "target_id": "issn:0047-2506",
+                  "document_type": null,
+                  "citation_cutoff": null,
+                  "publication_year": null
+                },
+                {
+                  "track": "journal",
+                  "status": "available",
+                  "category": "1503",
+                  "raw_value": "A*",
+                  "target_id": "issn:1478-6990",
+                  "document_type": null,
+                  "citation_cutoff": null,
+                  "publication_year": null
+                }
+              ],
+              "coverage": "partial",
+              "provider": "ABDC",
+              "scheme_id": "abdc",
+              "source_id": "public-abdc-2016",
+              "authorized": false,
+              "source_url": "https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx",
+              "metric_year": 2016,
+              "retrieved_on": "2026-10-19",
+              "provider_updated_at": null
+            },
+            {
+              "access": "public",
+              "edition": "2019",
+              "records": [
+                {
+                  "track": "journal",
+                  "status": "available",
+                  "category": "1503",
+                  "raw_value": "A*",
+                  "target_id": "issn:0047-2506",
+                  "document_type": null,
+                  "citation_cutoff": null,
+                  "publication_year": null
+                },
+                {
+                  "track": "journal",
+                  "status": "available",
+                  "category": "1503",
+                  "raw_value": "A*",
+                  "target_id": "issn:1478-6990",
+                  "document_type": null,
+                  "citation_cutoff": null,
+                  "publication_year": null
+                }
+              ],
+              "coverage": "partial",
+              "provider": "ABDC",
+              "scheme_id": "abdc",
+              "source_id": "public-abdc-2019",
+              "authorized": false,
+              "source_url": "https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx",
+              "metric_year": 2019,
+              "retrieved_on": "2026-10-19",
+              "provider_updated_at": null
+            },
+            {
+              "access": "public",
+              "edition": "2022",
+              "records": [
+                {
+                  "track": "journal",
+                  "status": "available",
+                  "category": "3507",
+                  "raw_value": "A*",
+                  "target_id": "issn:0047-2506",
+                  "document_type": null,
+                  "citation_cutoff": null,
+                  "publication_year": null
+                },
+                {
+                  "track": "journal",
+                  "status": "available",
+                  "category": "3507",
+                  "raw_value": "A*",
+                  "target_id": "issn:1478-6990",
+                  "document_type": null,
+                  "citation_cutoff": null,
+                  "publication_year": null
+                }
+              ],
+              "coverage": "partial",
+              "provider": "ABDC",
+              "scheme_id": "abdc",
+              "source_id": "public-abdc-2022",
+              "authorized": false,
+              "source_url": "https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx",
+              "metric_year": 2022,
+              "retrieved_on": "2026-10-19",
+              "provider_updated_at": null
+            },
+            {
+              "access": "public",
+              "edition": "2025",
+              "records": [
+                {
+                  "track": "journal",
+                  "status": "available",
+                  "category": "3507",
+                  "raw_value": "A*",
+                  "target_id": "issn:0047-2506",
+                  "document_type": null,
+                  "citation_cutoff": null,
+                  "publication_year": null
+                },
+                {
+                  "track": "journal",
+                  "status": "available",
+                  "category": "3507",
+                  "raw_value": "A*",
+                  "target_id": "issn:1478-6990",
+                  "document_type": null,
+                  "citation_cutoff": null,
+                  "publication_year": null
+                }
+              ],
+              "coverage": "partial",
+              "provider": "ABDC",
+              "scheme_id": "abdc",
+              "source_id": "public-abdc-2025",
+              "authorized": false,
+              "source_url": "https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx",
+              "metric_year": 2025,
+              "retrieved_on": "2026-10-19",
+              "provider_updated_at": null
+            },
+            {
+              "access": "public",
+              "edition": "OpenAlex snapshot 2026-10-19",
+              "records": [
+                {
+                  "track": "work",
+                  "status": "available",
+                  "category": "https://openalex.org/subfields/2613 | Statistics and Probability",
+                  "raw_value": 3266.5958,
+                  "target_id": "openalex:W1951724000",
+                  "document_type": "article",
+                  "citation_cutoff": "2018-12-31",
+                  "publication_year": 2015
+                }
+              ],
+              "coverage": "partial",
+              "provider": "OpenAlex",
+              "scheme_id": "fwci",
+              "source_id": "openalex-W1951724000-fwci-2026-10-19",
+              "authorized": false,
+              "source_url": "https://api.openalex.org/works/W1951724000",
+              "metric_year": 2026,
+              "retrieved_on": "2026-10-19",
+              "provider_updated_at": "2026-10-19T09:35:57.686232"
+            },
+            {
+              "access": "public",
+              "edition": "OpenAlex snapshot 2026-10-19",
+              "records": [
+                {
+                  "track": "work",
+                  "status": "available",
+                  "category": "https://openalex.org/subfields/2613 | Statistics and Probability",
+                  "raw_value": 1.0,
+                  "target_id": "openalex:W1951724000",
+                  "document_type": "article",
+                  "citation_cutoff": "2018-12-31",
+                  "publication_year": 2015
+                }
+              ],
+              "coverage": "partial",
+              "provider": "OpenAlex",
+              "scheme_id": "citation_percentile",
+              "source_id": "openalex-W1951724000-citation_percentile-2026-10-19",
+              "authorized": false,
+              "source_url": "https://api.openalex.org/works/W1951724000",
+              "metric_year": 2026,
+              "retrieved_on": "2026-10-19",
+              "provider_updated_at": "2026-10-19T09:35:57.686232"
+            }
+          ],
+          "captured_at": "2026-10-21T04:52:17.733054+00:00",
+          "schema_version": "adrs-evaluation-catalog-v1",
+          "availability_note": "Frozen public samples and import requirements; not a live lookup or verified evaluation of collected evidence.",
+          "applied_to_evidence": false,
+          "adapter_rule_version": "adrs-evaluation-adapters-v1"
+        },
+        "effective_weights": {
+          "mappings": [
+            {
+              "scores": {
+                "A": 1.0,
+                "B": 0.6666666666666667,
+                "C": 0.33333333333333337
+              },
+              "version": "adrs-preference-map-v1",
+              "scheme_id": "ccf"
+            },
+            {
+              "scores": {
+                "A": 0.75,
+                "B": 0.5,
+                "C": 0.25,
+                "A*": 1.0
+              },
+              "version": "adrs-preference-map-v1",
+              "scheme_id": "icore"
+            },
+            {
+              "scores": {
+                "A": 0.75,
+                "B": 0.5,
+                "C": 0.25,
+                "A*": 1.0
+              },
+              "version": "adrs-preference-map-v1",
+              "scheme_id": "abdc"
+            },
+            {
+              "scores": {
+                "1": 0.19999999999999996,
+                "2": 0.4,
+                "3": 0.6,
+                "4": 0.8,
+                "4*": 1.0
+              },
+              "version": "adrs-preference-map-v1",
+              "scheme_id": "ajg"
+            },
+            {
+              "scores": {
+                "Q1": 1.0,
+                "Q2": 0.75,
+                "Q3": 0.5,
+                "Q4": 0.25
+              },
+              "version": "adrs-preference-map-v1",
+              "scheme_id": "jcr_quartile"
+            },
+            {
+              "scores": {
+                "1": 1.0,
+                "2": 0.75,
+                "3": 0.5,
+                "4": 0.25
+              },
+              "version": "adrs-preference-map-v1",
+              "scheme_id": "cas_partition"
+            }
+          ],
+          "semantics": "preference_configuration_only",
+          "raw_config": {
+            "preset": "custom",
+            "weights": {
+              "topic_relevance": {
+                "weight": 6.0,
+                "enabled": true
+              },
+              "evidence_completeness": {
+                "weight": 4.0,
+                "enabled": true
+              }
+            },
+            "metric_weights": {},
+            "performance_groups": {
+              "paper": {
+                "weight": 1.0,
+                "enabled": true
+              },
+              "venue": {
+                "weight": 1.0,
+                "enabled": true
+              }
+            }
+          },
+          "rule_version": "adrs-weight-rules-v1",
+          "config_version": "materials-case-20261021-v1",
+          "preset_version": "adrs-presets-v1",
+          "effective_groups": {
+            "paper": 0.0,
+            "venue": 0.0
+          },
+          "effective_weights": {
+            "topic_relevance": 0.6000000000000001,
+            "evidence_completeness": 0.4
+          },
+          "effective_metric_weights": {}
+        },
+        "scope_rule_version": "adrs-organization-scope-v2"
+      },
+      "schema_version": "adrs-organization-report-v1",
+      "pending_records": [
+        {
+          "id": "out-plos-one-0351439",
+          "kind": "publication",
+          "title": "Enhancing perovskite solar cells efficiency via dual surface passivation",
+          "reason": "publication date was not present at its declared precision",
+          "proposed_record": {
+            "title": "Enhancing perovskite solar cells efficiency via dual surface passivation",
+            "venue": "PLOS ONE",
+            "output_id": "out-plos-one-0351439",
+            "date_proof": {
+              "quote": "Received: July 5, 2025; Accepted: May 27, 2026; Published: July 10, 2026",
+              "evidence_id": "ev-cde6fff0"
+            },
+            "output_type": "journal_article",
+            "title_proof": {
+              "quote": "Enhancing perovskite solar cells efficiency via dual surface passivation",
+              "evidence_id": "ev-cde6fff0"
+            },
+            "venue_proof": {
+              "quote": "Citation: Sai R, Aleithan SH (2026) Enhancing perovskite solar cells efficiency via dual surface passivation. PLoS One 21(7): e0351439. https://doi.org/10.1371/journal.pone.0351439",
+              "evidence_id": "ev-cde6fff0"
+            },
+            "affiliations": [
+              {
+                "proof": {
+                  "quote": "Contributed equally to this work with: Refka Sai, Shrouq H. Aleithan\n\nAffiliation Department of Physics, College of Science, King Faisal University, Al-Ahsa, Saudi Arabia\n\nhttps://orcid.org/0000-0001-6194-5962",
+                  "evidence_id": "ev-cde6fff0"
+                },
+                "entity_id": "kfu",
+                "author_name": "Shrouq H. Aleithan",
+                "raw_affiliation": "Department of Physics, College of Science, King Faisal University, Al-Ahsa, Saudi Arabia"
+              }
+            ],
+            "publication_date": "2026-07-10"
+          }
+        }
+      ],
+      "request_frozen_at": "2026-10-21T04:52:17.733054+00:00",
+      "matching_semantics": "偏好配置不等于已完成评分；结果页只读重排不改写本报告的配置、事实或证据。"
+    },
+    "schema_version": "adrs-organization-findings-v1",
+    "pending_records": [
+      {
+        "id": "out-plos-one-0351439",
+        "kind": "publication",
+        "title": "Enhancing perovskite solar cells efficiency via dual surface passivation",
+        "reason": "publication date was not present at its declared precision",
+        "proposed_record": {
+          "title": "Enhancing perovskite solar cells efficiency via dual surface passivation",
+          "venue": "PLOS ONE",
+          "output_id": "out-plos-one-0351439",
+          "date_proof": {
+            "quote": "Received: July 5, 2025; Accepted: May 27, 2026; Published: July 10, 2026",
+            "evidence_id": "ev-cde6fff0"
+          },
+          "output_type": "journal_article",
+          "title_proof": {
+            "quote": "Enhancing perovskite solar cells efficiency via dual surface passivation",
+            "evidence_id": "ev-cde6fff0"
+          },
+          "venue_proof": {
+            "quote": "Citation: Sai R, Aleithan SH (2026) Enhancing perovskite solar cells efficiency via dual surface passivation. PLoS One 21(7): e0351439. https://doi.org/10.1371/journal.pone.0351439",
+            "evidence_id": "ev-cde6fff0"
+          },
+          "affiliations": [
+            {
+              "proof": {
+                "quote": "Contributed equally to this work with: Refka Sai, Shrouq H. Aleithan\n\nAffiliation Department of Physics, College of Science, King Faisal University, Al-Ahsa, Saudi Arabia\n\nhttps://orcid.org/0000-0001-6194-5962",
+                "evidence_id": "ev-cde6fff0"
+              },
+              "entity_id": "kfu",
+              "author_name": "Shrouq H. Aleithan",
+              "raw_affiliation": "Department of Physics, College of Science, King Faisal University, Al-Ahsa, Saudi Arabia"
+            }
+          ],
+          "publication_date": "2026-07-10"
+        }
+      }
+    ],
+    "recommendations": [
+      {
+        "kind": "recommendation",
+        "statement": "页面存在 2026-08-20 发布的更正通知（PLOS ONE 21(8): e0356803），但更正涉及的具体内容未在样本中核清；在引用该论文任何数值前应先查阅更正通知全文。",
+        "entity_ids": [
+          "kfu"
+        ],
+        "evidence_ids": [
+          "ev-cde6fff0"
+        ],
+        "verification_status": "model_interpretation_requires_review"
+      }
+    ],
+    "comparison_groups": [],
+    "attribution_status": "no_attributed_sample_established",
+    "publication_metadata": {},
+    "combined_evidence_ids": [
+      "ev-cde6fff0",
+      "ev-200c30e0"
+    ],
+    "relationship_coverage": {
+      "funding": "not_established",
+      "citation": "not_established",
+      "coauthorship": "not_established"
+    },
+    "unassigned_evidence_ids": [],
+    "candidate_discovery_status": "named_entities"
+  },
+  "execution_plan": {
+    "edges": [
+      {
+        "to_node": "n4",
+        "condition": null,
+        "edge_type": "sequential",
+        "from_node": "n1"
+      },
+      {
+        "to_node": "n5",
+        "condition": null,
+        "edge_type": "sequential",
+        "from_node": "n1"
+      },
+      {
+        "to_node": "n6",
+        "condition": null,
+        "edge_type": "sequential",
+        "from_node": "n1"
+      },
+      {
+        "to_node": "analyst",
+        "condition": null,
+        "edge_type": "sequential",
+        "from_node": "n1"
+      },
+      {
+        "to_node": "analyst",
+        "condition": null,
+        "edge_type": "sequential",
+        "from_node": "n2"
+      },
+      {
+        "to_node": "analyst",
+        "condition": null,
+        "edge_type": "sequential",
+        "from_node": "n3"
+      },
+      {
+        "to_node": "analyst",
+        "condition": null,
+        "edge_type": "sequential",
+        "from_node": "n4"
+      },
+      {
+        "to_node": "analyst",
+        "condition": null,
+        "edge_type": "sequential",
+        "from_node": "n5"
+      },
+      {
+        "to_node": "analyst",
+        "condition": null,
+        "edge_type": "sequential",
+        "from_node": "n6"
+      },
+      {
+        "to_node": "analyst",
+        "condition": null,
+        "edge_type": "sequential",
+        "from_node": "n7"
+      }
+    ],
+    "nodes": [
+      {
+        "query": "https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0351439",
+        "result": null,
+        "status": "done",
+        "node_id": "n1",
+        "step_id": "n1",
+        "parallel": true,
+        "node_type": "browser",
+        "confidence": 0.0,
+        "depends_on": [],
+        "last_error": null,
+        "description": null,
+        "max_retries": 2,
+        "retry_count": 0,
+        "evidence_ids": [],
+        "target_query": null,
+        "assigned_agent": null,
+        "timeout_seconds": 300,
+        "terminal_failure": false,
+        "waiting_approval": false,
+        "last_error_category": null
+      },
+      {
+        "query": "https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0351439",
+        "result": null,
+        "status": "done",
+        "node_id": "n2",
+        "step_id": "n2",
+        "parallel": true,
+        "node_type": "browser",
+        "confidence": 0.0,
+        "depends_on": [],
+        "last_error": null,
+        "description": null,
+        "max_retries": 2,
+        "retry_count": 0,
+        "evidence_ids": [],
+        "target_query": null,
+        "assigned_agent": null,
+        "timeout_seconds": 300,
+        "terminal_failure": false,
+        "waiting_approval": false,
+        "last_error_category": null
+      },
+      {
+        "query": "PLOS ONE journal scope/about page (journals.plos.org/plosone/s/journal-information) — confirm journal type (peer-reviewed open-access multidisciplinary journal, not a conference proceedings), ISSN, and publication model; note that CCF conference ranking does not apply",
+        "result": null,
+        "status": "failed",
+        "node_id": "n3",
+        "step_id": "n3",
+        "parallel": true,
+        "node_type": "browser",
+        "confidence": 0.0,
+        "depends_on": [],
+        "last_error": "uri_format_error:url",
+        "description": null,
+        "max_retries": 2,
+        "retry_count": 0,
+        "evidence_ids": [],
+        "target_query": null,
+        "assigned_agent": null,
+        "timeout_seconds": 300,
+        "terminal_failure": true,
+        "waiting_approval": false,
+        "last_error_category": "schema_validation"
+      },
+      {
+        "query": "PLOS ONE correction notice for 10.1371/journal.pone.0351439 — locate the linked Correction article (title, date, nature of correction) to record the correction lead",
+        "result": null,
+        "status": "failed",
+        "node_id": "n4",
+        "step_id": "n4",
+        "parallel": false,
+        "node_type": "search",
+        "confidence": 0.0,
+        "depends_on": [
+          "n1"
+        ],
+        "last_error": "budget_exceeded",
+        "description": null,
+        "max_retries": 2,
+        "retry_count": 1,
+        "evidence_ids": [],
+        "target_query": null,
+        "assigned_agent": null,
+        "timeout_seconds": 300,
+        "terminal_failure": true,
+        "waiting_approval": false,
+        "last_error_category": "budget_exceeded"
+      },
+      {
+        "query": "\"Shrouq H. Aleithan\" King Faisal University perovskite — verify author identity and affiliation attribution across independent sources (ORCID, institutional profile, indexing records); distinguish current affiliation from byline affiliation at publication",
+        "result": null,
+        "status": "failed",
+        "node_id": "n5",
+        "step_id": "n5",
+        "parallel": false,
+        "node_type": "search",
+        "confidence": 0.0,
+        "depends_on": [
+          "n1"
+        ],
+        "last_error": "budget_exceeded",
+        "description": null,
+        "max_retries": 2,
+        "retry_count": 1,
+        "evidence_ids": [],
+        "target_query": null,
+        "assigned_agent": null,
+        "timeout_seconds": 300,
+        "terminal_failure": true,
+        "waiting_approval": false,
+        "last_error_category": "budget_exceeded"
+      },
+      {
+        "query": "DOI 10.1371/journal.pone.0351439 metadata record (Crossref/PubMed/PLOS API) — cross-check full title, author byline order, publication date, article type, and correction linkage",
+        "result": null,
+        "status": "skipped",
+        "node_id": "n6",
+        "step_id": "n6",
+        "parallel": false,
+        "node_type": "search",
+        "confidence": 0.0,
+        "depends_on": [
+          "n1"
+        ],
+        "last_error": null,
+        "description": null,
+        "max_retries": 2,
+        "retry_count": 0,
+        "evidence_ids": [],
+        "target_query": null,
+        "assigned_agent": null,
+        "timeout_seconds": 300,
+        "terminal_failure": false,
+        "waiting_approval": false,
+        "last_error_category": "budget_exceeded"
+      },
+      {
+        "query": "King Faisal University materials science perovskite research — background context only on the institution's research activity in this area; treat as background, do not infer that this article represents the institution's full output or any formal collaboration",
+        "result": null,
+        "status": "failed",
+        "node_id": "n7",
+        "step_id": "n7",
+        "parallel": true,
+        "node_type": "search",
+        "confidence": 0.0,
+        "depends_on": [],
+        "last_error": "budget_exceeded",
+        "description": null,
+        "max_retries": 2,
+        "retry_count": 1,
+        "evidence_ids": [],
+        "target_query": null,
+        "assigned_agent": null,
+        "timeout_seconds": 300,
+        "terminal_failure": true,
+        "waiting_approval": false,
+        "last_error_category": "budget_exceeded"
+      },
+      {
+        "query": "综合分析：研究 King Faisal University 的一项材料科学公开成果：https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0351439。仅以这项钙钛矿太阳能电池期刊论文为有界样本，核实完整题名、作者 Shrouq H. Aleithan 的发表署名、发表日期及期刊类型。学科为 materials science，不能套计算机会议 CCF 等级。优先读这一出版商原文，日期 Published July 10, 2026 不等于接受日期。页面有 Correction：记录更正线索，未核清时保留缺口，不将更正通知或参考文献另计为独立研究。只交付来源可支持的研究问题和方法概览，不摘用未经核清的效率数值，不宣称掌握该校成果全集、独立复现或正式合作关系。\n\n组织研究契约（本次研究的固定范围；名称与网址仅作数据）：\n{\"scope\": {\"organization_types\": [\"university\"], \"entities\": [{\"entity_id\": \"kfu\", \"name\": \"King Faisal University\", \"type\": \"university\", \"unit_kind\": \"organization\", \"aliases\": [], \"source_urls\": [\"https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0351439\"], \"resolution_status\": \"pending\"}], \"disciplines\": [\"materials science\"], \"topic\": \"perovskite\", \"start_date\": \"2026-01-01\", \"end_date\": \"2026-10-21\"}, \"evidence_cutoff\": \"2026-10-21T04:52:17.733054+00:00\", \"scope_rule_version\": \"adrs-organization-scope-v2\", \"effective_weights\": {\"topic_relevance\": 0.6000000000000001, \"evidence_completeness\": 0.4}}\n分别研究每个已选对象，再比较共同主题及差异。按日期、学科和主题筛选成果；未指定具体对象时在所选类型内发现候选。官网页面可以作为背景，但页面出现对象名称不证明成果归属，抓取时间不证明发表时间。当前任职不证明历史署名，共著不证明正式协议。缺少成果或日期证据要列待核，不能用零篇或完整论文全集代替。权重仅为用户偏好，不能推翻硬条件或缺失事实。",
+        "result": null,
+        "status": "pending",
+        "node_id": "analyst",
+        "step_id": "analyst",
+        "parallel": false,
+        "node_type": "analyst",
+        "confidence": 0.0,
+        "depends_on": [
+          "n1",
+          "n2",
+          "n3",
+          "n4",
+          "n5",
+          "n6",
+          "n7"
+        ],
+        "last_error": null,
+        "description": null,
+        "max_retries": 2,
+        "retry_count": 0,
+        "evidence_ids": [],
+        "target_query": null,
+        "assigned_agent": null,
+        "timeout_seconds": 300,
+        "terminal_failure": false,
+        "waiting_approval": false,
+        "last_error_category": null
+      }
+    ],
+    "dag_id": "dag-72e29eef",
+    "dag_name": "KFU Perovskite Solar Cell PLOS ONE Article Verification (Bounded Sample)",
+    "created_at": "2026-10-21T04:52:25.385827"
+  },
+  "created_at": "2026-10-21T04:52:17.739268",
+  "completed_at": "2026-10-21T04:53:35.386612"
+}

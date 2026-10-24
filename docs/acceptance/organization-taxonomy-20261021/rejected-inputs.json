@@ -1,0 +1,59 @@
+[
+  {
+    "case": "wrong_discipline",
+    "status": 422,
+    "detail": {
+      "detail": "taxonomy preset is outside the requested disciplines"
+    }
+  },
+  {
+    "case": "version_conflict",
+    "status": 409,
+    "detail": {
+      "detail": "taxonomy_version_already_has_different_rules"
+    }
+  },
+  {
+    "case": "cycle",
+    "status": 422,
+    "detail": {
+      "detail": [
+        {
+          "type": "value_error",
+          "loc": [
+            "body",
+            "taxonomy"
+          ],
+          "msg": "Value error, taxonomy hierarchy must be acyclic",
+          "input": {
+            "preset": "custom",
+            "version": "cycle",
+            "nodes": [
+              {
+                "node_id": "loop",
+                "label": "循环",
+                "discipline": "materials science",
+                "axis": "method",
+                "parent_id": "loop",
+                "terms": [
+                  "solar"
+                ]
+              }
+            ]
+          },
+          "ctx": {
+            "error": {}
+          }
+        }
+      ]
+    }
+  },
+  {
+    "case": "other_owner_get",
+    "status": 404
+  },
+  {
+    "case": "other_owner_post",
+    "status": 404
+  }
+]

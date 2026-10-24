@@ -1,0 +1,145 @@
+[
+  {
+    "case": "out_of_scope_seed",
+    "status": 422,
+    "response": {
+      "detail": [
+        {
+          "type": "value_error",
+          "loc": [
+            "body",
+            "organization_research"
+          ],
+          "msg": "Value error, source_out_of_scope",
+          "input": {
+            "scope": {
+              "organization_types": [
+                "university"
+              ],
+              "entities": [
+                {
+                  "entity_id": "pku",
+                  "name": "Peking University",
+                  "type": "university",
+                  "source_urls": [
+                    "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin"
+                  ]
+                }
+              ],
+              "disciplines": [
+                "computer science"
+              ],
+              "topic": "systems research",
+              "start_date": "2024-01-01",
+              "end_date": "2024-12-31"
+            },
+            "purpose": "research_development",
+            "modules": [
+              "landscape"
+            ],
+            "corpus": {
+              "source_scope": {
+                "groups": [
+                  "publishers"
+                ],
+                "publisher_domains": [
+                  "usenix.org"
+                ]
+              },
+              "collection_mode": "seeds_only",
+              "seed_urls": [
+                "https://example.com/paper"
+              ],
+              "search_terms": [
+                "DistServe Peking University",
+                "Harp 2026"
+              ],
+              "output_types": [
+                "conference_paper"
+              ]
+            }
+          },
+          "ctx": {
+            "error": {}
+          }
+        }
+      ]
+    }
+  },
+  {
+    "case": "unsupported_channel",
+    "status": 422,
+    "response": {
+      "detail": [
+        {
+          "type": "value_error",
+          "loc": [
+            "body"
+          ],
+          "msg": "Value error, restricted corpus currently supports web transport; choose source groups independently",
+          "input": {
+            "query": "研究 Peking University 的2024年系统成果样本。只读取声明的两个USENIX种子：DistServe应按原文评估纳入，Harp发表在2026年应排除。不要求取得论文PDF；缺全文不能说已深读。声明实际样本流转和未知，不把这两个页面称为现实成果全集。",
+            "max_revision": 1,
+            "output_length": "medium",
+            "organization_research": {
+              "scope": {
+                "organization_types": [
+                  "university"
+                ],
+                "entities": [
+                  {
+                    "entity_id": "pku",
+                    "name": "Peking University",
+                    "type": "university",
+                    "source_urls": [
+                      "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin"
+                    ]
+                  }
+                ],
+                "disciplines": [
+                  "computer science"
+                ],
+                "topic": "systems research",
+                "start_date": "2024-01-01",
+                "end_date": "2024-12-31"
+              },
+              "purpose": "research_development",
+              "modules": [
+                "landscape"
+              ],
+              "corpus": {
+                "source_scope": {
+                  "groups": [
+                    "publishers"
+                  ],
+                  "publisher_domains": [
+                    "usenix.org"
+                  ]
+                },
+                "collection_mode": "seeds_only",
+                "seed_urls": [
+                  "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin",
+                  "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin#abstract",
+                  "https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu"
+                ],
+                "search_terms": [
+                  "DistServe Peking University",
+                  "Harp 2026"
+                ],
+                "output_types": [
+                  "conference_paper"
+                ]
+              }
+            },
+            "channels": [
+              "youtube"
+            ]
+          },
+          "ctx": {
+            "error": {}
+          }
+        }
+      ]
+    }
+  }
+]

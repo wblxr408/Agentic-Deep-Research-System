@@ -1,0 +1,360 @@
+{
+  "schema_version": "1",
+  "request": {
+    "disciplines": [
+      "computing"
+    ],
+    "output_type": "conference_paper",
+    "target_id": "dblp:conf/nsdi",
+    "work_id": null,
+    "publication_year": 2022,
+    "metric_year": 2022,
+    "track": "main",
+    "editions": {},
+    "sources": [],
+    "use_public_snapshots": true
+  },
+  "evaluations": [
+    {
+      "scheme_id": "ccf",
+      "applicable": true,
+      "availability": "available",
+      "reason": "All matching categories retained; no highest-grade selection",
+      "records": [
+        {
+          "target_id": "dblp:conf/nsdi",
+          "track": "main",
+          "category": "Computer networks",
+          "raw_value": "A",
+          "status": "available",
+          "publication_year": null,
+          "document_type": null,
+          "citation_cutoff": null,
+          "scheme_id": "ccf",
+          "edition": "2022",
+          "metric_year": 2022,
+          "provider": "CCF (issued PDF, public mirror)",
+          "source_id": "public-ccf-2022",
+          "source_url": "https://scdm-shu.github.io/ccf/2022-CCF-Ranking.pdf",
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": null,
+          "match_basis": "exact_identifier_and_track",
+          "evidence_status": "public_source_snapshot"
+        }
+      ]
+    },
+    {
+      "scheme_id": "icore",
+      "applicable": true,
+      "availability": "data_missing",
+      "reason": "Requested identity, track, category or historical edition not available",
+      "records": []
+    },
+    {
+      "scheme_id": "wos_scie",
+      "applicable": false,
+      "availability": "not_applicable",
+      "reason": "Journal-level metric/index; not a conference-paper grade",
+      "records": []
+    },
+    {
+      "scheme_id": "wos_ssci",
+      "applicable": false,
+      "availability": "not_applicable",
+      "reason": "Journal-level metric/index; not a conference-paper grade",
+      "records": []
+    },
+    {
+      "scheme_id": "wos_ahci",
+      "applicable": false,
+      "availability": "not_applicable",
+      "reason": "Journal-level metric/index; not a conference-paper grade",
+      "records": []
+    },
+    {
+      "scheme_id": "wos_esci",
+      "applicable": false,
+      "availability": "not_applicable",
+      "reason": "Journal-level metric/index; not a conference-paper grade",
+      "records": []
+    },
+    {
+      "scheme_id": "scopus",
+      "applicable": true,
+      "availability": "source_unavailable",
+      "reason": "No source data connected; import authorized provider records",
+      "records": []
+    },
+    {
+      "scheme_id": "jcr_jif",
+      "applicable": false,
+      "availability": "not_applicable",
+      "reason": "Journal-level metric/index; not a conference-paper grade",
+      "records": []
+    },
+    {
+      "scheme_id": "jcr_quartile",
+      "applicable": false,
+      "availability": "not_applicable",
+      "reason": "Journal-level metric/index; not a conference-paper grade",
+      "records": []
+    },
+    {
+      "scheme_id": "jcr_jci",
+      "applicable": false,
+      "availability": "not_applicable",
+      "reason": "Journal-level metric/index; not a conference-paper grade",
+      "records": []
+    },
+    {
+      "scheme_id": "cas_partition",
+      "applicable": false,
+      "availability": "not_applicable",
+      "reason": "Journal-level metric/index; not a conference-paper grade",
+      "records": []
+    },
+    {
+      "scheme_id": "citescore",
+      "applicable": false,
+      "availability": "not_applicable",
+      "reason": "Journal-level metric/index; not a conference-paper grade",
+      "records": []
+    },
+    {
+      "scheme_id": "citescore_percentile",
+      "applicable": false,
+      "availability": "not_applicable",
+      "reason": "Journal-level metric/index; not a conference-paper grade",
+      "records": []
+    },
+    {
+      "scheme_id": "sjr",
+      "applicable": false,
+      "availability": "not_applicable",
+      "reason": "Journal-level metric/index; not a conference-paper grade",
+      "records": []
+    },
+    {
+      "scheme_id": "snip",
+      "applicable": false,
+      "availability": "not_applicable",
+      "reason": "Journal-level metric/index; not a conference-paper grade",
+      "records": []
+    },
+    {
+      "scheme_id": "abdc",
+      "applicable": false,
+      "availability": "not_applicable",
+      "reason": "Business catalogue applicability requires a business-related discipline",
+      "records": []
+    },
+    {
+      "scheme_id": "ajg",
+      "applicable": false,
+      "availability": "not_applicable",
+      "reason": "Business catalogue applicability requires a business-related discipline",
+      "records": []
+    },
+    {
+      "scheme_id": "citation_percentile",
+      "applicable": true,
+      "availability": "data_missing",
+      "reason": "Requested identity, track, category or historical edition not available",
+      "records": []
+    },
+    {
+      "scheme_id": "cnci",
+      "applicable": true,
+      "availability": "source_unavailable",
+      "reason": "No source data connected; import authorized provider records",
+      "records": []
+    },
+    {
+      "scheme_id": "fwci",
+      "applicable": true,
+      "availability": "data_missing",
+      "reason": "Requested identity, track, category or historical edition not available",
+      "records": []
+    }
+  ],
+  "source_status": [
+    {
+      "scheme_id": "ccf",
+      "access": "public_sample",
+      "editions": [
+        "2012",
+        "2022"
+      ],
+      "source_url": "https://www.ccf.org.cn/Academic_Evaluation/By_category/",
+      "coverage": "partial_or_caller_declared",
+      "live_fetch": false
+    },
+    {
+      "scheme_id": "icore",
+      "access": "public_sample",
+      "editions": [
+        "CORE2023",
+        "ICORE2026"
+      ],
+      "source_url": "https://portal.core.edu.au/conf-ranks/",
+      "coverage": "partial_or_caller_declared",
+      "live_fetch": false
+    },
+    {
+      "scheme_id": "wos_scie",
+      "access": "import_only",
+      "editions": [],
+      "source_url": "https://mjl.clarivate.com/",
+      "coverage": "partial_or_caller_declared",
+      "live_fetch": false
+    },
+    {
+      "scheme_id": "wos_ssci",
+      "access": "import_only",
+      "editions": [],
+      "source_url": "https://mjl.clarivate.com/",
+      "coverage": "partial_or_caller_declared",
+      "live_fetch": false
+    },
+    {
+      "scheme_id": "wos_ahci",
+      "access": "import_only",
+      "editions": [],
+      "source_url": "https://mjl.clarivate.com/",
+      "coverage": "partial_or_caller_declared",
+      "live_fetch": false
+    },
+    {
+      "scheme_id": "wos_esci",
+      "access": "import_only",
+      "editions": [],
+      "source_url": "https://mjl.clarivate.com/",
+      "coverage": "partial_or_caller_declared",
+      "live_fetch": false
+    },
+    {
+      "scheme_id": "scopus",
+      "access": "import_only",
+      "editions": [],
+      "source_url": "https://www.scopus.com/sources",
+      "coverage": "partial_or_caller_declared",
+      "live_fetch": false
+    },
+    {
+      "scheme_id": "jcr_jif",
+      "access": "import_only",
+      "editions": [],
+      "source_url": "https://jcr.clarivate.com/",
+      "coverage": "partial_or_caller_declared",
+      "live_fetch": false
+    },
+    {
+      "scheme_id": "jcr_quartile",
+      "access": "import_only",
+      "editions": [],
+      "source_url": "https://jcr.clarivate.com/",
+      "coverage": "partial_or_caller_declared",
+      "live_fetch": false
+    },
+    {
+      "scheme_id": "jcr_jci",
+      "access": "import_only",
+      "editions": [],
+      "source_url": "https://jcr.clarivate.com/",
+      "coverage": "partial_or_caller_declared",
+      "live_fetch": false
+    },
+    {
+      "scheme_id": "cas_partition",
+      "access": "import_only",
+      "editions": [],
+      "source_url": "https://www.fenqubiao.com/",
+      "coverage": "partial_or_caller_declared",
+      "live_fetch": false
+    },
+    {
+      "scheme_id": "citescore",
+      "access": "import_only",
+      "editions": [],
+      "source_url": "https://www.scopus.com/sources",
+      "coverage": "partial_or_caller_declared",
+      "live_fetch": false
+    },
+    {
+      "scheme_id": "citescore_percentile",
+      "access": "import_only",
+      "editions": [],
+      "source_url": "https://www.scopus.com/sources",
+      "coverage": "partial_or_caller_declared",
+      "live_fetch": false
+    },
+    {
+      "scheme_id": "sjr",
+      "access": "import_only",
+      "editions": [],
+      "source_url": "https://www.scimagojr.com/",
+      "coverage": "partial_or_caller_declared",
+      "live_fetch": false
+    },
+    {
+      "scheme_id": "snip",
+      "access": "import_only",
+      "editions": [],
+      "source_url": "https://www.scopus.com/sources",
+      "coverage": "partial_or_caller_declared",
+      "live_fetch": false
+    },
+    {
+      "scheme_id": "abdc",
+      "access": "public_sample",
+      "editions": [
+        "2010",
+        "2013",
+        "2016",
+        "2019",
+        "2022",
+        "2025"
+      ],
+      "source_url": "https://abdc.edu.au/abdc-journal-quality-list/",
+      "coverage": "partial_or_caller_declared",
+      "live_fetch": false
+    },
+    {
+      "scheme_id": "ajg",
+      "access": "import_only",
+      "editions": [],
+      "source_url": "https://charteredabs.org/academic-journal-guide",
+      "coverage": "partial_or_caller_declared",
+      "live_fetch": false
+    },
+    {
+      "scheme_id": "citation_percentile",
+      "access": "public_sample",
+      "editions": [
+        "OpenAlex snapshot 2026-10-19"
+      ],
+      "source_url": "https://help.openalex.org/data/works/citations/",
+      "coverage": "partial_or_caller_declared",
+      "live_fetch": false
+    },
+    {
+      "scheme_id": "cnci",
+      "access": "import_only",
+      "editions": [],
+      "source_url": "https://incites.help.clarivate.com/Content/Indicators-Handbook/ih-normalized-citation-impact.htm",
+      "coverage": "partial_or_caller_declared",
+      "live_fetch": false
+    },
+    {
+      "scheme_id": "fwci",
+      "access": "public_sample",
+      "editions": [
+        "OpenAlex snapshot 2026-10-19"
+      ],
+      "source_url": "https://help.openalex.org/data/works/citations/",
+      "coverage": "partial_or_caller_declared",
+      "live_fetch": false
+    }
+  ],
+  "external_sources_checked": false
+}

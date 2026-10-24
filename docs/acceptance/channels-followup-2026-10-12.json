@@ -1,0 +1,40 @@
+{
+  "username": "channel_test",
+  "verified_at": "2026-10-12T11:30:01.041256+00:00",
+  "collections": [
+    {
+      "channel": "rss",
+      "query": "https://hnrss.org/newest?count=5",
+      "status": "failed",
+      "attempts": [
+        {
+          "channel": "rss",
+          "backend": "feed",
+          "status": "failed",
+          "result_count": 0,
+          "error_category": "network",
+          "duration_ms": 7952,
+          "call_count": 1
+        }
+      ],
+      "items": []
+    },
+    {
+      "channel": "bilibili",
+      "query": "https://www.bilibili.com/video/BV1z3NY66EY1",
+      "status": "failed",
+      "attempts": [
+        {
+          "channel": "bilibili",
+          "backend": "bili",
+          "status": "failed",
+          "result_count": 0,
+          "error_category": "account_risk",
+          "duration_ms": 3936,
+          "call_count": 1
+        }
+      ],
+      "items": []
+    }
+  ]
+}

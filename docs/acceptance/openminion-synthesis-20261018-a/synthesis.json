@@ -1,0 +1,24 @@
+{
+  "source_result": "docs\\acceptance\\openminion-msr-r8-20261018T115559Z\\result\\result.json",
+  "output": {
+    "report": "# Microsoft Research 数据中心网络拥塞相关研究简报（2024–2025）\n\n## 一、范围与说明\n\n本简报仅依据本次收集到的 6 条来源作答，覆盖 2024–2025 年 USENIX NSDI 的两篇代表性公开论文；范围之外的成果未做穷尽检索，结论不延伸到内部研发战略或路线转向[1][3][5][6]。原草稿未提供任何可用的实质内容，已弃用，以下全部为来源核对后的重写[1][3]。\n\n## 二、机构归属逐项核对\n\nReverie（NSDI '24）发表于 2024 年 4 月，作者为 Vamsi Addanki（TU Berlin）、Wei Bai（Microsoft Research）、Stefan Schmid（TU Berlin）、Maria Apostolaki（Princeton University），Microsoft Research 为署名单位之一[1][5]。InvisiFlow（NSDI 2025）发表于 2025 年 4 月，作者为 Yinda Zhang（UPenn）、Liangcheng Yu（UPenn 与 Microsoft Research）、Gianni Antichi、Ran Ben Basat、Vincent Liu，Microsoft Research 同样是署名单位而非唯一所属[3][6]。两篇均可在 Microsoft Research 官方页与 USENIX 论文页双向印证[5][6]。\n\n## 三、直接拥塞控制方向：Reverie\n\n从定位看，Reverie 属于交换机缓冲区共享机制，与拥塞信号处理直接相关：数据中心缓冲区被不同丢包容忍度的流量类共享，传统应用用 DCTCP 等有损传输，新应用需 RDMA over Converged Ethernet 等无损传输[1][5]。论文指出当前做法存在两个根因：RDMA 与 TCP 共享依赖入口、出口两套彼此独立甚至冲突的缓冲区视图；共享方案对缓冲区占用变化过度微管理，在瞬时拥塞下反应过激[1][2][5]。\n\n技术路线为统一（合并入口与出口）的准入控制，联合优化两类流量缓冲，并用低通滤波按平均队列长度而非瞬时长度分配缓冲，从而在缓冲上限内吸收突发[1][2][5]。效果上，论文称可使 RDMA 与 TCP 的流完成时间最多改善 33%[1][5]。实现层面论文自述原型实现属未来工作，但作者已与 NVIDIA 讨论共享缓冲池模型的硬件近似可行性，并与一家主要以太网交换机厂商讨论基于其最新 ASIC 可编程准入控制特性落地[2]。\n\n## 四、相邻遥测方向：InvisiFlow\n\nInvisiFlow 属于相邻的遥测数据传输工作，而非直接拥塞控制：细粒度遥测从网络设备传至采集器，现有方法在高负载下会给用户流量带来明显开销或造成遥测数据丢失[3][6]。其技术路线是让遥测包动态寻找空闲带宽，利用机会式发送与拥塞梯度，而不是始终沿最短路径推送，从而同时降低遥测丢失率与对用户流量的干扰[3][6]。\n\n论文报告在 FatTree 拓扑下高负载时可达近零丢失率，相比 Everflow、Planck 等现有方法所用传输方式约低 33.8 倍[3][6]。实验采用测试床与 ns-3 大规模仿真结合，拓扑为 9 核心交换机、4 个 pod、12 台聚合与 12 台 ToR 交换机、144 台服务器，链路 100 Gbps；相比低优先级 UDP 基线，额外资源约 2.08% gateway 与 0.78% VLIW action[4]。\n\n## 五、可进一步验证的问题\n\n第一，Reverie 的 33% 改善与低通滤波收益需核对所用拓扑、负载与对比基线，本次来源仅给出摘要级数字[1][5]。第二，Reverie 的硬件可行性目前是厂商讨论与论文自述，尚无原型结果，属可跟踪的未验证项[2]。第三，InvisiFlow 的 33.8 倍与相对误差下降 2.4×/4.8× 均为特定负载设定下的结果，跨负载与跨拓扑的稳健性需回到论文评估章节逐一核对[3][4]。\n\n## 六、未覆盖范围\n\n本次仅取到两篇论文的公开页面与 PDF 片段，未覆盖 Microsoft Research 在该方向的其他成果、未覆盖 2024 年前或 2025 年后的工作，也未覆盖 dblp、arXiv、Google Scholar 等清单之外的补充检索结果；因此本简报只代表“有界抽样”，不构成成果穷尽清单，亦不据单篇论文推断路线转向[1][3]。",
+    "task_status": "completed",
+    "gaps": [
+      "仅覆盖 2 篇代表性论文（Reverie 与 InvisiFlow），远非 Microsoft Research 该方向全部公开成果，未做穷尽清单",
+      "可用来源仅含摘要、引言论与少量评估片段，未获取完整实验章节：33% 流完成时间改善与 33.8 倍丢失率改善的拓扑、负载、基线细节未经系统核对",
+      "dblp、arXiv、Google Scholar 等补充检索组未见落地证据，无法判断是否存在其他 2024–2025 年相关论文",
+      "Reverie 硬件实现仍为厂商讨论与未来工作，无原型或上线证据可验证",
+      "两篇论文的 Microsoft Research 角色（个人署名合作 vs 主导）来源未明确，不可推断机构层面研发战略或路线转向"
+    ]
+  },
+  "run_id": "e42907b867b74e688e710f9f851c854c",
+  "stats": {
+    "input_tokens": 17983,
+    "output_tokens": 1245,
+    "cache_read_tokens": 0,
+    "llm_calls": 1,
+    "tool_calls": 0,
+    "tool_errors": 0,
+    "duration_ms": 12923
+  }
+}

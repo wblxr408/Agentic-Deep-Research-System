@@ -1,0 +1,17 @@
+{
+  "username": "channel_test",
+  "base_url": "http://127.0.0.1:5175",
+  "passed": [
+    "password_login",
+    "research_navigation",
+    "channel_selection",
+    "config_save",
+    "real_readme_collection",
+    "source_link_and_content_rendered"
+  ],
+  "source_url": "https://github.com/Panniantong/Agent-Reach",
+  "backend": "github-api",
+  "content_chars": 8000,
+  "page_errors": [],
+  "screenshot": "D:\\Agentic-Deep-Research-System\\docs\\acceptance\\channels-browser-2026-10-12.png"
+}

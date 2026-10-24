@@ -1,0 +1,38 @@
+{
+  "query": "只研究 DistServe 出版商页面中 Peking University 的署名、发表年月和研究主题，保留来源及未知项。",
+  "use_internal_docs": false,
+  "rag_group": null,
+  "output_length": "short",
+  "enabled_skill_ids": [],
+  "disabled_skill_ids": [],
+  "channels": [],
+  "organization_research": {
+    "scope": {
+      "organization_types": [
+        "university"
+      ],
+      "entities": [
+        {
+          "entity_id": "selected-1",
+          "name": "Peking University",
+          "type": "university",
+          "aliases": [],
+          "source_urls": [
+            "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin"
+          ],
+          "resolution_status": "pending"
+        }
+      ],
+      "disciplines": [
+        "computer science"
+      ],
+      "topic": "只研究 DistServe 出版商页面中 Peking University 的署名、发表年月和研究主题，保留来源及未知项。",
+      "start_date": "2024-01-01",
+      "end_date": "2024-12-31"
+    },
+    "weight_preset": {
+      "preset_id": "0175d013-d877-452e-a589-411d47a98202",
+      "version": 2
+    }
+  }
+}

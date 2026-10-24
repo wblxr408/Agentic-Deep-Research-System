@@ -1,0 +1,369 @@
+{
+  "request": {
+    "disciplines": [
+      "computer science"
+    ],
+    "output_type": "conference_paper"
+  },
+  "live_fetch": false,
+  "exact_identity_checked": false,
+  "items": [
+    {
+      "scheme_id": "ccf",
+      "family": "directory",
+      "level": "venue",
+      "source_url": "https://www.ccf.org.cn/Academic_Evaluation/By_category/",
+      "adapter": "exact_catalogue",
+      "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+      "editions": [],
+      "availability": "import_only",
+      "applicable": true,
+      "reason": "Exact venue and track required",
+      "source_access": "public_sample",
+      "source_versions": [
+        {
+          "edition": "2012",
+          "metric_year": 2012,
+          "provider": "CCF (issued PDF, public mirror)",
+          "source_url": "https://risame.github.io/sun/ccf.pdf"
+        },
+        {
+          "edition": "2022",
+          "metric_year": 2022,
+          "provider": "CCF (issued PDF, public mirror)",
+          "source_url": "https://scdm-shu.github.io/ccf/2022-CCF-Ranking.pdf"
+        }
+      ]
+    },
+    {
+      "scheme_id": "icore",
+      "family": "directory",
+      "level": "venue",
+      "source_url": "https://portal.core.edu.au/conf-ranks/",
+      "adapter": "exact_catalogue",
+      "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+      "editions": [],
+      "availability": "import_only",
+      "applicable": true,
+      "reason": "ICORE is a conference catalogue",
+      "source_access": "public_sample",
+      "source_versions": [
+        {
+          "edition": "CORE2023",
+          "metric_year": 2023,
+          "provider": "ICORE",
+          "source_url": "https://portal.core.edu.au/conf-ranks/?search=SIGCOMM&by=all&source=CORE2023&sort=atitle&page=1"
+        },
+        {
+          "edition": "ICORE2026",
+          "metric_year": 2026,
+          "provider": "ICORE",
+          "source_url": "https://portal.core.edu.au/conf-ranks/?search=SIGCOMM&by=all&source=ICORE2026&sort=atitle&page=1"
+        }
+      ]
+    },
+    {
+      "scheme_id": "wos_scie",
+      "family": "index",
+      "level": "venue",
+      "source_url": "https://mjl.clarivate.com/",
+      "adapter": "authorized_metric",
+      "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+      "editions": [],
+      "availability": "import_only",
+      "applicable": false,
+      "reason": "Journal-level metric/index; not a conference-paper grade",
+      "source_access": "import_only",
+      "source_versions": []
+    },
+    {
+      "scheme_id": "wos_ssci",
+      "family": "index",
+      "level": "venue",
+      "source_url": "https://mjl.clarivate.com/",
+      "adapter": "authorized_metric",
+      "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+      "editions": [],
+      "availability": "import_only",
+      "applicable": false,
+      "reason": "Journal-level metric/index; not a conference-paper grade",
+      "source_access": "import_only",
+      "source_versions": []
+    },
+    {
+      "scheme_id": "wos_ahci",
+      "family": "index",
+      "level": "venue",
+      "source_url": "https://mjl.clarivate.com/",
+      "adapter": "authorized_metric",
+      "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+      "editions": [],
+      "availability": "import_only",
+      "applicable": false,
+      "reason": "Journal-level metric/index; not a conference-paper grade",
+      "source_access": "import_only",
+      "source_versions": []
+    },
+    {
+      "scheme_id": "wos_esci",
+      "family": "index",
+      "level": "venue",
+      "source_url": "https://mjl.clarivate.com/",
+      "adapter": "authorized_metric",
+      "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+      "editions": [],
+      "availability": "import_only",
+      "applicable": false,
+      "reason": "Journal-level metric/index; not a conference-paper grade",
+      "source_access": "import_only",
+      "source_versions": []
+    },
+    {
+      "scheme_id": "scopus",
+      "family": "index",
+      "level": "venue",
+      "source_url": "https://www.scopus.com/sources",
+      "adapter": "authorized_metric",
+      "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+      "editions": [],
+      "availability": "import_only",
+      "applicable": true,
+      "reason": "Source coverage must be evidenced",
+      "source_access": "import_only",
+      "source_versions": []
+    },
+    {
+      "scheme_id": "jcr_jif",
+      "family": "journal_metric",
+      "level": "venue",
+      "source_url": "https://jcr.clarivate.com/",
+      "adapter": "authorized_metric",
+      "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+      "editions": [],
+      "availability": "import_only",
+      "applicable": false,
+      "reason": "Journal-level metric/index; not a conference-paper grade",
+      "source_access": "import_only",
+      "source_versions": []
+    },
+    {
+      "scheme_id": "jcr_quartile",
+      "family": "journal_metric",
+      "level": "venue",
+      "source_url": "https://jcr.clarivate.com/",
+      "adapter": "authorized_metric",
+      "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+      "editions": [],
+      "availability": "import_only",
+      "applicable": false,
+      "reason": "Journal-level metric/index; not a conference-paper grade",
+      "source_access": "import_only",
+      "source_versions": []
+    },
+    {
+      "scheme_id": "jcr_jci",
+      "family": "journal_metric",
+      "level": "venue",
+      "source_url": "https://jcr.clarivate.com/",
+      "adapter": "authorized_metric",
+      "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+      "editions": [],
+      "availability": "import_only",
+      "applicable": false,
+      "reason": "Journal-level metric/index; not a conference-paper grade",
+      "source_access": "import_only",
+      "source_versions": []
+    },
+    {
+      "scheme_id": "cas_partition",
+      "family": "journal_metric",
+      "level": "venue",
+      "source_url": "https://www.fenqubiao.com/",
+      "adapter": "authorized_metric",
+      "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+      "editions": [],
+      "availability": "import_only",
+      "applicable": false,
+      "reason": "Journal-level metric/index; not a conference-paper grade",
+      "source_access": "import_only",
+      "source_versions": []
+    },
+    {
+      "scheme_id": "citescore",
+      "family": "journal_metric",
+      "level": "venue",
+      "source_url": "https://www.scopus.com/sources",
+      "adapter": "authorized_metric",
+      "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+      "editions": [],
+      "availability": "import_only",
+      "applicable": false,
+      "reason": "Journal-level metric/index; not a conference-paper grade",
+      "source_access": "import_only",
+      "source_versions": []
+    },
+    {
+      "scheme_id": "citescore_percentile",
+      "family": "journal_metric",
+      "level": "venue",
+      "source_url": "https://www.scopus.com/sources",
+      "adapter": "authorized_metric",
+      "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+      "editions": [],
+      "availability": "import_only",
+      "applicable": false,
+      "reason": "Journal-level metric/index; not a conference-paper grade",
+      "source_access": "import_only",
+      "source_versions": []
+    },
+    {
+      "scheme_id": "sjr",
+      "family": "journal_metric",
+      "level": "venue",
+      "source_url": "https://www.scimagojr.com/",
+      "adapter": "authorized_metric",
+      "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+      "editions": [],
+      "availability": "import_only",
+      "applicable": false,
+      "reason": "Journal-level metric/index; not a conference-paper grade",
+      "source_access": "import_only",
+      "source_versions": []
+    },
+    {
+      "scheme_id": "snip",
+      "family": "journal_metric",
+      "level": "venue",
+      "source_url": "https://www.scopus.com/sources",
+      "adapter": "authorized_metric",
+      "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+      "editions": [],
+      "availability": "import_only",
+      "applicable": false,
+      "reason": "Journal-level metric/index; not a conference-paper grade",
+      "source_access": "import_only",
+      "source_versions": []
+    },
+    {
+      "scheme_id": "abdc",
+      "family": "directory",
+      "level": "venue",
+      "source_url": "https://abdc.edu.au/abdc-journal-quality-list/",
+      "adapter": "exact_catalogue",
+      "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+      "editions": [],
+      "availability": "import_only",
+      "applicable": false,
+      "reason": "Business catalogue applicability requires a business-related discipline",
+      "source_access": "public_sample",
+      "source_versions": [
+        {
+          "edition": "2010",
+          "metric_year": 2010,
+          "provider": "ABDC",
+          "source_url": "https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx"
+        },
+        {
+          "edition": "2013",
+          "metric_year": 2013,
+          "provider": "ABDC",
+          "source_url": "https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx"
+        },
+        {
+          "edition": "2016",
+          "metric_year": 2016,
+          "provider": "ABDC",
+          "source_url": "https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx"
+        },
+        {
+          "edition": "2019",
+          "metric_year": 2019,
+          "provider": "ABDC",
+          "source_url": "https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx"
+        },
+        {
+          "edition": "2022",
+          "metric_year": 2022,
+          "provider": "ABDC",
+          "source_url": "https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx"
+        },
+        {
+          "edition": "2025",
+          "metric_year": 2025,
+          "provider": "ABDC",
+          "source_url": "https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx"
+        }
+      ]
+    },
+    {
+      "scheme_id": "ajg",
+      "family": "directory",
+      "level": "venue",
+      "source_url": "https://charteredabs.org/academic-journal-guide",
+      "adapter": "exact_catalogue",
+      "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+      "editions": [],
+      "availability": "import_only",
+      "applicable": false,
+      "reason": "Business catalogue applicability requires a business-related discipline",
+      "source_access": "import_only",
+      "source_versions": []
+    },
+    {
+      "scheme_id": "citation_percentile",
+      "family": "paper_metric",
+      "level": "work",
+      "source_url": "https://help.openalex.org/data/works/citations/",
+      "adapter": "paper_metric",
+      "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+      "editions": [],
+      "availability": "import_only",
+      "applicable": true,
+      "reason": "Paper-level provider context required",
+      "source_access": "public_sample",
+      "source_versions": [
+        {
+          "edition": "OpenAlex snapshot 2026-10-19",
+          "metric_year": 2026,
+          "provider": "OpenAlex",
+          "source_url": "https://api.openalex.org/works/W1951724000"
+        }
+      ]
+    },
+    {
+      "scheme_id": "cnci",
+      "family": "paper_metric",
+      "level": "work",
+      "source_url": "https://incites.help.clarivate.com/Content/Indicators-Handbook/ih-normalized-citation-impact.htm",
+      "adapter": "paper_metric",
+      "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+      "editions": [],
+      "availability": "import_only",
+      "applicable": true,
+      "reason": "Paper-level provider context required",
+      "source_access": "import_only",
+      "source_versions": []
+    },
+    {
+      "scheme_id": "fwci",
+      "family": "paper_metric",
+      "level": "work",
+      "source_url": "https://help.openalex.org/data/works/citations/",
+      "adapter": "paper_metric",
+      "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+      "editions": [],
+      "availability": "import_only",
+      "applicable": true,
+      "reason": "Paper-level provider context required",
+      "source_access": "public_sample",
+      "source_versions": [
+        {
+          "edition": "OpenAlex snapshot 2026-10-19",
+          "metric_year": 2026,
+          "provider": "OpenAlex",
+          "source_url": "https://api.openalex.org/works/W1951724000"
+        }
+      ]
+    }
+  ]
+}

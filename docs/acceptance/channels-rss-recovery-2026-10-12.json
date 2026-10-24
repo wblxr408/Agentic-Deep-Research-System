@@ -1,0 +1,48 @@
+{
+  "username": "channel_test",
+  "verified_at": "2026-10-12T11:37:11.588660+00:00",
+  "status": "success",
+  "attempts": [
+    {
+      "channel": "rss",
+      "backend": "feed",
+      "status": "success",
+      "result_count": 5,
+      "error_category": null,
+      "duration_ms": 4265,
+      "call_count": 1
+    }
+  ],
+  "items": [
+    {
+      "title": "The Vikings who reached the Americas 500 years before Columbus",
+      "url": "https://www.bbc.com/culture/article/20261009-how-vikings-beat-columbus-to-america-by-500-years",
+      "backend": "feed",
+      "content_chars": 191
+    },
+    {
+      "title": "My All Souls Exam Experience",
+      "url": "https://www.reddit.com/r/oxforduni/comments/q0giir/my_all_souls_exam_experience/",
+      "backend": "feed",
+      "content_chars": 177
+    },
+    {
+      "title": "Intelligence Is Not Sentience",
+      "url": "https://aditya.rs/blog/2026/10/12/on-intelligence-and-sentience/",
+      "backend": "feed",
+      "content_chars": 161
+    },
+    {
+      "title": "China's Race Towards 'Infinite' Energy [video]",
+      "url": "https://www.youtube.com/watch?v=qcGtWW8uERI",
+      "backend": "feed",
+      "content_chars": 140
+    },
+    {
+      "title": "What's on That Access Port?",
+      "url": "https://danielmangum.com/posts/whats-on-that-access-port/",
+      "backend": "feed",
+      "content_chars": 154
+    }
+  ]
+}

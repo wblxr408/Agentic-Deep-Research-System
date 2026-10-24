@@ -1,0 +1,1642 @@
+{
+  "schema_version": "1",
+  "run_id": "b610491bc7ee4b20b3970513b5295c59",
+  "status": "partial",
+  "started_at": "2026-10-18T10:34:57.830267+00:00",
+  "scope": {
+    "organizations": [
+      {
+        "name": "Microsoft Research",
+        "type": "laboratory"
+      }
+    ],
+    "topic": "以2024至2025年可取得的代表性公开论文为范围，分析Microsoft Research在数据中心网络拥塞相关方向的研究问题、技术路线、成果及可进一步验证的问题；逐项核对发表时单位，区分直接拥塞控制与相邻遥测工作；交付有界研究简报及未覆盖范围，不要求穷尽成果清单，不推断内部研发战略或仅据单篇论文推断路线转向",
+    "start_year": 2024,
+    "end_year": 2025,
+    "seed_urls": [
+      "https://www.microsoft.com/en-us/research/publication/reverie-low-pass-filter-based-switch-buffer-sharing-for-datacenters-with-rdma-and-tcp-traffic/",
+      "https://www.usenix.org/conference/nsdi24/presentation/addanki-reverie",
+      "https://www.microsoft.com/en-us/research/publication/enabling-silent-telemetry-data-transmission-with-invisiflow/"
+    ],
+    "timeout_seconds": 600,
+    "max_tool_calls": 18
+  },
+  "plan": [
+    "按组织与主题检索公开原始来源",
+    "读取原文并保存证据",
+    "综合各对象研究方向与缺口",
+    "核对最终主张及引文"
+  ],
+  "trace": [
+    {
+      "tool": "read_source",
+      "arguments": {
+        "url": "https://www.usenix.org/conference/nsdi24/presentation/addanki-reverie"
+      },
+      "status": "completed",
+      "evidence_id": "source:1",
+      "chars": 2784,
+      "truncated": false
+    },
+    {
+      "tool": "read_source",
+      "arguments": {
+        "url": "https://www.microsoft.com/en-us/research/publication/enabling-silent-telemetry-data-transmission-with-invisiflow/"
+      },
+      "status": "completed",
+      "evidence_id": "source:2",
+      "chars": 1304,
+      "truncated": false
+    },
+    {
+      "tool": "read_source",
+      "arguments": {
+        "url": "https://www.microsoft.com/en-us/research/publication/reverie-low-pass-filter-based-switch-buffer-sharing-for-datacenters-with-rdma-and-tcp-traffic/"
+      },
+      "status": "completed",
+      "evidence_id": "source:3",
+      "chars": 1807,
+      "truncated": false
+    },
+    {
+      "tool": "read_source",
+      "arguments": {
+        "url": "https://www.usenix.org/conference/nsdi24/presentation/addanki-reverie"
+      },
+      "status": "completed",
+      "evidence_id": "source:1",
+      "chars": 2784,
+      "truncated": false
+    },
+    {
+      "tool": "search_organizations",
+      "arguments": {
+        "query": "Microsoft Research datacenter network congestion control 2024 2025 NSDI SIGCOMM paper"
+      },
+      "status": "completed",
+      "result_count": 4,
+      "results": [
+        {
+          "url": "https://www.microsoft.com/en-us/",
+          "title": "Microsoft - Official Home Page",
+          "snippet": "At Microsoft our mission and values are to help people and businesses throughout the world realize their full potential."
+        },
+        {
+          "url": "https://account.microsoft.com/account",
+          "title": "Microsoft account | Sign In or Create Your Account Today – Microsoft",
+          "snippet": "It’s all here with Microsoft account Your Microsoft account connects all your Microsoft apps and services. Sign in to manage your account."
+        },
+        {
+          "url": "https://www.microsoft.com/",
+          "title": "Microsoft – AI, Cloud, Productivity, Computing, Gaming & Apps",
+          "snippet": "Explore Microsoft products and services and support for your home or business. Shop Microsoft 365, Copilot, Teams, Xbox, Windows, Azure, Surface and more."
+        },
+        {
+          "url": "https://myaccount.microsoft.com/",
+          "title": "My Account",
+          "snippet": "Access and manage your Microsoft account, subscriptions, and settings all in one place."
+        }
+      ],
+      "channel_attempts": [
+        {
+          "channel": "web",
+          "backend": "duckduckgo",
+          "status": "failed",
+          "result_count": 0,
+          "error_category": "access_denied",
+          "duration_ms": 1500,
+          "call_count": 1
+        },
+        {
+          "channel": "web",
+          "backend": "bing-rss",
+          "status": "success",
+          "result_count": 4,
+          "error_category": null,
+          "duration_ms": 1625,
+          "call_count": 1
+        }
+      ]
+    },
+    {
+      "tool": "search_organizations",
+      "arguments": {
+        "query": "Microsoft Research RDMA congestion control 2025 paper Flash NDNS transport"
+      },
+      "status": "completed",
+      "result_count": 4,
+      "results": [
+        {
+          "url": "https://www.microsoft.com/en-us/",
+          "title": "Microsoft - Official Home Page",
+          "snippet": "At Microsoft our mission and values are to help people and businesses throughout the world realize their full potential."
+        },
+        {
+          "url": "https://account.microsoft.com/account",
+          "title": "Microsoft account | Sign In or Create Your Account Today – Microsoft",
+          "snippet": "It’s all here with Microsoft account Your Microsoft account connects all your Microsoft apps and services. Sign in to manage your account."
+        },
+        {
+          "url": "https://www.microsoft.com/",
+          "title": "Microsoft – AI, Cloud, Productivity, Computing, Gaming & Apps",
+          "snippet": "Explore Microsoft products and services and support for your home or business. Shop Microsoft 365, Copilot, Teams, Xbox, Windows, Azure, Surface and more."
+        },
+        {
+          "url": "https://myaccount.microsoft.com/",
+          "title": "My Account",
+          "snippet": "Access and manage your Microsoft account, subscriptions, and settings all in one place."
+        }
+      ],
+      "channel_attempts": [
+        {
+          "channel": "web",
+          "backend": "duckduckgo",
+          "status": "failed",
+          "result_count": 0,
+          "error_category": "access_denied",
+          "duration_ms": 1391,
+          "call_count": 1
+        },
+        {
+          "channel": "web",
+          "backend": "bing-rss",
+          "status": "success",
+          "result_count": 4,
+          "error_category": null,
+          "duration_ms": 1343,
+          "call_count": 1
+        }
+      ]
+    },
+    {
+      "tool": "read_source",
+      "arguments": {
+        "url": "https://www.microsoft.com/en-us/research/publication/reverie-low-pass-filter-based-switch-buffer-sharing-for-datacenters-with-rdma-and-tcp-traffic/"
+      },
+      "status": "completed",
+      "evidence_id": "source:3",
+      "chars": 1807,
+      "truncated": false
+    },
+    {
+      "tool": "read_source",
+      "arguments": {
+        "url": "https://www.microsoft.com/en-us/research/publication/enabling-silent-telemetry-data-transmission-with-invisiflow/"
+      },
+      "status": "completed",
+      "evidence_id": "source:2",
+      "chars": 1304,
+      "truncated": false
+    },
+    {
+      "tool": "search_organizations",
+      "arguments": {
+        "query": "InvisiFlow NSDI 2025 telemetry congestion gradient Microsoft Research authors affiliation"
+      },
+      "status": "completed",
+      "result_count": 4,
+      "results": [
+        {
+          "url": "https://www.instacart.com/store/walmart/storefront",
+          "title": "Walmart Delivery - Instacart",
+          "snippet": "Here’s the breakdown on Walmart delivery cost via Instacart: Instacart+ members have $0 delivery fees* on eligible orders (grocery and retail $10+, Costco $35+ and restaurants $25+); and non-members have delivery fees start at $3.99 for same-day orders over $35. Fees vary for one-hour deliveries, club store deliveries, and deliveries under $35."
+        },
+        {
+          "url": "https://www.instacart.com/retailer/walmart-delivery/ny/near-me-in-bronx-ny",
+          "title": "Walmart Delivery in Bronx, NY | Instacart",
+          "snippet": "How much does Walmart delivery via Instacart in Bronx, NY, cost? Here's the breakdown on Walmart delivery cost via Instacart in Bronx, NY: Instacart+ members have $0 delivery fees* on eligible orders (grocery and retail $10+, Costco $35+ and restaurants $25+); and non-members have delivery fees start at $3.99 for same-day orders over $35."
+        },
+        {
+          "url": "https://www.instacart.com/store/s?k=walmart",
+          "title": "Walmart Delivery or Pickup Near Me | Instacart",
+          "snippet": "Get Walmart products you love delivered to you in as fast as 1 hour via Instacart. Start shopping online now with Instacart to get your favorite products on-demand."
+        },
+        {
+          "url": "https://www.instacart.com/retailer/walmart-delivery/ca/near-me-in-moreno-valley-ca",
+          "title": "Walmart Delivery in Moreno Valley, CA | Instacart",
+          "snippet": "Here's the breakdown on Walmart delivery cost via Instacart in Moreno Valley, CA: Instacart+ members have $0 delivery fees* on eligible orders (grocery and retail $10+, Costco $35+ and restaurants $25+); and non-members have delivery fees start at $3.99 for same-day orders over $35."
+        }
+      ],
+      "channel_attempts": [
+        {
+          "channel": "web",
+          "backend": "duckduckgo",
+          "status": "failed",
+          "result_count": 0,
+          "error_category": "access_denied",
+          "duration_ms": 1405,
+          "call_count": 1
+        },
+        {
+          "channel": "web",
+          "backend": "bing-rss",
+          "status": "success",
+          "result_count": 4,
+          "error_category": null,
+          "duration_ms": 1719,
+          "call_count": 1
+        }
+      ]
+    },
+    {
+      "tool": "read_source",
+      "arguments": {
+        "url": "https://www.usenix.org/conference/nsdi25/presentation/zhang-yinda"
+      },
+      "status": "completed",
+      "evidence_id": "source:4",
+      "chars": 2439,
+      "truncated": false
+    },
+    {
+      "tool": "read_source",
+      "arguments": {
+        "url": "https://www.usenix.org/system/files/nsdi25-zhang-yinda.pdf"
+      },
+      "status": "failed",
+      "error": "output_limit"
+    },
+    {
+      "tool": "read_source",
+      "arguments": {
+        "url": "https://www.usenix.org/system/files/nsdi24-addanki.pdf"
+      },
+      "status": "failed",
+      "error": "upstream_error"
+    },
+    {
+      "tool": "read_source",
+      "arguments": {
+        "url": "https://www.usenix.org/conference/nsdi24/presentation/addanki-reverie"
+      },
+      "status": "completed",
+      "evidence_id": "source:1",
+      "chars": 2784,
+      "truncated": false
+    },
+    {
+      "tool": "search_organizations",
+      "arguments": {
+        "query": "Wei Bai Microsoft Research datacenter congestion control RDMA SIGCOMM 2025"
+      },
+      "status": "completed",
+      "result_count": 4,
+      "results": [
+        {
+          "url": "https://kprofiles.com/wei-members-profile/",
+          "title": "WEi Members Profile (Updated!) - Kpop Profiles",
+          "snippet": "WEi Members Profile and Facts: WEi (위아이) is a 6-member South Korean boy group under OUI Entertainment, consisting of Jang Daehyeon, Kim Donghan, Yoo Yongha, Kim Yohan, Kang Seokhwa, and Kim Junseo. They debuted on October 5, 2020, with their first mini album, IDENTITY : First Sight. On March 25, 2026, it was announced that the members will focus more on their solo activities."
+        },
+        {
+          "url": "https://www.wei.com/",
+          "title": "WEI: Your IT Solutions Provider For IT Consulting, Technology Solutions",
+          "snippet": "WEI is a premiere IT solutions provider offering IT consulting and custom technology solutions to meet your business needs across the United States."
+        },
+        {
+          "url": "https://en.m.wikipedia.org/wiki/Wei",
+          "title": "Wei - Wikipedia",
+          "snippet": "WEi, a South Korean boy group Wei (rank), a company-grade officer in Chinese armed forces Wei (value token), a subunit of the Ether value token on the Ethereum blockchain Wau Ecology Institute, Wau, Papua New Guinea Web Environment Integrity, a Web API proposed by Google Windows Experience Index (WEI) score, a measure of the user-perceived performance of a computer running Microsoft Windows ..."
+        },
+        {
+          "url": "https://www.youtube.com/@WEiOfficial/videos",
+          "title": "WEi - YouTube",
+          "snippet": "Explore the official YouTube channel of WEi for music videos, performances, and exclusive content from the talented K-pop group."
+        }
+      ],
+      "channel_attempts": [
+        {
+          "channel": "web",
+          "backend": "duckduckgo",
+          "status": "failed",
+          "result_count": 0,
+          "error_category": "access_denied",
+          "duration_ms": 1500,
+          "call_count": 1
+        },
+        {
+          "channel": "web",
+          "backend": "bing-rss",
+          "status": "success",
+          "result_count": 4,
+          "error_category": null,
+          "duration_ms": 1594,
+          "call_count": 1
+        }
+      ]
+    },
+    {
+      "tool": "read_source",
+      "arguments": {
+        "url": "https://arxiv.org/abs/2411.14635"
+      },
+      "status": "completed",
+      "evidence_id": "source:5",
+      "chars": 4090,
+      "truncated": false
+    }
+  ],
+  "evidence": [
+    {
+      "evidence_id": "source:1",
+      "content": "Reverie: Low Pass Filter-Based Switch Buffer Sharing for Datacenters with RDMA and TCP Traffic\nVamsi Addanki, TU Berlin; Wei Bai, Microsoft Research; Stefan Schmid, TU Berlin; Maria Apostolaki, Princeton University\nThe switch buffers in datacenters today are shared by traffic classes with different loss tolerance and reaction to congestion signals. In particular, while legacy applications use loss-tolerant transport, e.g., DCTCP, newer applications require lossless datacenter transport, e.g.,  RDMA over Converged Ethernet. The allocation of buffers for this diverse traffic mix is managed by a buffer-sharing scheme. Unfortunately, as we analytically show in this paper, the buffer-sharing practices of today's datacenters pose a fundamental limitation to effectively isolate RDMA and TCP while also maximizing burst absorption. We identify two root causes: (i) the buffer-sharing for RDMA and TCP relies on two independent and often conflicting views of the buffer, namely ingress and egress; and (ii) the buffer-sharing scheme micromanages the buffer and overreacts to the changes in its occupancy during transient congestion.\nIn this paper, we present Reverie, a buffer-sharing scheme, which, unlike prior works, is suitable for both lossless and loss-tolerant traffic classes, providing isolation as well as superior burst absorption. At the core of Reverie lies a unified (consolidated ingress and egress) admission control that jointly optimizes the buffers for both traffic classes. Reverie, allocates buffer based on a low-pass filter that naturally absorbs bursty queue lengths during transient congestion within the buffer limits. Our evaluation shows that Reverie can improve the performance of RDMA as well as TCP in terms of flow completion times by up to 33%.\nNSDI '24 Open Access Sponsored by\nKing Abdullah University of Science and Technology (KAUST)\nOpen Access Media\nUSENIX is committed to Open Access to the research presented at our events. Papers and proceedings are freely available to everyone once the event begins. Any video, audio, and/or slides that are posted after the event are also free and open to everyone. Support USENIX and our commitment to Open Access.\nBibTeX\n@inproceedings {295539,\nauthor = {Vamsi Addanki and Wei Bai and Stefan Schmid and Maria Apostolaki},\ntitle = {Reverie: Low Pass {Filter-Based} Switch Buffer Sharing for Datacenters with {RDMA} and {TCP} Traffic},\nbooktitle = {21st USENIX Symposium on Networked Systems Design and Implementation (NSDI 24)},\nyear = {2024},\nisbn = {978-1-939133-39-7},\naddress = {Santa Clara, CA},\npages = {651--668},\nurl = {https://www.usenix.org/conference/nsdi24/presentation/addanki-reverie},\npublisher = {USENIX Association},\nmonth = apr\n}\nDownload\nAddanki PDF\nView the slides\nPresentation Video",
+      "source_url": "https://www.usenix.org/conference/nsdi24/presentation/addanki-reverie",
+      "source_title": "https://www.usenix.org/conference/nsdi24/presentation/addanki-reverie",
+      "source_type": "web",
+      "collected_by": "browser",
+      "collected_at": "2026-10-18T10:35:25.080775",
+      "reliability": 0.7,
+      "tokens_estimate": 0,
+      "source_channel": "web",
+      "source_backend": "http_reader"
+    },
+    {
+      "evidence_id": "source:2",
+      "content": "Enabling Silent Telemetry Data Transmission with InvisiFlow\nYinda Zhang\n,\nLiangcheng Yu\n,\nGianni Antichi\n,\nRan Ben Basat\n,\nVincent Liu\nNSDI 2025\n| April 2025\nDownload BibTex\nNetwork applications from traffic engineering to path tracing often rely on the ability to transmit fine-grained telemetry data from network devices to a set of collectors. Unfortunately, prior work has observed—and we validate—that existing transmission methods for such data can result in significant overhead to user traffic and/or loss of telemetry data, particularly when the network is heavily loaded.\nIn this paper, we introduce InvisiFlow, a novel communication substrate for collecting network telemetry data, silently. In contrast to previous systems that always push telemetry packets to collectors based on the shortest path, InvisiFlow dynamically seeks out spare network capacity by leveraging opportunistic sending and congestion gradients, thus minimizing both the loss rate of telemetry data and overheads on user traffic. In a FatTree topology, InvisiFlow can achieve near-zero loss rate even under high-load scenarios (around 33.8x lower loss compared to the state-of-the-art transmission methods used by systems like Everflow and Planck).\nOpens in a new tab\nAuthor's Version\nGroups\nResearch Areas\nResearch Labs",
+      "source_url": "https://www.microsoft.com/en-us/research/publication/enabling-silent-telemetry-data-transmission-with-invisiflow/",
+      "source_title": "https://www.microsoft.com/en-us/research/publication/enabling-silent-telemetry-data-transmission-with-invisiflow/",
+      "source_type": "web",
+      "collected_by": "browser",
+      "collected_at": "2026-10-18T10:35:30.901027",
+      "reliability": 0.7,
+      "tokens_estimate": 0,
+      "source_channel": "web",
+      "source_backend": "http_reader"
+    },
+    {
+      "evidence_id": "source:3",
+      "content": "Reverie: Low Pass Filter-Based Switch Buffer Sharing for Datacenters with RDMA and TCP Traffic\nVamsi Addanki\n,\nWei Bai\n,\nStefan Schmid\n,\nMaria Apostolaki\nNSDI'24\n| April 2024\nDownload BibTex\nThe switch buffers in datacenters today are shared by traffic classes with different loss tolerance and reaction to congestion signals. In particular, while legacy applications use loss-tolerant transport, e.g., DCTCP, newer applications require lossless datacenter transport, e.g., RDMA over Converged Ethernet. The allocation of buffers for this diverse traffic mix is managed by a buffer-sharing scheme. Unfortunately, as we analytically show in this paper, the buffer-sharing practices of today’s datacenters pose a fundamental limitation to effectively isolate RDMA and TCP while also maximizing burst absorption. We identify two root causes: (i) the buffer-sharing for RDMA and TCP relies on two independent and often conflicting views of the buffer, namely ingress and egress; and (ii) the buffer-sharing scheme micromanages the buffer and overreacts to the changes in its occupancy during transient congestion.\nIn this paper, we present Reverie, a buffer-sharing scheme, which, unlike prior works, is suitable for both lossless and loss-tolerant traffic classes, providing isolation as well as superior burst absorption. At the core of Reverie lies a unified (consolidated ingress and egress) admission control that jointly optimizes the buffers for both traffic classes. Reverie, allocates buffer based on a low-pass filter that naturally absorbs bursty queue lengths during transient congestion within the buffer limits. Our evaluation shows that Reverie can improve the performance of RDMA as well as TCP in terms of flow completion times by up to 33%.\nOpens in a new tab\nPublication\nEvents\nResearch Areas",
+      "source_url": "https://www.microsoft.com/en-us/research/publication/reverie-low-pass-filter-based-switch-buffer-sharing-for-datacenters-with-rdma-and-tcp-traffic/",
+      "source_title": "https://www.microsoft.com/en-us/research/publication/reverie-low-pass-filter-based-switch-buffer-sharing-for-datacenters-with-rdma-and-tcp-traffic/",
+      "source_type": "web",
+      "collected_by": "browser",
+      "collected_at": "2026-10-18T10:35:38.729465",
+      "reliability": 0.7,
+      "tokens_estimate": 0,
+      "source_channel": "web",
+      "source_backend": "http_reader"
+    },
+    {
+      "evidence_id": "source:4",
+      "content": "Enabling Silent Telemetry Data Transmission with InvisiFlow\nYinda Zhang, University of Pennsylvania; Liangcheng Yu, University of Pennsylvania and Microsoft Research; Gianni Antichi, Politecnico di Milano and Queen Mary University of London; Ran Ben Basat, University College London; Vincent Liu, University of Pennsylvania\nNetwork applications from traffic engineering to path tracing often rely on the ability to transmit fine-grained telemetry data from network devices to a set of collectors. Unfortunately, prior work has observed—and we validate—that existing transmission methods for such data can result in significant overhead to user traffic and/or loss of telemetry data, particularly when the network is heavily loaded.\nIn this paper, we introduce InvisiFlow, a novel communication substrate to collect network telemetry data, silently. In contrast to previous systems that always push telemetry packets to collectors based on the shortest path, InvisiFlow dynamically seeks out spare network capacity by leveraging opportunistic sending and congestion gradients, thus minimizing both the loss rate of telemetry data and overheads on user traffic. In a FatTree topology, InvisiFlow can achieve near-zero loss rate even under high-load scenarios (around 33.8× lower loss compared to the state-of-the-art transmission methods used by systems like Everflow and Planck).\nNSDI '25 Open Access Sponsored by\nKing Abdullah University of Science and Technology (KAUST)\nOpen Access Media\nUSENIX is committed to Open Access to the research presented at our events. Papers and proceedings are freely available to everyone once the event begins. Any video, audio, and/or slides that are posted after the event are also free and open to everyone. Support USENIX and our commitment to Open Access.\nThis content is available to:\nConference attendees\nBibTeX\n@inproceedings {305334,\nauthor = {Yinda Zhang and Liangcheng Yu and Gianni Antichi and Ran Ben Basat and Vincent Liu},\ntitle = {Enabling Silent Telemetry Data Transmission with {InvisiFlow}},\nbooktitle = {22nd USENIX Symposium on Networked Systems Design and Implementation (NSDI 25)},\nyear = {2025},\nisbn = {978-1-939133-46-5},\naddress = {Philadelphia, PA},\npages = {71--86},\nurl = {https://www.usenix.org/conference/nsdi25/presentation/zhang-yinda},\npublisher = {USENIX Association},\nmonth = apr\n}\nDownload\nZhang PDF\nZhang Paper (Prepublication) PDF\nView the slides\nPresentation Video",
+      "source_url": "https://www.usenix.org/conference/nsdi25/presentation/zhang-yinda",
+      "source_title": "https://www.usenix.org/conference/nsdi25/presentation/zhang-yinda",
+      "source_type": "web",
+      "collected_by": "browser",
+      "collected_at": "2026-10-18T10:36:06.425154",
+      "reliability": 0.7,
+      "tokens_estimate": 0,
+      "source_channel": "web",
+      "source_backend": "http_reader"
+    },
+    {
+      "evidence_id": "source:5",
+      "content": "Statistics > Methodology\narXiv:2411.14635 (stat)\n[Submitted on 21 Nov 2024 (v1), last revised 6 Jan 2025 (this version, v2)]\nTitle:Modelling Loss of Complexity in Intermittent Time Series and its Application\nAuthors:Jie Li, Jian Zhang, Samantha L. Winter, Mark Burnley\nView a PDF of the paper titled Modelling Loss of Complexity in Intermittent Time Series and its Application, by Jie Li and 3 other authors\nView PDF\nHTML (experimental)\nAbstract:In this paper, we developed a novel method of nonparametric relative entropy (RlEn) for modelling loss of complexity in intermittent time series. The method consists of two steps. We first fit a nonlinear autoregressive model to each intermittent time series, where the corresponding lag order and the loss of complexity are determined by Bayesian Information Criterion (BIC) and relative entropy respectively. Then, change-points in the complexity are detected by a cumulative sum (CUSUM) based statistic. Compared to approximate entropy (ApEn), a popular method in literature, the performance of RlEn was assessed by simulations in terms of (1) ability to localize complexity change-points in intermittent time series; (2) ability to faithfully estimate underlying nonlinear models. The performance of the proposal was then examined in a real analysis of fatigue-induced changes in the complexity of human motor outputs. The results showed that the proposed method outperformed the ApEn in accurately detecting changes of complexity in intermittent time series segments.\nComments:\n43 pages, 6 figures and 6 tables\nSubjects:\nMethodology (stat.ME); Applications (stat.AP)\nCite as:\narXiv:2411.14635 [stat.ME]\n(or\narXiv:2411.14635v2 [stat.ME] for this version)\nhttps://doi.org/10.48550/arXiv.2411.14635\nFocus to learn more\narXiv-issued DOI via DataCite\nSubmission history From: Jie Li [view email]\n[v1]\nThu, 21 Nov 2024 23:56:29 UTC (13,744 KB)\n[v2]\nMon, 6 Jan 2025 20:00:39 UTC (14,036 KB)\nFull-text links:\nAccess Paper:\nView a PDF of the paper titled Modelling Loss of Complexity in Intermittent Time Series and its Application, by Jie Li and 3 other authors\nView PDF\nHTML (experimental)\nTeX Source\nview license\nCurrent browse context:\nstat.ME\n< prev\n|\nnext >\nnew\n|\nrecent\n| 2024-11\nChange to browse by:\nstat\nstat.AP\nReferences & Citations\nNASA ADS\nGoogle Scholar\nSemantic Scholar\nexport BibTeX citation\nLoading...\nBibTeX formatted citation\n×\nloading...\nData provided by:\nBookmark\nBibliographic Tools\nBibliographic and Citation Tools\nBibliographic Explorer Toggle\nBibliographic Explorer (What is the Explorer?)\nConnected Papers Toggle\nConnected Papers (What is Connected Papers?)\nLitmaps Toggle\nLitmaps (What is Litmaps?)\nscite.ai Toggle\nscite Smart Citations (What are Smart Citations?)\nCode, Data, Media\nCode, Data and Media Associated with this Article\nalphaXiv Toggle\nalphaXiv (What is alphaXiv?)\nLinks to Code Toggle\nCatalyzeX Code Finder for Papers (What is CatalyzeX?)\nDagsHub Toggle\nDagsHub (What is DagsHub?)\nGotitPub Toggle\nGotit.pub (What is GotitPub?)\nHuggingface Toggle\nHugging Face (What is Huggingface?)\nScienceCast Toggle\nScienceCast (What is ScienceCast?)\nDemos\nDemos\nReplicate Toggle\nReplicate (What is Replicate?)\nSpaces Toggle\nHugging Face Spaces (What is Spaces?)\nSpaces Toggle\nTXYZ.AI (What is TXYZ.AI?)\nRelated Papers\nRecommenders and Search Tools\nLink to Influence Flower\nInfluence Flower (What are Influence Flowers?)\nCore recommender toggle\nCORE Recommender (What is CORE?)\nAuthor\nVenue\nInstitution\nTopic\nAbout arXivLabs\narXivLabs: experimental projects with community collaborators\narXivLabs is a framework that allows collaborators to develop and share new arXiv features directly on our website.\nBoth individuals and organizations that work with arXivLabs have embraced and accepted our values of openness, community, excellence, and user data privacy. arXiv is committed to these values and only works with partners that adhere to them.\nHave an idea for a project that will add value for arXiv's community? Learn more about arXivLabs.\nWhich authors of this paper are endorsers? |\nDisable MathJax (What is MathJax?)",
+      "source_url": "https://arxiv.org/abs/2411.14635",
+      "source_title": "https://arxiv.org/abs/2411.14635",
+      "source_type": "web",
+      "collected_by": "browser",
+      "collected_at": "2026-10-18T10:36:42.480875",
+      "reliability": 0.7,
+      "tokens_estimate": 0,
+      "source_channel": "web",
+      "source_backend": "http_reader"
+    }
+  ],
+  "report": "# 研究简报：Microsoft Research 在数据中心网络拥塞方向的代表性公开工作（2024–2025）\n\n**范围说明**：本简报只依据检索到的论文摘要、会议页面与机构署名页；未要求穷尽成果清单，也不推断微软内部研发战略。下文每条结论后标注证据来源，并在末节列出未覆盖范围。两次论文 PDF 读取失败（一次超输出上限、一次上游错误），因此**全文细节（实验配置、消融、limitations 章节）未能核验**。\n\n---\n\n## 1. 发表时单位核对（关键，影响“MR 成果”归属）\n\n| 论文 | 发表时单位署名 | MR 的角色 |\n|---|---|---|\n| **Reverie**（NSDI'24, pp.651–668）| Vamsi Addanki（TU Berlin）、**Wei Bai（Microsoft Research）**、Stefan Schmid（TU Berlin）、Maria Apostolaki（Princeton）| 微软研究员的**共同作者**；第一作者与主要评测来自高校[citation:1][citation:3] |\n| **InvisiFlow**（NSDI'25, pp.71–86）| Yinda Zhang（UPenn）、**Liangcheng Yu（UPenn 与 Microsoft Research）**、Gianni Antichi（Politecnico di Milano / QMUL）、Ran Ben Basat（UCL）、Vincent Liu（UPenn）| 微软的署名形式是“大学与 Microsoft Research”，属**双挂**身份[citation:4] |\n\n**推论边界**：两篇都是“微软研究员参与的合作论文”，而非微软单独署名的产物。因此把它们整体称为“Microsoft Research 的技术路线”会过度归因；更稳妥的表述是“MR 研究员参与的代表性工作”。至多可以说 Wei Bai 在相邻两届 NSDI 的缓冲区共享方向上持续署名，但不能据此推断机构层面的路线转向。\n\n## 2. 直接拥塞控制 vs. 相邻遥测工作（分类）\n\n- **直接相关（拥塞信号与缓冲区控制）**：**Reverie**。它直接处理交换机缓冲的准入与共享，而缓冲占用正是拥塞信号的来源[citation:1][citation:3]。\n- **相邻（遥测数据面传输）**：**InvisiFlow**。它不设计端到端拥塞控制算法，而是把**拥塞梯度**当作寻找“空闲带宽”的路由依据，服务于遥测采集，属于“把拥塞信息当工具”的相邻问题[citation:2][citation:4]。\n\n## 3. 研究问题（问题陈述）\n\n**Reverie 的诊断**：数据中心交换机缓冲被不同丢包容忍度的流量类共享（DCTCP 类有损 vs. RoCE 类无损）。作者分析指出，现有缓冲共享实践存在**结构性冲突**，无法同时做到 RDMA/TCP 隔离与最大突发吸收。两个根因：\n1. 缓冲共享依赖**入口/出口两套独立且常相互冲突的缓冲视图**；\n2. 共享方案对占用变化**过度微管理（micromanage），在瞬态拥塞下过度反应**[citation:1][citation:3]。\n\n**InvisiFlow 的诊断**：遥测数据（TE、路径追踪等）需从设备发往收集器，但现有方法在**高负载下要么给用户流量带来显著开销，要么丢失遥测数据**；根因是沿最短路径“总是推送”的发送方式[citation:2][citation:4]。\n\n## 4. 技术路线（机制层面）\n\n- **Reverie：统一准入控制 + 低通滤波（Low-Pass Filter, LPF）分配**。核心是**合并入口与出口视图的统一准入控制**，联合优化两类流量；缓冲分配基于低通滤波器，使瞬态拥塞下的突发队列长度在缓冲上限内被自然吸收，而不是对瞬时占用抖动做出反应[citation:1][citation:3]。这是一个**交换机本地、无需改动端主机传输协议**的“信令层”方案。\n- **InvisiFlow：机会式发送 + 拥塞梯度选路**。不再固定最短路径推送，而是动态寻找**空闲网络容量**，同时压低遥测丢包率与对用户流量的干扰[citation:2][citation:4]。可视为把网络遥测从“专用通道”转为“寄生在余量带宽上”的通信基座。\n\n两者共享一个隐含前提：**从既有拥塞信号/缓冲状态中可以低成本提取有用信息**（缓冲占用、拥塞梯度），无需新增带内信令或端侧改造。\n\n## 5. 量化成果（仅摘要级数字）\n\n- **Reverie**：RDMA 与 TCP 的**流完成时间（FCT）最多改善 33%**（两类流量同时受益）[citation:1][citation:3]。\n- **InvisiFlow**：FatTree 拓扑下，即使高负载也**接近零丢包**，相比 Everflow、Planck 等方法所用 SOTA 传输方式**丢包约低 33.8×**[citation:2][citation:4]。\n\n注意：两个数字的**基准与场景不同**（FCT 改善 vs. 丢包率），不可横向合并为“MR 拥塞方向综合提升 33%”。\n\n## 6. 可进一步验证的问题（有界，可操作）\n\n1. **Reverie 的 LPF 参数敏感性**：滤波时间常数与 PFC 水线、缓冲区大小的耦合关系，以及极端 incast 下的吸收上限——摘要未给出，需查全文 evaluation/limitations 章节。\n2. **Reverie 的“统一视图”硬件代价**：合并入口/出口准入在商用交换机流水线（如 Broadcom Tomahawk 系列）上的可实现性、每端口状态开销，摘要未涉及。\n3. **两篇工作是否互相评估**：InvisiFlow 的遥测流量在启用 Reverie 类缓冲隔离时是否仍满足“近零丢包”？跨论文组合的交互作用目前无公开证据。\n4. **InvisiFlow 的负载自适应代价**：寻找拥塞梯度所需的探测/状态开销与探测报文对用户流量的间接干扰，摘要只说“最小化”，未给具体量级。\n5. **归属层面的核对**：若要做“机构成果”统计，需逐篇核对作者在投稿时的单位（本文已完成两篇），并注意“大学+MSR 双挂”如何计入——这是计量口径问题，不是技术问题。\n\n## 7. 未覆盖范围（明确声明）\n\n- **未覆盖**：微软研究院在 2024–2025 年的其他拥塞相关成果（如端到端拥塞控制算法、INT/带内遥测硬件、可编程交换机上的 CC、AI 集群/RDMA 网络的其他工作）；未做系统的作者—论文检索，因此本简报**不是**成果清单。\n- **未核验**：两篇论文全文（PDF 读取失败），故实验平台、baseline 选择、消融实验、作者自述局限性均未核实。\n- **未推断**：微软内部研发重点、资源投入或路线转向；亦未据单篇论文推断方向变化（同一作者跨两届 NSDI 署名不足以支撑此类结论）。\n- **时间边界**：仅采信 2024（NSDI'24）与 2025（NSDI'25）会议正式发表版本；arXiv 预印本仅作了定位尝试，未取得可引用正文。\n\n---\n\n**一句话结论**：在可核验的两篇代表论文中，MR 研究员的贡献集中在“**低成本、本地化的拥塞/缓冲信令利用**”这一条技术脉络上——Reverie 用低通滤波解决无损/有损流量共存的缓冲共享冲突，InvisiFlow 用拥塞梯度把遥测流量“藏”进余量带宽；两者分别代表直接拥塞控制与相邻遥测传输，且均为高校主导的合著工作，不宜整体归因为机构战略。\n\n## 核验结果\n\n自动来源支持：7/29 项；人工复核：未复核。模型置信度不代表人工确认。\n支持状态来自模型语义判断与原文引语校验，不能保证结论为真。\n\n- claim:1 [missing_citation] **范围说明**：本简报只依据检索到的论文摘要、会议页面与机构署名页；未要求穷尽成果清单，也不推断微软内部研发战略。下文每条结论后标注证据来源，并在末节列出未覆盖范围。两次论文 PDF 读取失败（一次超输出上限、一次上游错误），因此**全文细节（实验配置、消融、limitations 章节）未能核验**。 — Awaiting source support judgement\n- claim:2 [missing_citation] | 论文 | 发表时单位署名 | MR 的角色 | — Awaiting source support judgement\n- claim:3 [unverifiable] | **Reverie**（NSDI'24, pp.651–668）| Vamsi Addanki（TU Berlin）、**Wei Bai（Microsoft Research）**、Stefan Schmid（TU Berlin）、Maria Apostolaki（Princeton）| 微软研究员的**共同作者**；第一作者与主要评测来自高校[citation:1][citation:3] | — Model quote is absent from the selected cited source; Source:1 confirms authors, NSDI'24 venue, pages 651–668, and source:1's presentation header gives affiliations Vamsi Addanki (TU Berlin), Wei Bai (Microsoft Research), Stefan Schmid (TU Berlin), Maria Apostolaki (Princeton). First author and other co-authors are from universities, so 'co-author from Microsoft; first author and main evaluation from universities' is entailed.\n- claim:5 [missing_citation] **推论边界**：两篇都是“微软研究员参与的合作论文”，而非微软单独署名的产物。因此把它们整体称为“Microsoft Research 的技术路线”会过度归因；更稳妥的表述是“MR 研究员参与的代表性工作”。至多可以说 Wei Bai 在相邻两届 NSDI 的缓冲区共享方向上持续署名，但不能据此推断机构层面的路线转向。 — Awaiting source support judgement\n- claim:8 [missing_citation] **Reverie 的诊断**：数据中心交换机缓冲被不同丢包容忍度的流量类共享（DCTCP 类有损 vs. — Awaiting source support judgement\n- claim:9 [missing_citation] RoCE 类无损）。作者分析指出，现有缓冲共享实践存在**结构性冲突**，无法同时做到 RDMA/TCP 隔离与最大突发吸收。两个根因： — Awaiting source support judgement\n- claim:10 [missing_citation] 缓冲共享依赖**入口/出口两套独立且常相互冲突的缓冲视图**； — Awaiting source support judgement\n- claim:11 [unverifiable] 共享方案对占用变化**过度微管理（micromanage），在瞬态拥塞下过度反应**[citation:1][citation:3]。 — Model quote is absent from the selected cited source; Exact wording matches the claim: micromanages buffer and overreacts to occupancy changes during transient congestion. Note this describes prior buffer-sharing schemes' root cause, which matches the claim's subject 'shared schemes'.\n- claim:14 [unverifiable] **InvisiFlow：机会式发送 + 拥塞梯度选路**。不再固定最短路径推送，而是动态寻找**空闲网络容量**，同时压低遥测丢包率与对用户流量的干扰[citation:2][citation:4]。可视为把网络遥测从“专用通道”转为“寄生在余量带宽上”的通信基座。 — Model quote is absent from the selected cited source; Excerpt directly supports opportunistic sending, congestion-gradient path selection, spare-capacity seeking, and minimizing both loss and user-traffic overhead. The interpretive framing ('parasitic on spare bandwidth') is a fair paraphrase of 'spare network capacity'.\n- claim:15 [missing_citation] 两者共享一个隐含前提：**从既有拥塞信号/缓冲状态中可以低成本提取有用信息**（缓冲占用、拥塞梯度），无需新增带内信令或端侧改造。 — Awaiting source support judgement\n- claim:18 [missing_citation] 注意：两个数字的**基准与场景不同**（FCT 改善 vs. — Awaiting source support judgement\n- claim:19 [missing_citation] 丢包率），不可横向合并为“MR 拥塞方向综合提升 33%”。 — Awaiting source support judgement\n- claim:20 [missing_citation] **Reverie 的 LPF 参数敏感性**：滤波时间常数与 PFC 水线、缓冲区大小的耦合关系，以及极端 incast 下的吸收上限——摘要未给出，需查全文 evaluation/limitations 章节。 — Awaiting source support judgement\n- claim:21 [not_checked] **Reverie 的“统一视图”硬件代价**：合并入口/出口准入在商用交换机流水线（如 Broadcom Tomahawk 系列）上的可实现性、每端口状态开销，摘要未涉及。 — Not checked\n- claim:22 [not_checked] **两篇工作是否互相评估**：InvisiFlow 的遥测流量在启用 Reverie 类缓冲隔离时是否仍满足“近零丢包”？跨论文组合的交互作用目前无公开证据。 — Not checked\n- claim:23 [not_checked] **InvisiFlow 的负载自适应代价**：寻找拥塞梯度所需的探测/状态开销与探测报文对用户流量的间接干扰，摘要只说“最小化”，未给具体量级。 — Not checked\n- claim:24 [not_checked] **归属层面的核对**：若要做“机构成果”统计，需逐篇核对作者在投稿时的单位（本文已完成两篇），并注意“大学+MSR 双挂”如何计入——这是计量口径问题，不是技术问题。 — Not checked\n- claim:25 [not_checked] **未覆盖**：微软研究院在 2024–2025 年的其他拥塞相关成果（如端到端拥塞控制算法、INT/带内遥测硬件、可编程交换机上的 CC、AI 集群/RDMA 网络的其他工作）；未做系统的作者—论文检索，因此本简报**不是**成果清单。 — Not checked\n- claim:26 [not_checked] **未核验**：两篇论文全文（PDF 读取失败），故实验平台、baseline 选择、消融实验、作者自述局限性均未核实。 — Not checked\n- claim:27 [not_checked] **未推断**：微软内部研发重点、资源投入或路线转向；亦未据单篇论文推断方向变化（同一作者跨两届 NSDI 署名不足以支撑此类结论）。 — Not checked\n- claim:28 [not_checked] **时间边界**：仅采信 2024（NSDI'24）与 2025（NSDI'25）会议正式发表版本；arXiv 预印本仅作了定位尝试，未取得可引用正文。 — Not checked\n- claim:29 [not_checked] **一句话结论**：在可核验的两篇代表论文中，MR 研究员的贡献集中在“**低成本、本地化的拥塞/缓冲信令利用**”这一条技术脉络上——Reverie 用低通滤波解决无损/有损流量共存的缓冲共享冲突，InvisiFlow 用拥塞梯度把遥测流量“藏”进余量带宽；两者分别代表直接拥塞控制与相邻遥测传输，且均为高校主导的合著工作，不宜整体归因为机构战略。 — Not checked\n\n## References\n\n[1] https://www.usenix.org/conference/nsdi24/presentation/addanki-reverie — https://www.usenix.org/conference/nsdi24/presentation/addanki-reverie\n[2] https://www.microsoft.com/en-us/research/publication/enabling-silent-telemetry-data-transmission-with-invisiflow/ — https://www.microsoft.com/en-us/research/publication/enabling-silent-telemetry-data-transmission-with-invisiflow/\n[3] https://www.microsoft.com/en-us/research/publication/reverie-low-pass-filter-based-switch-buffer-sharing-for-datacenters-with-rdma-and-tcp-traffic/ — https://www.microsoft.com/en-us/research/publication/reverie-low-pass-filter-based-switch-buffer-sharing-for-datacenters-with-rdma-and-tcp-traffic/\n[4] https://www.usenix.org/conference/nsdi25/presentation/zhang-yinda — https://www.usenix.org/conference/nsdi25/presentation/zhang-yinda\n[5] https://arxiv.org/abs/2411.14635 — https://arxiv.org/abs/2411.14635",
+  "audit": {
+    "schema_version": "1",
+    "verification_kind": "model_judgement_with_exact_quote_check",
+    "human_review_status": "not_reviewed",
+    "total_claims": 29,
+    "checked_claims": 20,
+    "supported_claims": 7,
+    "citation_presence_rate": 0.3448275862068966,
+    "source_support_rate": 0.2413793103448276,
+    "needs_review": true,
+    "errors": [],
+    "usage": [
+      {
+        "prompt_tokens": 3443,
+        "completion_tokens": 843,
+        "total_tokens": 4286,
+        "cost_usd": 0.0,
+        "estimated": true,
+        "model": "deepseek-chat"
+      },
+      {
+        "prompt_tokens": 3619,
+        "completion_tokens": 753,
+        "total_tokens": 4372,
+        "cost_usd": 0.0,
+        "estimated": true,
+        "model": "deepseek-chat"
+      }
+    ],
+    "claims": [
+      {
+        "claim_id": "claim:1",
+        "text": "**范围说明**：本简报只依据检索到的论文摘要、会议页面与机构署名页；未要求穷尽成果清单，也不推断微软内部研发战略。下文每条结论后标注证据来源，并在末节列出未覆盖范围。两次论文 PDF 读取失败（一次超输出上限、一次上游错误），因此**全文细节（实验配置、消融、limitations 章节）未能核验**。",
+        "citation_ids": [],
+        "status": "missing_citation",
+        "model_verdict": null,
+        "model_confidence": null,
+        "human_review_status": "not_reviewed",
+        "source_checks": [],
+        "excerpts": [
+          {
+            "citation_id": 4,
+            "evidence_id": "source:4",
+            "source_url": "https://www.usenix.org/conference/nsdi25/presentation/zhang-yinda",
+            "source_title": "https://www.usenix.org/conference/nsdi25/presentation/zhang-yinda",
+            "start": 1600,
+            "end": 2439,
+            "quote": "available to everyone once the event begins. Any video, audio, and/or slides that are posted after the event are also free and open to everyone. Support USENIX and our commitment to Open Access.\nThis content is available to:\nConference attendees\nBibTeX\n@inproceedings {305334,\nauthor = {Yinda Zhang and Liangcheng Yu and Gianni Antichi and Ran Ben Basat and Vincent Liu},\ntitle = {Enabling Silent Telemetry Data Transmission with {InvisiFlow}},\nbooktitle = {22nd USENIX Symposium on Networked Systems Design and Implementation (NSDI 25)},\nyear = {2025},\nisbn = {978-1-939133-46-5},\naddress = {Philadelphia, PA},\npages = {71--86},\nurl = {https://www.usenix.org/conference/nsdi25/presentation/zhang-yinda},\npublisher = {USENIX Association},\nmonth = apr\n}\nDownload\nZhang PDF\nZhang Paper (Prepublication) PDF\nView the slides\nPresentation Video"
+          },
+          {
+            "citation_id": 5,
+            "evidence_id": "source:5",
+            "source_url": "https://arxiv.org/abs/2411.14635",
+            "source_title": "https://arxiv.org/abs/2411.14635",
+            "start": 0,
+            "end": 1000,
+            "quote": "Statistics > Methodology\narXiv:2411.14635 (stat)\n[Submitted on 21 Nov 2024 (v1), last revised 6 Jan 2025 (this version, v2)]\nTitle:Modelling Loss of Complexity in Intermittent Time Series and its Application\nAuthors:Jie Li, Jian Zhang, Samantha L. Winter, Mark Burnley\nView a PDF of the paper titled Modelling Loss of Complexity in Intermittent Time Series and its Application, by Jie Li and 3 other authors\nView PDF\nHTML (experimental)\nAbstract:In this paper, we developed a novel method of nonparametric relative entropy (RlEn) for modelling loss of complexity in intermittent time series. The method consists of two steps. We first fit a nonlinear autoregressive model to each intermittent time series, where the corresponding lag order and the loss of complexity are determined by Bayesian Information Criterion (BIC) and relative entropy respectively. Then, change-points in the complexity are detected by a cumulative sum (CUSUM) based statistic. Compared to approximate entropy (ApEn), a popul"
+          },
+          {
+            "citation_id": 1,
+            "evidence_id": "source:1",
+            "source_url": "https://www.usenix.org/conference/nsdi24/presentation/addanki-reverie",
+            "source_title": "https://www.usenix.org/conference/nsdi24/presentation/addanki-reverie",
+            "start": 2400,
+            "end": 2784,
+            "quote": "{TCP} Traffic},\nbooktitle = {21st USENIX Symposium on Networked Systems Design and Implementation (NSDI 24)},\nyear = {2024},\nisbn = {978-1-939133-39-7},\naddress = {Santa Clara, CA},\npages = {651--668},\nurl = {https://www.usenix.org/conference/nsdi24/presentation/addanki-reverie},\npublisher = {USENIX Association},\nmonth = apr\n}\nDownload\nAddanki PDF\nView the slides\nPresentation Video"
+          }
+        ],
+        "reason": "Awaiting source support judgement"
+      },
+      {
+        "claim_id": "claim:2",
+        "text": "| 论文 | 发表时单位署名 | MR 的角色 |",
+        "citation_ids": [],
+        "status": "missing_citation",
+        "model_verdict": null,
+        "model_confidence": null,
+        "human_review_status": "not_reviewed",
+        "source_checks": [],
+        "excerpts": [
+          {
+            "citation_id": 1,
+            "evidence_id": "source:1",
+            "source_url": "https://www.usenix.org/conference/nsdi24/presentation/addanki-reverie",
+            "source_title": "https://www.usenix.org/conference/nsdi24/presentation/addanki-reverie",
+            "start": 0,
+            "end": 1000,
+            "quote": "Reverie: Low Pass Filter-Based Switch Buffer Sharing for Datacenters with RDMA and TCP Traffic\nVamsi Addanki, TU Berlin; Wei Bai, Microsoft Research; Stefan Schmid, TU Berlin; Maria Apostolaki, Princeton University\nThe switch buffers in datacenters today are shared by traffic classes with different loss tolerance and reaction to congestion signals. In particular, while legacy applications use loss-tolerant transport, e.g., DCTCP, newer applications require lossless datacenter transport, e.g.,  RDMA over Converged Ethernet. The allocation of buffers for this diverse traffic mix is managed by a buffer-sharing scheme. Unfortunately, as we analytically show in this paper, the buffer-sharing practices of today's datacenters pose a fundamental limitation to effectively isolate RDMA and TCP while also maximizing burst absorption. We identify two root causes: (i) the buffer-sharing for RDMA and TCP relies on two independent and often conflicting views of the buffer, namely ingress and egress; "
+          },
+          {
+            "citation_id": 2,
+            "evidence_id": "source:2",
+            "source_url": "https://www.microsoft.com/en-us/research/publication/enabling-silent-telemetry-data-transmission-with-invisiflow/",
+            "source_title": "https://www.microsoft.com/en-us/research/publication/enabling-silent-telemetry-data-transmission-with-invisiflow/",
+            "start": 0,
+            "end": 1000,
+            "quote": "Enabling Silent Telemetry Data Transmission with InvisiFlow\nYinda Zhang\n,\nLiangcheng Yu\n,\nGianni Antichi\n,\nRan Ben Basat\n,\nVincent Liu\nNSDI 2025\n| April 2025\nDownload BibTex\nNetwork applications from traffic engineering to path tracing often rely on the ability to transmit fine-grained telemetry data from network devices to a set of collectors. Unfortunately, prior work has observed—and we validate—that existing transmission methods for such data can result in significant overhead to user traffic and/or loss of telemetry data, particularly when the network is heavily loaded.\nIn this paper, we introduce InvisiFlow, a novel communication substrate for collecting network telemetry data, silently. In contrast to previous systems that always push telemetry packets to collectors based on the shortest path, InvisiFlow dynamically seeks out spare network capacity by leveraging opportunistic sending and congestion gradients, thus minimizing both the loss rate of telemetry data and overheads on "
+          },
+          {
+            "citation_id": 3,
+            "evidence_id": "source:3",
+            "source_url": "https://www.microsoft.com/en-us/research/publication/reverie-low-pass-filter-based-switch-buffer-sharing-for-datacenters-with-rdma-and-tcp-traffic/",
+            "source_title": "https://www.microsoft.com/en-us/research/publication/reverie-low-pass-filter-based-switch-buffer-sharing-for-datacenters-with-rdma-and-tcp-traffic/",
+            "start": 0,
+            "end": 1000,
+            "quote": "Reverie: Low Pass Filter-Based Switch Buffer Sharing for Datacenters with RDMA and TCP Traffic\nVamsi Addanki\n,\nWei Bai\n,\nStefan Schmid\n,\nMaria Apostolaki\nNSDI'24\n| April 2024\nDownload BibTex\nThe switch buffers in datacenters today are shared by traffic classes with different loss tolerance and reaction to congestion signals. In particular, while legacy applications use loss-tolerant transport, e.g., DCTCP, newer applications require lossless datacenter transport, e.g., RDMA over Converged Ethernet. The allocation of buffers for this diverse traffic mix is managed by a buffer-sharing scheme. Unfortunately, as we analytically show in this paper, the buffer-sharing practices of today’s datacenters pose a fundamental limitation to effectively isolate RDMA and TCP while also maximizing burst absorption. We identify two root causes: (i) the buffer-sharing for RDMA and TCP relies on two independent and often conflicting views of the buffer, namely ingress and egress; and (ii) the buffer-shari"
+          }
+        ],
+        "reason": "Awaiting source support judgement"
+      },
+      {
+        "claim_id": "claim:3",
+        "text": "| **Reverie**（NSDI'24, pp.651–668）| Vamsi Addanki（TU Berlin）、**Wei Bai（Microsoft Research）**、Stefan Schmid（TU Berlin）、Maria Apostolaki（Princeton）| 微软研究员的**共同作者**；第一作者与主要评测来自高校[citation:1][citation:3] |",
+        "citation_ids": [
+          1,
+          3
+        ],
+        "status": "unverifiable",
+        "model_verdict": "supported",
+        "model_confidence": 0.95,
+        "human_review_status": "not_reviewed",
+        "source_checks": [
+          {
+            "evidence_id": "source:1",
+            "quote": "author = {Vamsi Addanki and Wei Bai and Stefan Schmid and Maria Apostolaki},\ntitle = {Reverie: Low Pass {Filter-Based} Switch Buffer Sharing for Datacenters with {RDMA} and {TCP} Traffic},\nbooktitle = {21st USENIX Symposium on Networked Systems Design and Implementation (NSDI 24)},\nyear = {2024},\naddress = {Santa Clara, CA},\npages = {651--668}",
+            "quote_start": -1,
+            "quote_end": -1,
+            "quote_valid": false
+          }
+        ],
+        "excerpts": [
+          {
+            "citation_id": 1,
+            "evidence_id": "source:1",
+            "source_url": "https://www.usenix.org/conference/nsdi24/presentation/addanki-reverie",
+            "source_title": "https://www.usenix.org/conference/nsdi24/presentation/addanki-reverie",
+            "start": 1600,
+            "end": 2600,
+            "quote": "transient congestion within the buffer limits. Our evaluation shows that Reverie can improve the performance of RDMA as well as TCP in terms of flow completion times by up to 33%.\nNSDI '24 Open Access Sponsored by\nKing Abdullah University of Science and Technology (KAUST)\nOpen Access Media\nUSENIX is committed to Open Access to the research presented at our events. Papers and proceedings are freely available to everyone once the event begins. Any video, audio, and/or slides that are posted after the event are also free and open to everyone. Support USENIX and our commitment to Open Access.\nBibTeX\n@inproceedings {295539,\nauthor = {Vamsi Addanki and Wei Bai and Stefan Schmid and Maria Apostolaki},\ntitle = {Reverie: Low Pass {Filter-Based} Switch Buffer Sharing for Datacenters with {RDMA} and {TCP} Traffic},\nbooktitle = {21st USENIX Symposium on Networked Systems Design and Implementation (NSDI 24)},\nyear = {2024},\nisbn = {978-1-939133-39-7},\naddress = {Santa Clara, CA},\npages = {651--668}"
+          },
+          {
+            "citation_id": 3,
+            "evidence_id": "source:3",
+            "source_url": "https://www.microsoft.com/en-us/research/publication/reverie-low-pass-filter-based-switch-buffer-sharing-for-datacenters-with-rdma-and-tcp-traffic/",
+            "source_title": "https://www.microsoft.com/en-us/research/publication/reverie-low-pass-filter-based-switch-buffer-sharing-for-datacenters-with-rdma-and-tcp-traffic/",
+            "start": 0,
+            "end": 1000,
+            "quote": "Reverie: Low Pass Filter-Based Switch Buffer Sharing for Datacenters with RDMA and TCP Traffic\nVamsi Addanki\n,\nWei Bai\n,\nStefan Schmid\n,\nMaria Apostolaki\nNSDI'24\n| April 2024\nDownload BibTex\nThe switch buffers in datacenters today are shared by traffic classes with different loss tolerance and reaction to congestion signals. In particular, while legacy applications use loss-tolerant transport, e.g., DCTCP, newer applications require lossless datacenter transport, e.g., RDMA over Converged Ethernet. The allocation of buffers for this diverse traffic mix is managed by a buffer-sharing scheme. Unfortunately, as we analytically show in this paper, the buffer-sharing practices of today’s datacenters pose a fundamental limitation to effectively isolate RDMA and TCP while also maximizing burst absorption. We identify two root causes: (i) the buffer-sharing for RDMA and TCP relies on two independent and often conflicting views of the buffer, namely ingress and egress; and (ii) the buffer-shari"
+          }
+        ],
+        "reason": "Model quote is absent from the selected cited source; Source:1 confirms authors, NSDI'24 venue, pages 651–668, and source:1's presentation header gives affiliations Vamsi Addanki (TU Berlin), Wei Bai (Microsoft Research), Stefan Schmid (TU Berlin), Maria Apostolaki (Princeton). First author and other co-authors are from universities, so 'co-author from Microsoft; first author and main evaluation from universities' is entailed."
+      },
+      {
+        "claim_id": "claim:4",
+        "text": "| **InvisiFlow**（NSDI'25, pp.71–86）| Yinda Zhang（UPenn）、**Liangcheng Yu（UPenn 与 Microsoft Research）**、Gianni Antichi（Politecnico di Milano / QMUL）、Ran Ben Basat（UCL）、Vincent Liu（UPenn）| 微软的署名形式是“大学与 Microsoft Research”，属**双挂**身份[citation:4] |",
+        "citation_ids": [
+          4
+        ],
+        "status": "supported",
+        "model_verdict": "supported",
+        "model_confidence": 0.75,
+        "human_review_status": "not_reviewed",
+        "source_checks": [
+          {
+            "evidence_id": "source:4",
+            "quote": "Yinda Zhang, University of Pennsylvania; Liangcheng Yu, University of Pennsylvania and Microsoft Research; Gianni Antichi, Politecnico di Milano and Queen Mary University of London; Ran Ben Basat, University College London; Vincent Liu, University of Pennsylvania",
+            "quote_start": 60,
+            "quote_end": 323,
+            "quote_valid": true
+          }
+        ],
+        "excerpts": [
+          {
+            "citation_id": 4,
+            "evidence_id": "source:4",
+            "source_url": "https://www.usenix.org/conference/nsdi25/presentation/zhang-yinda",
+            "source_title": "https://www.usenix.org/conference/nsdi25/presentation/zhang-yinda",
+            "start": 0,
+            "end": 1000,
+            "quote": "Enabling Silent Telemetry Data Transmission with InvisiFlow\nYinda Zhang, University of Pennsylvania; Liangcheng Yu, University of Pennsylvania and Microsoft Research; Gianni Antichi, Politecnico di Milano and Queen Mary University of London; Ran Ben Basat, University College London; Vincent Liu, University of Pennsylvania\nNetwork applications from traffic engineering to path tracing often rely on the ability to transmit fine-grained telemetry data from network devices to a set of collectors. Unfortunately, prior work has observed—and we validate—that existing transmission methods for such data can result in significant overhead to user traffic and/or loss of telemetry data, particularly when the network is heavily loaded.\nIn this paper, we introduce InvisiFlow, a novel communication substrate to collect network telemetry data, silently. In contrast to previous systems that always push telemetry packets to collectors based on the shortest path, InvisiFlow dynamically seeks out spare net"
+          }
+        ],
+        "reason": "Affiliation form 'University of Pennsylvania and Microsoft Research' for Liangcheng Yu matches the dual-affiliation claim, and the other author affiliations match. However, the excerpt does not state pages 71–86 or NSDI'25 page numbers; the venue/year beyond the title is not in this quote, so the page-range portion is unverified though the affiliation core is supported."
+      },
+      {
+        "claim_id": "claim:5",
+        "text": "**推论边界**：两篇都是“微软研究员参与的合作论文”，而非微软单独署名的产物。因此把它们整体称为“Microsoft Research 的技术路线”会过度归因；更稳妥的表述是“MR 研究员参与的代表性工作”。至多可以说 Wei Bai 在相邻两届 NSDI 的缓冲区共享方向上持续署名，但不能据此推断机构层面的路线转向。",
+        "citation_ids": [],
+        "status": "missing_citation",
+        "model_verdict": null,
+        "model_confidence": null,
+        "human_review_status": "not_reviewed",
+        "source_checks": [],
+        "excerpts": [
+          {
+            "citation_id": 1,
+            "evidence_id": "source:1",
+            "source_url": "https://www.usenix.org/conference/nsdi24/presentation/addanki-reverie",
+            "source_title": "https://www.usenix.org/conference/nsdi24/presentation/addanki-reverie",
+            "start": 1600,
+            "end": 2600,
+            "quote": "transient congestion within the buffer limits. Our evaluation shows that Reverie can improve the performance of RDMA as well as TCP in terms of flow completion times by up to 33%.\nNSDI '24 Open Access Sponsored by\nKing Abdullah University of Science and Technology (KAUST)\nOpen Access Media\nUSENIX is committed to Open Access to the research presented at our events. Papers and proceedings are freely available to everyone once the event begins. Any video, audio, and/or slides that are posted after the event are also free and open to everyone. Support USENIX and our commitment to Open Access.\nBibTeX\n@inproceedings {295539,\nauthor = {Vamsi Addanki and Wei Bai and Stefan Schmid and Maria Apostolaki},\ntitle = {Reverie: Low Pass {Filter-Based} Switch Buffer Sharing for Datacenters with {RDMA} and {TCP} Traffic},\nbooktitle = {21st USENIX Symposium on Networked Systems Design and Implementation (NSDI 24)},\nyear = {2024},\nisbn = {978-1-939133-39-7},\naddress = {Santa Clara, CA},\npages = {651--668}"
+          },
+          {
+            "citation_id": 3,
+            "evidence_id": "source:3",
+            "source_url": "https://www.microsoft.com/en-us/research/publication/reverie-low-pass-filter-based-switch-buffer-sharing-for-datacenters-with-rdma-and-tcp-traffic/",
+            "source_title": "https://www.microsoft.com/en-us/research/publication/reverie-low-pass-filter-based-switch-buffer-sharing-for-datacenters-with-rdma-and-tcp-traffic/",
+            "start": 0,
+            "end": 1000,
+            "quote": "Reverie: Low Pass Filter-Based Switch Buffer Sharing for Datacenters with RDMA and TCP Traffic\nVamsi Addanki\n,\nWei Bai\n,\nStefan Schmid\n,\nMaria Apostolaki\nNSDI'24\n| April 2024\nDownload BibTex\nThe switch buffers in datacenters today are shared by traffic classes with different loss tolerance and reaction to congestion signals. In particular, while legacy applications use loss-tolerant transport, e.g., DCTCP, newer applications require lossless datacenter transport, e.g., RDMA over Converged Ethernet. The allocation of buffers for this diverse traffic mix is managed by a buffer-sharing scheme. Unfortunately, as we analytically show in this paper, the buffer-sharing practices of today’s datacenters pose a fundamental limitation to effectively isolate RDMA and TCP while also maximizing burst absorption. We identify two root causes: (i) the buffer-sharing for RDMA and TCP relies on two independent and often conflicting views of the buffer, namely ingress and egress; and (ii) the buffer-shari"
+          },
+          {
+            "citation_id": 2,
+            "evidence_id": "source:2",
+            "source_url": "https://www.microsoft.com/en-us/research/publication/enabling-silent-telemetry-data-transmission-with-invisiflow/",
+            "source_title": "https://www.microsoft.com/en-us/research/publication/enabling-silent-telemetry-data-transmission-with-invisiflow/",
+            "start": 800,
+            "end": 1304,
+            "quote": "rtest path, InvisiFlow dynamically seeks out spare network capacity by leveraging opportunistic sending and congestion gradients, thus minimizing both the loss rate of telemetry data and overheads on user traffic. In a FatTree topology, InvisiFlow can achieve near-zero loss rate even under high-load scenarios (around 33.8x lower loss compared to the state-of-the-art transmission methods used by systems like Everflow and Planck).\nOpens in a new tab\nAuthor's Version\nGroups\nResearch Areas\nResearch Labs"
+          }
+        ],
+        "reason": "Awaiting source support judgement"
+      },
+      {
+        "claim_id": "claim:6",
+        "text": "**直接相关（拥塞信号与缓冲区控制）**：**Reverie**。它直接处理交换机缓冲的准入与共享，而缓冲占用正是拥塞信号的来源[citation:1][citation:3]。",
+        "citation_ids": [
+          1,
+          3
+        ],
+        "status": "supported",
+        "model_verdict": "supported",
+        "model_confidence": 0.7,
+        "human_review_status": "not_reviewed",
+        "source_checks": [
+          {
+            "evidence_id": "source:1",
+            "quote": "At the core of Reverie lies a unified (consolidated ingress and egress) admission control that jointly optimizes the buffers for both traffic classes. Reverie, allocates buffer based on a low-pass filter that naturally absorbs bursty queue lengths during transient congestion within the buffer limits.",
+            "quote_start": 1345,
+            "quote_end": 1646,
+            "quote_valid": true
+          }
+        ],
+        "excerpts": [
+          {
+            "citation_id": 1,
+            "evidence_id": "source:1",
+            "source_url": "https://www.usenix.org/conference/nsdi24/presentation/addanki-reverie",
+            "source_title": "https://www.usenix.org/conference/nsdi24/presentation/addanki-reverie",
+            "start": 800,
+            "end": 1800,
+            "quote": " also maximizing burst absorption. We identify two root causes: (i) the buffer-sharing for RDMA and TCP relies on two independent and often conflicting views of the buffer, namely ingress and egress; and (ii) the buffer-sharing scheme micromanages the buffer and overreacts to the changes in its occupancy during transient congestion.\nIn this paper, we present Reverie, a buffer-sharing scheme, which, unlike prior works, is suitable for both lossless and loss-tolerant traffic classes, providing isolation as well as superior burst absorption. At the core of Reverie lies a unified (consolidated ingress and egress) admission control that jointly optimizes the buffers for both traffic classes. Reverie, allocates buffer based on a low-pass filter that naturally absorbs bursty queue lengths during transient congestion within the buffer limits. Our evaluation shows that Reverie can improve the performance of RDMA as well as TCP in terms of flow completion times by up to 33%.\nNSDI '24 Open Access"
+          },
+          {
+            "citation_id": 3,
+            "evidence_id": "source:3",
+            "source_url": "https://www.microsoft.com/en-us/research/publication/reverie-low-pass-filter-based-switch-buffer-sharing-for-datacenters-with-rdma-and-tcp-traffic/",
+            "source_title": "https://www.microsoft.com/en-us/research/publication/reverie-low-pass-filter-based-switch-buffer-sharing-for-datacenters-with-rdma-and-tcp-traffic/",
+            "start": 800,
+            "end": 1800,
+            "quote": "sorption. We identify two root causes: (i) the buffer-sharing for RDMA and TCP relies on two independent and often conflicting views of the buffer, namely ingress and egress; and (ii) the buffer-sharing scheme micromanages the buffer and overreacts to the changes in its occupancy during transient congestion.\nIn this paper, we present Reverie, a buffer-sharing scheme, which, unlike prior works, is suitable for both lossless and loss-tolerant traffic classes, providing isolation as well as superior burst absorption. At the core of Reverie lies a unified (consolidated ingress and egress) admission control that jointly optimizes the buffers for both traffic classes. Reverie, allocates buffer based on a low-pass filter that naturally absorbs bursty queue lengths during transient congestion within the buffer limits. Our evaluation shows that Reverie can improve the performance of RDMA as well as TCP in terms of flow completion times by up to 33%.\nOpens in a new tab\nPublication\nEvents\nResearc"
+          }
+        ],
+        "reason": "Excerpt explicitly shows Reverie handles switch buffer admission control and sharing; the framing that buffer occupancy is the source of congestion signals is a reasonable inference but only partially explicit. Core claim—direct handling of buffer admission/sharing—is supported."
+      },
+      {
+        "claim_id": "claim:7",
+        "text": "**相邻（遥测数据面传输）**：**InvisiFlow**。它不设计端到端拥塞控制算法，而是把**拥塞梯度**当作寻找“空闲带宽”的路由依据，服务于遥测采集，属于“把拥塞信息当工具”的相邻问题[citation:2][citation:4]。",
+        "citation_ids": [
+          2,
+          4
+        ],
+        "status": "supported",
+        "model_verdict": "supported",
+        "model_confidence": 0.7,
+        "human_review_status": "not_reviewed",
+        "source_checks": [
+          {
+            "evidence_id": "source:2",
+            "quote": "InvisiFlow dynamically seeks out spare network capacity by leveraging opportunistic sending and congestion gradients, thus minimizing both the loss rate of telemetry data and overheads on",
+            "quote_start": 812,
+            "quote_end": 999,
+            "quote_valid": true
+          }
+        ],
+        "excerpts": [
+          {
+            "citation_id": 2,
+            "evidence_id": "source:2",
+            "source_url": "https://www.microsoft.com/en-us/research/publication/enabling-silent-telemetry-data-transmission-with-invisiflow/",
+            "source_title": "https://www.microsoft.com/en-us/research/publication/enabling-silent-telemetry-data-transmission-with-invisiflow/",
+            "start": 0,
+            "end": 1000,
+            "quote": "Enabling Silent Telemetry Data Transmission with InvisiFlow\nYinda Zhang\n,\nLiangcheng Yu\n,\nGianni Antichi\n,\nRan Ben Basat\n,\nVincent Liu\nNSDI 2025\n| April 2025\nDownload BibTex\nNetwork applications from traffic engineering to path tracing often rely on the ability to transmit fine-grained telemetry data from network devices to a set of collectors. Unfortunately, prior work has observed—and we validate—that existing transmission methods for such data can result in significant overhead to user traffic and/or loss of telemetry data, particularly when the network is heavily loaded.\nIn this paper, we introduce InvisiFlow, a novel communication substrate for collecting network telemetry data, silently. In contrast to previous systems that always push telemetry packets to collectors based on the shortest path, InvisiFlow dynamically seeks out spare network capacity by leveraging opportunistic sending and congestion gradients, thus minimizing both the loss rate of telemetry data and overheads on "
+          },
+          {
+            "citation_id": 4,
+            "evidence_id": "source:4",
+            "source_url": "https://www.usenix.org/conference/nsdi25/presentation/zhang-yinda",
+            "source_title": "https://www.usenix.org/conference/nsdi25/presentation/zhang-yinda",
+            "start": 0,
+            "end": 1000,
+            "quote": "Enabling Silent Telemetry Data Transmission with InvisiFlow\nYinda Zhang, University of Pennsylvania; Liangcheng Yu, University of Pennsylvania and Microsoft Research; Gianni Antichi, Politecnico di Milano and Queen Mary University of London; Ran Ben Basat, University College London; Vincent Liu, University of Pennsylvania\nNetwork applications from traffic engineering to path tracing often rely on the ability to transmit fine-grained telemetry data from network devices to a set of collectors. Unfortunately, prior work has observed—and we validate—that existing transmission methods for such data can result in significant overhead to user traffic and/or loss of telemetry data, particularly when the network is heavily loaded.\nIn this paper, we introduce InvisiFlow, a novel communication substrate to collect network telemetry data, silently. In contrast to previous systems that always push telemetry packets to collectors based on the shortest path, InvisiFlow dynamically seeks out spare net"
+          }
+        ],
+        "reason": "Excerpt confirms InvisiFlow uses congestion gradients to find spare network capacity for telemetry collection rather than designing end-to-end congestion control. The 'does not design end-to-end CC' part is inferred from the telemetry-collection framing and not explicitly negated in text, but the described mechanism matches."
+      },
+      {
+        "claim_id": "claim:8",
+        "text": "**Reverie 的诊断**：数据中心交换机缓冲被不同丢包容忍度的流量类共享（DCTCP 类有损 vs.",
+        "citation_ids": [],
+        "status": "missing_citation",
+        "model_verdict": null,
+        "model_confidence": null,
+        "human_review_status": "not_reviewed",
+        "source_checks": [],
+        "excerpts": [
+          {
+            "citation_id": 1,
+            "evidence_id": "source:1",
+            "source_url": "https://www.usenix.org/conference/nsdi24/presentation/addanki-reverie",
+            "source_title": "https://www.usenix.org/conference/nsdi24/presentation/addanki-reverie",
+            "start": 0,
+            "end": 1000,
+            "quote": "Reverie: Low Pass Filter-Based Switch Buffer Sharing for Datacenters with RDMA and TCP Traffic\nVamsi Addanki, TU Berlin; Wei Bai, Microsoft Research; Stefan Schmid, TU Berlin; Maria Apostolaki, Princeton University\nThe switch buffers in datacenters today are shared by traffic classes with different loss tolerance and reaction to congestion signals. In particular, while legacy applications use loss-tolerant transport, e.g., DCTCP, newer applications require lossless datacenter transport, e.g.,  RDMA over Converged Ethernet. The allocation of buffers for this diverse traffic mix is managed by a buffer-sharing scheme. Unfortunately, as we analytically show in this paper, the buffer-sharing practices of today's datacenters pose a fundamental limitation to effectively isolate RDMA and TCP while also maximizing burst absorption. We identify two root causes: (i) the buffer-sharing for RDMA and TCP relies on two independent and often conflicting views of the buffer, namely ingress and egress; "
+          },
+          {
+            "citation_id": 3,
+            "evidence_id": "source:3",
+            "source_url": "https://www.microsoft.com/en-us/research/publication/reverie-low-pass-filter-based-switch-buffer-sharing-for-datacenters-with-rdma-and-tcp-traffic/",
+            "source_title": "https://www.microsoft.com/en-us/research/publication/reverie-low-pass-filter-based-switch-buffer-sharing-for-datacenters-with-rdma-and-tcp-traffic/",
+            "start": 0,
+            "end": 1000,
+            "quote": "Reverie: Low Pass Filter-Based Switch Buffer Sharing for Datacenters with RDMA and TCP Traffic\nVamsi Addanki\n,\nWei Bai\n,\nStefan Schmid\n,\nMaria Apostolaki\nNSDI'24\n| April 2024\nDownload BibTex\nThe switch buffers in datacenters today are shared by traffic classes with different loss tolerance and reaction to congestion signals. In particular, while legacy applications use loss-tolerant transport, e.g., DCTCP, newer applications require lossless datacenter transport, e.g., RDMA over Converged Ethernet. The allocation of buffers for this diverse traffic mix is managed by a buffer-sharing scheme. Unfortunately, as we analytically show in this paper, the buffer-sharing practices of today’s datacenters pose a fundamental limitation to effectively isolate RDMA and TCP while also maximizing burst absorption. We identify two root causes: (i) the buffer-sharing for RDMA and TCP relies on two independent and often conflicting views of the buffer, namely ingress and egress; and (ii) the buffer-shari"
+          },
+          {
+            "citation_id": 2,
+            "evidence_id": "source:2",
+            "source_url": "https://www.microsoft.com/en-us/research/publication/enabling-silent-telemetry-data-transmission-with-invisiflow/",
+            "source_title": "https://www.microsoft.com/en-us/research/publication/enabling-silent-telemetry-data-transmission-with-invisiflow/",
+            "start": 0,
+            "end": 1000,
+            "quote": "Enabling Silent Telemetry Data Transmission with InvisiFlow\nYinda Zhang\n,\nLiangcheng Yu\n,\nGianni Antichi\n,\nRan Ben Basat\n,\nVincent Liu\nNSDI 2025\n| April 2025\nDownload BibTex\nNetwork applications from traffic engineering to path tracing often rely on the ability to transmit fine-grained telemetry data from network devices to a set of collectors. Unfortunately, prior work has observed—and we validate—that existing transmission methods for such data can result in significant overhead to user traffic and/or loss of telemetry data, particularly when the network is heavily loaded.\nIn this paper, we introduce InvisiFlow, a novel communication substrate for collecting network telemetry data, silently. In contrast to previous systems that always push telemetry packets to collectors based on the shortest path, InvisiFlow dynamically seeks out spare network capacity by leveraging opportunistic sending and congestion gradients, thus minimizing both the loss rate of telemetry data and overheads on "
+          }
+        ],
+        "reason": "Awaiting source support judgement"
+      },
+      {
+        "claim_id": "claim:9",
+        "text": "RoCE 类无损）。作者分析指出，现有缓冲共享实践存在**结构性冲突**，无法同时做到 RDMA/TCP 隔离与最大突发吸收。两个根因：",
+        "citation_ids": [],
+        "status": "missing_citation",
+        "model_verdict": null,
+        "model_confidence": null,
+        "human_review_status": "not_reviewed",
+        "source_checks": [],
+        "excerpts": [
+          {
+            "citation_id": 1,
+            "evidence_id": "source:1",
+            "source_url": "https://www.usenix.org/conference/nsdi24/presentation/addanki-reverie",
+            "source_title": "https://www.usenix.org/conference/nsdi24/presentation/addanki-reverie",
+            "start": 0,
+            "end": 1000,
+            "quote": "Reverie: Low Pass Filter-Based Switch Buffer Sharing for Datacenters with RDMA and TCP Traffic\nVamsi Addanki, TU Berlin; Wei Bai, Microsoft Research; Stefan Schmid, TU Berlin; Maria Apostolaki, Princeton University\nThe switch buffers in datacenters today are shared by traffic classes with different loss tolerance and reaction to congestion signals. In particular, while legacy applications use loss-tolerant transport, e.g., DCTCP, newer applications require lossless datacenter transport, e.g.,  RDMA over Converged Ethernet. The allocation of buffers for this diverse traffic mix is managed by a buffer-sharing scheme. Unfortunately, as we analytically show in this paper, the buffer-sharing practices of today's datacenters pose a fundamental limitation to effectively isolate RDMA and TCP while also maximizing burst absorption. We identify two root causes: (i) the buffer-sharing for RDMA and TCP relies on two independent and often conflicting views of the buffer, namely ingress and egress; "
+          },
+          {
+            "citation_id": 3,
+            "evidence_id": "source:3",
+            "source_url": "https://www.microsoft.com/en-us/research/publication/reverie-low-pass-filter-based-switch-buffer-sharing-for-datacenters-with-rdma-and-tcp-traffic/",
+            "source_title": "https://www.microsoft.com/en-us/research/publication/reverie-low-pass-filter-based-switch-buffer-sharing-for-datacenters-with-rdma-and-tcp-traffic/",
+            "start": 0,
+            "end": 1000,
+            "quote": "Reverie: Low Pass Filter-Based Switch Buffer Sharing for Datacenters with RDMA and TCP Traffic\nVamsi Addanki\n,\nWei Bai\n,\nStefan Schmid\n,\nMaria Apostolaki\nNSDI'24\n| April 2024\nDownload BibTex\nThe switch buffers in datacenters today are shared by traffic classes with different loss tolerance and reaction to congestion signals. In particular, while legacy applications use loss-tolerant transport, e.g., DCTCP, newer applications require lossless datacenter transport, e.g., RDMA over Converged Ethernet. The allocation of buffers for this diverse traffic mix is managed by a buffer-sharing scheme. Unfortunately, as we analytically show in this paper, the buffer-sharing practices of today’s datacenters pose a fundamental limitation to effectively isolate RDMA and TCP while also maximizing burst absorption. We identify two root causes: (i) the buffer-sharing for RDMA and TCP relies on two independent and often conflicting views of the buffer, namely ingress and egress; and (ii) the buffer-shari"
+          },
+          {
+            "citation_id": 2,
+            "evidence_id": "source:2",
+            "source_url": "https://www.microsoft.com/en-us/research/publication/enabling-silent-telemetry-data-transmission-with-invisiflow/",
+            "source_title": "https://www.microsoft.com/en-us/research/publication/enabling-silent-telemetry-data-transmission-with-invisiflow/",
+            "start": 0,
+            "end": 1000,
+            "quote": "Enabling Silent Telemetry Data Transmission with InvisiFlow\nYinda Zhang\n,\nLiangcheng Yu\n,\nGianni Antichi\n,\nRan Ben Basat\n,\nVincent Liu\nNSDI 2025\n| April 2025\nDownload BibTex\nNetwork applications from traffic engineering to path tracing often rely on the ability to transmit fine-grained telemetry data from network devices to a set of collectors. Unfortunately, prior work has observed—and we validate—that existing transmission methods for such data can result in significant overhead to user traffic and/or loss of telemetry data, particularly when the network is heavily loaded.\nIn this paper, we introduce InvisiFlow, a novel communication substrate for collecting network telemetry data, silently. In contrast to previous systems that always push telemetry packets to collectors based on the shortest path, InvisiFlow dynamically seeks out spare network capacity by leveraging opportunistic sending and congestion gradients, thus minimizing both the loss rate of telemetry data and overheads on "
+          }
+        ],
+        "reason": "Awaiting source support judgement"
+      },
+      {
+        "claim_id": "claim:10",
+        "text": "缓冲共享依赖**入口/出口两套独立且常相互冲突的缓冲视图**；",
+        "citation_ids": [],
+        "status": "missing_citation",
+        "model_verdict": null,
+        "model_confidence": null,
+        "human_review_status": "not_reviewed",
+        "source_checks": [],
+        "excerpts": [
+          {
+            "citation_id": 1,
+            "evidence_id": "source:1",
+            "source_url": "https://www.usenix.org/conference/nsdi24/presentation/addanki-reverie",
+            "source_title": "https://www.usenix.org/conference/nsdi24/presentation/addanki-reverie",
+            "start": 0,
+            "end": 1000,
+            "quote": "Reverie: Low Pass Filter-Based Switch Buffer Sharing for Datacenters with RDMA and TCP Traffic\nVamsi Addanki, TU Berlin; Wei Bai, Microsoft Research; Stefan Schmid, TU Berlin; Maria Apostolaki, Princeton University\nThe switch buffers in datacenters today are shared by traffic classes with different loss tolerance and reaction to congestion signals. In particular, while legacy applications use loss-tolerant transport, e.g., DCTCP, newer applications require lossless datacenter transport, e.g.,  RDMA over Converged Ethernet. The allocation of buffers for this diverse traffic mix is managed by a buffer-sharing scheme. Unfortunately, as we analytically show in this paper, the buffer-sharing practices of today's datacenters pose a fundamental limitation to effectively isolate RDMA and TCP while also maximizing burst absorption. We identify two root causes: (i) the buffer-sharing for RDMA and TCP relies on two independent and often conflicting views of the buffer, namely ingress and egress; "
+          },
+          {
+            "citation_id": 2,
+            "evidence_id": "source:2",
+            "source_url": "https://www.microsoft.com/en-us/research/publication/enabling-silent-telemetry-data-transmission-with-invisiflow/",
+            "source_title": "https://www.microsoft.com/en-us/research/publication/enabling-silent-telemetry-data-transmission-with-invisiflow/",
+            "start": 0,
+            "end": 1000,
+            "quote": "Enabling Silent Telemetry Data Transmission with InvisiFlow\nYinda Zhang\n,\nLiangcheng Yu\n,\nGianni Antichi\n,\nRan Ben Basat\n,\nVincent Liu\nNSDI 2025\n| April 2025\nDownload BibTex\nNetwork applications from traffic engineering to path tracing often rely on the ability to transmit fine-grained telemetry data from network devices to a set of collectors. Unfortunately, prior work has observed—and we validate—that existing transmission methods for such data can result in significant overhead to user traffic and/or loss of telemetry data, particularly when the network is heavily loaded.\nIn this paper, we introduce InvisiFlow, a novel communication substrate for collecting network telemetry data, silently. In contrast to previous systems that always push telemetry packets to collectors based on the shortest path, InvisiFlow dynamically seeks out spare network capacity by leveraging opportunistic sending and congestion gradients, thus minimizing both the loss rate of telemetry data and overheads on "
+          },
+          {
+            "citation_id": 3,
+            "evidence_id": "source:3",
+            "source_url": "https://www.microsoft.com/en-us/research/publication/reverie-low-pass-filter-based-switch-buffer-sharing-for-datacenters-with-rdma-and-tcp-traffic/",
+            "source_title": "https://www.microsoft.com/en-us/research/publication/reverie-low-pass-filter-based-switch-buffer-sharing-for-datacenters-with-rdma-and-tcp-traffic/",
+            "start": 0,
+            "end": 1000,
+            "quote": "Reverie: Low Pass Filter-Based Switch Buffer Sharing for Datacenters with RDMA and TCP Traffic\nVamsi Addanki\n,\nWei Bai\n,\nStefan Schmid\n,\nMaria Apostolaki\nNSDI'24\n| April 2024\nDownload BibTex\nThe switch buffers in datacenters today are shared by traffic classes with different loss tolerance and reaction to congestion signals. In particular, while legacy applications use loss-tolerant transport, e.g., DCTCP, newer applications require lossless datacenter transport, e.g., RDMA over Converged Ethernet. The allocation of buffers for this diverse traffic mix is managed by a buffer-sharing scheme. Unfortunately, as we analytically show in this paper, the buffer-sharing practices of today’s datacenters pose a fundamental limitation to effectively isolate RDMA and TCP while also maximizing burst absorption. We identify two root causes: (i) the buffer-sharing for RDMA and TCP relies on two independent and often conflicting views of the buffer, namely ingress and egress; and (ii) the buffer-shari"
+          }
+        ],
+        "reason": "Awaiting source support judgement"
+      },
+      {
+        "claim_id": "claim:11",
+        "text": "共享方案对占用变化**过度微管理（micromanage），在瞬态拥塞下过度反应**[citation:1][citation:3]。",
+        "citation_ids": [
+          1,
+          3
+        ],
+        "status": "unverifiable",
+        "model_verdict": "supported",
+        "model_confidence": 0.95,
+        "human_review_status": "not_reviewed",
+        "source_checks": [
+          {
+            "evidence_id": "source:3",
+            "quote": "the buffer-sharing scheme micromanages the buffer and overreacts to the changes in its occupancy during transient congestion.",
+            "quote_start": -1,
+            "quote_end": -1,
+            "quote_valid": false
+          }
+        ],
+        "excerpts": [
+          {
+            "citation_id": 1,
+            "evidence_id": "source:1",
+            "source_url": "https://www.usenix.org/conference/nsdi24/presentation/addanki-reverie",
+            "source_title": "https://www.usenix.org/conference/nsdi24/presentation/addanki-reverie",
+            "start": 0,
+            "end": 1000,
+            "quote": "Reverie: Low Pass Filter-Based Switch Buffer Sharing for Datacenters with RDMA and TCP Traffic\nVamsi Addanki, TU Berlin; Wei Bai, Microsoft Research; Stefan Schmid, TU Berlin; Maria Apostolaki, Princeton University\nThe switch buffers in datacenters today are shared by traffic classes with different loss tolerance and reaction to congestion signals. In particular, while legacy applications use loss-tolerant transport, e.g., DCTCP, newer applications require lossless datacenter transport, e.g.,  RDMA over Converged Ethernet. The allocation of buffers for this diverse traffic mix is managed by a buffer-sharing scheme. Unfortunately, as we analytically show in this paper, the buffer-sharing practices of today's datacenters pose a fundamental limitation to effectively isolate RDMA and TCP while also maximizing burst absorption. We identify two root causes: (i) the buffer-sharing for RDMA and TCP relies on two independent and often conflicting views of the buffer, namely ingress and egress; "
+          },
+          {
+            "citation_id": 3,
+            "evidence_id": "source:3",
+            "source_url": "https://www.microsoft.com/en-us/research/publication/reverie-low-pass-filter-based-switch-buffer-sharing-for-datacenters-with-rdma-and-tcp-traffic/",
+            "source_title": "https://www.microsoft.com/en-us/research/publication/reverie-low-pass-filter-based-switch-buffer-sharing-for-datacenters-with-rdma-and-tcp-traffic/",
+            "start": 0,
+            "end": 1000,
+            "quote": "Reverie: Low Pass Filter-Based Switch Buffer Sharing for Datacenters with RDMA and TCP Traffic\nVamsi Addanki\n,\nWei Bai\n,\nStefan Schmid\n,\nMaria Apostolaki\nNSDI'24\n| April 2024\nDownload BibTex\nThe switch buffers in datacenters today are shared by traffic classes with different loss tolerance and reaction to congestion signals. In particular, while legacy applications use loss-tolerant transport, e.g., DCTCP, newer applications require lossless datacenter transport, e.g., RDMA over Converged Ethernet. The allocation of buffers for this diverse traffic mix is managed by a buffer-sharing scheme. Unfortunately, as we analytically show in this paper, the buffer-sharing practices of today’s datacenters pose a fundamental limitation to effectively isolate RDMA and TCP while also maximizing burst absorption. We identify two root causes: (i) the buffer-sharing for RDMA and TCP relies on two independent and often conflicting views of the buffer, namely ingress and egress; and (ii) the buffer-shari"
+          }
+        ],
+        "reason": "Model quote is absent from the selected cited source; Exact wording matches the claim: micromanages buffer and overreacts to occupancy changes during transient congestion. Note this describes prior buffer-sharing schemes' root cause, which matches the claim's subject 'shared schemes'."
+      },
+      {
+        "claim_id": "claim:12",
+        "text": "**InvisiFlow 的诊断**：遥测数据（TE、路径追踪等）需从设备发往收集器，但现有方法在**高负载下要么给用户流量带来显著开销，要么丢失遥测数据**；根因是沿最短路径“总是推送”的发送方式[citation:2][citation:4]。",
+        "citation_ids": [
+          2,
+          4
+        ],
+        "status": "supported",
+        "model_verdict": "supported",
+        "model_confidence": 0.95,
+        "human_review_status": "not_reviewed",
+        "source_checks": [
+          {
+            "evidence_id": "source:2",
+            "quote": "existing transmission methods for such data can result in significant overhead to user traffic and/or loss of telemetry data, particularly when the network is heavily loaded.",
+            "quote_start": 407,
+            "quote_end": 581,
+            "quote_valid": true
+          }
+        ],
+        "excerpts": [
+          {
+            "citation_id": 2,
+            "evidence_id": "source:2",
+            "source_url": "https://www.microsoft.com/en-us/research/publication/enabling-silent-telemetry-data-transmission-with-invisiflow/",
+            "source_title": "https://www.microsoft.com/en-us/research/publication/enabling-silent-telemetry-data-transmission-with-invisiflow/",
+            "start": 0,
+            "end": 1000,
+            "quote": "Enabling Silent Telemetry Data Transmission with InvisiFlow\nYinda Zhang\n,\nLiangcheng Yu\n,\nGianni Antichi\n,\nRan Ben Basat\n,\nVincent Liu\nNSDI 2025\n| April 2025\nDownload BibTex\nNetwork applications from traffic engineering to path tracing often rely on the ability to transmit fine-grained telemetry data from network devices to a set of collectors. Unfortunately, prior work has observed—and we validate—that existing transmission methods for such data can result in significant overhead to user traffic and/or loss of telemetry data, particularly when the network is heavily loaded.\nIn this paper, we introduce InvisiFlow, a novel communication substrate for collecting network telemetry data, silently. In contrast to previous systems that always push telemetry packets to collectors based on the shortest path, InvisiFlow dynamically seeks out spare network capacity by leveraging opportunistic sending and congestion gradients, thus minimizing both the loss rate of telemetry data and overheads on "
+          },
+          {
+            "citation_id": 4,
+            "evidence_id": "source:4",
+            "source_url": "https://www.usenix.org/conference/nsdi25/presentation/zhang-yinda",
+            "source_title": "https://www.usenix.org/conference/nsdi25/presentation/zhang-yinda",
+            "start": 0,
+            "end": 1000,
+            "quote": "Enabling Silent Telemetry Data Transmission with InvisiFlow\nYinda Zhang, University of Pennsylvania; Liangcheng Yu, University of Pennsylvania and Microsoft Research; Gianni Antichi, Politecnico di Milano and Queen Mary University of London; Ran Ben Basat, University College London; Vincent Liu, University of Pennsylvania\nNetwork applications from traffic engineering to path tracing often rely on the ability to transmit fine-grained telemetry data from network devices to a set of collectors. Unfortunately, prior work has observed—and we validate—that existing transmission methods for such data can result in significant overhead to user traffic and/or loss of telemetry data, particularly when the network is heavily loaded.\nIn this paper, we introduce InvisiFlow, a novel communication substrate to collect network telemetry data, silently. In contrast to previous systems that always push telemetry packets to collectors based on the shortest path, InvisiFlow dynamically seeks out spare net"
+          }
+        ],
+        "reason": "Excerpt confirms the diagnostic: telemetry from devices to collectors, prior methods cause user-traffic overhead and/or telemetry loss under heavy load. The 'always push based on shortest path' root-cause clause is also entailed by 'previous systems that always push telemetry packets to collectors based on the shortest path' in the same excerpt."
+      },
+      {
+        "claim_id": "claim:13",
+        "text": "**Reverie：统一准入控制 + 低通滤波（Low-Pass Filter, LPF）分配**。核心是**合并入口与出口视图的统一准入控制**，联合优化两类流量；缓冲分配基于低通滤波器，使瞬态拥塞下的突发队列长度在缓冲上限内被自然吸收，而不是对瞬时占用抖动做出反应[citation:1][citation:3]。这是一个**交换机本地、无需改动端主机传输协议**的“信令层”方案。",
+        "citation_ids": [
+          1,
+          3
+        ],
+        "status": "supported",
+        "model_verdict": "supported",
+        "model_confidence": 0.7,
+        "human_review_status": "not_reviewed",
+        "source_checks": [
+          {
+            "evidence_id": "source:1",
+            "quote": "At the core of Reverie lies a unified (consolidated ingress and egress) admission control that jointly optimizes the buffers for both traffic classes. Reverie, allocates buffer based on a low-pass filter that naturally absorbs bursty queue lengths during transient congestion within the buffer limits.",
+            "quote_start": 1345,
+            "quote_end": 1646,
+            "quote_valid": true
+          }
+        ],
+        "excerpts": [
+          {
+            "citation_id": 1,
+            "evidence_id": "source:1",
+            "source_url": "https://www.usenix.org/conference/nsdi24/presentation/addanki-reverie",
+            "source_title": "https://www.usenix.org/conference/nsdi24/presentation/addanki-reverie",
+            "start": 800,
+            "end": 1800,
+            "quote": " also maximizing burst absorption. We identify two root causes: (i) the buffer-sharing for RDMA and TCP relies on two independent and often conflicting views of the buffer, namely ingress and egress; and (ii) the buffer-sharing scheme micromanages the buffer and overreacts to the changes in its occupancy during transient congestion.\nIn this paper, we present Reverie, a buffer-sharing scheme, which, unlike prior works, is suitable for both lossless and loss-tolerant traffic classes, providing isolation as well as superior burst absorption. At the core of Reverie lies a unified (consolidated ingress and egress) admission control that jointly optimizes the buffers for both traffic classes. Reverie, allocates buffer based on a low-pass filter that naturally absorbs bursty queue lengths during transient congestion within the buffer limits. Our evaluation shows that Reverie can improve the performance of RDMA as well as TCP in terms of flow completion times by up to 33%.\nNSDI '24 Open Access"
+          },
+          {
+            "citation_id": 3,
+            "evidence_id": "source:3",
+            "source_url": "https://www.microsoft.com/en-us/research/publication/reverie-low-pass-filter-based-switch-buffer-sharing-for-datacenters-with-rdma-and-tcp-traffic/",
+            "source_title": "https://www.microsoft.com/en-us/research/publication/reverie-low-pass-filter-based-switch-buffer-sharing-for-datacenters-with-rdma-and-tcp-traffic/",
+            "start": 800,
+            "end": 1800,
+            "quote": "sorption. We identify two root causes: (i) the buffer-sharing for RDMA and TCP relies on two independent and often conflicting views of the buffer, namely ingress and egress; and (ii) the buffer-sharing scheme micromanages the buffer and overreacts to the changes in its occupancy during transient congestion.\nIn this paper, we present Reverie, a buffer-sharing scheme, which, unlike prior works, is suitable for both lossless and loss-tolerant traffic classes, providing isolation as well as superior burst absorption. At the core of Reverie lies a unified (consolidated ingress and egress) admission control that jointly optimizes the buffers for both traffic classes. Reverie, allocates buffer based on a low-pass filter that naturally absorbs bursty queue lengths during transient congestion within the buffer limits. Our evaluation shows that Reverie can improve the performance of RDMA as well as TCP in terms of flow completion times by up to 33%.\nOpens in a new tab\nPublication\nEvents\nResearc"
+          }
+        ],
+        "reason": "Excerpt supports unified ingress/egress admission control, joint optimization of both classes, LPF-based allocation, burst absorption, and avoidance of overreaction to occupancy changes. However, the closing clause that this is a switch-local 'signaling layer' requiring no end-host transport changes is not stated in the excerpt — that sub-claim is unverified even though the core mechanics are supported."
+      },
+      {
+        "claim_id": "claim:14",
+        "text": "**InvisiFlow：机会式发送 + 拥塞梯度选路**。不再固定最短路径推送，而是动态寻找**空闲网络容量**，同时压低遥测丢包率与对用户流量的干扰[citation:2][citation:4]。可视为把网络遥测从“专用通道”转为“寄生在余量带宽上”的通信基座。",
+        "citation_ids": [
+          2,
+          4
+        ],
+        "status": "unverifiable",
+        "model_verdict": "supported",
+        "model_confidence": 0.93,
+        "human_review_status": "not_reviewed",
+        "source_checks": [
+          {
+            "evidence_id": "source:2",
+            "quote": "In contrast to previous systems that always push telemetry packets to collectors based on the shortest path, InvisiFlow dynamically seeks out spare network capacity by leveraging opportunistic sending and congestion gradients, thus minimizing both the loss rate of telemetry data and overheads on user traffic",
+            "quote_start": -1,
+            "quote_end": -1,
+            "quote_valid": false
+          }
+        ],
+        "excerpts": [
+          {
+            "citation_id": 2,
+            "evidence_id": "source:2",
+            "source_url": "https://www.microsoft.com/en-us/research/publication/enabling-silent-telemetry-data-transmission-with-invisiflow/",
+            "source_title": "https://www.microsoft.com/en-us/research/publication/enabling-silent-telemetry-data-transmission-with-invisiflow/",
+            "start": 0,
+            "end": 1000,
+            "quote": "Enabling Silent Telemetry Data Transmission with InvisiFlow\nYinda Zhang\n,\nLiangcheng Yu\n,\nGianni Antichi\n,\nRan Ben Basat\n,\nVincent Liu\nNSDI 2025\n| April 2025\nDownload BibTex\nNetwork applications from traffic engineering to path tracing often rely on the ability to transmit fine-grained telemetry data from network devices to a set of collectors. Unfortunately, prior work has observed—and we validate—that existing transmission methods for such data can result in significant overhead to user traffic and/or loss of telemetry data, particularly when the network is heavily loaded.\nIn this paper, we introduce InvisiFlow, a novel communication substrate for collecting network telemetry data, silently. In contrast to previous systems that always push telemetry packets to collectors based on the shortest path, InvisiFlow dynamically seeks out spare network capacity by leveraging opportunistic sending and congestion gradients, thus minimizing both the loss rate of telemetry data and overheads on "
+          },
+          {
+            "citation_id": 4,
+            "evidence_id": "source:4",
+            "source_url": "https://www.usenix.org/conference/nsdi25/presentation/zhang-yinda",
+            "source_title": "https://www.usenix.org/conference/nsdi25/presentation/zhang-yinda",
+            "start": 0,
+            "end": 1000,
+            "quote": "Enabling Silent Telemetry Data Transmission with InvisiFlow\nYinda Zhang, University of Pennsylvania; Liangcheng Yu, University of Pennsylvania and Microsoft Research; Gianni Antichi, Politecnico di Milano and Queen Mary University of London; Ran Ben Basat, University College London; Vincent Liu, University of Pennsylvania\nNetwork applications from traffic engineering to path tracing often rely on the ability to transmit fine-grained telemetry data from network devices to a set of collectors. Unfortunately, prior work has observed—and we validate—that existing transmission methods for such data can result in significant overhead to user traffic and/or loss of telemetry data, particularly when the network is heavily loaded.\nIn this paper, we introduce InvisiFlow, a novel communication substrate to collect network telemetry data, silently. In contrast to previous systems that always push telemetry packets to collectors based on the shortest path, InvisiFlow dynamically seeks out spare net"
+          }
+        ],
+        "reason": "Model quote is absent from the selected cited source; Excerpt directly supports opportunistic sending, congestion-gradient path selection, spare-capacity seeking, and minimizing both loss and user-traffic overhead. The interpretive framing ('parasitic on spare bandwidth') is a fair paraphrase of 'spare network capacity'."
+      },
+      {
+        "claim_id": "claim:15",
+        "text": "两者共享一个隐含前提：**从既有拥塞信号/缓冲状态中可以低成本提取有用信息**（缓冲占用、拥塞梯度），无需新增带内信令或端侧改造。",
+        "citation_ids": [],
+        "status": "missing_citation",
+        "model_verdict": null,
+        "model_confidence": null,
+        "human_review_status": "not_reviewed",
+        "source_checks": [],
+        "excerpts": [
+          {
+            "citation_id": 1,
+            "evidence_id": "source:1",
+            "source_url": "https://www.usenix.org/conference/nsdi24/presentation/addanki-reverie",
+            "source_title": "https://www.usenix.org/conference/nsdi24/presentation/addanki-reverie",
+            "start": 0,
+            "end": 1000,
+            "quote": "Reverie: Low Pass Filter-Based Switch Buffer Sharing for Datacenters with RDMA and TCP Traffic\nVamsi Addanki, TU Berlin; Wei Bai, Microsoft Research; Stefan Schmid, TU Berlin; Maria Apostolaki, Princeton University\nThe switch buffers in datacenters today are shared by traffic classes with different loss tolerance and reaction to congestion signals. In particular, while legacy applications use loss-tolerant transport, e.g., DCTCP, newer applications require lossless datacenter transport, e.g.,  RDMA over Converged Ethernet. The allocation of buffers for this diverse traffic mix is managed by a buffer-sharing scheme. Unfortunately, as we analytically show in this paper, the buffer-sharing practices of today's datacenters pose a fundamental limitation to effectively isolate RDMA and TCP while also maximizing burst absorption. We identify two root causes: (i) the buffer-sharing for RDMA and TCP relies on two independent and often conflicting views of the buffer, namely ingress and egress; "
+          },
+          {
+            "citation_id": 2,
+            "evidence_id": "source:2",
+            "source_url": "https://www.microsoft.com/en-us/research/publication/enabling-silent-telemetry-data-transmission-with-invisiflow/",
+            "source_title": "https://www.microsoft.com/en-us/research/publication/enabling-silent-telemetry-data-transmission-with-invisiflow/",
+            "start": 0,
+            "end": 1000,
+            "quote": "Enabling Silent Telemetry Data Transmission with InvisiFlow\nYinda Zhang\n,\nLiangcheng Yu\n,\nGianni Antichi\n,\nRan Ben Basat\n,\nVincent Liu\nNSDI 2025\n| April 2025\nDownload BibTex\nNetwork applications from traffic engineering to path tracing often rely on the ability to transmit fine-grained telemetry data from network devices to a set of collectors. Unfortunately, prior work has observed—and we validate—that existing transmission methods for such data can result in significant overhead to user traffic and/or loss of telemetry data, particularly when the network is heavily loaded.\nIn this paper, we introduce InvisiFlow, a novel communication substrate for collecting network telemetry data, silently. In contrast to previous systems that always push telemetry packets to collectors based on the shortest path, InvisiFlow dynamically seeks out spare network capacity by leveraging opportunistic sending and congestion gradients, thus minimizing both the loss rate of telemetry data and overheads on "
+          },
+          {
+            "citation_id": 3,
+            "evidence_id": "source:3",
+            "source_url": "https://www.microsoft.com/en-us/research/publication/reverie-low-pass-filter-based-switch-buffer-sharing-for-datacenters-with-rdma-and-tcp-traffic/",
+            "source_title": "https://www.microsoft.com/en-us/research/publication/reverie-low-pass-filter-based-switch-buffer-sharing-for-datacenters-with-rdma-and-tcp-traffic/",
+            "start": 0,
+            "end": 1000,
+            "quote": "Reverie: Low Pass Filter-Based Switch Buffer Sharing for Datacenters with RDMA and TCP Traffic\nVamsi Addanki\n,\nWei Bai\n,\nStefan Schmid\n,\nMaria Apostolaki\nNSDI'24\n| April 2024\nDownload BibTex\nThe switch buffers in datacenters today are shared by traffic classes with different loss tolerance and reaction to congestion signals. In particular, while legacy applications use loss-tolerant transport, e.g., DCTCP, newer applications require lossless datacenter transport, e.g., RDMA over Converged Ethernet. The allocation of buffers for this diverse traffic mix is managed by a buffer-sharing scheme. Unfortunately, as we analytically show in this paper, the buffer-sharing practices of today’s datacenters pose a fundamental limitation to effectively isolate RDMA and TCP while also maximizing burst absorption. We identify two root causes: (i) the buffer-sharing for RDMA and TCP relies on two independent and often conflicting views of the buffer, namely ingress and egress; and (ii) the buffer-shari"
+          }
+        ],
+        "reason": "Awaiting source support judgement"
+      },
+      {
+        "claim_id": "claim:16",
+        "text": "**Reverie**：RDMA 与 TCP 的**流完成时间（FCT）最多改善 33%**（两类流量同时受益）[citation:1][citation:3]。",
+        "citation_ids": [
+          1,
+          3
+        ],
+        "status": "supported",
+        "model_verdict": "supported",
+        "model_confidence": 0.95,
+        "human_review_status": "not_reviewed",
+        "source_checks": [
+          {
+            "evidence_id": "source:1",
+            "quote": "Our evaluation shows that Reverie can improve the performance of RDMA as well as TCP in terms of flow completion times by up to 33%.",
+            "quote_start": 1647,
+            "quote_end": 1779,
+            "quote_valid": true
+          }
+        ],
+        "excerpts": [
+          {
+            "citation_id": 1,
+            "evidence_id": "source:1",
+            "source_url": "https://www.usenix.org/conference/nsdi24/presentation/addanki-reverie",
+            "source_title": "https://www.usenix.org/conference/nsdi24/presentation/addanki-reverie",
+            "start": 800,
+            "end": 1800,
+            "quote": " also maximizing burst absorption. We identify two root causes: (i) the buffer-sharing for RDMA and TCP relies on two independent and often conflicting views of the buffer, namely ingress and egress; and (ii) the buffer-sharing scheme micromanages the buffer and overreacts to the changes in its occupancy during transient congestion.\nIn this paper, we present Reverie, a buffer-sharing scheme, which, unlike prior works, is suitable for both lossless and loss-tolerant traffic classes, providing isolation as well as superior burst absorption. At the core of Reverie lies a unified (consolidated ingress and egress) admission control that jointly optimizes the buffers for both traffic classes. Reverie, allocates buffer based on a low-pass filter that naturally absorbs bursty queue lengths during transient congestion within the buffer limits. Our evaluation shows that Reverie can improve the performance of RDMA as well as TCP in terms of flow completion times by up to 33%.\nNSDI '24 Open Access"
+          },
+          {
+            "citation_id": 3,
+            "evidence_id": "source:3",
+            "source_url": "https://www.microsoft.com/en-us/research/publication/reverie-low-pass-filter-based-switch-buffer-sharing-for-datacenters-with-rdma-and-tcp-traffic/",
+            "source_title": "https://www.microsoft.com/en-us/research/publication/reverie-low-pass-filter-based-switch-buffer-sharing-for-datacenters-with-rdma-and-tcp-traffic/",
+            "start": 800,
+            "end": 1800,
+            "quote": "sorption. We identify two root causes: (i) the buffer-sharing for RDMA and TCP relies on two independent and often conflicting views of the buffer, namely ingress and egress; and (ii) the buffer-sharing scheme micromanages the buffer and overreacts to the changes in its occupancy during transient congestion.\nIn this paper, we present Reverie, a buffer-sharing scheme, which, unlike prior works, is suitable for both lossless and loss-tolerant traffic classes, providing isolation as well as superior burst absorption. At the core of Reverie lies a unified (consolidated ingress and egress) admission control that jointly optimizes the buffers for both traffic classes. Reverie, allocates buffer based on a low-pass filter that naturally absorbs bursty queue lengths during transient congestion within the buffer limits. Our evaluation shows that Reverie can improve the performance of RDMA as well as TCP in terms of flow completion times by up to 33%.\nOpens in a new tab\nPublication\nEvents\nResearc"
+          }
+        ],
+        "reason": "Excerpt states FCT improvement up to 33% for both RDMA and TCP, matching the claim's scope and 'up to' qualifier."
+      },
+      {
+        "claim_id": "claim:17",
+        "text": "**InvisiFlow**：FatTree 拓扑下，即使高负载也**接近零丢包**，相比 Everflow、Planck 等方法所用 SOTA 传输方式**丢包约低 33.8×**[citation:2][citation:4]。",
+        "citation_ids": [
+          2,
+          4
+        ],
+        "status": "supported",
+        "model_verdict": "supported",
+        "model_confidence": 0.96,
+        "human_review_status": "not_reviewed",
+        "source_checks": [
+          {
+            "evidence_id": "source:4",
+            "quote": "In a FatTree topology, InvisiFlow can achieve near-zero loss rate even under high-load scenarios (around 33.8× lower loss compared to the state-of-the-art transmission methods used by systems like Everflow and Planck).",
+            "quote_start": 1160,
+            "quote_end": 1378,
+            "quote_valid": true
+          }
+        ],
+        "excerpts": [
+          {
+            "citation_id": 4,
+            "evidence_id": "source:4",
+            "source_url": "https://www.usenix.org/conference/nsdi25/presentation/zhang-yinda",
+            "source_title": "https://www.usenix.org/conference/nsdi25/presentation/zhang-yinda",
+            "start": 800,
+            "end": 1800,
+            "quote": "ate to collect network telemetry data, silently. In contrast to previous systems that always push telemetry packets to collectors based on the shortest path, InvisiFlow dynamically seeks out spare network capacity by leveraging opportunistic sending and congestion gradients, thus minimizing both the loss rate of telemetry data and overheads on user traffic. In a FatTree topology, InvisiFlow can achieve near-zero loss rate even under high-load scenarios (around 33.8× lower loss compared to the state-of-the-art transmission methods used by systems like Everflow and Planck).\nNSDI '25 Open Access Sponsored by\nKing Abdullah University of Science and Technology (KAUST)\nOpen Access Media\nUSENIX is committed to Open Access to the research presented at our events. Papers and proceedings are freely available to everyone once the event begins. Any video, audio, and/or slides that are posted after the event are also free and open to everyone. Support USENIX and our commitment to Open Access.\nThis "
+          },
+          {
+            "citation_id": 2,
+            "evidence_id": "source:2",
+            "source_url": "https://www.microsoft.com/en-us/research/publication/enabling-silent-telemetry-data-transmission-with-invisiflow/",
+            "source_title": "https://www.microsoft.com/en-us/research/publication/enabling-silent-telemetry-data-transmission-with-invisiflow/",
+            "start": 800,
+            "end": 1304,
+            "quote": "rtest path, InvisiFlow dynamically seeks out spare network capacity by leveraging opportunistic sending and congestion gradients, thus minimizing both the loss rate of telemetry data and overheads on user traffic. In a FatTree topology, InvisiFlow can achieve near-zero loss rate even under high-load scenarios (around 33.8x lower loss compared to the state-of-the-art transmission methods used by systems like Everflow and Planck).\nOpens in a new tab\nAuthor's Version\nGroups\nResearch Areas\nResearch Labs"
+          }
+        ],
+        "reason": "Excerpt confirms FatTree topology, near-zero loss under high load, and ~33.8× lower loss versus SOTA methods used by Everflow and Planck. Numbers, conditions and scope all match."
+      },
+      {
+        "claim_id": "claim:18",
+        "text": "注意：两个数字的**基准与场景不同**（FCT 改善 vs.",
+        "citation_ids": [],
+        "status": "missing_citation",
+        "model_verdict": null,
+        "model_confidence": null,
+        "human_review_status": "not_reviewed",
+        "source_checks": [],
+        "excerpts": [
+          {
+            "citation_id": 1,
+            "evidence_id": "source:1",
+            "source_url": "https://www.usenix.org/conference/nsdi24/presentation/addanki-reverie",
+            "source_title": "https://www.usenix.org/conference/nsdi24/presentation/addanki-reverie",
+            "start": 0,
+            "end": 1000,
+            "quote": "Reverie: Low Pass Filter-Based Switch Buffer Sharing for Datacenters with RDMA and TCP Traffic\nVamsi Addanki, TU Berlin; Wei Bai, Microsoft Research; Stefan Schmid, TU Berlin; Maria Apostolaki, Princeton University\nThe switch buffers in datacenters today are shared by traffic classes with different loss tolerance and reaction to congestion signals. In particular, while legacy applications use loss-tolerant transport, e.g., DCTCP, newer applications require lossless datacenter transport, e.g.,  RDMA over Converged Ethernet. The allocation of buffers for this diverse traffic mix is managed by a buffer-sharing scheme. Unfortunately, as we analytically show in this paper, the buffer-sharing practices of today's datacenters pose a fundamental limitation to effectively isolate RDMA and TCP while also maximizing burst absorption. We identify two root causes: (i) the buffer-sharing for RDMA and TCP relies on two independent and often conflicting views of the buffer, namely ingress and egress; "
+          },
+          {
+            "citation_id": 2,
+            "evidence_id": "source:2",
+            "source_url": "https://www.microsoft.com/en-us/research/publication/enabling-silent-telemetry-data-transmission-with-invisiflow/",
+            "source_title": "https://www.microsoft.com/en-us/research/publication/enabling-silent-telemetry-data-transmission-with-invisiflow/",
+            "start": 0,
+            "end": 1000,
+            "quote": "Enabling Silent Telemetry Data Transmission with InvisiFlow\nYinda Zhang\n,\nLiangcheng Yu\n,\nGianni Antichi\n,\nRan Ben Basat\n,\nVincent Liu\nNSDI 2025\n| April 2025\nDownload BibTex\nNetwork applications from traffic engineering to path tracing often rely on the ability to transmit fine-grained telemetry data from network devices to a set of collectors. Unfortunately, prior work has observed—and we validate—that existing transmission methods for such data can result in significant overhead to user traffic and/or loss of telemetry data, particularly when the network is heavily loaded.\nIn this paper, we introduce InvisiFlow, a novel communication substrate for collecting network telemetry data, silently. In contrast to previous systems that always push telemetry packets to collectors based on the shortest path, InvisiFlow dynamically seeks out spare network capacity by leveraging opportunistic sending and congestion gradients, thus minimizing both the loss rate of telemetry data and overheads on "
+          },
+          {
+            "citation_id": 3,
+            "evidence_id": "source:3",
+            "source_url": "https://www.microsoft.com/en-us/research/publication/reverie-low-pass-filter-based-switch-buffer-sharing-for-datacenters-with-rdma-and-tcp-traffic/",
+            "source_title": "https://www.microsoft.com/en-us/research/publication/reverie-low-pass-filter-based-switch-buffer-sharing-for-datacenters-with-rdma-and-tcp-traffic/",
+            "start": 0,
+            "end": 1000,
+            "quote": "Reverie: Low Pass Filter-Based Switch Buffer Sharing for Datacenters with RDMA and TCP Traffic\nVamsi Addanki\n,\nWei Bai\n,\nStefan Schmid\n,\nMaria Apostolaki\nNSDI'24\n| April 2024\nDownload BibTex\nThe switch buffers in datacenters today are shared by traffic classes with different loss tolerance and reaction to congestion signals. In particular, while legacy applications use loss-tolerant transport, e.g., DCTCP, newer applications require lossless datacenter transport, e.g., RDMA over Converged Ethernet. The allocation of buffers for this diverse traffic mix is managed by a buffer-sharing scheme. Unfortunately, as we analytically show in this paper, the buffer-sharing practices of today’s datacenters pose a fundamental limitation to effectively isolate RDMA and TCP while also maximizing burst absorption. We identify two root causes: (i) the buffer-sharing for RDMA and TCP relies on two independent and often conflicting views of the buffer, namely ingress and egress; and (ii) the buffer-shari"
+          }
+        ],
+        "reason": "Awaiting source support judgement"
+      },
+      {
+        "claim_id": "claim:19",
+        "text": "丢包率），不可横向合并为“MR 拥塞方向综合提升 33%”。",
+        "citation_ids": [],
+        "status": "missing_citation",
+        "model_verdict": null,
+        "model_confidence": null,
+        "human_review_status": "not_reviewed",
+        "source_checks": [],
+        "excerpts": [
+          {
+            "citation_id": 1,
+            "evidence_id": "source:1",
+            "source_url": "https://www.usenix.org/conference/nsdi24/presentation/addanki-reverie",
+            "source_title": "https://www.usenix.org/conference/nsdi24/presentation/addanki-reverie",
+            "start": 800,
+            "end": 1800,
+            "quote": " also maximizing burst absorption. We identify two root causes: (i) the buffer-sharing for RDMA and TCP relies on two independent and often conflicting views of the buffer, namely ingress and egress; and (ii) the buffer-sharing scheme micromanages the buffer and overreacts to the changes in its occupancy during transient congestion.\nIn this paper, we present Reverie, a buffer-sharing scheme, which, unlike prior works, is suitable for both lossless and loss-tolerant traffic classes, providing isolation as well as superior burst absorption. At the core of Reverie lies a unified (consolidated ingress and egress) admission control that jointly optimizes the buffers for both traffic classes. Reverie, allocates buffer based on a low-pass filter that naturally absorbs bursty queue lengths during transient congestion within the buffer limits. Our evaluation shows that Reverie can improve the performance of RDMA as well as TCP in terms of flow completion times by up to 33%.\nNSDI '24 Open Access"
+          },
+          {
+            "citation_id": 2,
+            "evidence_id": "source:2",
+            "source_url": "https://www.microsoft.com/en-us/research/publication/enabling-silent-telemetry-data-transmission-with-invisiflow/",
+            "source_title": "https://www.microsoft.com/en-us/research/publication/enabling-silent-telemetry-data-transmission-with-invisiflow/",
+            "start": 800,
+            "end": 1304,
+            "quote": "rtest path, InvisiFlow dynamically seeks out spare network capacity by leveraging opportunistic sending and congestion gradients, thus minimizing both the loss rate of telemetry data and overheads on user traffic. In a FatTree topology, InvisiFlow can achieve near-zero loss rate even under high-load scenarios (around 33.8x lower loss compared to the state-of-the-art transmission methods used by systems like Everflow and Planck).\nOpens in a new tab\nAuthor's Version\nGroups\nResearch Areas\nResearch Labs"
+          },
+          {
+            "citation_id": 3,
+            "evidence_id": "source:3",
+            "source_url": "https://www.microsoft.com/en-us/research/publication/reverie-low-pass-filter-based-switch-buffer-sharing-for-datacenters-with-rdma-and-tcp-traffic/",
+            "source_title": "https://www.microsoft.com/en-us/research/publication/reverie-low-pass-filter-based-switch-buffer-sharing-for-datacenters-with-rdma-and-tcp-traffic/",
+            "start": 800,
+            "end": 1800,
+            "quote": "sorption. We identify two root causes: (i) the buffer-sharing for RDMA and TCP relies on two independent and often conflicting views of the buffer, namely ingress and egress; and (ii) the buffer-sharing scheme micromanages the buffer and overreacts to the changes in its occupancy during transient congestion.\nIn this paper, we present Reverie, a buffer-sharing scheme, which, unlike prior works, is suitable for both lossless and loss-tolerant traffic classes, providing isolation as well as superior burst absorption. At the core of Reverie lies a unified (consolidated ingress and egress) admission control that jointly optimizes the buffers for both traffic classes. Reverie, allocates buffer based on a low-pass filter that naturally absorbs bursty queue lengths during transient congestion within the buffer limits. Our evaluation shows that Reverie can improve the performance of RDMA as well as TCP in terms of flow completion times by up to 33%.\nOpens in a new tab\nPublication\nEvents\nResearc"
+          }
+        ],
+        "reason": "Awaiting source support judgement"
+      },
+      {
+        "claim_id": "claim:20",
+        "text": "**Reverie 的 LPF 参数敏感性**：滤波时间常数与 PFC 水线、缓冲区大小的耦合关系，以及极端 incast 下的吸收上限——摘要未给出，需查全文 evaluation/limitations 章节。",
+        "citation_ids": [],
+        "status": "missing_citation",
+        "model_verdict": null,
+        "model_confidence": null,
+        "human_review_status": "not_reviewed",
+        "source_checks": [],
+        "excerpts": [
+          {
+            "citation_id": 1,
+            "evidence_id": "source:1",
+            "source_url": "https://www.usenix.org/conference/nsdi24/presentation/addanki-reverie",
+            "source_title": "https://www.usenix.org/conference/nsdi24/presentation/addanki-reverie",
+            "start": 800,
+            "end": 1800,
+            "quote": " also maximizing burst absorption. We identify two root causes: (i) the buffer-sharing for RDMA and TCP relies on two independent and often conflicting views of the buffer, namely ingress and egress; and (ii) the buffer-sharing scheme micromanages the buffer and overreacts to the changes in its occupancy during transient congestion.\nIn this paper, we present Reverie, a buffer-sharing scheme, which, unlike prior works, is suitable for both lossless and loss-tolerant traffic classes, providing isolation as well as superior burst absorption. At the core of Reverie lies a unified (consolidated ingress and egress) admission control that jointly optimizes the buffers for both traffic classes. Reverie, allocates buffer based on a low-pass filter that naturally absorbs bursty queue lengths during transient congestion within the buffer limits. Our evaluation shows that Reverie can improve the performance of RDMA as well as TCP in terms of flow completion times by up to 33%.\nNSDI '24 Open Access"
+          },
+          {
+            "citation_id": 3,
+            "evidence_id": "source:3",
+            "source_url": "https://www.microsoft.com/en-us/research/publication/reverie-low-pass-filter-based-switch-buffer-sharing-for-datacenters-with-rdma-and-tcp-traffic/",
+            "source_title": "https://www.microsoft.com/en-us/research/publication/reverie-low-pass-filter-based-switch-buffer-sharing-for-datacenters-with-rdma-and-tcp-traffic/",
+            "start": 800,
+            "end": 1800,
+            "quote": "sorption. We identify two root causes: (i) the buffer-sharing for RDMA and TCP relies on two independent and often conflicting views of the buffer, namely ingress and egress; and (ii) the buffer-sharing scheme micromanages the buffer and overreacts to the changes in its occupancy during transient congestion.\nIn this paper, we present Reverie, a buffer-sharing scheme, which, unlike prior works, is suitable for both lossless and loss-tolerant traffic classes, providing isolation as well as superior burst absorption. At the core of Reverie lies a unified (consolidated ingress and egress) admission control that jointly optimizes the buffers for both traffic classes. Reverie, allocates buffer based on a low-pass filter that naturally absorbs bursty queue lengths during transient congestion within the buffer limits. Our evaluation shows that Reverie can improve the performance of RDMA as well as TCP in terms of flow completion times by up to 33%.\nOpens in a new tab\nPublication\nEvents\nResearc"
+          },
+          {
+            "citation_id": 2,
+            "evidence_id": "source:2",
+            "source_url": "https://www.microsoft.com/en-us/research/publication/enabling-silent-telemetry-data-transmission-with-invisiflow/",
+            "source_title": "https://www.microsoft.com/en-us/research/publication/enabling-silent-telemetry-data-transmission-with-invisiflow/",
+            "start": 0,
+            "end": 1000,
+            "quote": "Enabling Silent Telemetry Data Transmission with InvisiFlow\nYinda Zhang\n,\nLiangcheng Yu\n,\nGianni Antichi\n,\nRan Ben Basat\n,\nVincent Liu\nNSDI 2025\n| April 2025\nDownload BibTex\nNetwork applications from traffic engineering to path tracing often rely on the ability to transmit fine-grained telemetry data from network devices to a set of collectors. Unfortunately, prior work has observed—and we validate—that existing transmission methods for such data can result in significant overhead to user traffic and/or loss of telemetry data, particularly when the network is heavily loaded.\nIn this paper, we introduce InvisiFlow, a novel communication substrate for collecting network telemetry data, silently. In contrast to previous systems that always push telemetry packets to collectors based on the shortest path, InvisiFlow dynamically seeks out spare network capacity by leveraging opportunistic sending and congestion gradients, thus minimizing both the loss rate of telemetry data and overheads on "
+          }
+        ],
+        "reason": "Awaiting source support judgement"
+      },
+      {
+        "claim_id": "claim:21",
+        "text": "**Reverie 的“统一视图”硬件代价**：合并入口/出口准入在商用交换机流水线（如 Broadcom Tomahawk 系列）上的可实现性、每端口状态开销，摘要未涉及。",
+        "citation_ids": [],
+        "status": "not_checked",
+        "model_verdict": null,
+        "model_confidence": null,
+        "human_review_status": "not_reviewed",
+        "source_checks": [],
+        "excerpts": [
+          {
+            "citation_id": 1,
+            "evidence_id": "source:1",
+            "source_url": "https://www.usenix.org/conference/nsdi24/presentation/addanki-reverie",
+            "source_title": "https://www.usenix.org/conference/nsdi24/presentation/addanki-reverie",
+            "start": 800,
+            "end": 1800,
+            "quote": " also maximizing burst absorption. We identify two root causes: (i) the buffer-sharing for RDMA and TCP relies on two independent and often conflicting views of the buffer, namely ingress and egress; and (ii) the buffer-sharing scheme micromanages the buffer and overreacts to the changes in its occupancy during transient congestion.\nIn this paper, we present Reverie, a buffer-sharing scheme, which, unlike prior works, is suitable for both lossless and loss-tolerant traffic classes, providing isolation as well as superior burst absorption. At the core of Reverie lies a unified (consolidated ingress and egress) admission control that jointly optimizes the buffers for both traffic classes. Reverie, allocates buffer based on a low-pass filter that naturally absorbs bursty queue lengths during transient congestion within the buffer limits. Our evaluation shows that Reverie can improve the performance of RDMA as well as TCP in terms of flow completion times by up to 33%.\nNSDI '24 Open Access"
+          },
+          {
+            "citation_id": 3,
+            "evidence_id": "source:3",
+            "source_url": "https://www.microsoft.com/en-us/research/publication/reverie-low-pass-filter-based-switch-buffer-sharing-for-datacenters-with-rdma-and-tcp-traffic/",
+            "source_title": "https://www.microsoft.com/en-us/research/publication/reverie-low-pass-filter-based-switch-buffer-sharing-for-datacenters-with-rdma-and-tcp-traffic/",
+            "start": 800,
+            "end": 1800,
+            "quote": "sorption. We identify two root causes: (i) the buffer-sharing for RDMA and TCP relies on two independent and often conflicting views of the buffer, namely ingress and egress; and (ii) the buffer-sharing scheme micromanages the buffer and overreacts to the changes in its occupancy during transient congestion.\nIn this paper, we present Reverie, a buffer-sharing scheme, which, unlike prior works, is suitable for both lossless and loss-tolerant traffic classes, providing isolation as well as superior burst absorption. At the core of Reverie lies a unified (consolidated ingress and egress) admission control that jointly optimizes the buffers for both traffic classes. Reverie, allocates buffer based on a low-pass filter that naturally absorbs bursty queue lengths during transient congestion within the buffer limits. Our evaluation shows that Reverie can improve the performance of RDMA as well as TCP in terms of flow completion times by up to 33%.\nOpens in a new tab\nPublication\nEvents\nResearc"
+          },
+          {
+            "citation_id": 2,
+            "evidence_id": "source:2",
+            "source_url": "https://www.microsoft.com/en-us/research/publication/enabling-silent-telemetry-data-transmission-with-invisiflow/",
+            "source_title": "https://www.microsoft.com/en-us/research/publication/enabling-silent-telemetry-data-transmission-with-invisiflow/",
+            "start": 0,
+            "end": 1000,
+            "quote": "Enabling Silent Telemetry Data Transmission with InvisiFlow\nYinda Zhang\n,\nLiangcheng Yu\n,\nGianni Antichi\n,\nRan Ben Basat\n,\nVincent Liu\nNSDI 2025\n| April 2025\nDownload BibTex\nNetwork applications from traffic engineering to path tracing often rely on the ability to transmit fine-grained telemetry data from network devices to a set of collectors. Unfortunately, prior work has observed—and we validate—that existing transmission methods for such data can result in significant overhead to user traffic and/or loss of telemetry data, particularly when the network is heavily loaded.\nIn this paper, we introduce InvisiFlow, a novel communication substrate for collecting network telemetry data, silently. In contrast to previous systems that always push telemetry packets to collectors based on the shortest path, InvisiFlow dynamically seeks out spare network capacity by leveraging opportunistic sending and congestion gradients, thus minimizing both the loss rate of telemetry data and overheads on "
+          }
+        ],
+        "reason": "Not checked"
+      },
+      {
+        "claim_id": "claim:22",
+        "text": "**两篇工作是否互相评估**：InvisiFlow 的遥测流量在启用 Reverie 类缓冲隔离时是否仍满足“近零丢包”？跨论文组合的交互作用目前无公开证据。",
+        "citation_ids": [],
+        "status": "not_checked",
+        "model_verdict": null,
+        "model_confidence": null,
+        "human_review_status": "not_reviewed",
+        "source_checks": [],
+        "excerpts": [
+          {
+            "citation_id": 1,
+            "evidence_id": "source:1",
+            "source_url": "https://www.usenix.org/conference/nsdi24/presentation/addanki-reverie",
+            "source_title": "https://www.usenix.org/conference/nsdi24/presentation/addanki-reverie",
+            "start": 800,
+            "end": 1800,
+            "quote": " also maximizing burst absorption. We identify two root causes: (i) the buffer-sharing for RDMA and TCP relies on two independent and often conflicting views of the buffer, namely ingress and egress; and (ii) the buffer-sharing scheme micromanages the buffer and overreacts to the changes in its occupancy during transient congestion.\nIn this paper, we present Reverie, a buffer-sharing scheme, which, unlike prior works, is suitable for both lossless and loss-tolerant traffic classes, providing isolation as well as superior burst absorption. At the core of Reverie lies a unified (consolidated ingress and egress) admission control that jointly optimizes the buffers for both traffic classes. Reverie, allocates buffer based on a low-pass filter that naturally absorbs bursty queue lengths during transient congestion within the buffer limits. Our evaluation shows that Reverie can improve the performance of RDMA as well as TCP in terms of flow completion times by up to 33%.\nNSDI '24 Open Access"
+          },
+          {
+            "citation_id": 2,
+            "evidence_id": "source:2",
+            "source_url": "https://www.microsoft.com/en-us/research/publication/enabling-silent-telemetry-data-transmission-with-invisiflow/",
+            "source_title": "https://www.microsoft.com/en-us/research/publication/enabling-silent-telemetry-data-transmission-with-invisiflow/",
+            "start": 0,
+            "end": 1000,
+            "quote": "Enabling Silent Telemetry Data Transmission with InvisiFlow\nYinda Zhang\n,\nLiangcheng Yu\n,\nGianni Antichi\n,\nRan Ben Basat\n,\nVincent Liu\nNSDI 2025\n| April 2025\nDownload BibTex\nNetwork applications from traffic engineering to path tracing often rely on the ability to transmit fine-grained telemetry data from network devices to a set of collectors. Unfortunately, prior work has observed—and we validate—that existing transmission methods for such data can result in significant overhead to user traffic and/or loss of telemetry data, particularly when the network is heavily loaded.\nIn this paper, we introduce InvisiFlow, a novel communication substrate for collecting network telemetry data, silently. In contrast to previous systems that always push telemetry packets to collectors based on the shortest path, InvisiFlow dynamically seeks out spare network capacity by leveraging opportunistic sending and congestion gradients, thus minimizing both the loss rate of telemetry data and overheads on "
+          },
+          {
+            "citation_id": 3,
+            "evidence_id": "source:3",
+            "source_url": "https://www.microsoft.com/en-us/research/publication/reverie-low-pass-filter-based-switch-buffer-sharing-for-datacenters-with-rdma-and-tcp-traffic/",
+            "source_title": "https://www.microsoft.com/en-us/research/publication/reverie-low-pass-filter-based-switch-buffer-sharing-for-datacenters-with-rdma-and-tcp-traffic/",
+            "start": 800,
+            "end": 1800,
+            "quote": "sorption. We identify two root causes: (i) the buffer-sharing for RDMA and TCP relies on two independent and often conflicting views of the buffer, namely ingress and egress; and (ii) the buffer-sharing scheme micromanages the buffer and overreacts to the changes in its occupancy during transient congestion.\nIn this paper, we present Reverie, a buffer-sharing scheme, which, unlike prior works, is suitable for both lossless and loss-tolerant traffic classes, providing isolation as well as superior burst absorption. At the core of Reverie lies a unified (consolidated ingress and egress) admission control that jointly optimizes the buffers for both traffic classes. Reverie, allocates buffer based on a low-pass filter that naturally absorbs bursty queue lengths during transient congestion within the buffer limits. Our evaluation shows that Reverie can improve the performance of RDMA as well as TCP in terms of flow completion times by up to 33%.\nOpens in a new tab\nPublication\nEvents\nResearc"
+          }
+        ],
+        "reason": "Not checked"
+      },
+      {
+        "claim_id": "claim:23",
+        "text": "**InvisiFlow 的负载自适应代价**：寻找拥塞梯度所需的探测/状态开销与探测报文对用户流量的间接干扰，摘要只说“最小化”，未给具体量级。",
+        "citation_ids": [],
+        "status": "not_checked",
+        "model_verdict": null,
+        "model_confidence": null,
+        "human_review_status": "not_reviewed",
+        "source_checks": [],
+        "excerpts": [
+          {
+            "citation_id": 2,
+            "evidence_id": "source:2",
+            "source_url": "https://www.microsoft.com/en-us/research/publication/enabling-silent-telemetry-data-transmission-with-invisiflow/",
+            "source_title": "https://www.microsoft.com/en-us/research/publication/enabling-silent-telemetry-data-transmission-with-invisiflow/",
+            "start": 0,
+            "end": 1000,
+            "quote": "Enabling Silent Telemetry Data Transmission with InvisiFlow\nYinda Zhang\n,\nLiangcheng Yu\n,\nGianni Antichi\n,\nRan Ben Basat\n,\nVincent Liu\nNSDI 2025\n| April 2025\nDownload BibTex\nNetwork applications from traffic engineering to path tracing often rely on the ability to transmit fine-grained telemetry data from network devices to a set of collectors. Unfortunately, prior work has observed—and we validate—that existing transmission methods for such data can result in significant overhead to user traffic and/or loss of telemetry data, particularly when the network is heavily loaded.\nIn this paper, we introduce InvisiFlow, a novel communication substrate for collecting network telemetry data, silently. In contrast to previous systems that always push telemetry packets to collectors based on the shortest path, InvisiFlow dynamically seeks out spare network capacity by leveraging opportunistic sending and congestion gradients, thus minimizing both the loss rate of telemetry data and overheads on "
+          },
+          {
+            "citation_id": 4,
+            "evidence_id": "source:4",
+            "source_url": "https://www.usenix.org/conference/nsdi25/presentation/zhang-yinda",
+            "source_title": "https://www.usenix.org/conference/nsdi25/presentation/zhang-yinda",
+            "start": 0,
+            "end": 1000,
+            "quote": "Enabling Silent Telemetry Data Transmission with InvisiFlow\nYinda Zhang, University of Pennsylvania; Liangcheng Yu, University of Pennsylvania and Microsoft Research; Gianni Antichi, Politecnico di Milano and Queen Mary University of London; Ran Ben Basat, University College London; Vincent Liu, University of Pennsylvania\nNetwork applications from traffic engineering to path tracing often rely on the ability to transmit fine-grained telemetry data from network devices to a set of collectors. Unfortunately, prior work has observed—and we validate—that existing transmission methods for such data can result in significant overhead to user traffic and/or loss of telemetry data, particularly when the network is heavily loaded.\nIn this paper, we introduce InvisiFlow, a novel communication substrate to collect network telemetry data, silently. In contrast to previous systems that always push telemetry packets to collectors based on the shortest path, InvisiFlow dynamically seeks out spare net"
+          },
+          {
+            "citation_id": 1,
+            "evidence_id": "source:1",
+            "source_url": "https://www.usenix.org/conference/nsdi24/presentation/addanki-reverie",
+            "source_title": "https://www.usenix.org/conference/nsdi24/presentation/addanki-reverie",
+            "start": 0,
+            "end": 1000,
+            "quote": "Reverie: Low Pass Filter-Based Switch Buffer Sharing for Datacenters with RDMA and TCP Traffic\nVamsi Addanki, TU Berlin; Wei Bai, Microsoft Research; Stefan Schmid, TU Berlin; Maria Apostolaki, Princeton University\nThe switch buffers in datacenters today are shared by traffic classes with different loss tolerance and reaction to congestion signals. In particular, while legacy applications use loss-tolerant transport, e.g., DCTCP, newer applications require lossless datacenter transport, e.g.,  RDMA over Converged Ethernet. The allocation of buffers for this diverse traffic mix is managed by a buffer-sharing scheme. Unfortunately, as we analytically show in this paper, the buffer-sharing practices of today's datacenters pose a fundamental limitation to effectively isolate RDMA and TCP while also maximizing burst absorption. We identify two root causes: (i) the buffer-sharing for RDMA and TCP relies on two independent and often conflicting views of the buffer, namely ingress and egress; "
+          }
+        ],
+        "reason": "Not checked"
+      },
+      {
+        "claim_id": "claim:24",
+        "text": "**归属层面的核对**：若要做“机构成果”统计，需逐篇核对作者在投稿时的单位（本文已完成两篇），并注意“大学+MSR 双挂”如何计入——这是计量口径问题，不是技术问题。",
+        "citation_ids": [],
+        "status": "not_checked",
+        "model_verdict": null,
+        "model_confidence": null,
+        "human_review_status": "not_reviewed",
+        "source_checks": [],
+        "excerpts": [
+          {
+            "citation_id": 1,
+            "evidence_id": "source:1",
+            "source_url": "https://www.usenix.org/conference/nsdi24/presentation/addanki-reverie",
+            "source_title": "https://www.usenix.org/conference/nsdi24/presentation/addanki-reverie",
+            "start": 0,
+            "end": 1000,
+            "quote": "Reverie: Low Pass Filter-Based Switch Buffer Sharing for Datacenters with RDMA and TCP Traffic\nVamsi Addanki, TU Berlin; Wei Bai, Microsoft Research; Stefan Schmid, TU Berlin; Maria Apostolaki, Princeton University\nThe switch buffers in datacenters today are shared by traffic classes with different loss tolerance and reaction to congestion signals. In particular, while legacy applications use loss-tolerant transport, e.g., DCTCP, newer applications require lossless datacenter transport, e.g.,  RDMA over Converged Ethernet. The allocation of buffers for this diverse traffic mix is managed by a buffer-sharing scheme. Unfortunately, as we analytically show in this paper, the buffer-sharing practices of today's datacenters pose a fundamental limitation to effectively isolate RDMA and TCP while also maximizing burst absorption. We identify two root causes: (i) the buffer-sharing for RDMA and TCP relies on two independent and often conflicting views of the buffer, namely ingress and egress; "
+          },
+          {
+            "citation_id": 2,
+            "evidence_id": "source:2",
+            "source_url": "https://www.microsoft.com/en-us/research/publication/enabling-silent-telemetry-data-transmission-with-invisiflow/",
+            "source_title": "https://www.microsoft.com/en-us/research/publication/enabling-silent-telemetry-data-transmission-with-invisiflow/",
+            "start": 0,
+            "end": 1000,
+            "quote": "Enabling Silent Telemetry Data Transmission with InvisiFlow\nYinda Zhang\n,\nLiangcheng Yu\n,\nGianni Antichi\n,\nRan Ben Basat\n,\nVincent Liu\nNSDI 2025\n| April 2025\nDownload BibTex\nNetwork applications from traffic engineering to path tracing often rely on the ability to transmit fine-grained telemetry data from network devices to a set of collectors. Unfortunately, prior work has observed—and we validate—that existing transmission methods for such data can result in significant overhead to user traffic and/or loss of telemetry data, particularly when the network is heavily loaded.\nIn this paper, we introduce InvisiFlow, a novel communication substrate for collecting network telemetry data, silently. In contrast to previous systems that always push telemetry packets to collectors based on the shortest path, InvisiFlow dynamically seeks out spare network capacity by leveraging opportunistic sending and congestion gradients, thus minimizing both the loss rate of telemetry data and overheads on "
+          },
+          {
+            "citation_id": 3,
+            "evidence_id": "source:3",
+            "source_url": "https://www.microsoft.com/en-us/research/publication/reverie-low-pass-filter-based-switch-buffer-sharing-for-datacenters-with-rdma-and-tcp-traffic/",
+            "source_title": "https://www.microsoft.com/en-us/research/publication/reverie-low-pass-filter-based-switch-buffer-sharing-for-datacenters-with-rdma-and-tcp-traffic/",
+            "start": 0,
+            "end": 1000,
+            "quote": "Reverie: Low Pass Filter-Based Switch Buffer Sharing for Datacenters with RDMA and TCP Traffic\nVamsi Addanki\n,\nWei Bai\n,\nStefan Schmid\n,\nMaria Apostolaki\nNSDI'24\n| April 2024\nDownload BibTex\nThe switch buffers in datacenters today are shared by traffic classes with different loss tolerance and reaction to congestion signals. In particular, while legacy applications use loss-tolerant transport, e.g., DCTCP, newer applications require lossless datacenter transport, e.g., RDMA over Converged Ethernet. The allocation of buffers for this diverse traffic mix is managed by a buffer-sharing scheme. Unfortunately, as we analytically show in this paper, the buffer-sharing practices of today’s datacenters pose a fundamental limitation to effectively isolate RDMA and TCP while also maximizing burst absorption. We identify two root causes: (i) the buffer-sharing for RDMA and TCP relies on two independent and often conflicting views of the buffer, namely ingress and egress; and (ii) the buffer-shari"
+          }
+        ],
+        "reason": "Not checked"
+      },
+      {
+        "claim_id": "claim:25",
+        "text": "**未覆盖**：微软研究院在 2024–2025 年的其他拥塞相关成果（如端到端拥塞控制算法、INT/带内遥测硬件、可编程交换机上的 CC、AI 集群/RDMA 网络的其他工作）；未做系统的作者—论文检索，因此本简报**不是**成果清单。",
+        "citation_ids": [],
+        "status": "not_checked",
+        "model_verdict": null,
+        "model_confidence": null,
+        "human_review_status": "not_reviewed",
+        "source_checks": [],
+        "excerpts": [
+          {
+            "citation_id": 1,
+            "evidence_id": "source:1",
+            "source_url": "https://www.usenix.org/conference/nsdi24/presentation/addanki-reverie",
+            "source_title": "https://www.usenix.org/conference/nsdi24/presentation/addanki-reverie",
+            "start": 1600,
+            "end": 2600,
+            "quote": "transient congestion within the buffer limits. Our evaluation shows that Reverie can improve the performance of RDMA as well as TCP in terms of flow completion times by up to 33%.\nNSDI '24 Open Access Sponsored by\nKing Abdullah University of Science and Technology (KAUST)\nOpen Access Media\nUSENIX is committed to Open Access to the research presented at our events. Papers and proceedings are freely available to everyone once the event begins. Any video, audio, and/or slides that are posted after the event are also free and open to everyone. Support USENIX and our commitment to Open Access.\nBibTeX\n@inproceedings {295539,\nauthor = {Vamsi Addanki and Wei Bai and Stefan Schmid and Maria Apostolaki},\ntitle = {Reverie: Low Pass {Filter-Based} Switch Buffer Sharing for Datacenters with {RDMA} and {TCP} Traffic},\nbooktitle = {21st USENIX Symposium on Networked Systems Design and Implementation (NSDI 24)},\nyear = {2024},\nisbn = {978-1-939133-39-7},\naddress = {Santa Clara, CA},\npages = {651--668}"
+          },
+          {
+            "citation_id": 2,
+            "evidence_id": "source:2",
+            "source_url": "https://www.microsoft.com/en-us/research/publication/enabling-silent-telemetry-data-transmission-with-invisiflow/",
+            "source_title": "https://www.microsoft.com/en-us/research/publication/enabling-silent-telemetry-data-transmission-with-invisiflow/",
+            "start": 0,
+            "end": 1000,
+            "quote": "Enabling Silent Telemetry Data Transmission with InvisiFlow\nYinda Zhang\n,\nLiangcheng Yu\n,\nGianni Antichi\n,\nRan Ben Basat\n,\nVincent Liu\nNSDI 2025\n| April 2025\nDownload BibTex\nNetwork applications from traffic engineering to path tracing often rely on the ability to transmit fine-grained telemetry data from network devices to a set of collectors. Unfortunately, prior work has observed—and we validate—that existing transmission methods for such data can result in significant overhead to user traffic and/or loss of telemetry data, particularly when the network is heavily loaded.\nIn this paper, we introduce InvisiFlow, a novel communication substrate for collecting network telemetry data, silently. In contrast to previous systems that always push telemetry packets to collectors based on the shortest path, InvisiFlow dynamically seeks out spare network capacity by leveraging opportunistic sending and congestion gradients, thus minimizing both the loss rate of telemetry data and overheads on "
+          },
+          {
+            "citation_id": 3,
+            "evidence_id": "source:3",
+            "source_url": "https://www.microsoft.com/en-us/research/publication/reverie-low-pass-filter-based-switch-buffer-sharing-for-datacenters-with-rdma-and-tcp-traffic/",
+            "source_title": "https://www.microsoft.com/en-us/research/publication/reverie-low-pass-filter-based-switch-buffer-sharing-for-datacenters-with-rdma-and-tcp-traffic/",
+            "start": 0,
+            "end": 1000,
+            "quote": "Reverie: Low Pass Filter-Based Switch Buffer Sharing for Datacenters with RDMA and TCP Traffic\nVamsi Addanki\n,\nWei Bai\n,\nStefan Schmid\n,\nMaria Apostolaki\nNSDI'24\n| April 2024\nDownload BibTex\nThe switch buffers in datacenters today are shared by traffic classes with different loss tolerance and reaction to congestion signals. In particular, while legacy applications use loss-tolerant transport, e.g., DCTCP, newer applications require lossless datacenter transport, e.g., RDMA over Converged Ethernet. The allocation of buffers for this diverse traffic mix is managed by a buffer-sharing scheme. Unfortunately, as we analytically show in this paper, the buffer-sharing practices of today’s datacenters pose a fundamental limitation to effectively isolate RDMA and TCP while also maximizing burst absorption. We identify two root causes: (i) the buffer-sharing for RDMA and TCP relies on two independent and often conflicting views of the buffer, namely ingress and egress; and (ii) the buffer-shari"
+          }
+        ],
+        "reason": "Not checked"
+      },
+      {
+        "claim_id": "claim:26",
+        "text": "**未核验**：两篇论文全文（PDF 读取失败），故实验平台、baseline 选择、消融实验、作者自述局限性均未核实。",
+        "citation_ids": [],
+        "status": "not_checked",
+        "model_verdict": null,
+        "model_confidence": null,
+        "human_review_status": "not_reviewed",
+        "source_checks": [],
+        "excerpts": [
+          {
+            "citation_id": 4,
+            "evidence_id": "source:4",
+            "source_url": "https://www.usenix.org/conference/nsdi25/presentation/zhang-yinda",
+            "source_title": "https://www.usenix.org/conference/nsdi25/presentation/zhang-yinda",
+            "start": 1600,
+            "end": 2439,
+            "quote": "available to everyone once the event begins. Any video, audio, and/or slides that are posted after the event are also free and open to everyone. Support USENIX and our commitment to Open Access.\nThis content is available to:\nConference attendees\nBibTeX\n@inproceedings {305334,\nauthor = {Yinda Zhang and Liangcheng Yu and Gianni Antichi and Ran Ben Basat and Vincent Liu},\ntitle = {Enabling Silent Telemetry Data Transmission with {InvisiFlow}},\nbooktitle = {22nd USENIX Symposium on Networked Systems Design and Implementation (NSDI 25)},\nyear = {2025},\nisbn = {978-1-939133-46-5},\naddress = {Philadelphia, PA},\npages = {71--86},\nurl = {https://www.usenix.org/conference/nsdi25/presentation/zhang-yinda},\npublisher = {USENIX Association},\nmonth = apr\n}\nDownload\nZhang PDF\nZhang Paper (Prepublication) PDF\nView the slides\nPresentation Video"
+          },
+          {
+            "citation_id": 5,
+            "evidence_id": "source:5",
+            "source_url": "https://arxiv.org/abs/2411.14635",
+            "source_title": "https://arxiv.org/abs/2411.14635",
+            "start": 0,
+            "end": 1000,
+            "quote": "Statistics > Methodology\narXiv:2411.14635 (stat)\n[Submitted on 21 Nov 2024 (v1), last revised 6 Jan 2025 (this version, v2)]\nTitle:Modelling Loss of Complexity in Intermittent Time Series and its Application\nAuthors:Jie Li, Jian Zhang, Samantha L. Winter, Mark Burnley\nView a PDF of the paper titled Modelling Loss of Complexity in Intermittent Time Series and its Application, by Jie Li and 3 other authors\nView PDF\nHTML (experimental)\nAbstract:In this paper, we developed a novel method of nonparametric relative entropy (RlEn) for modelling loss of complexity in intermittent time series. The method consists of two steps. We first fit a nonlinear autoregressive model to each intermittent time series, where the corresponding lag order and the loss of complexity are determined by Bayesian Information Criterion (BIC) and relative entropy respectively. Then, change-points in the complexity are detected by a cumulative sum (CUSUM) based statistic. Compared to approximate entropy (ApEn), a popul"
+          },
+          {
+            "citation_id": 1,
+            "evidence_id": "source:1",
+            "source_url": "https://www.usenix.org/conference/nsdi24/presentation/addanki-reverie",
+            "source_title": "https://www.usenix.org/conference/nsdi24/presentation/addanki-reverie",
+            "start": 2400,
+            "end": 2784,
+            "quote": "{TCP} Traffic},\nbooktitle = {21st USENIX Symposium on Networked Systems Design and Implementation (NSDI 24)},\nyear = {2024},\nisbn = {978-1-939133-39-7},\naddress = {Santa Clara, CA},\npages = {651--668},\nurl = {https://www.usenix.org/conference/nsdi24/presentation/addanki-reverie},\npublisher = {USENIX Association},\nmonth = apr\n}\nDownload\nAddanki PDF\nView the slides\nPresentation Video"
+          }
+        ],
+        "reason": "Not checked"
+      },
+      {
+        "claim_id": "claim:27",
+        "text": "**未推断**：微软内部研发重点、资源投入或路线转向；亦未据单篇论文推断方向变化（同一作者跨两届 NSDI 署名不足以支撑此类结论）。",
+        "citation_ids": [],
+        "status": "not_checked",
+        "model_verdict": null,
+        "model_confidence": null,
+        "human_review_status": "not_reviewed",
+        "source_checks": [],
+        "excerpts": [
+          {
+            "citation_id": 1,
+            "evidence_id": "source:1",
+            "source_url": "https://www.usenix.org/conference/nsdi24/presentation/addanki-reverie",
+            "source_title": "https://www.usenix.org/conference/nsdi24/presentation/addanki-reverie",
+            "start": 1600,
+            "end": 2600,
+            "quote": "transient congestion within the buffer limits. Our evaluation shows that Reverie can improve the performance of RDMA as well as TCP in terms of flow completion times by up to 33%.\nNSDI '24 Open Access Sponsored by\nKing Abdullah University of Science and Technology (KAUST)\nOpen Access Media\nUSENIX is committed to Open Access to the research presented at our events. Papers and proceedings are freely available to everyone once the event begins. Any video, audio, and/or slides that are posted after the event are also free and open to everyone. Support USENIX and our commitment to Open Access.\nBibTeX\n@inproceedings {295539,\nauthor = {Vamsi Addanki and Wei Bai and Stefan Schmid and Maria Apostolaki},\ntitle = {Reverie: Low Pass {Filter-Based} Switch Buffer Sharing for Datacenters with {RDMA} and {TCP} Traffic},\nbooktitle = {21st USENIX Symposium on Networked Systems Design and Implementation (NSDI 24)},\nyear = {2024},\nisbn = {978-1-939133-39-7},\naddress = {Santa Clara, CA},\npages = {651--668}"
+          },
+          {
+            "citation_id": 2,
+            "evidence_id": "source:2",
+            "source_url": "https://www.microsoft.com/en-us/research/publication/enabling-silent-telemetry-data-transmission-with-invisiflow/",
+            "source_title": "https://www.microsoft.com/en-us/research/publication/enabling-silent-telemetry-data-transmission-with-invisiflow/",
+            "start": 0,
+            "end": 1000,
+            "quote": "Enabling Silent Telemetry Data Transmission with InvisiFlow\nYinda Zhang\n,\nLiangcheng Yu\n,\nGianni Antichi\n,\nRan Ben Basat\n,\nVincent Liu\nNSDI 2025\n| April 2025\nDownload BibTex\nNetwork applications from traffic engineering to path tracing often rely on the ability to transmit fine-grained telemetry data from network devices to a set of collectors. Unfortunately, prior work has observed—and we validate—that existing transmission methods for such data can result in significant overhead to user traffic and/or loss of telemetry data, particularly when the network is heavily loaded.\nIn this paper, we introduce InvisiFlow, a novel communication substrate for collecting network telemetry data, silently. In contrast to previous systems that always push telemetry packets to collectors based on the shortest path, InvisiFlow dynamically seeks out spare network capacity by leveraging opportunistic sending and congestion gradients, thus minimizing both the loss rate of telemetry data and overheads on "
+          },
+          {
+            "citation_id": 3,
+            "evidence_id": "source:3",
+            "source_url": "https://www.microsoft.com/en-us/research/publication/reverie-low-pass-filter-based-switch-buffer-sharing-for-datacenters-with-rdma-and-tcp-traffic/",
+            "source_title": "https://www.microsoft.com/en-us/research/publication/reverie-low-pass-filter-based-switch-buffer-sharing-for-datacenters-with-rdma-and-tcp-traffic/",
+            "start": 0,
+            "end": 1000,
+            "quote": "Reverie: Low Pass Filter-Based Switch Buffer Sharing for Datacenters with RDMA and TCP Traffic\nVamsi Addanki\n,\nWei Bai\n,\nStefan Schmid\n,\nMaria Apostolaki\nNSDI'24\n| April 2024\nDownload BibTex\nThe switch buffers in datacenters today are shared by traffic classes with different loss tolerance and reaction to congestion signals. In particular, while legacy applications use loss-tolerant transport, e.g., DCTCP, newer applications require lossless datacenter transport, e.g., RDMA over Converged Ethernet. The allocation of buffers for this diverse traffic mix is managed by a buffer-sharing scheme. Unfortunately, as we analytically show in this paper, the buffer-sharing practices of today’s datacenters pose a fundamental limitation to effectively isolate RDMA and TCP while also maximizing burst absorption. We identify two root causes: (i) the buffer-sharing for RDMA and TCP relies on two independent and often conflicting views of the buffer, namely ingress and egress; and (ii) the buffer-shari"
+          }
+        ],
+        "reason": "Not checked"
+      },
+      {
+        "claim_id": "claim:28",
+        "text": "**时间边界**：仅采信 2024（NSDI'24）与 2025（NSDI'25）会议正式发表版本；arXiv 预印本仅作了定位尝试，未取得可引用正文。",
+        "citation_ids": [],
+        "status": "not_checked",
+        "model_verdict": null,
+        "model_confidence": null,
+        "human_review_status": "not_reviewed",
+        "source_checks": [],
+        "excerpts": [
+          {
+            "citation_id": 1,
+            "evidence_id": "source:1",
+            "source_url": "https://www.usenix.org/conference/nsdi24/presentation/addanki-reverie",
+            "source_title": "https://www.usenix.org/conference/nsdi24/presentation/addanki-reverie",
+            "start": 1600,
+            "end": 2600,
+            "quote": "transient congestion within the buffer limits. Our evaluation shows that Reverie can improve the performance of RDMA as well as TCP in terms of flow completion times by up to 33%.\nNSDI '24 Open Access Sponsored by\nKing Abdullah University of Science and Technology (KAUST)\nOpen Access Media\nUSENIX is committed to Open Access to the research presented at our events. Papers and proceedings are freely available to everyone once the event begins. Any video, audio, and/or slides that are posted after the event are also free and open to everyone. Support USENIX and our commitment to Open Access.\nBibTeX\n@inproceedings {295539,\nauthor = {Vamsi Addanki and Wei Bai and Stefan Schmid and Maria Apostolaki},\ntitle = {Reverie: Low Pass {Filter-Based} Switch Buffer Sharing for Datacenters with {RDMA} and {TCP} Traffic},\nbooktitle = {21st USENIX Symposium on Networked Systems Design and Implementation (NSDI 24)},\nyear = {2024},\nisbn = {978-1-939133-39-7},\naddress = {Santa Clara, CA},\npages = {651--668}"
+          },
+          {
+            "citation_id": 5,
+            "evidence_id": "source:5",
+            "source_url": "https://arxiv.org/abs/2411.14635",
+            "source_title": "https://arxiv.org/abs/2411.14635",
+            "start": 1600,
+            "end": 2600,
+            "quote": "cations (stat.AP)\nCite as:\narXiv:2411.14635 [stat.ME]\n(or\narXiv:2411.14635v2 [stat.ME] for this version)\nhttps://doi.org/10.48550/arXiv.2411.14635\nFocus to learn more\narXiv-issued DOI via DataCite\nSubmission history From: Jie Li [view email]\n[v1]\nThu, 21 Nov 2024 23:56:29 UTC (13,744 KB)\n[v2]\nMon, 6 Jan 2025 20:00:39 UTC (14,036 KB)\nFull-text links:\nAccess Paper:\nView a PDF of the paper titled Modelling Loss of Complexity in Intermittent Time Series and its Application, by Jie Li and 3 other authors\nView PDF\nHTML (experimental)\nTeX Source\nview license\nCurrent browse context:\nstat.ME\n< prev\n|\nnext >\nnew\n|\nrecent\n| 2024-11\nChange to browse by:\nstat\nstat.AP\nReferences & Citations\nNASA ADS\nGoogle Scholar\nSemantic Scholar\nexport BibTeX citation\nLoading...\nBibTeX formatted citation\n×\nloading...\nData provided by:\nBookmark\nBibliographic Tools\nBibliographic and Citation Tools\nBibliographic Explorer Toggle\nBibliographic Explorer (What is the Explorer?)\nConnected Papers Toggle\nConnected Papers (W"
+          },
+          {
+            "citation_id": 2,
+            "evidence_id": "source:2",
+            "source_url": "https://www.microsoft.com/en-us/research/publication/enabling-silent-telemetry-data-transmission-with-invisiflow/",
+            "source_title": "https://www.microsoft.com/en-us/research/publication/enabling-silent-telemetry-data-transmission-with-invisiflow/",
+            "start": 0,
+            "end": 1000,
+            "quote": "Enabling Silent Telemetry Data Transmission with InvisiFlow\nYinda Zhang\n,\nLiangcheng Yu\n,\nGianni Antichi\n,\nRan Ben Basat\n,\nVincent Liu\nNSDI 2025\n| April 2025\nDownload BibTex\nNetwork applications from traffic engineering to path tracing often rely on the ability to transmit fine-grained telemetry data from network devices to a set of collectors. Unfortunately, prior work has observed—and we validate—that existing transmission methods for such data can result in significant overhead to user traffic and/or loss of telemetry data, particularly when the network is heavily loaded.\nIn this paper, we introduce InvisiFlow, a novel communication substrate for collecting network telemetry data, silently. In contrast to previous systems that always push telemetry packets to collectors based on the shortest path, InvisiFlow dynamically seeks out spare network capacity by leveraging opportunistic sending and congestion gradients, thus minimizing both the loss rate of telemetry data and overheads on "
+          }
+        ],
+        "reason": "Not checked"
+      },
+      {
+        "claim_id": "claim:29",
+        "text": "**一句话结论**：在可核验的两篇代表论文中，MR 研究员的贡献集中在“**低成本、本地化的拥塞/缓冲信令利用**”这一条技术脉络上——Reverie 用低通滤波解决无损/有损流量共存的缓冲共享冲突，InvisiFlow 用拥塞梯度把遥测流量“藏”进余量带宽；两者分别代表直接拥塞控制与相邻遥测传输，且均为高校主导的合著工作，不宜整体归因为机构战略。",
+        "citation_ids": [],
+        "status": "not_checked",
+        "model_verdict": null,
+        "model_confidence": null,
+        "human_review_status": "not_reviewed",
+        "source_checks": [],
+        "excerpts": [
+          {
+            "citation_id": 1,
+            "evidence_id": "source:1",
+            "source_url": "https://www.usenix.org/conference/nsdi24/presentation/addanki-reverie",
+            "source_title": "https://www.usenix.org/conference/nsdi24/presentation/addanki-reverie",
+            "start": 800,
+            "end": 1800,
+            "quote": " also maximizing burst absorption. We identify two root causes: (i) the buffer-sharing for RDMA and TCP relies on two independent and often conflicting views of the buffer, namely ingress and egress; and (ii) the buffer-sharing scheme micromanages the buffer and overreacts to the changes in its occupancy during transient congestion.\nIn this paper, we present Reverie, a buffer-sharing scheme, which, unlike prior works, is suitable for both lossless and loss-tolerant traffic classes, providing isolation as well as superior burst absorption. At the core of Reverie lies a unified (consolidated ingress and egress) admission control that jointly optimizes the buffers for both traffic classes. Reverie, allocates buffer based on a low-pass filter that naturally absorbs bursty queue lengths during transient congestion within the buffer limits. Our evaluation shows that Reverie can improve the performance of RDMA as well as TCP in terms of flow completion times by up to 33%.\nNSDI '24 Open Access"
+          },
+          {
+            "citation_id": 2,
+            "evidence_id": "source:2",
+            "source_url": "https://www.microsoft.com/en-us/research/publication/enabling-silent-telemetry-data-transmission-with-invisiflow/",
+            "source_title": "https://www.microsoft.com/en-us/research/publication/enabling-silent-telemetry-data-transmission-with-invisiflow/",
+            "start": 0,
+            "end": 1000,
+            "quote": "Enabling Silent Telemetry Data Transmission with InvisiFlow\nYinda Zhang\n,\nLiangcheng Yu\n,\nGianni Antichi\n,\nRan Ben Basat\n,\nVincent Liu\nNSDI 2025\n| April 2025\nDownload BibTex\nNetwork applications from traffic engineering to path tracing often rely on the ability to transmit fine-grained telemetry data from network devices to a set of collectors. Unfortunately, prior work has observed—and we validate—that existing transmission methods for such data can result in significant overhead to user traffic and/or loss of telemetry data, particularly when the network is heavily loaded.\nIn this paper, we introduce InvisiFlow, a novel communication substrate for collecting network telemetry data, silently. In contrast to previous systems that always push telemetry packets to collectors based on the shortest path, InvisiFlow dynamically seeks out spare network capacity by leveraging opportunistic sending and congestion gradients, thus minimizing both the loss rate of telemetry data and overheads on "
+          },
+          {
+            "citation_id": 3,
+            "evidence_id": "source:3",
+            "source_url": "https://www.microsoft.com/en-us/research/publication/reverie-low-pass-filter-based-switch-buffer-sharing-for-datacenters-with-rdma-and-tcp-traffic/",
+            "source_title": "https://www.microsoft.com/en-us/research/publication/reverie-low-pass-filter-based-switch-buffer-sharing-for-datacenters-with-rdma-and-tcp-traffic/",
+            "start": 800,
+            "end": 1800,
+            "quote": "sorption. We identify two root causes: (i) the buffer-sharing for RDMA and TCP relies on two independent and often conflicting views of the buffer, namely ingress and egress; and (ii) the buffer-sharing scheme micromanages the buffer and overreacts to the changes in its occupancy during transient congestion.\nIn this paper, we present Reverie, a buffer-sharing scheme, which, unlike prior works, is suitable for both lossless and loss-tolerant traffic classes, providing isolation as well as superior burst absorption. At the core of Reverie lies a unified (consolidated ingress and egress) admission control that jointly optimizes the buffers for both traffic classes. Reverie, allocates buffer based on a low-pass filter that naturally absorbs bursty queue lengths during transient congestion within the buffer limits. Our evaluation shows that Reverie can improve the performance of RDMA as well as TCP in terms of flow completion times by up to 33%.\nOpens in a new tab\nPublication\nEvents\nResearc"
+          }
+        ],
+        "reason": "Not checked"
+      }
+    ]
+  },
+  "errors": [],
+  "model": "deepseek-chat",
+  "provider": "deepseek",
+  "sdk_version": "0.1.7",
+  "draft_report": "organization-research: # 研究简报：Microsoft Research 在数据中心网络拥塞方向的代表性公开工作（2024–2025）\n\n**范围说明**：本简报只依据检索到的论文摘要、会议页面与机构署名页；未要求穷尽成果清单，也不推断微软内部研发战略。下文每条结论后标注证据来源，并在末节列出未覆盖范围。两次论文 PDF 读取失败（一次超输出上限、一次上游错误），因此**全文细节（实验配置、消融、limitations 章节）未能核验**。\n\n---\n\n## 1. 发表时单位核对（关键，影响“MR 成果”归属）\n\n| 论文 | 发表时单位署名 | MR 的角色 |\n|---|---|---|\n| **Reverie**（NSDI'24, pp.651–668）| Vamsi Addanki（TU Berlin）、**Wei Bai（Microsoft Research）**、Stefan Schmid（TU Berlin）、Maria Apostolaki（Princeton）| 微软研究员的**共同作者**；第一作者与主要评测来自高校[citation:1][citation:3] |\n| **InvisiFlow**（NSDI'25, pp.71–86）| Yinda Zhang（UPenn）、**Liangcheng Yu（UPenn 与 Microsoft Research）**、Gianni Antichi（Politecnico di Milano / QMUL）、Ran Ben Basat（UCL）、Vincent Liu（UPenn）| 微软的署名形式是“大学与 Microsoft Research”，属**双挂**身份[citation:4] |\n\n**推论边界**：两篇都是“微软研究员参与的合作论文”，而非微软单独署名的产物。因此把它们整体称为“Microsoft Research 的技术路线”会过度归因；更稳妥的表述是“MR 研究员参与的代表性工作”。至多可以说 Wei Bai 在相邻两届 NSDI 的缓冲区共享方向上持续署名，但不能据此推断机构层面的路线转向。\n\n## 2. 直接拥塞控制 vs. 相邻遥测工作（分类）\n\n- **直接相关（拥塞信号与缓冲区控制）**：**Reverie**。它直接处理交换机缓冲的准入与共享，而缓冲占用正是拥塞信号的来源[citation:1][citation:3]。\n- **相邻（遥测数据面传输）**：**InvisiFlow**。它不设计端到端拥塞控制算法，而是把**拥塞梯度**当作寻找“空闲带宽”的路由依据，服务于遥测采集，属于“把拥塞信息当工具”的相邻问题[citation:2][citation:4]。\n\n## 3. 研究问题（问题陈述）\n\n**Reverie 的诊断**：数据中心交换机缓冲被不同丢包容忍度的流量类共享（DCTCP 类有损 vs. RoCE 类无损）。作者分析指出，现有缓冲共享实践存在**结构性冲突**，无法同时做到 RDMA/TCP 隔离与最大突发吸收。两个根因：\n1. 缓冲共享依赖**入口/出口两套独立且常相互冲突的缓冲视图**；\n2. 共享方案对占用变化**过度微管理（micromanage），在瞬态拥塞下过度反应**[citation:1][citation:3]。\n\n**InvisiFlow 的诊断**：遥测数据（TE、路径追踪等）需从设备发往收集器，但现有方法在**高负载下要么给用户流量带来显著开销，要么丢失遥测数据**；根因是沿最短路径“总是推送”的发送方式[citation:2][citation:4]。\n\n## 4. 技术路线（机制层面）\n\n- **Reverie：统一准入控制 + 低通滤波（Low-Pass Filter, LPF）分配**。核心是**合并入口与出口视图的统一准入控制**，联合优化两类流量；缓冲分配基于低通滤波器，使瞬态拥塞下的突发队列长度在缓冲上限内被自然吸收，而不是对瞬时占用抖动做出反应[citation:1][citation:3]。这是一个**交换机本地、无需改动端主机传输协议**的“信令层”方案。\n- **InvisiFlow：机会式发送 + 拥塞梯度选路**。不再固定最短路径推送，而是动态寻找**空闲网络容量**，同时压低遥测丢包率与对用户流量的干扰[citation:2][citation:4]。可视为把网络遥测从“专用通道”转为“寄生在余量带宽上”的通信基座。\n\n两者共享一个隐含前提：**从既有拥塞信号/缓冲状态中可以低成本提取有用信息**（缓冲占用、拥塞梯度），无需新增带内信令或端侧改造。\n\n## 5. 量化成果（仅摘要级数字）\n\n- **Reverie**：RDMA 与 TCP 的**流完成时间（FCT）最多改善 33%**（两类流量同时受益）[citation:1][citation:3]。\n- **InvisiFlow**：FatTree 拓扑下，即使高负载也**接近零丢包**，相比 Everflow、Planck 等方法所用 SOTA 传输方式**丢包约低 33.8×**[citation:2][citation:4]。\n\n注意：两个数字的**基准与场景不同**（FCT 改善 vs. 丢包率），不可横向合并为“MR 拥塞方向综合提升 33%”。\n\n## 6. 可进一步验证的问题（有界，可操作）\n\n1. **Reverie 的 LPF 参数敏感性**：滤波时间常数与 PFC 水线、缓冲区大小的耦合关系，以及极端 incast 下的吸收上限——摘要未给出，需查全文 evaluation/limitations 章节。\n2. **Reverie 的“统一视图”硬件代价**：合并入口/出口准入在商用交换机流水线（如 Broadcom Tomahawk 系列）上的可实现性、每端口状态开销，摘要未涉及。\n3. **两篇工作是否互相评估**：InvisiFlow 的遥测流量在启用 Reverie 类缓冲隔离时是否仍满足“近零丢包”？跨论文组合的交互作用目前无公开证据。\n4. **InvisiFlow 的负载自适应代价**：寻找拥塞梯度所需的探测/状态开销与探测报文对用户流量的间接干扰，摘要只说“最小化”，未给具体量级。\n5. **归属层面的核对**：若要做“机构成果”统计，需逐篇核对作者在投稿时的单位（本文已完成两篇），并注意“大学+MSR 双挂”如何计入——这是计量口径问题，不是技术问题。\n\n## 7. 未覆盖范围（明确声明）\n\n- **未覆盖**：微软研究院在 2024–2025 年的其他拥塞相关成果（如端到端拥塞控制算法、INT/带内遥测硬件、可编程交换机上的 CC、AI 集群/RDMA 网络的其他工作）；未做系统的作者—论文检索，因此本简报**不是**成果清单。\n- **未核验**：两篇论文全文（PDF 读取失败），故实验平台、baseline 选择、消融实验、作者自述局限性均未核实。\n- **未推断**：微软内部研发重点、资源投入或路线转向；亦未据单篇论文推断方向变化（同一作者跨两届 NSDI 署名不足以支撑此类结论）。\n- **时间边界**：仅采信 2024（NSDI'24）与 2025（NSDI'25）会议正式发表版本；arXiv 预印本仅作了定位尝试，未取得可引用正文。\n\n---\n\n**一句话结论**：在可核验的两篇代表论文中，MR 研究员的贡献集中在“**低成本、本地化的拥塞/缓冲信令利用**”这一条技术脉络上——Reverie 用低通滤波解决无损/有损流量共存的缓冲共享冲突，InvisiFlow 用拥塞梯度把遥测流量“藏”进余量带宽；两者分别代表直接拥塞控制与相邻遥测传输，且均为高校主导的合著工作，不宜整体归因为机构战略。",
+  "format_repair_used": true,
+  "model_task_status": "partial",
+  "gaps": [
+    "两篇论文 PDF 全文读取均失败（一次超输出上限、一次上游错误），实验配置、消融实验与 limitations 章节未能核验。",
+    "未做系统的作者—论文检索，未覆盖微软研究院 2024–2025 年其他拥塞相关成果（端到端拥塞控制、INT/带内遥测硬件、可编程交换机 CC、AI 集群/RDMA 网络等），本简报不是成果清单。",
+    "Reverie 的 LPF 参数敏感性、滤波时间常数与 PFC 水线及缓冲区大小的耦合关系、极端 incast 下的吸收上限，摘要未给出。",
+    "Reverie“统一视图”在商用交换机流水线上的可实现性与每端口状态开销，摘要未涉及。",
+    "两篇工作是否互相评估（InvisiFlow 遥测流量在 Reverie 类缓冲隔离下的表现）无公开证据。",
+    "InvisiFlow 寻找拥塞梯度所需的探测/状态开销及其对用户流量的间接干扰，仅有“最小化”表述，无具体量级。",
+    "arXiv 预印本仅作定位尝试，未取得可引用正文；时间边界仅限 NSDI'24 与 NSDI'25 正式发表版本。"
+  ],
+  "sdk_run_id": "d29cd13ad7d4492c9a6972a92df87d28",
+  "sdk_run_state": "completed",
+  "sdk_stats": {
+    "input_tokens": 19128,
+    "output_tokens": 4159,
+    "cache_read_tokens": 0,
+    "llm_calls": 1,
+    "tool_calls": 2,
+    "tool_errors": 0,
+    "duration_ms": 119048
+  },
+  "budget": {
+    "calls": 15,
+    "bytes": 1953584,
+    "exhausted": false,
+    "elapsed_seconds": 162.297
+  },
+  "completed_at": "2026-10-18T10:37:40.127790+00:00"
+}

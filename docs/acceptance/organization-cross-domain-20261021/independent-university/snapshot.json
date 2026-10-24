@@ -1,0 +1,227 @@
+{
+  "snapshot_id": "43480974-b895-49c8-9c70-b6ac5c5d7f54",
+  "snapshot": {
+    "scope": {
+      "organization_types": [
+        "university"
+      ],
+      "entities": [
+        {
+          "entity_id": "pku",
+          "name": "Peking University",
+          "type": "university",
+          "unit_kind": "organization",
+          "aliases": [],
+          "source_urls": [
+            "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin"
+          ],
+          "resolution_status": "pending"
+        }
+      ],
+      "disciplines": [
+        "computer science"
+      ],
+      "topic": "DistServe",
+      "start_date": "2024-01-01",
+      "end_date": "2024-12-31"
+    },
+    "evidence_cutoff": "2026-10-21",
+    "evaluation_versions": {},
+    "evidence": [
+      {
+        "evidence_id": "ev-66854e32",
+        "source_url": "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin",
+        "retrieved_on": "2026-10-21",
+        "verification_status": "unreviewed"
+      }
+    ],
+    "groups": [
+      {
+        "group_id": "group-1",
+        "discipline": "computer science",
+        "output_type": "conference_paper",
+        "metric_year": 2026,
+        "category": "requested_scope_no_automatic_metric_assignment",
+        "feature_rules": {
+          "topic_relevance": "token_overlap_v1",
+          "recency": "linear_recency_v1",
+          "research_alignment": "provided_v1",
+          "evidence_completeness": "provided_v1",
+          "cooperation_complementarity": "provided_v1"
+        },
+        "metric_rules": {},
+        "performance_applicable": true
+      }
+    ],
+    "candidates": [
+      {
+        "entity": {
+          "entity_id": "pku",
+          "name": "Peking University",
+          "type": "university",
+          "unit_kind": "organization",
+          "aliases": [],
+          "source_urls": [
+            "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin"
+          ],
+          "resolution_status": "pending"
+        },
+        "observations": [
+          {
+            "family_id": "publication:out-distserve-osdi24",
+            "group_id": "group-1",
+            "published_on": "2024-07-01",
+            "published_until": "2024-07-31",
+            "date_precision": "month",
+            "title": "DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving",
+            "abstract": "",
+            "evidence_ids": [
+              "ev-66854e32"
+            ],
+            "features": {},
+            "metrics": {}
+          }
+        ],
+        "facts": {}
+      }
+    ],
+    "required_relations": [],
+    "required_metrics": [],
+    "session_id": "2c8d4301-4cba-4adc-b692-c4da7e6add04",
+    "schema_version": "matching-evidence-v1",
+    "origin": "saved_research",
+    "source_execution_id": "38f4dfed-ff38-458d-9606-8dd0b0102b98",
+    "bridge_version": "adrs-session-matching-v1",
+    "bridge_notes": [
+      "来源为本会话已保存的成果、引用位置和采集时间；创建与重排不调用模型或取证。",
+      "主题分项仅采用已保存标题的词面重合；未把网页导航当成摘要，不代表语义相关性评估。",
+      "发表年月／年份保留完整日期区间；时效性不虚构精确发表日。",
+      "同组按请求学科标签和成果类型组织；尚未逐篇自动分类，不跨组统一排名。",
+      "研究家族在每个类型组内取最近发表代表，家族等权；未链接版本仍按独立发表单元。",
+      "原文位置校验不等于独立语义复核；来源仍标未复核，不生成已确认合作事实。",
+      "未取得的成果评价／路线契合／证据完整度／合作互补性保持未知和区间，不以零分代替。",
+      "没有对本次成果自动应用目录或论文指标；原研究冻结目录仍由原会话保存。"
+    ]
+  },
+  "initial_configuration": {
+    "mappings": [
+      {
+        "scores": {
+          "A": 1.0,
+          "B": 0.6666666666666667,
+          "C": 0.33333333333333337
+        },
+        "version": "adrs-preference-map-v1",
+        "scheme_id": "ccf"
+      },
+      {
+        "scores": {
+          "A": 0.75,
+          "B": 0.5,
+          "C": 0.25,
+          "A*": 1.0
+        },
+        "version": "adrs-preference-map-v1",
+        "scheme_id": "icore"
+      },
+      {
+        "scores": {
+          "A": 0.75,
+          "B": 0.5,
+          "C": 0.25,
+          "A*": 1.0
+        },
+        "version": "adrs-preference-map-v1",
+        "scheme_id": "abdc"
+      },
+      {
+        "scores": {
+          "1": 0.19999999999999996,
+          "2": 0.4,
+          "3": 0.6,
+          "4": 0.8,
+          "4*": 1.0
+        },
+        "version": "adrs-preference-map-v1",
+        "scheme_id": "ajg"
+      },
+      {
+        "scores": {
+          "Q1": 1.0,
+          "Q2": 0.75,
+          "Q3": 0.5,
+          "Q4": 0.25
+        },
+        "version": "adrs-preference-map-v1",
+        "scheme_id": "jcr_quartile"
+      },
+      {
+        "scores": {
+          "1": 1.0,
+          "2": 0.75,
+          "3": 0.5,
+          "4": 0.25
+        },
+        "version": "adrs-preference-map-v1",
+        "scheme_id": "cas_partition"
+      }
+    ],
+    "semantics": "preference_configuration_only",
+    "raw_config": {
+      "preset": "custom",
+      "weights": {
+        "recency": {
+          "weight": 0.0,
+          "enabled": true
+        },
+        "topic_relevance": {
+          "weight": 6.0,
+          "enabled": true
+        },
+        "output_performance": {
+          "weight": 0.0,
+          "enabled": true
+        },
+        "research_alignment": {
+          "weight": 0.0,
+          "enabled": true
+        },
+        "evidence_completeness": {
+          "weight": 4.0,
+          "enabled": true
+        },
+        "cooperation_complementarity": {
+          "weight": 0.0,
+          "enabled": true
+        }
+      },
+      "metric_weights": {},
+      "performance_groups": {
+        "paper": {
+          "weight": 1.0,
+          "enabled": true
+        },
+        "venue": {
+          "weight": 1.0,
+          "enabled": true
+        }
+      }
+    },
+    "rule_version": "adrs-weight-rules-v1",
+    "config_version": "report-export-e2e-v1",
+    "preset_version": "adrs-presets-v1",
+    "effective_groups": {
+      "paper": 0.0,
+      "venue": 0.0
+    },
+    "effective_weights": {
+      "recency": 0.0,
+      "topic_relevance": 0.6000000000000001,
+      "output_performance": 0.0,
+      "research_alignment": 0.0,
+      "evidence_completeness": 0.4,
+      "cooperation_complementarity": 0.0
+    },
+    "effective_metric_weights": {}
+  }
+}

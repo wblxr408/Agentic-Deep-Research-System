@@ -1,0 +1,150 @@
+{
+  "scope": {
+    "topic": "Orca",
+    "end_date": "2024-12-31",
+    "entities": [
+      {
+        "name": "Seoul National University",
+        "type": "university",
+        "aliases": [],
+        "entity_id": "snu",
+        "unit_kind": "organization",
+        "source_urls": [
+          "https://www.usenix.org/conference/osdi22/presentation/yu"
+        ],
+        "resolution_status": "pending"
+      },
+      {
+        "name": "Peking University",
+        "type": "university",
+        "aliases": [],
+        "entity_id": "pku",
+        "unit_kind": "organization",
+        "source_urls": [
+          "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin"
+        ],
+        "resolution_status": "pending"
+      }
+    ],
+    "start_date": "2022-01-01",
+    "disciplines": [
+      "computer science"
+    ],
+    "organization_types": [
+      "university"
+    ]
+  },
+  "groups": [
+    {
+      "category": "requested_scope_no_automatic_metric_assignment",
+      "group_id": "group-1",
+      "discipline": "computer science",
+      "metric_year": 2026,
+      "output_type": "conference_paper",
+      "metric_rules": {},
+      "feature_rules": {
+        "recency": "linear_recency_v1",
+        "topic_relevance": "token_overlap_v1",
+        "research_alignment": "provided_v1",
+        "evidence_completeness": "provided_v1",
+        "cooperation_complementarity": "provided_v1"
+      },
+      "performance_applicable": true
+    }
+  ],
+  "origin": "saved_research",
+  "evidence": [
+    {
+      "source_url": "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin",
+      "evidence_id": "ev-23fab29e",
+      "retrieved_on": "2026-10-21",
+      "verification_status": "unreviewed"
+    },
+    {
+      "source_url": "https://www.usenix.org/conference/osdi22/presentation/yu",
+      "evidence_id": "ev-ac82abcc",
+      "retrieved_on": "2026-10-21",
+      "verification_status": "unreviewed"
+    }
+  ],
+  "candidates": [
+    {
+      "facts": {},
+      "entity": {
+        "name": "Seoul National University",
+        "type": "university",
+        "aliases": [],
+        "entity_id": "snu",
+        "unit_kind": "organization",
+        "source_urls": [
+          "https://www.usenix.org/conference/osdi22/presentation/yu"
+        ],
+        "resolution_status": "pending"
+      },
+      "observations": [
+        {
+          "title": "Orca: A Distributed Serving System for Transformer-Based Generative Models",
+          "metrics": {},
+          "abstract": "",
+          "features": {},
+          "group_id": "group-1",
+          "family_id": "publication:orca-osdi22",
+          "evidence_ids": [
+            "ev-ac82abcc"
+          ],
+          "published_on": "2022-01-01",
+          "date_precision": "year",
+          "published_until": "2022-12-31"
+        }
+      ]
+    },
+    {
+      "facts": {},
+      "entity": {
+        "name": "Peking University",
+        "type": "university",
+        "aliases": [],
+        "entity_id": "pku",
+        "unit_kind": "organization",
+        "source_urls": [
+          "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin"
+        ],
+        "resolution_status": "pending"
+      },
+      "observations": [
+        {
+          "title": "DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving",
+          "metrics": {},
+          "abstract": "",
+          "features": {},
+          "group_id": "group-1",
+          "family_id": "publication:distserve-osdi24",
+          "evidence_ids": [
+            "ev-23fab29e"
+          ],
+          "published_on": "2024-01-01",
+          "date_precision": "year",
+          "published_until": "2024-12-31"
+        }
+      ]
+    }
+  ],
+  "session_id": "871eae63-4ece-4832-a8e5-6885bc32593f",
+  "bridge_notes": [
+    "来源为本会话已保存的成果、引用位置和采集时间；创建与重排不调用模型或取证。",
+    "主题分项仅采用已保存标题的词面重合；未把网页导航当成摘要，不代表语义相关性评估。",
+    "发表年月／年份保留完整日期区间；时效性不虚构精确发表日。",
+    "同组按请求学科标签和成果类型组织；尚未逐篇自动分类，不跨组统一排名。",
+    "研究家族在每个类型组内取最近发表代表，家族等权；未链接版本仍按独立发表单元。",
+    "原文位置校验不等于独立语义复核；来源仍标未复核，不生成已确认合作事实。",
+    "未取得的成果评价／路线契合／证据完整度／合作互补性保持未知和区间，不以零分代替。",
+    "没有对本次成果自动应用目录或论文指标；原研究冻结目录仍由原会话保存。"
+  ],
+  "bridge_version": "adrs-session-matching-v1",
+  "schema_version": "matching-evidence-v1",
+  "evidence_cutoff": "2026-10-21",
+  "required_metrics": [],
+  "required_relations": [],
+  "evaluation_versions": {},
+  "source_execution_id": "42ce1eef-af87-4633-b86a-b9cfa083d6ab"
+}

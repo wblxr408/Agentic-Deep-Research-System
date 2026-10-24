@@ -1,0 +1,54 @@
+{
+  "query": "研究 King Faisal University 的一项材料科学成果：https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0351439。只读声明出版页；核对主成果完整题名、发表日期 July 10, 2026、Shrouq H. Aleithan 的发表署名和期刊类型。按材料学问题、方法、应用梳理，保留钙钛矿表面钝化、维度工程及太阳能电池的多标签依据。仅为2025至2026的已得样本，2025未覆盖不能补零或推断增长。更正通知是核对线索，不另计论文。不扩展来源、不声称成果全集，不用CCF评价。",
+  "max_revision": 1,
+  "output_length": "medium",
+  "organization_research": {
+    "scope": {
+      "organization_types": [
+        "university"
+      ],
+      "entities": [
+        {
+          "entity_id": "kfu",
+          "name": "King Faisal University",
+          "type": "university",
+          "source_urls": [
+            "https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0351439"
+          ]
+        }
+      ],
+      "disciplines": [
+        "materials science"
+      ],
+      "topic": "perovskite surface passivation",
+      "start_date": "2025-01-01",
+      "end_date": "2026-10-21"
+    },
+    "purpose": "research_development",
+    "modules": [
+      "landscape",
+      "evolution"
+    ],
+    "taxonomy": {
+      "preset": "materials_science",
+      "version": "materials-e2e-v1"
+    },
+    "corpus": {
+      "collection_mode": "seeds_only",
+      "seed_urls": [
+        "https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0351439"
+      ],
+      "source_scope": {
+        "groups": [
+          "publishers"
+        ],
+        "publisher_domains": [
+          "journals.plos.org"
+        ]
+      },
+      "output_types": [
+        "journal_article"
+      ]
+    }
+  }
+}

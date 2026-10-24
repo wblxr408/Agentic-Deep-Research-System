@@ -1,0 +1,2120 @@
+{
+  "session_id": "fa689ff6-3ac9-46a7-b05a-5d6ff477ded7",
+  "query": "只研究 CSAIL 实验室官网公开的研究方向，用简短报告说明可核实的主题和证据缺口，不要求企业业务或合作名单。",
+  "status": "completed",
+  "runtime_status": "completed",
+  "report": "# CSAIL 实验室官网公开研究方向：可核实主题与证据缺口\n\n> Generated: 2026-10-20 | Research Depth: Comprehensive\n\n## Executive Summary\n本次研究**未能获得可核实的研究方向内容**。唯一采集到的证据是 CSAIL 官网研究页（https://www.csail.mit.edu/research）的抓取片段，其正文仅为站点导航与无障碍/媒体联络链接，未包含任何研究方向、研究组、项目或成果的实质描述 [citation:1]。因此本报告不列出任何具体研究主题，仅说明可核实事实与证据缺口。\n\n## 1. Background and Context\n研究范围为单一实验室对象 **CSAIL**（entity_id: selected-1，resolution_status: pending），学科限定为计算机科学，时间窗为 2020-01-01 至 2026-10-20，证据截止 2026-10-20 [citation:1]。任务要求仅基于官网公开研究方向做简短报告，不涉及企业业务或合作名单。由于本次仅有一个对象，无跨对象比较基础。\n\n## 2. Key Findings\n\n### 2.1 官网研究页未提供实质研究方向内容\n抓取到的页面正文仅为导航与联络类链接（\"For Students / For Industry / For Members / Accessibility / Press Requests\"），不含研究方向、研究组、项目或成果描述 [citation:1]。页面存在本身不等于其中列出了研究方向 [citation:1]。\n\n### 2.2 无法给出主题层面结论\n基于现有证据，无法列出 CSAIL 的任何具体研究主题（如 AI、系统、理论、机器人等），也无法给出主题层面的置信度评级；任何此类列举都将是外部常识而非证据支撑 [citation:1]。\n\n### 2.3 成果层证据为零\n范围内（2020-01-01 至 2026-10-20）没有任何论文、日期或作者单位证据，无法做主题—成果绑定，也无法判断时效性 [citation:1]。确定性样本计数为 publication_count = 0、research_family_count = 0、unlinked_publication_count = 0，该计数为样本结果，**不代表现实全集或科研质量排名** [citation:1]。\n\n## 3. Data and Statistics\n\n| 指标 | 数值 | 说明 |\n|---|---|---|\n| 对象数 | 1（CSAIL） | 单一对象，无比较组 [citation:1] |\n| 样本论文计数 | 0 | 样本结果，非现实全集 [citation:1] |\n| 研究族计数 | 0 | 同上 [citation:1] |\n| 未关联论文计数 | 0 | 同上 [citation:1] |\n| 共著/资助/引用关系覆盖 | 均 not_established | 关系证据未建立 [citation:1] |\n| 可核实研究方向条目 | 0 | 官网页面无实质内容 [citation:1] |\n\n## 4. Expert Perspectives\n本次未采集到任何专家观点或第三方分析，故不作引述。分析师判断（非事实）：现有唯一证据为导航性抓取片段，不足以支撑主题归纳，建议重新抓取完整渲染正文并补充研究组/中心索引页后再做主题归纳 [citation:1]。该建议标记为 model_interpretation_requires_review [citation:1]。\n\n## 5. Conclusions and Recommendations\n\n**结论（置信度 HIGH）**：本次未获得可核实研究方向内容，直接来自唯一证据 [citation:1]。任何关于 CSAIL 具体研究主题的陈述为 LOW/不可用（无证据）[citation:1]。\n\n**证据缺口（均为高严重度）**：\n1. **研究方向清单缺失**：官网研究页正文未被有效抓取，需重新获取渲染后内容或研究组/中心列表页 [citation:1]。\n2. **成果层证据为零**：无任何论文、日期、作者单位证据，无法做主题—成果绑定或时效判断 [citation:1]。\n3. **归属规则无法应用**：无成果记录，\"页面出现机构名不证明成果归属\"\"当前任职不证明历史署名\"等约束无可检验对象 [citation:1]。\n4. **抓取时间≠发表时间**：仅有抓取行为，无发表日期信息，不能用于时间筛选 [citation:1]。\n\n**建议下一步**：\n- 重新抓取 https://www.csail.mit.edu/research 的完整渲染正文，并补充研究组/中心索引页作为背景证据 [citation:1]。\n- 若需成果层证据，转向可核验的出版物页面（含标题、年份、作者单位），逐条绑定 CSAIL 归属后再做主题聚合 [citation:1]。\n- 在获得上述证据前，本对象应保持 `resolution_status: pending`，不应输出主题结论或数量统计 [citation:1]。\n\n## References\n[citation:1] Research | MIT CSAIL, https://www.csail.mit.edu/research（抓取片段，evidence_id: ev-f22f3aec；仅含导航与联络链接，无研究方向实质内容）。\n\n## 核验结果\n\n自动来源支持：0/23 项；人工复核：未复核。模型置信度不代表人工确认。\n支持状态来自模型语义判断与原文引语校验，不能保证结论为真。\n\n- claim:1 [missing_citation] Generated: 2026-10-20 | Research Depth: Comprehensive — Awaiting source support judgement\n- claim:2 [not_checked] 本次研究**未能获得可核实的研究方向内容**。唯一采集到的证据是 CSAIL 官网研究页（https://www.csail.mit.edu/research）的抓取片段，其正文仅为站点导航与无障碍/媒体联络链接，未包含任何研究方向、研究组、项目或成果的实质描述 [citation:1]。因此本报告不列出任何具体研究主题，仅说明可核实事实与证据缺口。 — Verification token/time budget exhausted\n- claim:3 [not_checked] 研究范围为单一实验室对象 **CSAIL**（entity_id: selected-1，resolution_status: pending），学科限定为计算机科学，时间窗为 2020-01-01 至 2026-10-20，证据截止 2026-10-20 [citation:1]。任务要求仅基于官网公开研究方向做简短报告，不涉及企业业务或合作名单。由于本次仅有一个对象，无跨对象比较基础。 — Verification token/time budget exhausted\n- claim:4 [not_checked] 抓取到的页面正文仅为导航与联络类链接（\"For Students / For Industry / For Members / Accessibility / Press Requests\"），不含研究方向、研究组、项目或成果描述 [citation:1]。页面存在本身不等于其中列出了研究方向 [citation:1]。 — Verification token/time budget exhausted\n- claim:5 [not_checked] 基于现有证据，无法列出 CSAIL 的任何具体研究主题（如 AI、系统、理论、机器人等），也无法给出主题层面的置信度评级；任何此类列举都将是外部常识而非证据支撑 [citation:1]。 — Verification token/time budget exhausted\n- claim:6 [not_checked] 范围内（2020-01-01 至 2026-10-20）没有任何论文、日期或作者单位证据，无法做主题—成果绑定，也无法判断时效性 [citation:1]。确定性样本计数为 publication_count = 0、research_family_count = 0、unlinked_publication_count = 0，该计数为样本结果，**不代表现实全集或科研质量排名** [citation:1]。 — Verification token/time budget exhausted\n- claim:7 [not_checked] | 对象数 | 1（CSAIL） | 单一对象，无比较组 [citation:1] | — Verification token/time budget exhausted\n- claim:8 [not_checked] | 样本论文计数 | 0 | 样本结果，非现实全集 [citation:1] | — Verification token/time budget exhausted\n- claim:9 [not_checked] | 研究族计数 | 0 | 同上 [citation:1] | — Verification token/time budget exhausted\n- claim:10 [not_checked] | 未关联论文计数 | 0 | 同上 [citation:1] | — Verification token/time budget exhausted\n- claim:11 [not_checked] | 共著/资助/引用关系覆盖 | 均 not_established | 关系证据未建立 [citation:1] | — Verification token/time budget exhausted\n- claim:12 [not_checked] | 可核实研究方向条目 | 0 | 官网页面无实质内容 [citation:1] | — Verification token/time budget exhausted\n- claim:13 [not_checked] 本次未采集到任何专家观点或第三方分析，故不作引述。分析师判断（非事实）：现有唯一证据为导航性抓取片段，不足以支撑主题归纳，建议重新抓取完整渲染正文并补充研究组/中心索引页后再做主题归纳 [citation:1]。该建议标记为 model_interpretation_requires_review [citation:1]。 — Verification token/time budget exhausted\n- claim:14 [not_checked] **结论（置信度 HIGH）**：本次未获得可核实研究方向内容，直接来自唯一证据 [citation:1]。任何关于 CSAIL 具体研究主题的陈述为 LOW/不可用（无证据）[citation:1]。 — Verification token/time budget exhausted\n- claim:15 [missing_citation] **证据缺口（均为高严重度）**： — Awaiting source support judgement\n- claim:16 [not_checked] **研究方向清单缺失**：官网研究页正文未被有效抓取，需重新获取渲染后内容或研究组/中心列表页 [citation:1]。 — Verification token/time budget exhausted\n- claim:17 [not_checked] **成果层证据为零**：无任何论文、日期、作者单位证据，无法做主题—成果绑定或时效判断 [citation:1]。 — Verification token/time budget exhausted\n- claim:18 [not_checked] **归属规则无法应用**：无成果记录，\"页面出现机构名不证明成果归属\"\"当前任职不证明历史署名\"等约束无可检验对象 [citation:1]。 — Verification token/time budget exhausted\n- claim:19 [not_checked] **抓取时间≠发表时间**：仅有抓取行为，无发表日期信息，不能用于时间筛选 [citation:1]。 — Verification token/time budget exhausted\n- claim:20 [missing_citation] **建议下一步**： — Awaiting source support judgement\n- claim:21 [not_checked] 重新抓取 https://www.csail.mit.edu/research 的完整渲染正文，并补充研究组/中心索引页作为背景证据 [citation:1]。 — Verification token/time budget exhausted\n- claim:22 [not_checked] 若需成果层证据，转向可核验的出版物页面（含标题、年份、作者单位），逐条绑定 CSAIL 归属后再做主题聚合 [citation:1]。 — Verification token/time budget exhausted\n- claim:23 [not_checked] 在获得上述证据前，本对象应保持 `resolution_status: pending`，不应输出主题结论或数量统计 [citation:1]。 — Verification token/time budget exhausted\n\n## 可复核样本与对象比较\n计数由结构化记录计算，仅覆盖本次取得并通过原文校验的样本；未链接版本暂按单条发表独立计数。\n| 对象 | 发表记录 | 研究家族 |\n| --- | ---: | ---: |\n| CSAIL | 0 | 0 |\n| 去重汇总 | 0 | 0 |\n相同成果可分别归属多个对象，合并总量取成果／家族并集，不相加各对象行。\n### 同口径样本比较\n未确立可比的有来源成果组。\n### 已纳入成果与依据\n### 缺口与解释边界\n待核记录 0 项；未确立的关系：coauthorship、funding、citation。未取得证据不表示关系不存在。\n机构署名按所选名称／别名与发表来源对照；不推出当前任职、正式协议、内部研发投入或科研质量优劣。跨载体／年份不汇成统一质量榜。\n### 后续评估建议（模型判断，待复核）\n- 现有唯一证据仅为官网研究页的导航性抓取片段，不含研究方向实质内容，因此无法确认 CSAIL 的公开研究方向清单；建议重新抓取完整渲染正文并补充研究组索引页后再做主题归纳。 [citation:1]\n",
+  "citations": [
+    {
+      "citation_id": "citation:1",
+      "source_url": "https://www.csail.mit.edu/research",
+      "source_title": "Research | MIT CSAIL",
+      "source_type": "web",
+      "extracted_evidence": "## MIT CSAIL\n\n- For Students\n\n- For Industry\n\n- For Members\n\n- Accessibility\n\n- For Students\n\n- For Industry\n\n- For Members\n\n- Accessibility\n\n- Press Requests\n\n- Accessibility\n\n- Press Requests\n\n- Accessibility",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-20T15:17:47.011530"
+    }
+  ],
+  "agent_trace": [
+    {
+      "agent": "planner",
+      "content": "Planning research for: 只研究 CSAIL 实验室官网公开的研究方向，用简短报告说明可核实的主题和证据缺口，不要求企业业务或合作名单。",
+      "timestamp": "2026-10-20T15:16:25.203191",
+      "event_type": "agent_start"
+    },
+    {
+      "agent": "planner",
+      "content": "Generated DAG 'CSAIL 官网公开研究方向核实报告 DAG' with 11 nodes, execution order: [['n1', 'n3', 'n4', 'n5', 'n7', 'n9', 'n10'], ['n2', 'n8'], ['n6'], ['analyst']]",
+      "timestamp": "2026-10-20T15:16:29.996453",
+      "event_type": "agent_complete"
+    },
+    {
+      "agent": "dag_executor",
+      "content": "Executing batch: ['n1', 'n3', 'n4', 'n5', 'n7', 'n9', 'n10'] (parallel)",
+      "timestamp": "2026-10-20T15:16:30.534150",
+      "event_type": "agent_start"
+    },
+    {
+      "agent": "browser",
+      "content": "Executing 1 browser nodes",
+      "timestamp": "2026-10-20T15:16:31.191576",
+      "event_type": "agent_start"
+    },
+    {
+      "args": {
+        "url": "https://www.csail.mit.edu/research",
+        "query": "https://www.csail.mit.edu/research"
+      },
+      "agent": "browser",
+      "content": "Browsing: https://www.csail.mit.edu/research",
+      "timestamp": "2026-10-20T15:16:31.191576",
+      "tool_name": "browse_webpage",
+      "event_type": "tool_start"
+    },
+    {
+      "agent": "browser",
+      "status": "success",
+      "content": "Extracted 1 pages for: https://www.csail.mit.edu/research",
+      "timestamp": "2026-10-20T15:17:21.561216",
+      "tool_name": "browse_webpage",
+      "event_type": "tool_complete",
+      "result_summary": "1 browser pages"
+    },
+    {
+      "agent": "browser",
+      "content": "Collected 1 evidence from browser",
+      "timestamp": "2026-10-20T15:17:21.561216",
+      "event_type": "agent_complete"
+    },
+    {
+      "agent": "search",
+      "content": "Executing 1 search nodes",
+      "timestamp": "2026-10-20T15:16:31.191576",
+      "event_type": "agent_start"
+    },
+    {
+      "args": {
+        "query": "site:csail.mit.edu research areas artificial intelligence systems theory 官方页面"
+      },
+      "agent": "search",
+      "content": "Searching: site:csail.mit.edu research areas artificial intelligence systems theory 官方页面",
+      "timestamp": "2026-10-20T15:16:31.191576",
+      "tool_name": "duckduckgo_search",
+      "event_type": "tool_start"
+    },
+    {
+      "agent": "search",
+      "content": "渠道采集结果",
+      "timestamp": "2026-10-20T15:16:34.077955",
+      "event_type": "tool_error",
+      "channel_attempts": [
+        {
+          "status": "failed",
+          "backend": "duckduckgo",
+          "channel": "web",
+          "call_count": 1,
+          "duration_ms": 2860,
+          "result_count": 0,
+          "error_category": "access_denied"
+        },
+        {
+          "status": "failed",
+          "backend": "bing-rss",
+          "channel": "web",
+          "call_count": 0,
+          "duration_ms": 0,
+          "result_count": 0,
+          "error_category": "budget_exceeded"
+        }
+      ]
+    },
+    {
+      "agent": "search",
+      "error": "budget_exceeded",
+      "status": "error",
+      "content": "Search failed: budget_exceeded",
+      "timestamp": "2026-10-20T15:16:34.077955",
+      "tool_name": "duckduckgo_search",
+      "event_type": "tool_error"
+    },
+    {
+      "agent": "search",
+      "content": "Collected 0 evidence from search",
+      "timestamp": "2026-10-20T15:16:34.078952",
+      "event_type": "agent_complete"
+    },
+    {
+      "agent": "search",
+      "content": "Executing 1 search nodes",
+      "timestamp": "2026-10-20T15:16:31.192832",
+      "event_type": "agent_start"
+    },
+    {
+      "args": {
+        "query": "site:csail.mit.edu research groups list 研究组 官方介绍"
+      },
+      "agent": "search",
+      "content": "Searching: site:csail.mit.edu research groups list 研究组 官方介绍",
+      "timestamp": "2026-10-20T15:16:31.192832",
+      "tool_name": "duckduckgo_search",
+      "event_type": "tool_start"
+    },
+    {
+      "agent": "search",
+      "content": "渠道采集结果",
+      "timestamp": "2026-10-20T15:16:33.604667",
+      "event_type": "tool_error",
+      "channel_attempts": [
+        {
+          "status": "failed",
+          "backend": "duckduckgo",
+          "channel": "web",
+          "call_count": 1,
+          "duration_ms": 2297,
+          "result_count": 0,
+          "error_category": "access_denied"
+        },
+        {
+          "status": "failed",
+          "backend": "bing-rss",
+          "channel": "web",
+          "call_count": 0,
+          "duration_ms": 0,
+          "result_count": 0,
+          "error_category": "budget_exceeded"
+        }
+      ]
+    },
+    {
+      "agent": "search",
+      "error": "budget_exceeded",
+      "status": "error",
+      "content": "Search failed: budget_exceeded",
+      "timestamp": "2026-10-20T15:16:33.604667",
+      "tool_name": "duckduckgo_search",
+      "event_type": "tool_error"
+    },
+    {
+      "agent": "search",
+      "content": "Collected 0 evidence from search",
+      "timestamp": "2026-10-20T15:16:33.605231",
+      "event_type": "agent_complete"
+    },
+    {
+      "agent": "search",
+      "content": "Executing 1 search nodes",
+      "timestamp": "2026-10-20T15:16:31.194831",
+      "event_type": "agent_start"
+    },
+    {
+      "args": {
+        "query": "MIT CSAIL 官方 研究方向 概览 2020..2026 公开页面"
+      },
+      "agent": "search",
+      "content": "Searching: MIT CSAIL 官方 研究方向 概览 2020..2026 公开页面",
+      "timestamp": "2026-10-20T15:16:31.194831",
+      "tool_name": "duckduckgo_search",
+      "event_type": "tool_start"
+    },
+    {
+      "agent": "search",
+      "content": "渠道采集结果",
+      "timestamp": "2026-10-20T15:16:32.991174",
+      "event_type": "tool_error",
+      "channel_attempts": [
+        {
+          "status": "failed",
+          "backend": "duckduckgo",
+          "channel": "web",
+          "call_count": 1,
+          "duration_ms": 1750,
+          "result_count": 0,
+          "error_category": "access_denied"
+        },
+        {
+          "status": "failed",
+          "backend": "bing-rss",
+          "channel": "web",
+          "call_count": 0,
+          "duration_ms": 0,
+          "result_count": 0,
+          "error_category": "budget_exceeded"
+        }
+      ]
+    },
+    {
+      "agent": "search",
+      "error": "budget_exceeded",
+      "status": "error",
+      "content": "Search failed: budget_exceeded",
+      "timestamp": "2026-10-20T15:16:32.991174",
+      "tool_name": "duckduckgo_search",
+      "event_type": "tool_error"
+    },
+    {
+      "agent": "search",
+      "content": "Collected 0 evidence from search",
+      "timestamp": "2026-10-20T15:16:32.991174",
+      "event_type": "agent_complete"
+    },
+    {
+      "agent": "search",
+      "content": "Executing 1 search nodes",
+      "timestamp": "2026-10-20T15:16:31.195896",
+      "event_type": "agent_start"
+    },
+    {
+      "args": {
+        "query": "site:csail.mit.edu news 2025 2026 研究方向 最新进展 官方新闻页"
+      },
+      "agent": "search",
+      "content": "Searching: site:csail.mit.edu news 2025 2026 研究方向 最新进展 官方新闻页",
+      "timestamp": "2026-10-20T15:16:31.195896",
+      "tool_name": "duckduckgo_search",
+      "event_type": "tool_start"
+    },
+    {
+      "agent": "search",
+      "content": "渠道采集结果",
+      "timestamp": "2026-10-20T15:16:33.408828",
+      "event_type": "tool_error",
+      "channel_attempts": [
+        {
+          "status": "failed",
+          "backend": "duckduckgo",
+          "channel": "web",
+          "call_count": 1,
+          "duration_ms": 2077,
+          "result_count": 0,
+          "error_category": "access_denied"
+        },
+        {
+          "status": "failed",
+          "backend": "bing-rss",
+          "channel": "web",
+          "call_count": 0,
+          "duration_ms": 0,
+          "result_count": 0,
+          "error_category": "budget_exceeded"
+        }
+      ]
+    },
+    {
+      "agent": "search",
+      "error": "budget_exceeded",
+      "status": "error",
+      "content": "Search failed: budget_exceeded",
+      "timestamp": "2026-10-20T15:16:33.409829",
+      "tool_name": "duckduckgo_search",
+      "event_type": "tool_error"
+    },
+    {
+      "agent": "search",
+      "content": "Collected 0 evidence from search",
+      "timestamp": "2026-10-20T15:16:33.409829",
+      "event_type": "agent_complete"
+    },
+    {
+      "agent": "search",
+      "content": "Executing 1 search nodes",
+      "timestamp": "2026-10-20T15:16:31.198370",
+      "event_type": "agent_start"
+    },
+    {
+      "args": {
+        "query": "CSAIL 研究方向 证据缺口 官网未披露 主题分类不一致 讨论"
+      },
+      "agent": "search",
+      "content": "Searching: CSAIL 研究方向 证据缺口 官网未披露 主题分类不一致 讨论",
+      "timestamp": "2026-10-20T15:16:31.199017",
+      "tool_name": "duckduckgo_search",
+      "event_type": "tool_start"
+    },
+    {
+      "agent": "search",
+      "content": "渠道采集结果",
+      "timestamp": "2026-10-20T15:16:33.437740",
+      "event_type": "tool_error",
+      "channel_attempts": [
+        {
+          "status": "failed",
+          "backend": "duckduckgo",
+          "channel": "web",
+          "call_count": 1,
+          "duration_ms": 2093,
+          "result_count": 0,
+          "error_category": "access_denied"
+        },
+        {
+          "status": "failed",
+          "backend": "bing-rss",
+          "channel": "web",
+          "call_count": 0,
+          "duration_ms": 0,
+          "result_count": 0,
+          "error_category": "budget_exceeded"
+        }
+      ]
+    },
+    {
+      "agent": "search",
+      "error": "budget_exceeded",
+      "status": "error",
+      "content": "Search failed: budget_exceeded",
+      "timestamp": "2026-10-20T15:16:33.437740",
+      "tool_name": "duckduckgo_search",
+      "event_type": "tool_error"
+    },
+    {
+      "agent": "search",
+      "content": "Collected 0 evidence from search",
+      "timestamp": "2026-10-20T15:16:33.437740",
+      "event_type": "agent_complete"
+    },
+    {
+      "agent": "browser",
+      "content": "Executing 1 browser nodes",
+      "timestamp": "2026-10-20T15:16:31.200178",
+      "event_type": "agent_start"
+    },
+    {
+      "agent": "browser",
+      "content": "Collected 0 evidence from browser",
+      "timestamp": "2026-10-20T15:16:31.200749",
+      "event_type": "agent_complete"
+    },
+    {
+      "agent": "budget_guardrail",
+      "content": "Budget breaker triggered: tool_call_limit. Skipped 3 pending tool nodes.",
+      "timestamp": "2026-10-20T15:17:24.723062",
+      "event_type": "agent_complete",
+      "budget_state": {
+        "warning": false,
+        "estimated": true,
+        "citation_max": 8,
+        "max_cost_usd": 0.2,
+        "used_cost_usd": 0.0,
+        "budget_profile": "short",
+        "max_tool_calls": 6,
+        "rag_max_results": 4,
+        "used_tool_calls": 6,
+        "hard_stop_reason": "tool_call_limit",
+        "max_total_tokens": 20000,
+        "report_max_tokens": 3000,
+        "used_total_tokens": 2735,
+        "search_max_queries": 2,
+        "search_max_results": 5,
+        "browser_max_results": 1,
+        "max_retries_per_tool": 1,
+        "max_wall_clock_seconds": 180,
+        "elapsed_wall_clock_seconds": 61
+      },
+      "skipped_nodes": [
+        "n2",
+        "n6",
+        "n8"
+      ]
+    },
+    {
+      "agent": "failure_memory",
+      "content": "Captured 10 failure memory records",
+      "timestamp": "2026-10-20T15:17:24.723062",
+      "event_type": "agent_complete",
+      "failure_memory": {
+        "records": [
+          {
+            "query": "https://www.csail.mit.edu/research",
+            "node_type": "browser",
+            "last_error": null,
+            "retry_count": 0,
+            "next_retry_at": null,
+            "repeat_blocked": false,
+            "backoff_seconds": 0,
+            "terminal_failure": false,
+            "last_error_category": null
+          },
+          {
+            "query": "CSAIL 官网 research 栏目下的子页面导航（如 research groups / centers / areas 列表页），枚举可核实的主题条目及其官方描述",
+            "node_type": "browser",
+            "last_error": "tool_call_limit",
+            "retry_count": 0,
+            "next_retry_at": null,
+            "repeat_blocked": false,
+            "backoff_seconds": 0,
+            "terminal_failure": false,
+            "last_error_category": "budget_exceeded"
+          },
+          {
+            "query": "site:csail.mit.edu research areas artificial intelligence systems theory 官方页面",
+            "node_type": "search",
+            "last_error": "budget_exceeded",
+            "retry_count": 1,
+            "next_retry_at": null,
+            "repeat_blocked": true,
+            "backoff_seconds": 0,
+            "terminal_failure": true,
+            "last_error_category": "budget_exceeded"
+          },
+          {
+            "query": "site:csail.mit.edu research groups list 研究组 官方介绍",
+            "node_type": "search",
+            "last_error": "budget_exceeded",
+            "retry_count": 1,
+            "next_retry_at": null,
+            "repeat_blocked": true,
+            "backoff_seconds": 0,
+            "terminal_failure": true,
+            "last_error_category": "budget_exceeded"
+          },
+          {
+            "query": "MIT CSAIL 官方 研究方向 概览 2020..2026 公开页面",
+            "node_type": "search",
+            "last_error": "budget_exceeded",
+            "retry_count": 1,
+            "next_retry_at": null,
+            "repeat_blocked": true,
+            "backoff_seconds": 0,
+            "terminal_failure": true,
+            "last_error_category": "budget_exceeded"
+          },
+          {
+            "query": "CSAIL 官网研究主题页面逐条核对：主题名称、官方描述、所属研究组/中心、页面是否标注日期或更新时间",
+            "node_type": "browser",
+            "last_error": "tool_call_limit",
+            "retry_count": 0,
+            "next_retry_at": null,
+            "repeat_blocked": false,
+            "backoff_seconds": 0,
+            "terminal_failure": false,
+            "last_error_category": "budget_exceeded"
+          },
+          {
+            "query": "site:csail.mit.edu news 2025 2026 研究方向 最新进展 官方新闻页",
+            "node_type": "search",
+            "last_error": "budget_exceeded",
+            "retry_count": 1,
+            "next_retry_at": null,
+            "repeat_blocked": true,
+            "backoff_seconds": 0,
+            "terminal_failure": true,
+            "last_error_category": "budget_exceeded"
+          },
+          {
+            "query": "CSAIL 官网 news/publications 页面：核实是否存在可归属到具体研究方向的成果条目及明确发表日期（区分页面抓取时间与发表时间）",
+            "node_type": "browser",
+            "last_error": "tool_call_limit",
+            "retry_count": 0,
+            "next_retry_at": null,
+            "repeat_blocked": false,
+            "backoff_seconds": 0,
+            "terminal_failure": false,
+            "last_error_category": "budget_exceeded"
+          },
+          {
+            "query": "CSAIL 研究方向 证据缺口 官网未披露 主题分类不一致 讨论",
+            "node_type": "search",
+            "last_error": "budget_exceeded",
+            "retry_count": 1,
+            "next_retry_at": null,
+            "repeat_blocked": true,
+            "backoff_seconds": 0,
+            "terminal_failure": true,
+            "last_error_category": "budget_exceeded"
+          },
+          {
+            "query": "CSAIL 官网 about / annual report 页面：核实机构定位与学科范围表述（仅用于背景，不用于成果归属）",
+            "node_type": "browser",
+            "last_error": null,
+            "retry_count": 0,
+            "next_retry_at": null,
+            "repeat_blocked": false,
+            "backoff_seconds": 0,
+            "terminal_failure": false,
+            "last_error_category": "budget_exceeded"
+          }
+        ],
+        "max_retries_per_tool": 1,
+        "repeat_blocked_nodes": [
+          "n3",
+          "n4",
+          "n5",
+          "n7",
+          "n9"
+        ]
+      }
+    },
+    {
+      "agent": "budget_guardrail",
+      "content": "Budget breaker triggered: tool_call_limit. Skipped 3 pending tool nodes.",
+      "timestamp": "2026-10-20T15:17:24.723062",
+      "event_type": "agent_complete",
+      "budget_state": {
+        "warning": false,
+        "estimated": true,
+        "citation_max": 8,
+        "max_cost_usd": 0.2,
+        "used_cost_usd": 0.0,
+        "budget_profile": "short",
+        "max_tool_calls": 6,
+        "rag_max_results": 4,
+        "used_tool_calls": 6,
+        "hard_stop_reason": "tool_call_limit",
+        "max_total_tokens": 20000,
+        "report_max_tokens": 3000,
+        "used_total_tokens": 2735,
+        "search_max_queries": 2,
+        "search_max_results": 5,
+        "browser_max_results": 1,
+        "max_retries_per_tool": 1,
+        "max_wall_clock_seconds": 180,
+        "elapsed_wall_clock_seconds": 61
+      },
+      "skipped_nodes": [
+        "n2",
+        "n6",
+        "n8"
+      ]
+    },
+    {
+      "agent": "failure_memory",
+      "content": "Captured 10 failure memory records",
+      "timestamp": "2026-10-20T15:17:24.723062",
+      "event_type": "agent_complete",
+      "failure_memory": {
+        "records": [
+          {
+            "query": "https://www.csail.mit.edu/research",
+            "node_type": "browser",
+            "last_error": null,
+            "retry_count": 0,
+            "next_retry_at": null,
+            "repeat_blocked": false,
+            "backoff_seconds": 0,
+            "terminal_failure": false,
+            "last_error_category": null
+          },
+          {
+            "query": "CSAIL 官网 research 栏目下的子页面导航（如 research groups / centers / areas 列表页），枚举可核实的主题条目及其官方描述",
+            "node_type": "browser",
+            "last_error": "tool_call_limit",
+            "retry_count": 0,
+            "next_retry_at": null,
+            "repeat_blocked": false,
+            "backoff_seconds": 0,
+            "terminal_failure": false,
+            "last_error_category": "budget_exceeded"
+          },
+          {
+            "query": "site:csail.mit.edu research areas artificial intelligence systems theory 官方页面",
+            "node_type": "search",
+            "last_error": "budget_exceeded",
+            "retry_count": 1,
+            "next_retry_at": null,
+            "repeat_blocked": true,
+            "backoff_seconds": 0,
+            "terminal_failure": true,
+            "last_error_category": "budget_exceeded"
+          },
+          {
+            "query": "site:csail.mit.edu research groups list 研究组 官方介绍",
+            "node_type": "search",
+            "last_error": "budget_exceeded",
+            "retry_count": 1,
+            "next_retry_at": null,
+            "repeat_blocked": true,
+            "backoff_seconds": 0,
+            "terminal_failure": true,
+            "last_error_category": "budget_exceeded"
+          },
+          {
+            "query": "MIT CSAIL 官方 研究方向 概览 2020..2026 公开页面",
+            "node_type": "search",
+            "last_error": "budget_exceeded",
+            "retry_count": 1,
+            "next_retry_at": null,
+            "repeat_blocked": true,
+            "backoff_seconds": 0,
+            "terminal_failure": true,
+            "last_error_category": "budget_exceeded"
+          },
+          {
+            "query": "CSAIL 官网研究主题页面逐条核对：主题名称、官方描述、所属研究组/中心、页面是否标注日期或更新时间",
+            "node_type": "browser",
+            "last_error": "tool_call_limit",
+            "retry_count": 0,
+            "next_retry_at": null,
+            "repeat_blocked": false,
+            "backoff_seconds": 0,
+            "terminal_failure": false,
+            "last_error_category": "budget_exceeded"
+          },
+          {
+            "query": "site:csail.mit.edu news 2025 2026 研究方向 最新进展 官方新闻页",
+            "node_type": "search",
+            "last_error": "budget_exceeded",
+            "retry_count": 1,
+            "next_retry_at": null,
+            "repeat_blocked": true,
+            "backoff_seconds": 0,
+            "terminal_failure": true,
+            "last_error_category": "budget_exceeded"
+          },
+          {
+            "query": "CSAIL 官网 news/publications 页面：核实是否存在可归属到具体研究方向的成果条目及明确发表日期（区分页面抓取时间与发表时间）",
+            "node_type": "browser",
+            "last_error": "tool_call_limit",
+            "retry_count": 0,
+            "next_retry_at": null,
+            "repeat_blocked": false,
+            "backoff_seconds": 0,
+            "terminal_failure": false,
+            "last_error_category": "budget_exceeded"
+          },
+          {
+            "query": "CSAIL 研究方向 证据缺口 官网未披露 主题分类不一致 讨论",
+            "node_type": "search",
+            "last_error": "budget_exceeded",
+            "retry_count": 1,
+            "next_retry_at": null,
+            "repeat_blocked": true,
+            "backoff_seconds": 0,
+            "terminal_failure": true,
+            "last_error_category": "budget_exceeded"
+          },
+          {
+            "query": "CSAIL 官网 about / annual report 页面：核实机构定位与学科范围表述（仅用于背景，不用于成果归属）",
+            "node_type": "browser",
+            "last_error": null,
+            "retry_count": 0,
+            "next_retry_at": null,
+            "repeat_blocked": false,
+            "backoff_seconds": 0,
+            "terminal_failure": false,
+            "last_error_category": "budget_exceeded"
+          }
+        ],
+        "max_retries_per_tool": 1,
+        "repeat_blocked_nodes": [
+          "n3",
+          "n4",
+          "n5",
+          "n7",
+          "n9"
+        ]
+      }
+    },
+    {
+      "agent": "analyst",
+      "content": "Analyzing 1 evidence items",
+      "timestamp": "2026-10-20T15:17:25.058164",
+      "event_type": "agent_start"
+    },
+    {
+      "agent": "analyst",
+      "content": "Analysis complete",
+      "timestamp": "2026-10-20T15:17:30.610988",
+      "event_type": "agent_complete"
+    },
+    {
+      "agent": "analyst",
+      "content": "Analyzing 1 evidence items",
+      "timestamp": "2026-10-20T15:17:25.058164",
+      "event_type": "agent_start"
+    },
+    {
+      "agent": "analyst",
+      "content": "Analysis complete",
+      "timestamp": "2026-10-20T15:17:30.610988",
+      "event_type": "agent_complete"
+    },
+    {
+      "agent": "analyst",
+      "content": "Generated 960 chars of analysis from 1 evidence items",
+      "timestamp": "2026-10-20T15:17:30.610988",
+      "event_type": "agent_complete"
+    },
+    {
+      "agent": "reflection",
+      "content": "Validating analysis with 1 evidence items",
+      "timestamp": "2026-10-20T15:17:30.963680",
+      "event_type": "agent_start"
+    },
+    {
+      "agent": "reflection",
+      "content": "Verification passed: confidence=0.90, citation_coverage=18.00%",
+      "timestamp": "2026-10-20T15:17:34.667609",
+      "event_type": "agent_complete"
+    },
+    {
+      "agent": "reflection",
+      "content": "Verification: confidence=0.90, needs_revision=False",
+      "timestamp": "2026-10-20T15:17:34.667609",
+      "event_type": "agent_complete"
+    },
+    {
+      "agent": "report",
+      "content": "Generating final report",
+      "timestamp": "2026-10-20T15:17:34.978371",
+      "event_type": "agent_start"
+    },
+    {
+      "agent": "report",
+      "content": "Report generated: 6367 chars",
+      "timestamp": "2026-10-20T15:17:46.733947",
+      "event_type": "agent_complete"
+    },
+    {
+      "agent": "report",
+      "content": "Generating final report",
+      "timestamp": "2026-10-20T15:17:34.978371",
+      "event_type": "agent_start"
+    },
+    {
+      "agent": "report",
+      "content": "Report generated: 6367 chars",
+      "timestamp": "2026-10-20T15:17:46.733947",
+      "event_type": "agent_complete"
+    },
+    {
+      "agent": "report",
+      "content": "Report: 6367 chars, 1 citations",
+      "timestamp": "2026-10-20T15:17:46.733947",
+      "event_type": "agent_complete"
+    }
+  ],
+  "tool_audit_summary": {
+    "error_calls": 5,
+    "total_calls": 6,
+    "persisted_calls": 6
+  },
+  "skill_context": {
+    "match_results": [],
+    "scope_filters": {
+      "tenant_id": null,
+      "project_id": null
+    },
+    "match_cache_key": "skill_match:e44be265fd0999cf73c6caec63c930ff534619f7d3ab800eee1eb535b3d789f6",
+    "resolved_skills": [],
+    "registry_revision": 1,
+    "candidate_skill_ids": [],
+    "effective_skill_ids": [],
+    "snapshot_created_at": "2026-10-20T15:16:22.828474",
+    "effective_agent_hints": {},
+    "truncated_skill_count": 0,
+    "auto_matched_skill_ids": [],
+    "effective_tool_allowlist": [],
+    "effective_prompt_sections": {
+      "prompt": "",
+      "overview": "",
+      "constraints": ""
+    },
+    "manually_enabled_skill_ids": [],
+    "manually_disabled_skill_ids": []
+  },
+  "organization_research": {
+    "scope": {
+      "topic": "只研究 CSAIL 实验室官网公开的研究方向，用简短报告说明可核实的主题和证据缺口，不要求企业业务或合作名单。",
+      "end_date": "2026-10-20",
+      "entities": [
+        {
+          "name": "CSAIL",
+          "type": "laboratory",
+          "aliases": [],
+          "entity_id": "selected-1",
+          "unit_kind": "organization",
+          "source_urls": [
+            "https://www.csail.mit.edu/research"
+          ],
+          "resolution_status": "pending"
+        }
+      ],
+      "start_date": "2020-01-01",
+      "disciplines": [
+        "computer_science"
+      ],
+      "organization_types": [
+        "laboratory"
+      ]
+    },
+    "weights": {
+      "preset": "research_development",
+      "weights": {},
+      "mappings": [],
+      "config_version": "user-config-v1",
+      "metric_weights": {},
+      "performance_groups": {
+        "paper": 1.0,
+        "venue": 1.0
+      }
+    },
+    "schema_version": "adrs-organization-run-v2",
+    "evidence_cutoff": "2026-10-20T15:16:22.831840+00:00",
+    "selected_preset": null,
+    "catalog_manifest": {
+      "schemes": [
+        {
+          "level": "venue",
+          "family": "directory",
+          "adapter": "exact_catalogue",
+          "editions": [],
+          "scheme_id": "ccf",
+          "source_url": "https://www.ccf.org.cn/Academic_Evaluation/By_category/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "directory",
+          "adapter": "exact_catalogue",
+          "editions": [],
+          "scheme_id": "icore",
+          "source_url": "https://portal.core.edu.au/conf-ranks/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "index",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "wos_scie",
+          "source_url": "https://mjl.clarivate.com/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "index",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "wos_ssci",
+          "source_url": "https://mjl.clarivate.com/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "index",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "wos_ahci",
+          "source_url": "https://mjl.clarivate.com/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "index",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "wos_esci",
+          "source_url": "https://mjl.clarivate.com/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "index",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "scopus",
+          "source_url": "https://www.scopus.com/sources",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "journal_metric",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "jcr_jif",
+          "source_url": "https://jcr.clarivate.com/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "journal_metric",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "jcr_quartile",
+          "source_url": "https://jcr.clarivate.com/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "journal_metric",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "jcr_jci",
+          "source_url": "https://jcr.clarivate.com/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "journal_metric",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "cas_partition",
+          "source_url": "https://www.fenqubiao.com/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "journal_metric",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "citescore",
+          "source_url": "https://www.scopus.com/sources",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "journal_metric",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "citescore_percentile",
+          "source_url": "https://www.scopus.com/sources",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "journal_metric",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "sjr",
+          "source_url": "https://www.scimagojr.com/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "journal_metric",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "snip",
+          "source_url": "https://www.scopus.com/sources",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "directory",
+          "adapter": "exact_catalogue",
+          "editions": [],
+          "scheme_id": "abdc",
+          "source_url": "https://abdc.edu.au/abdc-journal-quality-list/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "directory",
+          "adapter": "exact_catalogue",
+          "editions": [],
+          "scheme_id": "ajg",
+          "source_url": "https://charteredabs.org/academic-journal-guide",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "work",
+          "family": "paper_metric",
+          "adapter": "paper_metric",
+          "editions": [],
+          "scheme_id": "citation_percentile",
+          "source_url": "https://help.openalex.org/data/works/citations/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "work",
+          "family": "paper_metric",
+          "adapter": "paper_metric",
+          "editions": [],
+          "scheme_id": "cnci",
+          "source_url": "https://incites.help.clarivate.com/Content/Indicators-Handbook/ih-normalized-citation-impact.htm",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "work",
+          "family": "paper_metric",
+          "adapter": "paper_metric",
+          "editions": [],
+          "scheme_id": "fwci",
+          "source_url": "https://help.openalex.org/data/works/citations/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        }
+      ],
+      "sources": [
+        {
+          "access": "public",
+          "edition": "2012",
+          "records": [
+            {
+              "track": "main",
+              "status": "available",
+              "category": "Computer networks",
+              "raw_value": "B",
+              "target_id": "dblp:conf/nsdi",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            },
+            {
+              "track": "main",
+              "status": "available",
+              "category": "Computer networks",
+              "raw_value": "A",
+              "target_id": "dblp:conf/sigcomm",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            }
+          ],
+          "coverage": "partial",
+          "provider": "CCF (issued PDF, public mirror)",
+          "scheme_id": "ccf",
+          "source_id": "public-ccf-2012",
+          "authorized": false,
+          "source_url": "https://risame.github.io/sun/ccf.pdf",
+          "metric_year": 2012,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": null
+        },
+        {
+          "access": "public",
+          "edition": "2022",
+          "records": [
+            {
+              "track": "main",
+              "status": "available",
+              "category": "Computer networks",
+              "raw_value": "A",
+              "target_id": "dblp:conf/nsdi",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            },
+            {
+              "track": "main",
+              "status": "available",
+              "category": "Computer networks",
+              "raw_value": "A",
+              "target_id": "dblp:conf/sigcomm",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            }
+          ],
+          "coverage": "partial",
+          "provider": "CCF (issued PDF, public mirror)",
+          "scheme_id": "ccf",
+          "source_id": "public-ccf-2022",
+          "authorized": false,
+          "source_url": "https://scdm-shu.github.io/ccf/2022-CCF-Ranking.pdf",
+          "metric_year": 2022,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": null
+        },
+        {
+          "access": "public",
+          "edition": "CORE2023",
+          "records": [
+            {
+              "track": "main",
+              "status": "available",
+              "category": "4606",
+              "raw_value": "A*",
+              "target_id": "dblp:conf/sigcomm",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            }
+          ],
+          "coverage": "partial",
+          "provider": "ICORE",
+          "scheme_id": "icore",
+          "source_id": "public-icore-2023",
+          "authorized": false,
+          "source_url": "https://portal.core.edu.au/conf-ranks/?search=SIGCOMM&by=all&source=CORE2023&sort=atitle&page=1",
+          "metric_year": 2023,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": null
+        },
+        {
+          "access": "public",
+          "edition": "ICORE2026",
+          "records": [
+            {
+              "track": "main",
+              "status": "available",
+              "category": "4606",
+              "raw_value": "A*",
+              "target_id": "dblp:conf/sigcomm",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            }
+          ],
+          "coverage": "partial",
+          "provider": "ICORE",
+          "scheme_id": "icore",
+          "source_id": "public-icore-2026",
+          "authorized": false,
+          "source_url": "https://portal.core.edu.au/conf-ranks/?search=SIGCOMM&by=all&source=ICORE2026&sort=atitle&page=1",
+          "metric_year": 2026,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": null
+        },
+        {
+          "access": "public",
+          "edition": "2010",
+          "records": [
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "1503",
+              "raw_value": "A*",
+              "target_id": "issn:0047-2506",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            },
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "1503",
+              "raw_value": "A*",
+              "target_id": "issn:1478-6990",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            }
+          ],
+          "coverage": "partial",
+          "provider": "ABDC",
+          "scheme_id": "abdc",
+          "source_id": "public-abdc-2010",
+          "authorized": false,
+          "source_url": "https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx",
+          "metric_year": 2010,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": null
+        },
+        {
+          "access": "public",
+          "edition": "2013",
+          "records": [
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "1503",
+              "raw_value": "A*",
+              "target_id": "issn:0047-2506",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            },
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "1503",
+              "raw_value": "A*",
+              "target_id": "issn:1478-6990",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            }
+          ],
+          "coverage": "partial",
+          "provider": "ABDC",
+          "scheme_id": "abdc",
+          "source_id": "public-abdc-2013",
+          "authorized": false,
+          "source_url": "https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx",
+          "metric_year": 2013,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": null
+        },
+        {
+          "access": "public",
+          "edition": "2016",
+          "records": [
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "1503",
+              "raw_value": "A*",
+              "target_id": "issn:0047-2506",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            },
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "1503",
+              "raw_value": "A*",
+              "target_id": "issn:1478-6990",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            }
+          ],
+          "coverage": "partial",
+          "provider": "ABDC",
+          "scheme_id": "abdc",
+          "source_id": "public-abdc-2016",
+          "authorized": false,
+          "source_url": "https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx",
+          "metric_year": 2016,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": null
+        },
+        {
+          "access": "public",
+          "edition": "2019",
+          "records": [
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "1503",
+              "raw_value": "A*",
+              "target_id": "issn:0047-2506",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            },
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "1503",
+              "raw_value": "A*",
+              "target_id": "issn:1478-6990",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            }
+          ],
+          "coverage": "partial",
+          "provider": "ABDC",
+          "scheme_id": "abdc",
+          "source_id": "public-abdc-2019",
+          "authorized": false,
+          "source_url": "https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx",
+          "metric_year": 2019,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": null
+        },
+        {
+          "access": "public",
+          "edition": "2022",
+          "records": [
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "3507",
+              "raw_value": "A*",
+              "target_id": "issn:0047-2506",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            },
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "3507",
+              "raw_value": "A*",
+              "target_id": "issn:1478-6990",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            }
+          ],
+          "coverage": "partial",
+          "provider": "ABDC",
+          "scheme_id": "abdc",
+          "source_id": "public-abdc-2022",
+          "authorized": false,
+          "source_url": "https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx",
+          "metric_year": 2022,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": null
+        },
+        {
+          "access": "public",
+          "edition": "2025",
+          "records": [
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "3507",
+              "raw_value": "A*",
+              "target_id": "issn:0047-2506",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            },
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "3507",
+              "raw_value": "A*",
+              "target_id": "issn:1478-6990",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            }
+          ],
+          "coverage": "partial",
+          "provider": "ABDC",
+          "scheme_id": "abdc",
+          "source_id": "public-abdc-2025",
+          "authorized": false,
+          "source_url": "https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx",
+          "metric_year": 2025,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": null
+        },
+        {
+          "access": "public",
+          "edition": "OpenAlex snapshot 2026-10-19",
+          "records": [
+            {
+              "track": "work",
+              "status": "available",
+              "category": "https://openalex.org/subfields/2613 | Statistics and Probability",
+              "raw_value": 3266.5958,
+              "target_id": "openalex:W1951724000",
+              "document_type": "article",
+              "citation_cutoff": "2018-12-31",
+              "publication_year": 2015
+            }
+          ],
+          "coverage": "partial",
+          "provider": "OpenAlex",
+          "scheme_id": "fwci",
+          "source_id": "openalex-W1951724000-fwci-2026-10-19",
+          "authorized": false,
+          "source_url": "https://api.openalex.org/works/W1951724000",
+          "metric_year": 2026,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": "2026-10-19T09:35:57.686232"
+        },
+        {
+          "access": "public",
+          "edition": "OpenAlex snapshot 2026-10-19",
+          "records": [
+            {
+              "track": "work",
+              "status": "available",
+              "category": "https://openalex.org/subfields/2613 | Statistics and Probability",
+              "raw_value": 1.0,
+              "target_id": "openalex:W1951724000",
+              "document_type": "article",
+              "citation_cutoff": "2018-12-31",
+              "publication_year": 2015
+            }
+          ],
+          "coverage": "partial",
+          "provider": "OpenAlex",
+          "scheme_id": "citation_percentile",
+          "source_id": "openalex-W1951724000-citation_percentile-2026-10-19",
+          "authorized": false,
+          "source_url": "https://api.openalex.org/works/W1951724000",
+          "metric_year": 2026,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": "2026-10-19T09:35:57.686232"
+        }
+      ],
+      "captured_at": "2026-10-20T15:16:22.831840+00:00",
+      "schema_version": "adrs-evaluation-catalog-v1",
+      "availability_note": "Frozen public samples and import requirements; not a live lookup or verified evaluation of collected evidence.",
+      "applied_to_evidence": false,
+      "adapter_rule_version": "adrs-evaluation-adapters-v1"
+    },
+    "effective_weights": {
+      "mappings": [
+        {
+          "scores": {
+            "A": 1.0,
+            "B": 0.6666666666666667,
+            "C": 0.33333333333333337
+          },
+          "version": "adrs-preference-map-v1",
+          "scheme_id": "ccf"
+        },
+        {
+          "scores": {
+            "A": 0.75,
+            "B": 0.5,
+            "C": 0.25,
+            "A*": 1.0
+          },
+          "version": "adrs-preference-map-v1",
+          "scheme_id": "icore"
+        },
+        {
+          "scores": {
+            "A": 0.75,
+            "B": 0.5,
+            "C": 0.25,
+            "A*": 1.0
+          },
+          "version": "adrs-preference-map-v1",
+          "scheme_id": "abdc"
+        },
+        {
+          "scores": {
+            "1": 0.19999999999999996,
+            "2": 0.4,
+            "3": 0.6,
+            "4": 0.8,
+            "4*": 1.0
+          },
+          "version": "adrs-preference-map-v1",
+          "scheme_id": "ajg"
+        },
+        {
+          "scores": {
+            "Q1": 1.0,
+            "Q2": 0.75,
+            "Q3": 0.5,
+            "Q4": 0.25
+          },
+          "version": "adrs-preference-map-v1",
+          "scheme_id": "jcr_quartile"
+        },
+        {
+          "scores": {
+            "1": 1.0,
+            "2": 0.75,
+            "3": 0.5,
+            "4": 0.25
+          },
+          "version": "adrs-preference-map-v1",
+          "scheme_id": "cas_partition"
+        }
+      ],
+      "semantics": "preference_configuration_only",
+      "raw_config": {
+        "preset": "research_development",
+        "weights": {
+          "recency": {
+            "weight": 10.0,
+            "enabled": true
+          },
+          "topic_relevance": {
+            "weight": 35.0,
+            "enabled": true
+          },
+          "output_performance": {
+            "weight": 20.0,
+            "enabled": true
+          },
+          "research_alignment": {
+            "weight": 20.0,
+            "enabled": true
+          },
+          "evidence_completeness": {
+            "weight": 15.0,
+            "enabled": true
+          },
+          "cooperation_complementarity": {
+            "weight": 0.0,
+            "enabled": true
+          }
+        },
+        "metric_weights": {},
+        "performance_groups": {
+          "paper": {
+            "weight": 1.0,
+            "enabled": true
+          },
+          "venue": {
+            "weight": 1.0,
+            "enabled": true
+          }
+        }
+      },
+      "rule_version": "adrs-weight-rules-v1",
+      "config_version": "user-config-v1",
+      "preset_version": "adrs-presets-v1",
+      "effective_groups": {
+        "paper": 0.5,
+        "venue": 0.5
+      },
+      "effective_weights": {
+        "recency": 0.09999999999999999,
+        "topic_relevance": 0.35,
+        "output_performance": 0.19999999999999998,
+        "research_alignment": 0.19999999999999998,
+        "evidence_completeness": 0.15,
+        "cooperation_complementarity": 0.0
+      },
+      "effective_metric_weights": {}
+    },
+    "scope_rule_version": "adrs-organization-scope-v2"
+  },
+  "organization_result": {
+    "gaps": [
+      "证据索引不等于机构成果全集或已核实合作关系。"
+    ],
+    "scope": {
+      "topic": "只研究 CSAIL 实验室官网公开的研究方向，用简短报告说明可核实的主题和证据缺口，不要求企业业务或合作名单。",
+      "end_date": "2026-10-20",
+      "entities": [
+        {
+          "name": "CSAIL",
+          "type": "laboratory",
+          "aliases": [],
+          "entity_id": "selected-1",
+          "unit_kind": "organization",
+          "source_urls": [
+            "https://www.csail.mit.edu/research"
+          ],
+          "resolution_status": "pending"
+        }
+      ],
+      "start_date": "2020-01-01",
+      "disciplines": [
+        "computer_science"
+      ],
+      "organization_types": [
+        "laboratory"
+      ]
+    },
+    "coverage": "retrieved_sample_not_real_world_census",
+    "extraction": {
+      "status": "returned",
+      "finish_reason": "stop",
+      "response_fields": [
+        "analysis_text",
+        "organization_data"
+      ]
+    },
+    "inferences": [
+      {
+        "kind": "inference",
+        "statement": "在缺乏成果级证据（标题、日期、作者单位）的情况下，不应为 CSAIL 输出任何主题结论、成果数量或时效性判断；该对象应维持待核状态。",
+        "entity_ids": [
+          "selected-1"
+        ],
+        "evidence_ids": [
+          "ev-f22f3aec"
+        ],
+        "verification_status": "model_interpretation_requires_review"
+      }
+    ],
+    "object_views": [
+      {
+        "gaps": [
+          "对象提及及来源域名仅是证据定位，不证明作者署名或时间归属；成果需继续核验。"
+        ],
+        "name": "CSAIL",
+        "type": "laboratory",
+        "entity_id": "selected-1",
+        "resolution_status": "pending",
+        "mention_evidence_ids": [
+          "ev-f22f3aec"
+        ],
+        "publication_attribution": "pending",
+        "source_domain_evidence_ids": [
+          "ev-f22f3aec"
+        ]
+      }
+    ],
+    "scope_result": {
+      "scope": {
+        "topic": "只研究 CSAIL 实验室官网公开的研究方向，用简短报告说明可核实的主题和证据缺口，不要求企业业务或合作名单。",
+        "end_date": "2026-10-20",
+        "entities": [
+          {
+            "name": "CSAIL",
+            "type": "laboratory",
+            "aliases": [],
+            "entity_id": "selected-1",
+            "unit_kind": "organization",
+            "source_urls": [
+              "https://www.csail.mit.edu/research"
+            ],
+            "resolution_status": "pending"
+          }
+        ],
+        "start_date": "2020-01-01",
+        "disciplines": [
+          "computer_science"
+        ],
+        "organization_types": [
+          "laboratory"
+        ]
+      },
+      "views": [
+        {
+          "name": "CSAIL",
+          "type": "laboratory",
+          "entity_id": "selected-1",
+          "output_ids": [],
+          "output_count": 0,
+          "counting_method": "full",
+          "direct_output_ids": [],
+          "publication_count": 0,
+          "research_family_ids": [],
+          "inherited_output_ids": [],
+          "research_family_count": 0,
+          "unlinked_publication_count": 0
+        }
+      ],
+      "outputs": [],
+      "summary": {
+        "output_ids": [],
+        "output_count": 0,
+        "counting_method": "full",
+        "publication_count": 0,
+        "research_family_ids": [],
+        "research_family_count": 0,
+        "unlinked_publication_count": 0
+      },
+      "verification": {
+        "source_status": "provided_records_only",
+        "external_sources_checked": false
+      },
+      "relationships": [],
+      "schema_version": "2",
+      "selection_mode": "named_entities",
+      "discovery_query": null,
+      "relation_counts": {
+        "funding": 0,
+        "citation": 0,
+        "coauthorship": 0
+      },
+      "output_relations": [],
+      "research_families": [],
+      "selected_entities": [
+        {
+          "name": "CSAIL",
+          "type": "laboratory",
+          "aliases": [],
+          "entity_id": "selected-1",
+          "unit_kind": "organization",
+          "source_urls": [
+            "https://www.csail.mit.edu/research"
+          ],
+          "resolution_status": "pending"
+        }
+      ],
+      "pending_entity_ids": [
+        "selected-1"
+      ],
+      "excluded_candidates": [],
+      "current_affiliations": [],
+      "undated_relationship_count": 0
+    },
+    "counting_unit": "retrieved_evidence_not_publications",
+    "source_checks": {
+      "proofs": [
+        {
+          "end": 76,
+          "quote": "## MIT CSAIL\n\n- For Students\n\n- For Industry\n\n- For Members\n\n- Accessibility",
+          "start": 0,
+          "source_url": "https://www.csail.mit.edu/research",
+          "evidence_id": "ev-f22f3aec"
+        },
+        {
+          "end": 210,
+          "quote": "Press Requests\n\n- Accessibility\n\n- Press Requests\n\n- Accessibility",
+          "start": 144,
+          "source_url": "https://www.csail.mit.edu/research",
+          "evidence_id": "ev-f22f3aec"
+        }
+      ],
+      "status": "source_quote_and_reference_checked_not_independent_semantic_review",
+      "accepted_output_count": 0,
+      "available_evidence_ids": [
+        "ev-f22f3aec"
+      ],
+      "analyst_excerpt_evidence_ids": [
+        "ev-f22f3aec"
+      ]
+    },
+    "evidence_count": 1,
+    "schema_version": "adrs-organization-findings-v1",
+    "pending_records": [],
+    "recommendations": [
+      {
+        "kind": "recommendation",
+        "statement": "现有唯一证据仅为官网研究页的导航性抓取片段，不含研究方向实质内容，因此无法确认 CSAIL 的公开研究方向清单；建议重新抓取完整渲染正文并补充研究组索引页后再做主题归纳。",
+        "entity_ids": [
+          "selected-1"
+        ],
+        "evidence_ids": [
+          "ev-f22f3aec"
+        ],
+        "verification_status": "model_interpretation_requires_review"
+      }
+    ],
+    "comparison_groups": [],
+    "attribution_status": "no_attributed_sample_established",
+    "publication_metadata": {},
+    "combined_evidence_ids": [
+      "ev-f22f3aec"
+    ],
+    "relationship_coverage": {
+      "funding": "not_established",
+      "citation": "not_established",
+      "coauthorship": "not_established"
+    },
+    "unassigned_evidence_ids": [],
+    "candidate_discovery_status": "named_entities"
+  },
+  "execution_plan": {
+    "edges": [
+      {
+        "to_node": "n2",
+        "condition": null,
+        "edge_type": "sequential",
+        "from_node": "n1"
+      },
+      {
+        "to_node": "n6",
+        "condition": null,
+        "edge_type": "sequential",
+        "from_node": "n2"
+      },
+      {
+        "to_node": "n6",
+        "condition": null,
+        "edge_type": "sequential",
+        "from_node": "n3"
+      },
+      {
+        "to_node": "n6",
+        "condition": null,
+        "edge_type": "sequential",
+        "from_node": "n4"
+      },
+      {
+        "to_node": "n8",
+        "condition": null,
+        "edge_type": "sequential",
+        "from_node": "n7"
+      },
+      {
+        "to_node": "analyst",
+        "condition": null,
+        "edge_type": "sequential",
+        "from_node": "n1"
+      },
+      {
+        "to_node": "analyst",
+        "condition": null,
+        "edge_type": "sequential",
+        "from_node": "n2"
+      },
+      {
+        "to_node": "analyst",
+        "condition": null,
+        "edge_type": "sequential",
+        "from_node": "n3"
+      },
+      {
+        "to_node": "analyst",
+        "condition": null,
+        "edge_type": "sequential",
+        "from_node": "n4"
+      },
+      {
+        "to_node": "analyst",
+        "condition": null,
+        "edge_type": "sequential",
+        "from_node": "n5"
+      },
+      {
+        "to_node": "analyst",
+        "condition": null,
+        "edge_type": "sequential",
+        "from_node": "n6"
+      },
+      {
+        "to_node": "analyst",
+        "condition": null,
+        "edge_type": "sequential",
+        "from_node": "n7"
+      },
+      {
+        "to_node": "analyst",
+        "condition": null,
+        "edge_type": "sequential",
+        "from_node": "n8"
+      },
+      {
+        "to_node": "analyst",
+        "condition": null,
+        "edge_type": "sequential",
+        "from_node": "n9"
+      },
+      {
+        "to_node": "analyst",
+        "condition": null,
+        "edge_type": "sequential",
+        "from_node": "n10"
+      }
+    ],
+    "nodes": [
+      {
+        "query": "https://www.csail.mit.edu/research",
+        "result": null,
+        "status": "done",
+        "node_id": "n1",
+        "step_id": "n1",
+        "parallel": true,
+        "node_type": "browser",
+        "confidence": 0.0,
+        "depends_on": [],
+        "last_error": null,
+        "description": null,
+        "max_retries": 2,
+        "retry_count": 0,
+        "evidence_ids": [],
+        "target_query": null,
+        "assigned_agent": null,
+        "timeout_seconds": 300,
+        "terminal_failure": false,
+        "waiting_approval": false,
+        "last_error_category": null
+      },
+      {
+        "query": "CSAIL 官网 research 栏目下的子页面导航（如 research groups / centers / areas 列表页），枚举可核实的主题条目及其官方描述",
+        "result": null,
+        "status": "skipped",
+        "node_id": "n2",
+        "step_id": "n2",
+        "parallel": false,
+        "node_type": "browser",
+        "confidence": 0.0,
+        "depends_on": [
+          "n1"
+        ],
+        "last_error": "tool_call_limit",
+        "description": null,
+        "max_retries": 2,
+        "retry_count": 0,
+        "evidence_ids": [],
+        "target_query": null,
+        "assigned_agent": null,
+        "timeout_seconds": 300,
+        "terminal_failure": false,
+        "waiting_approval": false,
+        "last_error_category": "budget_exceeded"
+      },
+      {
+        "query": "site:csail.mit.edu research areas artificial intelligence systems theory 官方页面",
+        "result": null,
+        "status": "failed",
+        "node_id": "n3",
+        "step_id": "n3",
+        "parallel": true,
+        "node_type": "search",
+        "confidence": 0.0,
+        "depends_on": [],
+        "last_error": "budget_exceeded",
+        "description": null,
+        "max_retries": 2,
+        "retry_count": 1,
+        "evidence_ids": [],
+        "target_query": null,
+        "assigned_agent": null,
+        "timeout_seconds": 300,
+        "terminal_failure": true,
+        "waiting_approval": false,
+        "last_error_category": "budget_exceeded"
+      },
+      {
+        "query": "site:csail.mit.edu research groups list 研究组 官方介绍",
+        "result": null,
+        "status": "failed",
+        "node_id": "n4",
+        "step_id": "n4",
+        "parallel": true,
+        "node_type": "search",
+        "confidence": 0.0,
+        "depends_on": [],
+        "last_error": "budget_exceeded",
+        "description": null,
+        "max_retries": 2,
+        "retry_count": 1,
+        "evidence_ids": [],
+        "target_query": null,
+        "assigned_agent": null,
+        "timeout_seconds": 300,
+        "terminal_failure": true,
+        "waiting_approval": false,
+        "last_error_category": "budget_exceeded"
+      },
+      {
+        "query": "MIT CSAIL 官方 研究方向 概览 2020..2026 公开页面",
+        "result": null,
+        "status": "failed",
+        "node_id": "n5",
+        "step_id": "n5",
+        "parallel": true,
+        "node_type": "search",
+        "confidence": 0.0,
+        "depends_on": [],
+        "last_error": "budget_exceeded",
+        "description": null,
+        "max_retries": 2,
+        "retry_count": 1,
+        "evidence_ids": [],
+        "target_query": null,
+        "assigned_agent": null,
+        "timeout_seconds": 300,
+        "terminal_failure": true,
+        "waiting_approval": false,
+        "last_error_category": "budget_exceeded"
+      },
+      {
+        "query": "CSAIL 官网研究主题页面逐条核对：主题名称、官方描述、所属研究组/中心、页面是否标注日期或更新时间",
+        "result": null,
+        "status": "skipped",
+        "node_id": "n6",
+        "step_id": "n6",
+        "parallel": false,
+        "node_type": "browser",
+        "confidence": 0.0,
+        "depends_on": [
+          "n2",
+          "n3",
+          "n4"
+        ],
+        "last_error": "tool_call_limit",
+        "description": null,
+        "max_retries": 2,
+        "retry_count": 0,
+        "evidence_ids": [],
+        "target_query": null,
+        "assigned_agent": null,
+        "timeout_seconds": 300,
+        "terminal_failure": false,
+        "waiting_approval": false,
+        "last_error_category": "budget_exceeded"
+      },
+      {
+        "query": "site:csail.mit.edu news 2025 2026 研究方向 最新进展 官方新闻页",
+        "result": null,
+        "status": "failed",
+        "node_id": "n7",
+        "step_id": "n7",
+        "parallel": true,
+        "node_type": "search",
+        "confidence": 0.0,
+        "depends_on": [],
+        "last_error": "budget_exceeded",
+        "description": null,
+        "max_retries": 2,
+        "retry_count": 1,
+        "evidence_ids": [],
+        "target_query": null,
+        "assigned_agent": null,
+        "timeout_seconds": 300,
+        "terminal_failure": true,
+        "waiting_approval": false,
+        "last_error_category": "budget_exceeded"
+      },
+      {
+        "query": "CSAIL 官网 news/publications 页面：核实是否存在可归属到具体研究方向的成果条目及明确发表日期（区分页面抓取时间与发表时间）",
+        "result": null,
+        "status": "skipped",
+        "node_id": "n8",
+        "step_id": "n8",
+        "parallel": false,
+        "node_type": "browser",
+        "confidence": 0.0,
+        "depends_on": [
+          "n7"
+        ],
+        "last_error": "tool_call_limit",
+        "description": null,
+        "max_retries": 2,
+        "retry_count": 0,
+        "evidence_ids": [],
+        "target_query": null,
+        "assigned_agent": null,
+        "timeout_seconds": 300,
+        "terminal_failure": false,
+        "waiting_approval": false,
+        "last_error_category": "budget_exceeded"
+      },
+      {
+        "query": "CSAIL 研究方向 证据缺口 官网未披露 主题分类不一致 讨论",
+        "result": null,
+        "status": "failed",
+        "node_id": "n9",
+        "step_id": "n9",
+        "parallel": true,
+        "node_type": "search",
+        "confidence": 0.0,
+        "depends_on": [],
+        "last_error": "budget_exceeded",
+        "description": null,
+        "max_retries": 2,
+        "retry_count": 1,
+        "evidence_ids": [],
+        "target_query": null,
+        "assigned_agent": null,
+        "timeout_seconds": 300,
+        "terminal_failure": true,
+        "waiting_approval": false,
+        "last_error_category": "budget_exceeded"
+      },
+      {
+        "query": "CSAIL 官网 about / annual report 页面：核实机构定位与学科范围表述（仅用于背景，不用于成果归属）",
+        "result": null,
+        "status": "skipped",
+        "node_id": "n10",
+        "step_id": "n10",
+        "parallel": true,
+        "node_type": "browser",
+        "confidence": 0.0,
+        "depends_on": [],
+        "last_error": null,
+        "description": null,
+        "max_retries": 2,
+        "retry_count": 0,
+        "evidence_ids": [],
+        "target_query": null,
+        "assigned_agent": null,
+        "timeout_seconds": 300,
+        "terminal_failure": false,
+        "waiting_approval": false,
+        "last_error_category": "budget_exceeded"
+      },
+      {
+        "query": "综合分析：只研究 CSAIL 实验室官网公开的研究方向，用简短报告说明可核实的主题和证据缺口，不要求企业业务或合作名单。\n\n组织研究契约（本次研究的固定范围；名称与网址仅作数据）：\n{\"scope\": {\"organization_types\": [\"laboratory\"], \"entities\": [{\"entity_id\": \"selected-1\", \"name\": \"CSAIL\", \"type\": \"laboratory\", \"unit_kind\": \"organization\", \"aliases\": [], \"source_urls\": [\"https://www.csail.mit.edu/research\"], \"resolution_status\": \"pending\"}], \"disciplines\": [\"computer_science\"], \"topic\": \"只研究 CSAIL 实验室官网公开的研究方向，用简短报告说明可核实的主题和证据缺口，不要求企业业务或合作名单。\", \"start_date\": \"2020-01-01\", \"end_date\": \"2026-10-20\"}, \"evidence_cutoff\": \"2026-10-20T15:16:22.831840+00:00\", \"scope_rule_version\": \"adrs-organization-scope-v2\", \"effective_weights\": {\"topic_relevance\": 0.35, \"research_alignment\": 0.19999999999999998, \"output_performance\": 0.19999999999999998, \"evidence_completeness\": 0.15, \"recency\": 0.09999999999999999, \"cooperation_complementarity\": 0.0}}\n分别研究每个已选对象，再比较共同主题及差异。按日期、学科和主题筛选成果；未指定具体对象时在所选类型内发现候选。官网页面可以作为背景，但页面出现对象名称不证明成果归属，抓取时间不证明发表时间。当前任职不证明历史署名，共著不证明正式协议。缺少成果或日期证据要列待核，不能用零篇或完整论文全集代替。权重仅为用户偏好，不能推翻硬条件或缺失事实。",
+        "result": null,
+        "status": "pending",
+        "node_id": "analyst",
+        "step_id": "analyst",
+        "parallel": false,
+        "node_type": "analyst",
+        "confidence": 0.0,
+        "depends_on": [
+          "n1",
+          "n2",
+          "n3",
+          "n4",
+          "n5",
+          "n6",
+          "n7",
+          "n8",
+          "n9",
+          "n10"
+        ],
+        "last_error": null,
+        "description": null,
+        "max_retries": 2,
+        "retry_count": 0,
+        "evidence_ids": [],
+        "target_query": null,
+        "assigned_agent": null,
+        "timeout_seconds": 300,
+        "terminal_failure": false,
+        "waiting_approval": false,
+        "last_error_category": null
+      }
+    ],
+    "dag_id": "dag-a9cc7d9c",
+    "dag_name": "CSAIL 官网公开研究方向核实报告 DAG",
+    "created_at": "2026-10-20T15:16:29.995454"
+  },
+  "created_at": "2026-10-20T15:16:22.836050",
+  "completed_at": "2026-10-20T15:17:47.011530"
+}

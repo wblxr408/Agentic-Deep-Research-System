@@ -1,0 +1,1670 @@
+{
+  "session_id": "4274693b-c86d-477d-8a70-9ab35180876d",
+  "budget": {
+    "warning": false,
+    "estimated": true,
+    "llm_usage": [
+      {
+        "agent": "analyst",
+        "model": "deepseek-chat",
+        "cost_usd": 0.0,
+        "estimated": true,
+        "total_tokens": 8599,
+        "prompt_tokens": 6758,
+        "completion_tokens": 1841
+      },
+      {
+        "agent": "reflection",
+        "model": "deepseek-chat",
+        "cost_usd": 0.0,
+        "estimated": true,
+        "total_tokens": 12625,
+        "prompt_tokens": 11914,
+        "completion_tokens": 711
+      },
+      {
+        "agent": "report",
+        "model": "deepseek-chat",
+        "cost_usd": 0.0,
+        "estimated": true,
+        "total_tokens": 12668,
+        "prompt_tokens": 11815,
+        "completion_tokens": 853
+      }
+    ],
+    "citation_max": 15,
+    "max_cost_usd": 0.5,
+    "used_cost_usd": 0.0,
+    "budget_profile": "medium",
+    "max_tool_calls": 12,
+    "rag_max_results": 8,
+    "used_tool_calls": 2,
+    "hard_stop_reason": null,
+    "max_total_tokens": 60000,
+    "report_max_tokens": 6000,
+    "used_total_tokens": 56646,
+    "search_max_queries": 4,
+    "search_max_results": 10,
+    "browser_max_results": 2,
+    "max_retries_per_tool": 2,
+    "max_wall_clock_seconds": 420,
+    "elapsed_wall_clock_seconds": 43
+  },
+  "review": {
+    "reason": "",
+    "allowed": true,
+    "blocked": false,
+    "confidence": 0.7,
+    "budget_state": {
+      "warning": false,
+      "estimated": true,
+      "llm_usage": [
+        {
+          "agent": "analyst",
+          "model": "deepseek-chat",
+          "cost_usd": 0.0,
+          "estimated": true,
+          "total_tokens": 8599,
+          "prompt_tokens": 6758,
+          "completion_tokens": 1841
+        },
+        {
+          "agent": "reflection",
+          "model": "deepseek-chat",
+          "cost_usd": 0.0,
+          "estimated": true,
+          "total_tokens": 12625,
+          "prompt_tokens": 11914,
+          "completion_tokens": 711
+        },
+        {
+          "agent": "report",
+          "model": "deepseek-chat",
+          "cost_usd": 0.0,
+          "estimated": true,
+          "total_tokens": 12668,
+          "prompt_tokens": 11815,
+          "completion_tokens": 853
+        }
+      ],
+      "citation_max": 15,
+      "max_cost_usd": 0.5,
+      "used_cost_usd": 0.0,
+      "budget_profile": "medium",
+      "max_tool_calls": 12,
+      "rag_max_results": 8,
+      "used_tool_calls": 2,
+      "hard_stop_reason": null,
+      "max_total_tokens": 60000,
+      "report_max_tokens": 6000,
+      "used_total_tokens": 56646,
+      "search_max_queries": 4,
+      "search_max_results": 10,
+      "browser_max_results": 2,
+      "max_retries_per_tool": 2,
+      "max_wall_clock_seconds": 420,
+      "elapsed_wall_clock_seconds": 43
+    },
+    "verification": {
+      "conflicts": [],
+      "total_claims": 26,
+      "needs_revision": true,
+      "revision_focus": "删除或标注待核以下三项：主论文卷号 21(7)、辛基铵 23% PCE 对比、具体缺陷类型（碘空位、一价阳离子空位、未配位 Pb²⁺）。其余题名、发表日期 July 10, 2026、Aleithan 的 KFU 署名、期刊类型、更正通知、PCE 25.11%、开路电压 1.23 V、80% RH 稳定性、1D/2D 维度工程等均有证据支持。样本仅 1 篇、2025 年未覆盖不补零、不推断趋势的限定表述正确，应保留。",
+      "confidence_kind": "model_estimate",
+      "verified_claims": 22,
+      "factuality_score": 0.5,
+      "citation_coverage": 0.85,
+      "consistency_score": 0.5,
+      "completeness_score": 0.5,
+      "overall_confidence": 0.78,
+      "hallucinated_claims": [
+        {
+          "claim": "期刊类型：PLOS ONE，卷 21(7)，e0351439，DOI 10.1371/journal.pone.0351439，为开放获取的综合性期刊论文（journal_article），非会议论文 [citation:1]。",
+          "reason": "卷号 21(7) 在所提供的证据摘录中并未出现。摘录只显示 citation_journal_title: PLOS ONE、DOI 和 e0351439；更正通知引用的是 21(8): e0356803，这是更正通知的卷期，不是主论文的卷期。因此，主论文的卷号 21(7) 属于没有证据支持的细节。",
+          "severity": "medium",
+          "suggested_fix": "删除“卷 21(7)”，或将其标注为待核；只保留有证据支持的 DOI、期刊名和文章编号 e0351439。"
+        },
+        {
+          "claim": "作者称其优于此前辛基铵钝化的 23% PCE [citation:1]。",
+          "reason": "所提供的证据摘录中没有出现“辛基铵”或“23% PCE”这一对比。摘录只说明双阳离子策略优于单阳离子和此前报道的二元体系，并未给出 23% 这一具体数值，也没有提到辛基铵。",
+          "severity": "medium",
+          "suggested_fix": "删除该具体对比，或将其标注为待核；只保留有证据支持的表述，即“优于单阳离子和此前报道的二元体系”。"
+        },
+        {
+          "claim": "问题：钙钛矿薄膜中浅能级与深能级缺陷（如碘空位、一价阳离子空位、未配位 Pb²⁺）造成非辐射复合，界面复合是载流子损失的主要机制 [citation:1]。",
+          "reason": "所提供的证据摘录只提到“defect passivation”和“suppress non-radiative recombination in both the bulk and surface regions”。碘空位、一价阳离子空位、未配位 Pb²⁺ 以及“界面复合是主要机制”这些具体内容，在所提供的证据摘录中都没有出现。",
+          "severity": "low",
+          "suggested_fix": "将这些具体缺陷类型标注为待核，或引用包含这些内容的正文段落；否则只保留有证据支持的概括性表述。"
+        }
+      ],
+      "human_review_status": "not_reviewed"
+    },
+    "evidence_count": 1,
+    "runtime_status": "completed",
+    "final_report_audit": {
+      "usage": [
+        {
+          "model": "deepseek-chat",
+          "purpose": "cross_language_retrieval",
+          "cost_usd": 0.0,
+          "estimated": true,
+          "total_tokens": 1375,
+          "prompt_tokens": 1045,
+          "completion_tokens": 330
+        }
+      ],
+      "claims": [
+        {
+          "text": "按本次所选研究模块组织；来源摘述和分析仍需阅读审核状态。",
+          "reason": "Awaiting source support judgement",
+          "status": "missing_citation",
+          "claim_id": "claim:1",
+          "excerpts": [
+            {
+              "end": 1400,
+              "quote": "citation_doi: 10.1371/journal.pone.0351439\ncitation_author: Refka Sai\ncitation_author_institution: Department of Physics and Astronomy, University of Carthage, Carthage, Tunisia\ncitation_author: Shrouq H. Aleithan\ncitation_author_institution: Department of Physics, College of Science, King Faisal University, Al-Ahsa, Saudi Arabia\ncitation_title: Enhancing perovskite solar cells efficiency via dual surface passivation\ncitation_journal_title: PLOS ONE\ncitation_date: Jul 10, 2026\n\nArticle\nAuthors\nMetrics\nComments\nMedia Coverage\nReader Comments\nFigures\nCorrection\n20 Aug 2026:\nSai R,\nAleithan SH\n(2026)\nCorrection: Enhancing perovskite solar cells efficiency via dual surface passivation.\nPLOS ONE  21(8): e0356803.\nhttps://doi.org/10.1371/journal.pone.0356803\nView correction\nFigures\nAbstract\nEffective defect passivation is essential for achieving high performance in perovskite solar cells (PSCs). Dimensional engineering provides a powerful strategy to suppress non-radiative recombination in both the bulk and surface regions of PSCs. In this work, we present a novel interfacial passivation approach for the perovskite/hole transport layer interface using a dual-cation passivation layer composed of guanidinium bromide (GuaBr) and n-phenylethylammonium bromide (n-PEABr). This dual-cation strategy delivers an open-circuit voltage of 1.23 V and a power conversion efficiency (PCE) of 25.11%,",
+              "start": 0,
+              "excerpt_id": "ev-3b962f41:0:1400",
+              "source_url": "https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0351439",
+              "citation_id": 1,
+              "evidence_id": "ev-3b962f41",
+              "source_title": "Enhancing perovskite solar cells efficiency via dual surface passivation | PLOS One"
+            },
+            {
+              "end": 2200,
+              "quote": "ctive defect passivation is essential for achieving high performance in perovskite solar cells (PSCs). Dimensional engineering provides a powerful strategy to suppress non-radiative recombination in both the bulk and surface regions of PSCs. In this work, we present a novel interfacial passivation approach for the perovskite/hole transport layer interface using a dual-cation passivation layer composed of guanidinium bromide (GuaBr) and n-phenylethylammonium bromide (n-PEABr). This dual-cation strategy delivers an open-circuit voltage of 1.23 V and a power conversion efficiency (PCE) of 25.11%, significantly outperforming devices based on single-cation passivation. The combined cations induce the formation of a mixed 1D/2D perovskite structure, resulting in a more uniform and hydrophobic surface compared with unpassivated films. Moreover, stability tests conducted under ambient conditions (80% relative humidity) and continuous light-soaking reveal markedly enhanced device stability. The results demonstrate the superior passivation effectiveness of phenylethylammonium compared with previously reported methods. In particular, this approach surpasses the 23% PCE achieved using octylammonium passivation, achieving efficiencies exceeding 25%. Overall, the excellent defect passivation and favorable optical and electrical properties of phenylethylammonium play a key role in significant",
+              "start": 800,
+              "excerpt_id": "ev-3b962f41:800:2200",
+              "source_url": "https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0351439",
+              "citation_id": 1,
+              "evidence_id": "ev-3b962f41",
+              "source_title": "Enhancing perovskite solar cells efficiency via dual surface passivation | PLOS One"
+            },
+            {
+              "end": 3000,
+              "quote": "rface compared with unpassivated films. Moreover, stability tests conducted under ambient conditions (80% relative humidity) and continuous light-soaking reveal markedly enhanced device stability. The results demonstrate the superior passivation effectiveness of phenylethylammonium compared with previously reported methods. In particular, this approach surpasses the 23% PCE achieved using octylammonium passivation, achieving efficiencies exceeding 25%. Overall, the excellent defect passivation and favorable optical and electrical properties of phenylethylammonium play a key role in significantly improving both the efficiency and stability of PSCs.\nCitation: Sai R, Aleithan SH (2026) Enhancing perovskite solar cells efficiency via dual surface passivation. PLoS One 21(7):\ne0351439.\nhttps://doi.org/10.1371/journal.pone.0351439\nEditor: Latha Marasamy, Universidad Autónoma de Querétaro: Universidad Autonoma de Queretaro, MEXICO\nReceived: July 5, 2025; Accepted: May 27, 2026; Published:  July 10, 2026\nCopyright:  © 2026 Sai, Aleithan. This is an open access article distributed under the terms of the Creative Commons Attribution License, which permits unrestricted use, distribution, and reproduction in any medium, provided the original author and source are credited.\nData Availability: Within the manuscript itself.\nFunding: The author(s) received no specific funding for this work.\nCo",
+              "start": 1600,
+              "excerpt_id": "ev-3b962f41:1600:3000",
+              "source_url": "https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0351439",
+              "citation_id": 1,
+              "evidence_id": "ev-3b962f41",
+              "source_title": "Enhancing perovskite solar cells efficiency via dual surface passivation | PLOS One"
+            }
+          ],
+          "citation_ids": [],
+          "model_verdict": null,
+          "source_checks": [],
+          "retrieval_query": "",
+          "model_confidence": null,
+          "human_review_status": "not_reviewed"
+        },
+        {
+          "text": "**来源摘述（待审核）**：本次仅读取一个出版页（PLOS ONE 种子页），已采纳样本为 1 篇期刊论文，对应 1 个研究族；该样本不代表 King Faisal University 在钙钛矿表面钝化方向的成果全集，也不能用于解释该校材料科学的投入或产出规模。 [citation:1]",
+          "reason": "Verification token/time budget exhausted",
+          "status": "not_checked",
+          "claim_id": "claim:2",
+          "excerpts": [
+            {
+              "end": 1400,
+              "quote": "citation_doi: 10.1371/journal.pone.0351439\ncitation_author: Refka Sai\ncitation_author_institution: Department of Physics and Astronomy, University of Carthage, Carthage, Tunisia\ncitation_author: Shrouq H. Aleithan\ncitation_author_institution: Department of Physics, College of Science, King Faisal University, Al-Ahsa, Saudi Arabia\ncitation_title: Enhancing perovskite solar cells efficiency via dual surface passivation\ncitation_journal_title: PLOS ONE\ncitation_date: Jul 10, 2026\n\nArticle\nAuthors\nMetrics\nComments\nMedia Coverage\nReader Comments\nFigures\nCorrection\n20 Aug 2026:\nSai R,\nAleithan SH\n(2026)\nCorrection: Enhancing perovskite solar cells efficiency via dual surface passivation.\nPLOS ONE  21(8): e0356803.\nhttps://doi.org/10.1371/journal.pone.0356803\nView correction\nFigures\nAbstract\nEffective defect passivation is essential for achieving high performance in perovskite solar cells (PSCs). Dimensional engineering provides a powerful strategy to suppress non-radiative recombination in both the bulk and surface regions of PSCs. In this work, we present a novel interfacial passivation approach for the perovskite/hole transport layer interface using a dual-cation passivation layer composed of guanidinium bromide (GuaBr) and n-phenylethylammonium bromide (n-PEABr). This dual-cation strategy delivers an open-circuit voltage of 1.23 V and a power conversion efficiency (PCE) of 25.11%,",
+              "start": 0,
+              "excerpt_id": "ev-3b962f41:0:1400",
+              "source_url": "https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0351439",
+              "citation_id": 1,
+              "evidence_id": "ev-3b962f41",
+              "source_title": "Enhancing perovskite solar cells efficiency via dual surface passivation | PLOS One"
+            },
+            {
+              "end": 52600,
+              "quote": "tion. High-resolution TEM imaging verified the presence of a uniform, continuous 1D/2D passivation coating predominantly originating from PEABr atop the 3D perovskite layer in the mixed-cation passivation sample. Furthermore, space-charge-limited current measurements indicated a threefold increased trap-dense limit voltage in the 1P-1G sample compared to the 2P-1G sample, suggesting fewer trapped states in the passivated cell. In conclusion, the enhanced photovoltaic effectiveness of the 2P-1G passivated cell can be credited to reduced recombination trap states and improved charge collection efficiency. Exploring alternative dual spacer cations for surface passivation holds promise for further enhancing cell performance and stability in future studies.\nAcknowledgments\nThis work was supported through the Annual Funding track by the Deanship of Scientific Research, Vice Presidency for Graduate Studies and Scientific Research, King Faisal University, Saudi Arabia [KFU262906].\nReferences\n1.\nLi F, Deng X, Qi F, Li Z, Liu D, Shen D. J Am Chem Soc. 2020;142:20134.\nView Article\nGoogle Scholar\n2.\nJeong MJ, Yeom KM, Kim SJ, Jung EH, Noh JH. Energy Environ Sci. Energy Environ Sci. 2021;14:2419.\nView Article\nGoogle Scholar\n3.\nWang P, Li R, Chen B, Hou F, Zhang J, Zhao Y. Adv Mater. 2020;32:1905766.\n4.\nJeon NJ, Na H, Jung EH, Yang T, Lee YG, Kim G. Nat Energy. 2018.\n5.\nN R E L. Best researc",
+              "start": 51200,
+              "excerpt_id": "ev-3b962f41:51200:52600",
+              "source_url": "https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0351439",
+              "citation_id": 1,
+              "evidence_id": "ev-3b962f41",
+              "source_title": "Enhancing perovskite solar cells efficiency via dual surface passivation | PLOS One"
+            },
+            {
+              "end": 63000,
+              "quote": "ar\n73.\nOsman MM, El-naggar AM, Alanazi AQ, Aldhafiri AM, Albassam AA. Development of Perovskite (MACl)0.33FA0.99MA0.01Pb(I0.99Br0.01)3 Solar Cells via n-Octylammonium Iodide Surface Passivation. Nanomaterials. 2023;13:1492.\nView Article\nGoogle Scholar\n74.\nJiang Q, Zhao Y, Zhang X, Yang X, Chen Y, Chu Z, et al. Nat Photonics. 2019;13:460.\nView Article\nGoogle Scholar\nDownload PDF\nCitation\nXML\nPrint\nShare\nReddit\nFacebook\nLinkedIn\nMendeley\nBluesky\nEmail\nRelated PLOS Articles\nhas CORRECTION\nCorrection: Enhancing perovskite solar cells efficiency via dual surface passivation\nView Page\nPDF\nAdvertisement\nSubject Areas\n?\nFor more information about PLOS Subject Areas, click\nhere.\nWe want your feedback. Do these Subject Areas make sense for this article? Click the target next to the incorrect Subject Area and let us know. Thanks for your help!\nCations\nIs the Subject Area \"Cations\" applicable to this article?\nYes\nNo\nThanks for your feedback.\nPhotovoltaic power\nIs the Subject Area \"Photovoltaic power\" applicable to this article?\nYes\nNo\nThanks for your feedback.\nBromides\nIs the Subject Area \"Bromides\" applicable to this article?\nYes\nNo\nThanks for your feedback.\nAlternative energy\nIs the Subject Area \"Alternative energy\" applicable to this article?\nYes\nNo\nThanks for your feedback.\nAtomic force microscopy\nIs the Subject Area \"Atomic force microscopy\" applicable to this article?\nYes\nNo\nThanks f",
+              "start": 61600,
+              "excerpt_id": "ev-3b962f41:61600:63000",
+              "source_url": "https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0351439",
+              "citation_id": 1,
+              "evidence_id": "ev-3b962f41",
+              "source_title": "Enhancing perovskite solar cells efficiency via dual surface passivation | PLOS One"
+            }
+          ],
+          "citation_ids": [
+            1
+          ],
+          "model_verdict": null,
+          "source_checks": [],
+          "retrieval_query": "PLOS ONE King Faisal University perovskite surface passivation single sample one research family seed page representativeness",
+          "model_confidence": null,
+          "human_review_status": "not_reviewed"
+        },
+        {
+          "text": "**来源摘述（待审核）**：主成果核对结果如下：完整题名为 Enhancing perovskite solar cells efficiency via dual surface passivation；页面载明 Received: July 5, 2025、Accepted: May 27, 2026、Published: July 10, 2026，与引文元数据 citation\\_date: Jul 10, 2026 一致，落在 2025\\-01\\-01 至 2026\\-10\\-21 区间内；期刊为 PLOS ONE（卷 21\\(7\\)，e0351439，DOI 10\\.1371/journal\\.pone\\.0351439），属开放获取综合性期刊论文而非会议论文。作者署名为 Sai R、Aleithan SH，引文元数据中 Shrouq H\\.",
+          "reason": "Awaiting source support judgement",
+          "status": "missing_citation",
+          "claim_id": "claim:3",
+          "excerpts": [
+            {
+              "end": 3000,
+              "quote": "rface compared with unpassivated films. Moreover, stability tests conducted under ambient conditions (80% relative humidity) and continuous light-soaking reveal markedly enhanced device stability. The results demonstrate the superior passivation effectiveness of phenylethylammonium compared with previously reported methods. In particular, this approach surpasses the 23% PCE achieved using octylammonium passivation, achieving efficiencies exceeding 25%. Overall, the excellent defect passivation and favorable optical and electrical properties of phenylethylammonium play a key role in significantly improving both the efficiency and stability of PSCs.\nCitation: Sai R, Aleithan SH (2026) Enhancing perovskite solar cells efficiency via dual surface passivation. PLoS One 21(7):\ne0351439.\nhttps://doi.org/10.1371/journal.pone.0351439\nEditor: Latha Marasamy, Universidad Autónoma de Querétaro: Universidad Autonoma de Queretaro, MEXICO\nReceived: July 5, 2025; Accepted: May 27, 2026; Published:  July 10, 2026\nCopyright:  © 2026 Sai, Aleithan. This is an open access article distributed under the terms of the Creative Commons Attribution License, which permits unrestricted use, distribution, and reproduction in any medium, provided the original author and source are credited.\nData Availability: Within the manuscript itself.\nFunding: The author(s) received no specific funding for this work.\nCo",
+              "start": 1600,
+              "excerpt_id": "ev-3b962f41:1600:3000",
+              "source_url": "https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0351439",
+              "citation_id": 1,
+              "evidence_id": "ev-3b962f41",
+              "source_title": "Enhancing perovskite solar cells efficiency via dual surface passivation | PLOS One"
+            },
+            {
+              "end": 1400,
+              "quote": "citation_doi: 10.1371/journal.pone.0351439\ncitation_author: Refka Sai\ncitation_author_institution: Department of Physics and Astronomy, University of Carthage, Carthage, Tunisia\ncitation_author: Shrouq H. Aleithan\ncitation_author_institution: Department of Physics, College of Science, King Faisal University, Al-Ahsa, Saudi Arabia\ncitation_title: Enhancing perovskite solar cells efficiency via dual surface passivation\ncitation_journal_title: PLOS ONE\ncitation_date: Jul 10, 2026\n\nArticle\nAuthors\nMetrics\nComments\nMedia Coverage\nReader Comments\nFigures\nCorrection\n20 Aug 2026:\nSai R,\nAleithan SH\n(2026)\nCorrection: Enhancing perovskite solar cells efficiency via dual surface passivation.\nPLOS ONE  21(8): e0356803.\nhttps://doi.org/10.1371/journal.pone.0356803\nView correction\nFigures\nAbstract\nEffective defect passivation is essential for achieving high performance in perovskite solar cells (PSCs). Dimensional engineering provides a powerful strategy to suppress non-radiative recombination in both the bulk and surface regions of PSCs. In this work, we present a novel interfacial passivation approach for the perovskite/hole transport layer interface using a dual-cation passivation layer composed of guanidinium bromide (GuaBr) and n-phenylethylammonium bromide (n-PEABr). This dual-cation strategy delivers an open-circuit voltage of 1.23 V and a power conversion efficiency (PCE) of 25.11%,",
+              "start": 0,
+              "excerpt_id": "ev-3b962f41:0:1400",
+              "source_url": "https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0351439",
+              "citation_id": 1,
+              "evidence_id": "ev-3b962f41",
+              "source_title": "Enhancing perovskite solar cells efficiency via dual surface passivation | PLOS One"
+            },
+            {
+              "end": 62200,
+              "quote": "e\nGoogle Scholar\n68.\nQiu J, Xia Y, Zheng Y, Hui W, Gu H, Yuan W. ACS Energy Lett. 2019;4:1513.\nView Article\nGoogle Scholar\n69.\nZhang Y, Chen J, Lian X, Qin M, Li J, Andersen TR. Small Methods. Small Methods. 2019;3:1.\nView Article\nGoogle Scholar\n70.\nNazarenko O, Kotyrba MR, Yakunin S, Aebli M, Rainò G, Benin BM. J Am Chem Soc. 2018;140:3850.\nView Article\nGoogle Scholar\n71.\nJiang Q, Zhao Y, Zhang X, Yang X, Chen Y, Chu Z, et al. Surface passivation of perovskite film for efficient solar cells. Nat Photonics. 2019;13(7):460–6.\nView Article\nGoogle Scholar\n72.\nMozaffari N, Duong T, Shehata MM, Bui AD, Pham HT, Yin Y. Above 23% efficiency by binary surface passivation of perovskite solar cells using guanidinium and octylammonium spacer cations. Sol RRL. 2022;6:2200355.\nView Article\nGoogle Scholar\n73.\nOsman MM, El-naggar AM, Alanazi AQ, Aldhafiri AM, Albassam AA. Development of Perovskite (MACl)0.33FA0.99MA0.01Pb(I0.99Br0.01)3 Solar Cells via n-Octylammonium Iodide Surface Passivation. Nanomaterials. 2023;13:1492.\nView Article\nGoogle Scholar\n74.\nJiang Q, Zhao Y, Zhang X, Yang X, Chen Y, Chu Z, et al. Nat Photonics. 2019;13:460.\nView Article\nGoogle Scholar\nDownload PDF\nCitation\nXML\nPrint\nShare\nReddit\nFacebook\nLinkedIn\nMendeley\nBluesky\nEmail\nRelated PLOS Articles\nhas CORRECTION\nCorrection: Enhancing perovskite solar cells efficiency via dual surface passivation\nView Page\nPDF\nAdvertisem",
+              "start": 60800,
+              "excerpt_id": "ev-3b962f41:60800:62200",
+              "source_url": "https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0351439",
+              "citation_id": 1,
+              "evidence_id": "ev-3b962f41",
+              "source_title": "Enhancing perovskite solar cells efficiency via dual surface passivation | PLOS One"
+            }
+          ],
+          "citation_ids": [],
+          "model_verdict": null,
+          "source_checks": [],
+          "retrieval_query": "",
+          "model_confidence": null,
+          "human_review_status": "not_reviewed"
+        },
+        {
+          "text": "Aleithan 的机构为 Department of Physics, College of Science, King Faisal University, Al\\-Ahsa, Saudi Arabia，这是发表时的署名信息，不是现任职证明。页面另列 2026\\-08\\-20 的更正通知（PLOS ONE 21\\(8\\): e0356803），仅作核对线索，不另计为论文。 [citation:1]",
+          "reason": "Verification token/time budget exhausted",
+          "status": "not_checked",
+          "claim_id": "claim:4",
+          "excerpts": [
+            {
+              "end": 1400,
+              "quote": "citation_doi: 10.1371/journal.pone.0351439\ncitation_author: Refka Sai\ncitation_author_institution: Department of Physics and Astronomy, University of Carthage, Carthage, Tunisia\ncitation_author: Shrouq H. Aleithan\ncitation_author_institution: Department of Physics, College of Science, King Faisal University, Al-Ahsa, Saudi Arabia\ncitation_title: Enhancing perovskite solar cells efficiency via dual surface passivation\ncitation_journal_title: PLOS ONE\ncitation_date: Jul 10, 2026\n\nArticle\nAuthors\nMetrics\nComments\nMedia Coverage\nReader Comments\nFigures\nCorrection\n20 Aug 2026:\nSai R,\nAleithan SH\n(2026)\nCorrection: Enhancing perovskite solar cells efficiency via dual surface passivation.\nPLOS ONE  21(8): e0356803.\nhttps://doi.org/10.1371/journal.pone.0356803\nView correction\nFigures\nAbstract\nEffective defect passivation is essential for achieving high performance in perovskite solar cells (PSCs). Dimensional engineering provides a powerful strategy to suppress non-radiative recombination in both the bulk and surface regions of PSCs. In this work, we present a novel interfacial passivation approach for the perovskite/hole transport layer interface using a dual-cation passivation layer composed of guanidinium bromide (GuaBr) and n-phenylethylammonium bromide (n-PEABr). This dual-cation strategy delivers an open-circuit voltage of 1.23 V and a power conversion efficiency (PCE) of 25.11%,",
+              "start": 0,
+              "excerpt_id": "ev-3b962f41:0:1400",
+              "source_url": "https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0351439",
+              "citation_id": 1,
+              "evidence_id": "ev-3b962f41",
+              "source_title": "Enhancing perovskite solar cells efficiency via dual surface passivation | PLOS One"
+            },
+            {
+              "end": 53400,
+              "quote": "ed through the Annual Funding track by the Deanship of Scientific Research, Vice Presidency for Graduate Studies and Scientific Research, King Faisal University, Saudi Arabia [KFU262906].\nReferences\n1.\nLi F, Deng X, Qi F, Li Z, Liu D, Shen D. J Am Chem Soc. 2020;142:20134.\nView Article\nGoogle Scholar\n2.\nJeong MJ, Yeom KM, Kim SJ, Jung EH, Noh JH. Energy Environ Sci. Energy Environ Sci. 2021;14:2419.\nView Article\nGoogle Scholar\n3.\nWang P, Li R, Chen B, Hou F, Zhang J, Zhao Y. Adv Mater. 2020;32:1905766.\n4.\nJeon NJ, Na H, Jung EH, Yang T, Lee YG, Kim G. Nat Energy. 2018.\n5.\nN R E L. Best research-cell efficiency chart. 2021. https://www.nrel.gov/pv/cell-efficiency.html\n6.\nKojima A, Teshima K, Shirai Y, Miyasaka T. J Am Chem Soc. 2009;131:6050.\nView Article\nGoogle Scholar\n7.\nZhu P, Chen C, Dai J, Zhang Y, Mao R, Chen S, et al. Toward the Commercialization of Perovskite Solar Modules. Adv Mater. 2024;36(15):e2307357.  pmid:38214179\nView Article\nPubMed/NCBI\nGoogle Scholar\n8.\nChauhan AK, Kumar P, Sharma SN. Perovskite solar cells: Past, present, and future. Photovoltaics Beyond Silicon. 2024. p. 113–63. https://doi.org/10.1016/B978-0-323-90188-8.00015-4\n9.\nCommercial perovskites imminent. PV Magazine. 2023. https://www.pv-magazine.com/2023/10/31/commercial-perovskites-imminent/\nView Article\nGoogle Scholar\n10.\nXia J, Liang C, Gu H, Mei S, Li S, Zhang N, et al. Surface passivation towa",
+              "start": 52000,
+              "excerpt_id": "ev-3b962f41:52000:53400",
+              "source_url": "https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0351439",
+              "citation_id": 1,
+              "evidence_id": "ev-3b962f41",
+              "source_title": "Enhancing perovskite solar cells efficiency via dual surface passivation | PLOS One"
+            },
+            {
+              "end": 3000,
+              "quote": "rface compared with unpassivated films. Moreover, stability tests conducted under ambient conditions (80% relative humidity) and continuous light-soaking reveal markedly enhanced device stability. The results demonstrate the superior passivation effectiveness of phenylethylammonium compared with previously reported methods. In particular, this approach surpasses the 23% PCE achieved using octylammonium passivation, achieving efficiencies exceeding 25%. Overall, the excellent defect passivation and favorable optical and electrical properties of phenylethylammonium play a key role in significantly improving both the efficiency and stability of PSCs.\nCitation: Sai R, Aleithan SH (2026) Enhancing perovskite solar cells efficiency via dual surface passivation. PLoS One 21(7):\ne0351439.\nhttps://doi.org/10.1371/journal.pone.0351439\nEditor: Latha Marasamy, Universidad Autónoma de Querétaro: Universidad Autonoma de Queretaro, MEXICO\nReceived: July 5, 2025; Accepted: May 27, 2026; Published:  July 10, 2026\nCopyright:  © 2026 Sai, Aleithan. This is an open access article distributed under the terms of the Creative Commons Attribution License, which permits unrestricted use, distribution, and reproduction in any medium, provided the original author and source are credited.\nData Availability: Within the manuscript itself.\nFunding: The author(s) received no specific funding for this work.\nCo",
+              "start": 1600,
+              "excerpt_id": "ev-3b962f41:1600:3000",
+              "source_url": "https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0351439",
+              "citation_id": 1,
+              "evidence_id": "ev-3b962f41",
+              "source_title": "Enhancing perovskite solar cells efficiency via dual surface passivation | PLOS One"
+            }
+          ],
+          "citation_ids": [
+            1
+          ],
+          "model_verdict": null,
+          "source_checks": [],
+          "retrieval_query": "Aleithan Department of Physics College of Science King Faisal University Al-Ahsa Saudi Arabia PLOS ONE correction 2026-08-20 21(8) e0356803",
+          "model_confidence": null,
+          "human_review_status": "not_reviewed"
+        },
+        {
+          "text": "**来源摘述（待审核）**：按材料学问题、方法、应用梳理：问题层面，摘要指出有效缺陷钝化对高性能钙钛矿太阳能电池至关重要，维度工程用于抑制体相与表面的非辐射复合；方法层面，在钙钛矿/空穴传输层界面引入由溴化胍（GuaBr）与 n\\-苯乙基溴化铵（n\\-PEABr）组成的双阳离子钝化层，诱导形成混合 1D/2D 钙钛矿结构，使表面更均匀、更疏水；应用层面，器件开路电压 1\\.23 V、PCE 25\\.11%，优于单阳离子钝化器件，并在 80% 相对湿度与连续光照下显示稳定性提升。多标签依据为：摘要明确“interfacial passivation approach for the perovskite/hole transport layer interface”支持钙钛矿表面钝化标签，“Dimensional engineering”与“mixed 1D/2D perovskite structure”支持维度工程标签，研究对象为 PSCs 并报告 PCE 与开路电压支持太阳能电池标签。 [citation:1]",
+          "reason": "Verification token/time budget exhausted",
+          "status": "not_checked",
+          "claim_id": "claim:5",
+          "excerpts": [
+            {
+              "end": 2200,
+              "quote": "ctive defect passivation is essential for achieving high performance in perovskite solar cells (PSCs). Dimensional engineering provides a powerful strategy to suppress non-radiative recombination in both the bulk and surface regions of PSCs. In this work, we present a novel interfacial passivation approach for the perovskite/hole transport layer interface using a dual-cation passivation layer composed of guanidinium bromide (GuaBr) and n-phenylethylammonium bromide (n-PEABr). This dual-cation strategy delivers an open-circuit voltage of 1.23 V and a power conversion efficiency (PCE) of 25.11%, significantly outperforming devices based on single-cation passivation. The combined cations induce the formation of a mixed 1D/2D perovskite structure, resulting in a more uniform and hydrophobic surface compared with unpassivated films. Moreover, stability tests conducted under ambient conditions (80% relative humidity) and continuous light-soaking reveal markedly enhanced device stability. The results demonstrate the superior passivation effectiveness of phenylethylammonium compared with previously reported methods. In particular, this approach surpasses the 23% PCE achieved using octylammonium passivation, achieving efficiencies exceeding 25%. Overall, the excellent defect passivation and favorable optical and electrical properties of phenylethylammonium play a key role in significant",
+              "start": 800,
+              "excerpt_id": "ev-3b962f41:800:2200",
+              "source_url": "https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0351439",
+              "citation_id": 1,
+              "evidence_id": "ev-3b962f41",
+              "source_title": "Enhancing perovskite solar cells efficiency via dual surface passivation | PLOS One"
+            },
+            {
+              "end": 23800,
+              "quote": "without preconditioning, including both forward and reverse scans, to capture potential hysteresis effects. The results (Fig 3b) revealed minimal hysteresis across all devices, indicating that the applied passivation strategies effectively suppressed interfacial trap states. Among the three passivation conditions, the 2P-1G configuration exhibited the least hysteresis, consistent with its higher Voc and Jsc. This behavior can be attributed to the synergistic action of PEABr and GuaBr: PEABr reduces non-radiative recombination and interfacial trap density through strong surface passivation, while GuaBr localizes at grain boundaries, mitigating ion migration. The reduced hysteresis observed in 2P-1G devices therefore confirms that dual-cation passivation not only enhances efficiency and stability but also significantly improves charge carrier dynamics by minimizing trap-mediated charge accumulation. The light-soaking stability of the devices was evaluated under continuous 1-sunlight illumination in an inert atmosphere (nitrogen gas), with the cells’ voltage fixed at the initial voltage at maximum power point (VMPP). As depicted in Fig 4a, the efficiencies at MPP remained stable after 1100 seconds for all conditions. Additionally, a shelf-life stability assessment testing was performed on different uncovered devices. exposed to ambient atmosphere with approximately 80% relative hu",
+              "start": 22400,
+              "excerpt_id": "ev-3b962f41:22400:23800",
+              "source_url": "https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0351439",
+              "citation_id": 1,
+              "evidence_id": "ev-3b962f41",
+              "source_title": "Enhancing perovskite solar cells efficiency via dual surface passivation | PLOS One"
+            },
+            {
+              "end": 60600,
+              "quote": "1.\nView Article\nGoogle Scholar\n60.\nPham ND, Tiong VT, Yao D, Martens W, Guerrero A, Bisquert J. Nano Energy. 2017;41:476.\nView Article\nGoogle Scholar\n61.\nTeale S, Degani M, Chen B, Sargent EH, Grancini G. Molecular cation and low-dimensional perovskite surface passivation in perovskite solar cells. Nat Energy. 2024;9(7):779–92.\nView Article\nGoogle Scholar\n62.\nJeong J, Chawanpunyawat T, Kim M, Sláma V, Lempesis N, Agosta L, et al. Carbazole Treated Waterproof Perovskite Films with Improved Solar Cell Performance. Advanced Energy Materials. 2024;15(2).\nView Article\nGoogle Scholar\n63.\nAlmalki M, Alotaibi MH, Alanazi AQ, Eickemeyer FT, Alenzi SM, Alzahrani YA. Interfacial Modulation through Mixed-Dimensional Heterostructures for Efficient and Hole Conductor-Free Perovskite Solar Cells. Advanced Functional Materials. 2024;34:2309789.\nView Article\nGoogle Scholar\n64.\nGan Y, Sun J, Guo P, Jiang H, Li J, Zhu H, et al. Advances in the research of carbon electrodes for perovskite solar cells. Dalton Trans. 2023;52(45):16558–77.  pmid:37831439\nView Article\nPubMed/NCBI\nGoogle Scholar\n65.\nKhadka DB, Shirai Y, Yanagida M, Ota H, Lyalin A, Taketsugu T, et al. Defect passivation in methylammonium/bromine free inverted perovskite solar cells using charge-modulated molecular bonding. Nat Commun. 2024;15(1):882.  pmid:38287031\nView Article\nPubMed/NCBI\nGoogle Scholar\n66.\nChen S, Shen N, Zhang L, Ko",
+              "start": 59200,
+              "excerpt_id": "ev-3b962f41:59200:60600",
+              "source_url": "https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0351439",
+              "citation_id": 1,
+              "evidence_id": "ev-3b962f41",
+              "source_title": "Enhancing perovskite solar cells efficiency via dual surface passivation | PLOS One"
+            }
+          ],
+          "citation_ids": [
+            1
+          ],
+          "model_verdict": null,
+          "source_checks": [],
+          "retrieval_query": "guanidinium bromide GuaBr n-phenethylammonium bromide n-PEABr dual-cation passivation layer mixed 1D/2D perovskite perovskite/hole transport layer interface open-circuit voltage 1.23 V PCE 25.11% 80% relative humidity continuous illumination",
+          "model_confidence": null,
+          "human_review_status": "not_reviewed"
+        },
+        {
+          "text": "**证据缺口**：归属与分类口径仍需保留：该页显示另一位作者 Refka Sai 的机构为 University of Carthage（突尼斯），因此本文是跨机构合作成果，不能据此推断 KFU 独立完成或存在正式机构协议；出版页未提供独立的学科分类字段，“材料科学”与“钙钛矿表面钝化”属请求口径下依据摘要文本的判定，而非已核实的分类元数据。 [citation:1]",
+          "reason": "Verification token/time budget exhausted",
+          "status": "not_checked",
+          "claim_id": "claim:6",
+          "excerpts": [
+            {
+              "end": 1400,
+              "quote": "citation_doi: 10.1371/journal.pone.0351439\ncitation_author: Refka Sai\ncitation_author_institution: Department of Physics and Astronomy, University of Carthage, Carthage, Tunisia\ncitation_author: Shrouq H. Aleithan\ncitation_author_institution: Department of Physics, College of Science, King Faisal University, Al-Ahsa, Saudi Arabia\ncitation_title: Enhancing perovskite solar cells efficiency via dual surface passivation\ncitation_journal_title: PLOS ONE\ncitation_date: Jul 10, 2026\n\nArticle\nAuthors\nMetrics\nComments\nMedia Coverage\nReader Comments\nFigures\nCorrection\n20 Aug 2026:\nSai R,\nAleithan SH\n(2026)\nCorrection: Enhancing perovskite solar cells efficiency via dual surface passivation.\nPLOS ONE  21(8): e0356803.\nhttps://doi.org/10.1371/journal.pone.0356803\nView correction\nFigures\nAbstract\nEffective defect passivation is essential for achieving high performance in perovskite solar cells (PSCs). Dimensional engineering provides a powerful strategy to suppress non-radiative recombination in both the bulk and surface regions of PSCs. In this work, we present a novel interfacial passivation approach for the perovskite/hole transport layer interface using a dual-cation passivation layer composed of guanidinium bromide (GuaBr) and n-phenylethylammonium bromide (n-PEABr). This dual-cation strategy delivers an open-circuit voltage of 1.23 V and a power conversion efficiency (PCE) of 25.11%,",
+              "start": 0,
+              "excerpt_id": "ev-3b962f41:0:1400",
+              "source_url": "https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0351439",
+              "citation_id": 1,
+              "evidence_id": "ev-3b962f41",
+              "source_title": "Enhancing perovskite solar cells efficiency via dual surface passivation | PLOS One"
+            },
+            {
+              "end": 3800,
+              "quote": "doi.org/10.1371/journal.pone.0351439\nEditor: Latha Marasamy, Universidad Autónoma de Querétaro: Universidad Autonoma de Queretaro, MEXICO\nReceived: July 5, 2025; Accepted: May 27, 2026; Published:  July 10, 2026\nCopyright:  © 2026 Sai, Aleithan. This is an open access article distributed under the terms of the Creative Commons Attribution License, which permits unrestricted use, distribution, and reproduction in any medium, provided the original author and source are credited.\nData Availability: Within the manuscript itself.\nFunding: The author(s) received no specific funding for this work.\nCompeting interests:  The authors have declared that no competing interests exist.\n1 Introduction\nPerovskite solar cells (PSCs), which combine organic and inorganic materials, have garnered significant interest due to their cost-effective production, ease of solution-based manufacturing, and impressive power conversion efficiency (PCE) [1–4].Currently, the power conversion efficiency (PCE) of PSCs has surged from an initial3.8% to an impressive 25.7% [5–10]. This remarkable improvement is largely due to the distinct characteristics of perovskite materials (ABX3, where A, B, and X can be monovalent cations like CH3NH3+ MA+,FA+,Cs+, divalent metal cations likePb2+ andSn2+, and halogen anions such as , , and ), which exhibit long carrier diffusion lengths and high optical absorption coefficient",
+              "start": 2400,
+              "excerpt_id": "ev-3b962f41:2400:3800",
+              "source_url": "https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0351439",
+              "citation_id": 1,
+              "evidence_id": "ev-3b962f41",
+              "source_title": "Enhancing perovskite solar cells efficiency via dual surface passivation | PLOS One"
+            },
+            {
+              "end": 15800,
+              "quote": " shows a slight increase as the ratio of Phenylethylammonium is raised. Specifically, the cell with the 1P-1G passivation layer exhibits a lower Jsc compared to the cell with the 1P-2G passivation layer. On the other hand, the cell with the 2P-1G passivation layer achieves the highest Jsc. This observed trend can be attributed to the significant impact of Phenylethylammonium passivation. Additionally, the higher Jsc and open-circuit voltage (Voc) in some cases might be due to reduced charge recombination, which suggests improved efficiency in charge carrier management.\nDownload:\nPNG\nlarger image\nTIFF\noriginal image\nFig 1.  PSC structure.\nhttps://doi.org/10.1371/journal.pone.0351439.g001\nDownload:\nPNG\nlarger image\nTIFF\noriginal image\nFig 2.  The introduction of PEABr, GuaBr, and their blend onto the surface.\nhttps://doi.org/10.1371/journal.pone.0351439.g002\nAmong the various compositions of cations with combined spacers, all showed comparable current-voltage (J-V) characteristics. However, the PSC with the 2P-1G passivation layer displayed superior stability over time. Therefore, this composition was selected as optimal for further characterization. The experimental procedure is shown in Fig 2. A sufficient number of devices were fabricated under each condition to ensure the reliability of the reported results. The device performance was evaluated based on multiple independent s",
+              "start": 14400,
+              "excerpt_id": "ev-3b962f41:14400:15800",
+              "source_url": "https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0351439",
+              "citation_id": 1,
+              "evidence_id": "ev-3b962f41",
+              "source_title": "Enhancing perovskite solar cells efficiency via dual surface passivation | PLOS One"
+            }
+          ],
+          "citation_ids": [
+            1
+          ],
+          "model_verdict": null,
+          "source_checks": [],
+          "retrieval_query": "Refka Sai University of Carthage Tunisia cross-institution collaboration King Faisal University perovskite passivation no independent discipline classification metadata",
+          "model_confidence": null,
+          "human_review_status": "not_reviewed"
+        },
+        {
+          "text": "**来源摘述（待审核）**：已得样本仅 1 篇，发表年份为 2026；2025 年虽有 Received 日期（2025\\-07\\-05），但那是投稿日期而非发表日期，不能据此把该成果计入 2025 年。2025 年在本样本中未被覆盖，不能补零，也不能推断增长或下降；单一年度单一样本不足以确立多年趋势。 [citation:1]",
+          "reason": "Verification token/time budget exhausted",
+          "status": "not_checked",
+          "claim_id": "claim:7",
+          "excerpts": [
+            {
+              "end": 3800,
+              "quote": "doi.org/10.1371/journal.pone.0351439\nEditor: Latha Marasamy, Universidad Autónoma de Querétaro: Universidad Autonoma de Queretaro, MEXICO\nReceived: July 5, 2025; Accepted: May 27, 2026; Published:  July 10, 2026\nCopyright:  © 2026 Sai, Aleithan. This is an open access article distributed under the terms of the Creative Commons Attribution License, which permits unrestricted use, distribution, and reproduction in any medium, provided the original author and source are credited.\nData Availability: Within the manuscript itself.\nFunding: The author(s) received no specific funding for this work.\nCompeting interests:  The authors have declared that no competing interests exist.\n1 Introduction\nPerovskite solar cells (PSCs), which combine organic and inorganic materials, have garnered significant interest due to their cost-effective production, ease of solution-based manufacturing, and impressive power conversion efficiency (PCE) [1–4].Currently, the power conversion efficiency (PCE) of PSCs has surged from an initial3.8% to an impressive 25.7% [5–10]. This remarkable improvement is largely due to the distinct characteristics of perovskite materials (ABX3, where A, B, and X can be monovalent cations like CH3NH3+ MA+,FA+,Cs+, divalent metal cations likePb2+ andSn2+, and halogen anions such as , , and ), which exhibit long carrier diffusion lengths and high optical absorption coefficient",
+              "start": 2400,
+              "excerpt_id": "ev-3b962f41:2400:3800",
+              "source_url": "https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0351439",
+              "citation_id": 1,
+              "evidence_id": "ev-3b962f41",
+              "source_title": "Enhancing perovskite solar cells efficiency via dual surface passivation | PLOS One"
+            },
+            {
+              "end": 9400,
+              "quote": "E) of 23.38% was achieved for a perovskite solar cell passivated with octylammonium bromide (OABr).Yet, the stability performance remains lacking, as no stability data were presented for the passivated devices. Furthermore, in place of extended alkylammonium cations, scientists have explored using compounds containing guanidinium  cations as the surface passivation layer between the transport layers and perovskite. In contrast to extended alkylammonium cations, guanidinium cations have been noted for their ability to partially infiltrate the perovskite bulk due to their smaller size, thereby providing bulk passivation. Chavan et al. [59] achieved a 20.07% efficiency employing GuaI for passivation at the perovskite/hole transport layer (HTL) interface. Similarly, GuaBr was employed as a surface passivation layer atop the perovskite in an alternate configuration, resulting in a certified open-circuit voltage  of 1.175 V. Additionally, guanidinium thiocyanate was utilized using it for passivation at the perovskite/HTL interface in a flat structure, leading to a power conversion efficiency (PCE) about of 16.37% [60–65]. Most studies focusing on dimensional engineering of perovskite solar cells (PSCs) have typically utilized a single spacer cation either for bulk or surface modification. However, a number of investigations have explored dimensional engineering by employing combinati",
+              "start": 8000,
+              "excerpt_id": "ev-3b962f41:8000:9400",
+              "source_url": "https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0351439",
+              "citation_id": 1,
+              "evidence_id": "ev-3b962f41",
+              "source_title": "Enhancing perovskite solar cells efficiency via dual surface passivation | PLOS One"
+            },
+            {
+              "end": 29400,
+              "quote": "the 2P-1G sample is more efficient, a detailed analysis of its properties was conducted. Initially, the morphology of surface of the samples was examined using scanning electron microscopy (SEM) (Fig 5a–5c). Upon application of the PEABr passivation layer on the perovskite absorber, a slight increase in grain size was observed, likely due to the Ostwald ripening process facilitated by the partial dissolution of perovskite crystals in an IPA solution containing bromide. [54,58] The grain size remained relatively unchanged in films with 1P-1G and 2P-1G configurations. Additionally, atomic force microscopy (AFM) analysis of surface roughness revealed the most even surface for the 2P-1G sample, with a root-mean-square (RMS) roughness of 7.47 nm, compared to 10.15 nm for 1P-1G, 10.87 nm for 1P-1G, and the reference film (Fig 5d-5f). A smoother perovskite layer surface can mitigate nonradiative recombination and facilitate improved charge extraction at the interface by enhancing contact with the transport layer. [53,65,66] At low magnification, cross-sectional bright-field transmission electron microscopy (BF-TEM) images revealed a thin passivation layer that was not prominently visible at the HTL/perovskite interface. However, high-resolution TEM clearly revealed a uniform, thin passivation layer at the interface, with measured lattice spacings of 7.018 Å and 3.789 Å, corresponding ",
+              "start": 28000,
+              "excerpt_id": "ev-3b962f41:28000:29400",
+              "source_url": "https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0351439",
+              "citation_id": 1,
+              "evidence_id": "ev-3b962f41",
+              "source_title": "Enhancing perovskite solar cells efficiency via dual surface passivation | PLOS One"
+            }
+          ],
+          "citation_ids": [
+            1
+          ],
+          "model_verdict": null,
+          "source_checks": [],
+          "retrieval_query": "publication year 2026 received date 2025-07-05 submission date not publication date single sample no 2025 coverage no trend",
+          "model_confidence": null,
+          "human_review_status": "not_reviewed"
+        },
+        {
+          "text": "**分析判断（待复核）**：可观测的“演进”仅限单篇内部的论证脉络：从缺陷与界面复合问题，到维度工程（1D/2D 混合结构），再到双阳离子界面钝化，最终体现为效率与稳定性提升。这属于论文内部的技术逻辑，不是机构层面的时间演进，也不能与覆盖变化混同。 [citation:1]",
+          "reason": "Verification token/time budget exhausted",
+          "status": "not_checked",
+          "claim_id": "claim:8",
+          "excerpts": [
+            {
+              "end": 7000,
+              "quote": "hanism for carrier loss [23]. Consequently, extensive research efforts have focused on passivating the interfaces among the perovskite absorber and charge transport layers (CTLs) [24–30].Passivation methods can be categorized into physical and chemical approaches. Material passivation involves spatially segregating issues related to minority charge carriers within the device, while chemical passivation aims to reduce the number of imperfection/ trap states [31]. Chemical passivation encompasses various techniques including manufacturing techniques [32], additive integration [33], constituents manipulation [34], dimensional adjustment [35], and interface modification [36]. Dimensional engineering, particularly, garners considerable attention due to its significant enhancement of power conversion efficiency (PCE). This method involves altering the conventional 3D ABX3 perovskite atomic lattice by introducing bulky organic cations that facilitate the formation of low-dimensional columnar (1D) or layered (2D) crystal structures. Consequently, a mixed 1D–3D [34,37,38] or 2D–3D [39–43] perovskite structure emerges, which has the capacity to bolster device efficiency and stability. 2D perovskites are further categorized as Ruddlesden–Popper (RP) [44], Dion–Jacobson (DJ) [45], and alternating cations in the interlayer space (ACI) forms [46]. The ACI form exhibits reduced binding energy",
+              "start": 5600,
+              "excerpt_id": "ev-3b962f41:5600:7000",
+              "source_url": "https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0351439",
+              "citation_id": 1,
+              "evidence_id": "ev-3b962f41",
+              "source_title": "Enhancing perovskite solar cells efficiency via dual surface passivation | PLOS One"
+            },
+            {
+              "end": 43000,
+              "quote": "tion material.\nThe enhanced photovoltaic performance of the dual-cation–passivated devices can be attributed to a synergistic reduction in both interfacial and bulk defect densities, which directly suppresses non-radiative recombination pathways. In particular, the increase in open-circuit voltage () from ∼1.21 V to 1.23 V for the 2P-1G device indicates improved quasi-Fermi level splitting due to effective passivation of trap states at the perovskite/HTL interface. Phenylethylammonium bromide (PEABr) primarily contributes to surface passivation by forming a low-dimensional (1D/2D) perovskite capping layer that reduces undercoordinated Pb2+ defects and acts as a physical barrier against charge recombination. In contrast, guanidinium bromide (GuaBr), owing to its smaller ionic size, partially penetrates the perovskite lattice and passivates grain boundaries through hydrogen bonding with halide ions, thereby reducing deep-level trap states. This complementary passivation mechanism leads to a significant decrease in Shockley–Read–Hall recombination, which is further supported by the prolonged carrier lifetime observed in time-resolved photoluminescence measurements (315 ns for 2P-1G).\nIn addition to  improvement, the increase in short-circuit current density () to 24.96 mA cm−2 is associated with enhanced charge collection efficiency and improved interfacial charge transport. The r",
+              "start": 41600,
+              "excerpt_id": "ev-3b962f41:41600:43000",
+              "source_url": "https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0351439",
+              "citation_id": 1,
+              "evidence_id": "ev-3b962f41",
+              "source_title": "Enhancing perovskite solar cells efficiency via dual surface passivation | PLOS One"
+            },
+            {
+              "end": 2200,
+              "quote": "ctive defect passivation is essential for achieving high performance in perovskite solar cells (PSCs). Dimensional engineering provides a powerful strategy to suppress non-radiative recombination in both the bulk and surface regions of PSCs. In this work, we present a novel interfacial passivation approach for the perovskite/hole transport layer interface using a dual-cation passivation layer composed of guanidinium bromide (GuaBr) and n-phenylethylammonium bromide (n-PEABr). This dual-cation strategy delivers an open-circuit voltage of 1.23 V and a power conversion efficiency (PCE) of 25.11%, significantly outperforming devices based on single-cation passivation. The combined cations induce the formation of a mixed 1D/2D perovskite structure, resulting in a more uniform and hydrophobic surface compared with unpassivated films. Moreover, stability tests conducted under ambient conditions (80% relative humidity) and continuous light-soaking reveal markedly enhanced device stability. The results demonstrate the superior passivation effectiveness of phenylethylammonium compared with previously reported methods. In particular, this approach surpasses the 23% PCE achieved using octylammonium passivation, achieving efficiencies exceeding 25%. Overall, the excellent defect passivation and favorable optical and electrical properties of phenylethylammonium play a key role in significant",
+              "start": 800,
+              "excerpt_id": "ev-3b962f41:800:2200",
+              "source_url": "https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0351439",
+              "citation_id": 1,
+              "evidence_id": "ev-3b962f41",
+              "source_title": "Enhancing perovskite solar cells efficiency via dual surface passivation | PLOS One"
+            }
+          ],
+          "citation_ids": [
+            1
+          ],
+          "model_verdict": null,
+          "source_checks": [],
+          "retrieval_query": "defect interface recombination dimensional engineering 1D/2D mixed structure dual-cation interfacial passivation efficiency stability improvement intra-paper technical logic",
+          "model_confidence": null,
+          "human_review_status": "not_reviewed"
+        },
+        {
+          "text": "**证据缺口**：待核缺口：KFU 在该主题下 2025–2026 的完整成果清单未知（仅种子页，未扩展来源）；更正通知的具体更正内容未读取，仅知存在；未取得全文，方法细节与数据可靠性未独立核验，摘要页不等于全文；学科与主题标签缺独立分类证据。 [citation:1]",
+          "reason": "Verification token/time budget exhausted",
+          "status": "not_checked",
+          "claim_id": "claim:9",
+          "excerpts": [
+            {
+              "end": 1400,
+              "quote": "citation_doi: 10.1371/journal.pone.0351439\ncitation_author: Refka Sai\ncitation_author_institution: Department of Physics and Astronomy, University of Carthage, Carthage, Tunisia\ncitation_author: Shrouq H. Aleithan\ncitation_author_institution: Department of Physics, College of Science, King Faisal University, Al-Ahsa, Saudi Arabia\ncitation_title: Enhancing perovskite solar cells efficiency via dual surface passivation\ncitation_journal_title: PLOS ONE\ncitation_date: Jul 10, 2026\n\nArticle\nAuthors\nMetrics\nComments\nMedia Coverage\nReader Comments\nFigures\nCorrection\n20 Aug 2026:\nSai R,\nAleithan SH\n(2026)\nCorrection: Enhancing perovskite solar cells efficiency via dual surface passivation.\nPLOS ONE  21(8): e0356803.\nhttps://doi.org/10.1371/journal.pone.0356803\nView correction\nFigures\nAbstract\nEffective defect passivation is essential for achieving high performance in perovskite solar cells (PSCs). Dimensional engineering provides a powerful strategy to suppress non-radiative recombination in both the bulk and surface regions of PSCs. In this work, we present a novel interfacial passivation approach for the perovskite/hole transport layer interface using a dual-cation passivation layer composed of guanidinium bromide (GuaBr) and n-phenylethylammonium bromide (n-PEABr). This dual-cation strategy delivers an open-circuit voltage of 1.23 V and a power conversion efficiency (PCE) of 25.11%,",
+              "start": 0,
+              "excerpt_id": "ev-3b962f41:0:1400",
+              "source_url": "https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0351439",
+              "citation_id": 1,
+              "evidence_id": "ev-3b962f41",
+              "source_title": "Enhancing perovskite solar cells efficiency via dual surface passivation | PLOS One"
+            },
+            {
+              "end": 3000,
+              "quote": "rface compared with unpassivated films. Moreover, stability tests conducted under ambient conditions (80% relative humidity) and continuous light-soaking reveal markedly enhanced device stability. The results demonstrate the superior passivation effectiveness of phenylethylammonium compared with previously reported methods. In particular, this approach surpasses the 23% PCE achieved using octylammonium passivation, achieving efficiencies exceeding 25%. Overall, the excellent defect passivation and favorable optical and electrical properties of phenylethylammonium play a key role in significantly improving both the efficiency and stability of PSCs.\nCitation: Sai R, Aleithan SH (2026) Enhancing perovskite solar cells efficiency via dual surface passivation. PLoS One 21(7):\ne0351439.\nhttps://doi.org/10.1371/journal.pone.0351439\nEditor: Latha Marasamy, Universidad Autónoma de Querétaro: Universidad Autonoma de Queretaro, MEXICO\nReceived: July 5, 2025; Accepted: May 27, 2026; Published:  July 10, 2026\nCopyright:  © 2026 Sai, Aleithan. This is an open access article distributed under the terms of the Creative Commons Attribution License, which permits unrestricted use, distribution, and reproduction in any medium, provided the original author and source are credited.\nData Availability: Within the manuscript itself.\nFunding: The author(s) received no specific funding for this work.\nCo",
+              "start": 1600,
+              "excerpt_id": "ev-3b962f41:1600:3000",
+              "source_url": "https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0351439",
+              "citation_id": 1,
+              "evidence_id": "ev-3b962f41",
+              "source_title": "Enhancing perovskite solar cells efficiency via dual surface passivation | PLOS One"
+            },
+            {
+              "end": 23800,
+              "quote": "without preconditioning, including both forward and reverse scans, to capture potential hysteresis effects. The results (Fig 3b) revealed minimal hysteresis across all devices, indicating that the applied passivation strategies effectively suppressed interfacial trap states. Among the three passivation conditions, the 2P-1G configuration exhibited the least hysteresis, consistent with its higher Voc and Jsc. This behavior can be attributed to the synergistic action of PEABr and GuaBr: PEABr reduces non-radiative recombination and interfacial trap density through strong surface passivation, while GuaBr localizes at grain boundaries, mitigating ion migration. The reduced hysteresis observed in 2P-1G devices therefore confirms that dual-cation passivation not only enhances efficiency and stability but also significantly improves charge carrier dynamics by minimizing trap-mediated charge accumulation. The light-soaking stability of the devices was evaluated under continuous 1-sunlight illumination in an inert atmosphere (nitrogen gas), with the cells’ voltage fixed at the initial voltage at maximum power point (VMPP). As depicted in Fig 4a, the efficiencies at MPP remained stable after 1100 seconds for all conditions. Additionally, a shelf-life stability assessment testing was performed on different uncovered devices. exposed to ambient atmosphere with approximately 80% relative hu",
+              "start": 22400,
+              "excerpt_id": "ev-3b962f41:22400:23800",
+              "source_url": "https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0351439",
+              "citation_id": 1,
+              "evidence_id": "ev-3b962f41",
+              "source_title": "Enhancing perovskite solar cells efficiency via dual surface passivation | PLOS One"
+            }
+          ],
+          "citation_ids": [
+            1
+          ],
+          "model_verdict": null,
+          "source_checks": [],
+          "retrieval_query": "King Faisal University perovskite passivation 2025-2026 complete publication list unknown seed page only correction notice content unread full text unavailable abstract page not full text",
+          "model_confidence": null,
+          "human_review_status": "not_reviewed"
+        }
+      ],
+      "errors": [],
+      "needs_review": true,
+      "total_claims": 9,
+      "checked_claims": 2,
+      "schema_version": "1",
+      "module_contract": {
+        "issues": [],
+        "modules": [
+          {
+            "label": "研究全景",
+            "status": "draft_requires_review",
+            "module_id": "landscape",
+            "paragraphs": [
+              {
+                "kind": "observation",
+                "text": "本次仅读取一个出版页（PLOS ONE 种子页），已采纳样本为 1 篇期刊论文，对应 1 个研究族；该样本不代表 King Faisal University 在钙钛矿表面钝化方向的成果全集，也不能用于解释该校材料科学的投入或产出规模。",
+                "citations": [
+                  1
+                ]
+              },
+              {
+                "kind": "observation",
+                "text": "主成果核对结果如下：完整题名为 Enhancing perovskite solar cells efficiency via dual surface passivation；页面载明 Received: July 5, 2025、Accepted: May 27, 2026、Published: July 10, 2026，与引文元数据 citation_date: Jul 10, 2026 一致，落在 2025-01-01 至 2026-10-21 区间内；期刊为 PLOS ONE（卷 21(7)，e0351439，DOI 10.1371/journal.pone.0351439），属开放获取综合性期刊论文而非会议论文。作者署名为 Sai R、Aleithan SH，引文元数据中 Shrouq H. Aleithan 的机构为 Department of Physics, College of Science, King Faisal University, Al-Ahsa, Saudi Arabia，这是发表时的署名信息，不是现任职证明。页面另列 2026-08-20 的更正通知（PLOS ONE 21(8): e0356803），仅作核对线索，不另计为论文。",
+                "citations": [
+                  1
+                ]
+              },
+              {
+                "kind": "observation",
+                "text": "按材料学问题、方法、应用梳理：问题层面，摘要指出有效缺陷钝化对高性能钙钛矿太阳能电池至关重要，维度工程用于抑制体相与表面的非辐射复合；方法层面，在钙钛矿/空穴传输层界面引入由溴化胍（GuaBr）与 n-苯乙基溴化铵（n-PEABr）组成的双阳离子钝化层，诱导形成混合 1D/2D 钙钛矿结构，使表面更均匀、更疏水；应用层面，器件开路电压 1.23 V、PCE 25.11%，优于单阳离子钝化器件，并在 80% 相对湿度与连续光照下显示稳定性提升。多标签依据为：摘要明确“interfacial passivation approach for the perovskite/hole transport layer interface”支持钙钛矿表面钝化标签，“Dimensional engineering”与“mixed 1D/2D perovskite structure”支持维度工程标签，研究对象为 PSCs 并报告 PCE 与开路电压支持太阳能电池标签。",
+                "citations": [
+                  1
+                ]
+              },
+              {
+                "kind": "gap",
+                "text": "归属与分类口径仍需保留：该页显示另一位作者 Refka Sai 的机构为 University of Carthage（突尼斯），因此本文是跨机构合作成果，不能据此推断 KFU 独立完成或存在正式机构协议；出版页未提供独立的学科分类字段，“材料科学”与“钙钛矿表面钝化”属请求口径下依据摘要文本的判定，而非已核实的分类元数据。",
+                "citations": [
+                  1
+                ]
+              }
+            ]
+          },
+          {
+            "label": "研究演进",
+            "status": "draft_requires_review",
+            "module_id": "evolution",
+            "paragraphs": [
+              {
+                "kind": "observation",
+                "text": "已得样本仅 1 篇，发表年份为 2026；2025 年虽有 Received 日期（2025-07-05），但那是投稿日期而非发表日期，不能据此把该成果计入 2025 年。2025 年在本样本中未被覆盖，不能补零，也不能推断增长或下降；单一年度单一样本不足以确立多年趋势。",
+                "citations": [
+                  1
+                ]
+              },
+              {
+                "kind": "interpretation",
+                "text": "可观测的“演进”仅限单篇内部的论证脉络：从缺陷与界面复合问题，到维度工程（1D/2D 混合结构），再到双阳离子界面钝化，最终体现为效率与稳定性提升。这属于论文内部的技术逻辑，不是机构层面的时间演进，也不能与覆盖变化混同。",
+                "citations": [
+                  1
+                ]
+              },
+              {
+                "kind": "gap",
+                "text": "待核缺口：KFU 在该主题下 2025–2026 的完整成果清单未知（仅种子页，未扩展来源）；更正通知的具体更正内容未读取，仅知存在；未取得全文，方法细节与数据可靠性未独立核验，摘要页不等于全文；学科与主题标签缺独立分类证据。",
+                "citations": [
+                  1
+                ]
+              }
+            ]
+          }
+        ],
+        "purpose": "research_development",
+        "validation": "selected_ids_and_source_numbers_only",
+        "rule_version": "adrs-analysis-modules-v1",
+        "not_requested": [
+          "relationships",
+          "deep_dive",
+          "validation",
+          "actions"
+        ],
+        "rejected_paragraphs": [],
+        "independent_semantic_review": false
+      },
+      "supported_claims": 0,
+      "verification_kind": "model_judgement_with_selected_passage_or_source_quote_check",
+      "human_review_status": "not_reviewed",
+      "source_support_rate": 0.0,
+      "structured_appendix": {
+        "validation": "deterministic_counts_and_literal_source_offsets",
+        "independent_semantic_review": false
+      },
+      "citation_presence_rate": 0.7777777777777778
+    },
+    "tool_audit_summary": {
+      "error_calls": 0,
+      "total_calls": 2,
+      "persisted_calls": 2
+    },
+    "pending_approval_count": 0,
+    "classification_versions": [
+      {
+        "annual": [
+          {
+            "year": 2026,
+            "label_counts": {
+              "dual-cation": 1,
+              "materials_science:solar-cells": 1,
+              "materials_science:material-stability": 1,
+              "materials_science:conversion-efficiency": 1,
+              "materials_science:interface-passivation": 1,
+              "materials_science:dimensional-engineering": 1
+            },
+            "unknown_by_axis": {
+              "method": 0,
+              "problem": 0,
+              "application": 0
+            },
+            "publication_count": 1,
+            "unknown_publication_count": 0
+          }
+        ],
+        "reason": "增加界面方法层次与双阳离子交叉标签；表面钝化改为关联方向",
+        "effects": {
+          "model_calls": 0,
+          "network_requests": 0,
+          "original_report_modified": false
+        },
+        "records": [
+          {
+            "axes": {
+              "method": "mapped",
+              "problem": "mapped",
+              "application": "mapped"
+            },
+            "year": 2026,
+            "title": "Enhancing perovskite solar cells efficiency via dual surface passivation",
+            "labels": [
+              {
+                "axis": "problem",
+                "role": "core",
+                "basis": {
+                  "end": 391,
+                  "field": "primary_title",
+                  "quote": "efficiency",
+                  "start": 381,
+                  "source_url": "https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0351439",
+                  "evidence_id": "ev-3b962f41"
+                },
+                "label": "能量转换效率",
+                "node_id": "materials_science:conversion-efficiency",
+                "ancestors": [
+                  "materials_science:materials-performance"
+                ],
+                "discipline": "materials_science"
+              },
+              {
+                "axis": "problem",
+                "role": "core",
+                "basis": {
+                  "end": 1659,
+                  "field": "publisher_abstract",
+                  "quote": "stability",
+                  "start": 1650,
+                  "source_url": "https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0351439",
+                  "evidence_id": "ev-3b962f41"
+                },
+                "label": "材料稳定性",
+                "node_id": "materials_science:material-stability",
+                "ancestors": [
+                  "materials_science:materials-performance"
+                ],
+                "discipline": "materials_science"
+              },
+              {
+                "axis": "method",
+                "role": "associated",
+                "basis": {
+                  "end": 420,
+                  "field": "primary_title",
+                  "quote": "surface passivation",
+                  "start": 401,
+                  "source_url": "https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0351439",
+                  "evidence_id": "ev-3b962f41"
+                },
+                "label": "界面／表面钝化",
+                "node_id": "materials_science:interface-passivation",
+                "ancestors": [
+                  "materials-methods"
+                ],
+                "discipline": "materials_science"
+              },
+              {
+                "axis": "method",
+                "role": "associated",
+                "basis": {
+                  "end": 926,
+                  "field": "publisher_abstract",
+                  "quote": "Dimensional engineering",
+                  "start": 903,
+                  "source_url": "https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0351439",
+                  "evidence_id": "ev-3b962f41"
+                },
+                "label": "维度工程",
+                "node_id": "materials_science:dimensional-engineering",
+                "ancestors": [
+                  "materials-methods"
+                ],
+                "discipline": "materials_science"
+              },
+              {
+                "axis": "application",
+                "role": "core",
+                "basis": {
+                  "end": 380,
+                  "field": "primary_title",
+                  "quote": "solar cells",
+                  "start": 369,
+                  "source_url": "https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0351439",
+                  "evidence_id": "ev-3b962f41"
+                },
+                "label": "太阳能电池",
+                "node_id": "materials_science:solar-cells",
+                "ancestors": [],
+                "discipline": "materials_science"
+              },
+              {
+                "axis": "method",
+                "role": "core",
+                "basis": {
+                  "end": 1177,
+                  "field": "publisher_abstract",
+                  "quote": "dual-cation",
+                  "start": 1166,
+                  "source_url": "https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0351439",
+                  "evidence_id": "ev-3b962f41"
+                },
+                "label": "双阳离子策略",
+                "node_id": "dual-cation",
+                "ancestors": [
+                  "materials-methods"
+                ],
+                "discipline": "materials science"
+              }
+            ],
+            "status": "source_field_rule_mapping_requires_review",
+            "output_id": "kfu-plosone-e0351439",
+            "evidence_ids": [
+              "ev-3b962f41"
+            ],
+            "unknown_reason": null
+          }
+        ],
+        "coverage": "accepted_publications_in_retained_sample_only",
+        "taxonomy": {
+          "nodes": [
+            {
+              "axis": "problem",
+              "role": "core",
+              "label": "材料性能",
+              "terms": [],
+              "node_id": "materials_science:materials-performance",
+              "parent_id": null,
+              "discipline": "materials_science"
+            },
+            {
+              "axis": "problem",
+              "role": "core",
+              "label": "能量转换效率",
+              "terms": [
+                "efficiency",
+                "效率"
+              ],
+              "node_id": "materials_science:conversion-efficiency",
+              "parent_id": "materials_science:materials-performance",
+              "discipline": "materials_science"
+            },
+            {
+              "axis": "problem",
+              "role": "core",
+              "label": "材料稳定性",
+              "terms": [
+                "stability",
+                "稳定性"
+              ],
+              "node_id": "materials_science:material-stability",
+              "parent_id": "materials_science:materials-performance",
+              "discipline": "materials_science"
+            },
+            {
+              "axis": "method",
+              "role": "associated",
+              "label": "界面／表面钝化",
+              "terms": [
+                "surface passivation",
+                "interfacial passivation",
+                "表面钝化"
+              ],
+              "node_id": "materials_science:interface-passivation",
+              "parent_id": "materials-methods",
+              "discipline": "materials_science"
+            },
+            {
+              "axis": "method",
+              "role": "associated",
+              "label": "维度工程",
+              "terms": [
+                "dimensional engineering",
+                "维度工程"
+              ],
+              "node_id": "materials_science:dimensional-engineering",
+              "parent_id": "materials-methods",
+              "discipline": "materials_science"
+            },
+            {
+              "axis": "application",
+              "role": "core",
+              "label": "太阳能电池",
+              "terms": [
+                "solar cells",
+                "solar cell",
+                "太阳能电池"
+              ],
+              "node_id": "materials_science:solar-cells",
+              "parent_id": null,
+              "discipline": "materials_science"
+            },
+            {
+              "axis": "application",
+              "role": "associated",
+              "label": "储能",
+              "terms": [
+                "batteries",
+                "battery",
+                "储能"
+              ],
+              "node_id": "materials_science:energy-storage",
+              "parent_id": null,
+              "discipline": "materials_science"
+            },
+            {
+              "axis": "method",
+              "role": "core",
+              "label": "材料界面方法",
+              "terms": [],
+              "node_id": "materials-methods",
+              "parent_id": null,
+              "discipline": "materials science"
+            },
+            {
+              "axis": "method",
+              "role": "core",
+              "label": "双阳离子策略",
+              "terms": [
+                "dual-cation"
+              ],
+              "node_id": "dual-cation",
+              "parent_id": "materials-methods",
+              "discipline": "materials science"
+            }
+          ],
+          "request": {
+            "nodes": [
+              {
+                "axis": "problem",
+                "role": "core",
+                "label": "材料性能",
+                "terms": [],
+                "node_id": "materials_science:materials-performance",
+                "parent_id": null,
+                "discipline": "materials_science"
+              },
+              {
+                "axis": "problem",
+                "role": "core",
+                "label": "能量转换效率",
+                "terms": [
+                  "efficiency",
+                  "效率"
+                ],
+                "node_id": "materials_science:conversion-efficiency",
+                "parent_id": "materials_science:materials-performance",
+                "discipline": "materials_science"
+              },
+              {
+                "axis": "problem",
+                "role": "core",
+                "label": "材料稳定性",
+                "terms": [
+                  "stability",
+                  "稳定性"
+                ],
+                "node_id": "materials_science:material-stability",
+                "parent_id": "materials_science:materials-performance",
+                "discipline": "materials_science"
+              },
+              {
+                "axis": "method",
+                "role": "associated",
+                "label": "界面／表面钝化",
+                "terms": [
+                  "surface passivation",
+                  "interfacial passivation",
+                  "表面钝化"
+                ],
+                "node_id": "materials_science:interface-passivation",
+                "parent_id": "materials-methods",
+                "discipline": "materials_science"
+              },
+              {
+                "axis": "method",
+                "role": "associated",
+                "label": "维度工程",
+                "terms": [
+                  "dimensional engineering",
+                  "维度工程"
+                ],
+                "node_id": "materials_science:dimensional-engineering",
+                "parent_id": "materials-methods",
+                "discipline": "materials_science"
+              },
+              {
+                "axis": "application",
+                "role": "core",
+                "label": "太阳能电池",
+                "terms": [
+                  "solar cells",
+                  "solar cell",
+                  "太阳能电池"
+                ],
+                "node_id": "materials_science:solar-cells",
+                "parent_id": null,
+                "discipline": "materials_science"
+              },
+              {
+                "axis": "application",
+                "role": "associated",
+                "label": "储能",
+                "terms": [
+                  "batteries",
+                  "battery",
+                  "储能"
+                ],
+                "node_id": "materials_science:energy-storage",
+                "parent_id": null,
+                "discipline": "materials_science"
+              },
+              {
+                "axis": "method",
+                "role": "core",
+                "label": "材料界面方法",
+                "terms": [],
+                "node_id": "materials-methods",
+                "parent_id": null,
+                "discipline": "materials science"
+              },
+              {
+                "axis": "method",
+                "role": "core",
+                "label": "双阳离子策略",
+                "terms": [
+                  "dual-cation"
+                ],
+                "node_id": "dual-cation",
+                "parent_id": "materials-methods",
+                "discipline": "materials science"
+              }
+            ],
+            "preset": "custom",
+            "version": "materials-e2e-v2"
+          },
+          "version": "materials-e2e-v2",
+          "semantics": "按主成果题名及出版商明确标记的摘要作可编辑词面映射；旧材料未保留摘要标记时只用题名。不是官方标签、全文机制核验或主题硬筛选。",
+          "disciplines": [
+            "materials science"
+          ],
+          "match_scope": "source_supported_primary_title_and_marked_publisher_abstract",
+          "rule_version": "adrs-disciplinary-mapping-v1",
+          "preset_edition": "adrs-topic-presets-2026-10-21"
+        },
+        "comparison": {
+          "kind": "reclassification_only",
+          "changes": [
+            {
+              "after": [
+                {
+                  "axis": "problem",
+                  "role": "core",
+                  "basis": {
+                    "end": 391,
+                    "field": "primary_title",
+                    "quote": "efficiency",
+                    "start": 381,
+                    "source_url": "https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0351439",
+                    "evidence_id": "ev-3b962f41"
+                  },
+                  "label": "能量转换效率",
+                  "node_id": "materials_science:conversion-efficiency",
+                  "ancestors": [
+                    "materials_science:materials-performance"
+                  ],
+                  "discipline": "materials_science"
+                },
+                {
+                  "axis": "problem",
+                  "role": "core",
+                  "basis": {
+                    "end": 1659,
+                    "field": "publisher_abstract",
+                    "quote": "stability",
+                    "start": 1650,
+                    "source_url": "https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0351439",
+                    "evidence_id": "ev-3b962f41"
+                  },
+                  "label": "材料稳定性",
+                  "node_id": "materials_science:material-stability",
+                  "ancestors": [
+                    "materials_science:materials-performance"
+                  ],
+                  "discipline": "materials_science"
+                },
+                {
+                  "axis": "method",
+                  "role": "associated",
+                  "basis": {
+                    "end": 420,
+                    "field": "primary_title",
+                    "quote": "surface passivation",
+                    "start": 401,
+                    "source_url": "https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0351439",
+                    "evidence_id": "ev-3b962f41"
+                  },
+                  "label": "界面／表面钝化",
+                  "node_id": "materials_science:interface-passivation",
+                  "ancestors": [
+                    "materials-methods"
+                  ],
+                  "discipline": "materials_science"
+                },
+                {
+                  "axis": "method",
+                  "role": "associated",
+                  "basis": {
+                    "end": 926,
+                    "field": "publisher_abstract",
+                    "quote": "Dimensional engineering",
+                    "start": 903,
+                    "source_url": "https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0351439",
+                    "evidence_id": "ev-3b962f41"
+                  },
+                  "label": "维度工程",
+                  "node_id": "materials_science:dimensional-engineering",
+                  "ancestors": [
+                    "materials-methods"
+                  ],
+                  "discipline": "materials_science"
+                },
+                {
+                  "axis": "application",
+                  "role": "core",
+                  "basis": {
+                    "end": 380,
+                    "field": "primary_title",
+                    "quote": "solar cells",
+                    "start": 369,
+                    "source_url": "https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0351439",
+                    "evidence_id": "ev-3b962f41"
+                  },
+                  "label": "太阳能电池",
+                  "node_id": "materials_science:solar-cells",
+                  "ancestors": [],
+                  "discipline": "materials_science"
+                },
+                {
+                  "axis": "method",
+                  "role": "core",
+                  "basis": {
+                    "end": 1177,
+                    "field": "publisher_abstract",
+                    "quote": "dual-cation",
+                    "start": 1166,
+                    "source_url": "https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0351439",
+                    "evidence_id": "ev-3b962f41"
+                  },
+                  "label": "双阳离子策略",
+                  "node_id": "dual-cation",
+                  "ancestors": [
+                    "materials-methods"
+                  ],
+                  "discipline": "materials science"
+                }
+              ],
+              "before": [
+                {
+                  "axis": "problem",
+                  "role": "core",
+                  "basis": {
+                    "end": 391,
+                    "field": "primary_title",
+                    "quote": "efficiency",
+                    "start": 381,
+                    "source_url": "https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0351439",
+                    "evidence_id": "ev-3b962f41"
+                  },
+                  "label": "能量转换效率",
+                  "node_id": "materials_science:conversion-efficiency",
+                  "ancestors": [
+                    "materials_science:materials-performance"
+                  ],
+                  "discipline": "materials_science"
+                },
+                {
+                  "axis": "problem",
+                  "role": "core",
+                  "basis": {
+                    "end": 1659,
+                    "field": "publisher_abstract",
+                    "quote": "stability",
+                    "start": 1650,
+                    "source_url": "https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0351439",
+                    "evidence_id": "ev-3b962f41"
+                  },
+                  "label": "材料稳定性",
+                  "node_id": "materials_science:material-stability",
+                  "ancestors": [
+                    "materials_science:materials-performance"
+                  ],
+                  "discipline": "materials_science"
+                },
+                {
+                  "axis": "method",
+                  "role": "core",
+                  "basis": {
+                    "end": 420,
+                    "field": "primary_title",
+                    "quote": "surface passivation",
+                    "start": 401,
+                    "source_url": "https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0351439",
+                    "evidence_id": "ev-3b962f41"
+                  },
+                  "label": "界面／表面钝化",
+                  "node_id": "materials_science:interface-passivation",
+                  "ancestors": [],
+                  "discipline": "materials_science"
+                },
+                {
+                  "axis": "method",
+                  "role": "associated",
+                  "basis": {
+                    "end": 926,
+                    "field": "publisher_abstract",
+                    "quote": "Dimensional engineering",
+                    "start": 903,
+                    "source_url": "https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0351439",
+                    "evidence_id": "ev-3b962f41"
+                  },
+                  "label": "维度工程",
+                  "node_id": "materials_science:dimensional-engineering",
+                  "ancestors": [],
+                  "discipline": "materials_science"
+                },
+                {
+                  "axis": "application",
+                  "role": "core",
+                  "basis": {
+                    "end": 380,
+                    "field": "primary_title",
+                    "quote": "solar cells",
+                    "start": 369,
+                    "source_url": "https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0351439",
+                    "evidence_id": "ev-3b962f41"
+                  },
+                  "label": "太阳能电池",
+                  "node_id": "materials_science:solar-cells",
+                  "ancestors": [],
+                  "discipline": "materials_science"
+                }
+              ],
+              "output_id": "kfu-plosone-e0351439"
+            }
+          ],
+          "annual_after": [
+            {
+              "year": 2026,
+              "label_counts": {
+                "dual-cation": 1,
+                "materials_science:solar-cells": 1,
+                "materials_science:material-stability": 1,
+                "materials_science:conversion-efficiency": 1,
+                "materials_science:interface-passivation": 1,
+                "materials_science:dimensional-engineering": 1
+              },
+              "unknown_by_axis": {
+                "method": 0,
+                "problem": 0,
+                "application": 0
+              },
+              "publication_count": 1,
+              "unknown_publication_count": 0
+            }
+          ],
+          "annual_before": [
+            {
+              "year": 2026,
+              "label_counts": {
+                "materials_science:solar-cells": 1,
+                "materials_science:material-stability": 1,
+                "materials_science:conversion-efficiency": 1,
+                "materials_science:interface-passivation": 1,
+                "materials_science:dimensional-engineering": 1
+              },
+              "unknown_by_axis": {
+                "method": 0,
+                "problem": 0,
+                "application": 0
+              },
+              "publication_count": 1,
+              "unknown_publication_count": 0
+            }
+          ],
+          "previous_version": "materials-e2e-v1",
+          "same_evidence_ids": true,
+          "previous_snapshot_id": "c6edd2bf-f0aa-42dd-b8a0-81225e7345ed",
+          "same_publication_ids": true,
+          "publication_growth_claim": false
+        },
+        "created_at": "2026-10-21T09:53:29.992348+00:00",
+        "snapshot_id": "4c3d0123-1349-4f0a-9375-4525ef3874c5",
+        "evidence_ids": [
+          "ev-3b962f41"
+        ],
+        "counting_unit": "publication_multi_label_each_node_once_per_publication",
+        "interpretation": "各年仅为已采纳样本，未覆盖年份不补零；标签可交叉。重分类变化来自规则，不能解释为新增成果、投入增长或战略变化。",
+        "schema_version": "adrs-disciplinary-mapping-v1",
+        "unobserved_years": [
+          2025
+        ],
+        "unknown_year_count": 0
+      },
+      {
+        "annual": [
+          {
+            "year": 2026,
+            "label_counts": {},
+            "unknown_by_axis": {
+              "method": 1,
+              "problem": 1,
+              "application": 1
+            },
+            "publication_count": 1,
+            "unknown_publication_count": 1
+          }
+        ],
+        "reason": "检验未命中规则时保留未知",
+        "effects": {
+          "model_calls": 0,
+          "network_requests": 0,
+          "original_report_modified": false
+        },
+        "records": [
+          {
+            "axes": {
+              "method": "unknown",
+              "problem": "unknown",
+              "application": "unknown"
+            },
+            "year": 2026,
+            "title": "Enhancing perovskite solar cells efficiency via dual surface passivation",
+            "labels": [],
+            "status": "unknown",
+            "output_id": "kfu-plosone-e0351439",
+            "evidence_ids": [
+              "ev-3b962f41"
+            ],
+            "unknown_reason": "未命中冻结规则或缺少保留的主成果题名／明确摘要；不从载体推断学科。"
+          }
+        ],
+        "coverage": "accepted_publications_in_retained_sample_only",
+        "taxonomy": {
+          "nodes": [
+            {
+              "axis": "method",
+              "role": "core",
+              "label": "待证实的新方法",
+              "terms": [
+                "unobserved-experimental-method"
+              ],
+              "node_id": "unknown-method",
+              "parent_id": null,
+              "discipline": "materials science"
+            }
+          ],
+          "request": {
+            "nodes": [
+              {
+                "axis": "method",
+                "role": "core",
+                "label": "待证实的新方法",
+                "terms": [
+                  "unobserved-experimental-method"
+                ],
+                "node_id": "unknown-method",
+                "parent_id": null,
+                "discipline": "materials science"
+              }
+            ],
+            "preset": "custom",
+            "version": "materials-e2e-v3-unknown"
+          },
+          "version": "materials-e2e-v3-unknown",
+          "semantics": "按主成果题名及出版商明确标记的摘要作可编辑词面映射；旧材料未保留摘要标记时只用题名。不是官方标签、全文机制核验或主题硬筛选。",
+          "disciplines": [
+            "materials science"
+          ],
+          "match_scope": "source_supported_primary_title_and_marked_publisher_abstract",
+          "rule_version": "adrs-disciplinary-mapping-v1",
+          "preset_edition": "adrs-topic-presets-2026-10-21"
+        },
+        "comparison": {
+          "kind": "reclassification_only",
+          "changes": [
+            {
+              "after": [],
+              "before": [
+                {
+                  "axis": "problem",
+                  "role": "core",
+                  "basis": {
+                    "end": 391,
+                    "field": "primary_title",
+                    "quote": "efficiency",
+                    "start": 381,
+                    "source_url": "https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0351439",
+                    "evidence_id": "ev-3b962f41"
+                  },
+                  "label": "能量转换效率",
+                  "node_id": "materials_science:conversion-efficiency",
+                  "ancestors": [
+                    "materials_science:materials-performance"
+                  ],
+                  "discipline": "materials_science"
+                },
+                {
+                  "axis": "problem",
+                  "role": "core",
+                  "basis": {
+                    "end": 1659,
+                    "field": "publisher_abstract",
+                    "quote": "stability",
+                    "start": 1650,
+                    "source_url": "https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0351439",
+                    "evidence_id": "ev-3b962f41"
+                  },
+                  "label": "材料稳定性",
+                  "node_id": "materials_science:material-stability",
+                  "ancestors": [
+                    "materials_science:materials-performance"
+                  ],
+                  "discipline": "materials_science"
+                },
+                {
+                  "axis": "method",
+                  "role": "associated",
+                  "basis": {
+                    "end": 420,
+                    "field": "primary_title",
+                    "quote": "surface passivation",
+                    "start": 401,
+                    "source_url": "https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0351439",
+                    "evidence_id": "ev-3b962f41"
+                  },
+                  "label": "界面／表面钝化",
+                  "node_id": "materials_science:interface-passivation",
+                  "ancestors": [
+                    "materials-methods"
+                  ],
+                  "discipline": "materials_science"
+                },
+                {
+                  "axis": "method",
+                  "role": "associated",
+                  "basis": {
+                    "end": 926,
+                    "field": "publisher_abstract",
+                    "quote": "Dimensional engineering",
+                    "start": 903,
+                    "source_url": "https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0351439",
+                    "evidence_id": "ev-3b962f41"
+                  },
+                  "label": "维度工程",
+                  "node_id": "materials_science:dimensional-engineering",
+                  "ancestors": [
+                    "materials-methods"
+                  ],
+                  "discipline": "materials_science"
+                },
+                {
+                  "axis": "application",
+                  "role": "core",
+                  "basis": {
+                    "end": 380,
+                    "field": "primary_title",
+                    "quote": "solar cells",
+                    "start": 369,
+                    "source_url": "https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0351439",
+                    "evidence_id": "ev-3b962f41"
+                  },
+                  "label": "太阳能电池",
+                  "node_id": "materials_science:solar-cells",
+                  "ancestors": [],
+                  "discipline": "materials_science"
+                },
+                {
+                  "axis": "method",
+                  "role": "core",
+                  "basis": {
+                    "end": 1177,
+                    "field": "publisher_abstract",
+                    "quote": "dual-cation",
+                    "start": 1166,
+                    "source_url": "https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0351439",
+                    "evidence_id": "ev-3b962f41"
+                  },
+                  "label": "双阳离子策略",
+                  "node_id": "dual-cation",
+                  "ancestors": [
+                    "materials-methods"
+                  ],
+                  "discipline": "materials science"
+                }
+              ],
+              "output_id": "kfu-plosone-e0351439"
+            }
+          ],
+          "annual_after": [
+            {
+              "year": 2026,
+              "label_counts": {},
+              "unknown_by_axis": {
+                "method": 1,
+                "problem": 1,
+                "application": 1
+              },
+              "publication_count": 1,
+              "unknown_publication_count": 1
+            }
+          ],
+          "annual_before": [
+            {
+              "year": 2026,
+              "label_counts": {
+                "dual-cation": 1,
+                "materials_science:solar-cells": 1,
+                "materials_science:material-stability": 1,
+                "materials_science:conversion-efficiency": 1,
+                "materials_science:interface-passivation": 1,
+                "materials_science:dimensional-engineering": 1
+              },
+              "unknown_by_axis": {
+                "method": 0,
+                "problem": 0,
+                "application": 0
+              },
+              "publication_count": 1,
+              "unknown_publication_count": 0
+            }
+          ],
+          "previous_version": "materials-e2e-v2",
+          "same_evidence_ids": true,
+          "previous_snapshot_id": "4c3d0123-1349-4f0a-9375-4525ef3874c5",
+          "same_publication_ids": true,
+          "publication_growth_claim": false
+        },
+        "created_at": "2026-10-21T09:53:30.965182+00:00",
+        "snapshot_id": "edda1ddd-ce70-43b6-9479-90112a70d52a",
+        "evidence_ids": [
+          "ev-3b962f41"
+        ],
+        "counting_unit": "publication_multi_label_each_node_once_per_publication",
+        "interpretation": "各年仅为已采纳样本，未覆盖年份不补零；标签可交叉。重分类变化来自规则，不能解释为新增成果、投入增长或战略变化。",
+        "schema_version": "adrs-disciplinary-mapping-v1",
+        "unobserved_years": [
+          2025
+        ],
+        "unknown_year_count": 0
+      }
+    ]
+  },
+  "evidence": [
+    {
+      "content": "citation_doi: 10.1371/journal.pone.0351439\ncitation_author: Refka Sai\ncitation_author_institution: Department of Physics and Astronomy, University of Carthage, Carthage, Tunisia\ncitation_author: Shrouq H. Aleithan\ncitation_author_institution: Department of Physics, College of Science, King Faisal University, Al-Ahsa, Saudi Arabia\ncitation_title: Enhancing perovskite solar cells efficiency via dual surface passivation\ncitation_journal_title: PLOS ONE\ncitation_date: Jul 10, 2026\n\nArticle\nAuthors\nMetrics\nComments\nMedia Coverage\nReader Comments\nFigures\nCorrection\n20 Aug 2026:\nSai R,\nAleithan SH\n(2026)\nCorrection: Enhancing perovskite solar cells efficiency via dual surface passivation.\nPLOS ONE  21(8): e0356803.\nhttps://doi.org/10.1371/journal.pone.0356803\nView correction\nFigures\nAbstract\nEffective defect passivation is essential for achieving high performance in perovskite solar cells (PSCs). Dimensional engineering provides a powerful strategy to suppress non-radiative recombination in both the bulk and surface regions of PSCs. In this work, we present a novel interfacial passivation approach for the perovskite/hole transport layer interface using a dual-cation passivation layer composed of guanidinium bromide (GuaBr) and n-phenylethylammonium bromide (n-PEABr). This dual-cation strategy delivers an open-circuit voltage of 1.23 V and a power conversion efficiency (PCE) of 25.11%, significantly outperforming devices based on single-cation passivation. The combined cations induce the formation of a mixed 1D/2D perovskite structure, resulting in a more uniform and hydrophobic surface compared with unpassivated films. Moreover, stability tests conducted under ambient conditions (80% relative humidity) and continuous light-soaking reveal markedly enhanced device stability. The results demonstrate the superior passivation effectiveness of phenylethylammonium compared with previously reported methods. In particular, this approach surpasses the 23% PCE achieved using octylammonium passivation, achieving efficiencies exceeding 25%. Overall, the excellent defect passivation and favorable optical and electrical properties of phenylethylammonium play a key role in significantly improving both the efficiency and stability of PSCs.\nCitation: Sai R, Aleithan SH (2026) Enhancing perovskite solar cells efficiency via dual surface passivation. PLoS One 21(7):\ne0351439.\nhttps://doi.org/10.1371/journal.pone.0351439\nEditor: Latha Marasamy, Universidad Autónoma de Querétaro: Universidad Autonoma de Queretaro, MEXICO\nReceived: July 5, 2025; Accepted: May 27, 2026; Published:  July 10, 2026\nCopyright:  © 2026 Sai, Aleithan. This is an open access article distributed under the terms of the Creative Commons Attribution License, which permits unrestricted use, distribution, and reproduction in any medium, provided the original author and source are credited.\nData Availability: Within the manuscript itself.\nFunding: The author(s) received no specific funding for this work.\nCompeting interests:  The authors have declared that no competing interests exist.\n1 Introduction\nPerovskite solar cells (PSCs), which combine organic and inorganic materials, have garnered significant interest due to their cost-effective production, ease of solution-based manufacturing, and impressive power conversion efficiency (PCE) [1–4].Currently, the power conversion efficiency (PCE) of PSCs has surged from an initial3.8% to an impressive 25.7% [5–10]. This remarkable improvement is largely due to the distinct characteristics of perovskite materials (ABX3, where A, B, and X can be monovalent cations like CH3NH3+ MA+,FA+,Cs+, divalent metal cations likePb2+ andSn2+, and halogen anions such as , , and ), which exhibit long carrier diffusion lengths and high optical absorption coefficients [11–15]. Nevertheless, there remains considerable room for enhancement compared to the theoretical Shockley–Queisser limit of approximately 33% [16,17]. A significant limitation arises from the inherent presence of various shallow-level defects (e.g., iodide and monovalent cation vacancies like VI, VMA, VFA, etc.) and deep-level defects (e.g., substitutions like MAI+, FAI+,IMA+,IFA+, etc., and uncoordinated Pb2+) within perovskite films fabricated through conventional solution processes [1–6,11,12,16–19]. These defects give rise to numerous carrier complex centers, ultimately compromising the performance of PSCs [20]. However, the underdeveloped methodologies and the exorbitant expenses associated with single-crystal PSCs do not align with the requisites of sustainable advancement. An alternative approach frequently adopted involves implementing post-passivation treatments aimed at mitigating defects.The rapid crystallization of perovskite throughout the processing in solution introduces structural imperfections and trapping sites within the device architecture, serving as sites for non-radiative electron-hole recombination. Recombination, a primary contributor to voltage drop in PSCs, can occur via three passages: within the perovskite bulk, at interfaces between perovskite and electron or hole transport layers (ETL or HTL), and through shunt pathways between ETL and HTL [21]. While frequent lattice imperfections within the perovskite bulk typically exhibit energy levels proximal to the conduction or valence bands, resulting in minimal recombination rates, highly efficient PSCs generally experience negligible recombination via shunt paths [22]. Consequently, recombination at interfaces at the perovskite/interfaces of the transport layer emerges as the predominant mechanism for carrier loss [23]. Consequently, extensive research efforts have focused on passivating the interfaces among the perovskite absorber and charge transport layers (CTLs) [24–30].Passivation methods can be categorized into physical and chemical approaches. Material passivation involves spatially segregating issues related to minority charge carriers within the device, while chemical passivation aims to reduce the number of imperfection/ trap states [31]. Chemical passivation encompasses various techniques including manufacturing techniques [32], additive integration [33], constituents manipulation [34], dimensional adjustment [35], and interface modification [36]. Dimensional engineering, particularly, garners considerable attention due to its significant enhancement of power conversion efficiency (PCE). This method involves altering the conventional 3D ABX3 perovskite atomic lattice by introducing bulky organic cations that facilitate the formation of low-dimensional columnar (1D) or layered (2D) crystal structures. Consequently, a mixed 1D–3D [34,37,38] or 2D–3D [39–43] perovskite structure emerges, which has the capacity to bolster device efficiency and stability. 2D perovskites are further categorized as Ruddlesden–Popper (RP) [44], Dion–Jacobson (DJ) [45], and alternating cations in the interlayer space (ACI) forms [46]. The ACI form exhibits reduced binding energy of excitons, extended duration of carrier persistence, and narrower or Similar optical bandgap to DJ and RP phases [47].To achieve Surface treatment using a one-dimensional or two-dimensional capping layer, a two-step process is typically employed. Firstly, a perovskite photoactive film is deposited, subsequently the deposition of a chloroform solution or an isopropyl alcohol (IPA) containing 1D/2D cations (referred to as spacer cations or interlayer) [48,49]. These spacer cations commonly consist of long-chain alkyl or aryl ammonium cations like cyclopropylammonium (CA+) [50], phenylethylammonium (PEA+) [50], methylammonium (MA+) [51], octylammonium ()A+) [52,53], and butylammonium (BA+) (BA+) [52,54,55]. Surface modification using bulky alkyl-ammonium spacer cations has shown promise in effectively mitigating defects, alongside enhancing stability in ambient conditions owing to their hydrophobic properties [54–57]. According to recent findings [58], a power conversion efficiency (PCE) of 23.38% was achieved for a perovskite solar cell passivated with octylammonium bromide (OABr).Yet, the stability performance remains lacking, as no stability data were presented for the passivated devices. Furthermore, in place of extended alkylammonium cations, scientists have explored using compounds containing guanidinium  cations as the surface passivation layer between the transport layers and perovskite. In contrast to extended alkylammonium cations, guanidinium cations have been noted for their ability to partially infiltrate the perovskite bulk due to their smaller size, thereby providing bulk passivation. Chavan et al. [59] achieved a 20.07% efficiency employing GuaI for passivation at the perovskite/hole transport layer (HTL) interface. Similarly, GuaBr was employed as a surface passivation layer atop the perovskite in an alternate configuration, resulting in a certified open-circuit voltage  of 1.175 V. Additionally, guanidinium thiocyanate was utilized using it for passivation at the perovskite/HTL interface in a flat structure, leading to a power conversion efficiency (PCE) about of 16.37% [60–65]. Most studies focusing on dimensional engineering of perovskite solar cells (PSCs) have typically utilized a single spacer cation either for bulk or surface modification. However, a number of investigations have explored dimensional engineering by employing combinations of multiple spacer cations [66–70]. These studies have highlighted that incorporating multiple alkylammonium cations can potentially enhance device performance by improving charge extraction, promoting growth and uniform nucleation of perovskite crystals, and reducing exciton binding energy [67–69]. Thus, there is significant value in exploring different utilizing various types of spacer cations to enhance surface passivation in PSCs. In our study, we demonstrate efficient surface modification of perovskite solar cells (PSCs) at the interface between the perovskite and hole transport layer (HTL) using a dual addition of two distinct spacer cations: phenylethylammonium bromide (PEABr) and guanidinium bromide (GuaBr). Extended alkylammonium cations have been recognized for enhancing device achievement by chemically passivating undercoordinated bonds on the perovskite surface, thereby creating a physical barrier that reduces ion extraction from the absorber material. Additionally, their hydrophobic properties contribute to improving the stability of the device in ambient conditions. In contrast, guanidinium salts have been observed to enhance cell achievement by promoting the creation of well-ordered crystal grains and compact within the perovskite layer, which minimizes recombination sites. Guanidinium ions can penetrate into the perovskite bulk and localize at grain boundaries (GBs), where they interact through hydrogen bonding with iodine species lacking full coordination, thereby suppressing charge recombination and ion migration.Our results indicate that PSCs treated with a combination of PEABr and GuaBr outperform devices treated with single spacer cations in terms of short-circuit current density , power conversion efficiency (PCE), and stability. Within the dual-cation passivation layer, the PCE enlarged from 21.37% for the control cell to 25.11% for the passivated device, demonstrating significantly enhanced long-term stability as well. This research is motivated by the findings of Qi Jiang [71], Naeimeh Mozaffari [72], and Medhat M. Osman [73]. Jiang demonstrated that surface passivation with phenylethylammonium significantly improves perovskite solar cell efficiency by reducing defects and suppressing non-radiative recombination, achieving a Power Conversion Efficiency (PCE) of 23.32%. Osman also showed that passivation with n-octylammonium enhances PCE to 20.2%. Meanwhile, Mozaffari reported a PCE of 23.13% using a binary surface passivation approach with guanidinium and octylammonium spacer cations. Building on these insights, we aim to replace octylammonium with phenylethylammonium in the dual surface passivation of perovskite solar cells to further enhance their performance.\n2 Materials and methods\n2.1 Materials and layer preparation\nTo evaluate the impact of GuaBr, PEABr, and their combination on device achievement, we fabricated perovskite solar cells (PSCs) under three different conditions. These included as well as variations with passivation layers comprising GuaBr, PEABr, and a blend of both. To optimize the ratio between PEABr and GuaBr, we tested three different volume ratios: 1:1 (referred to as 1P-1G), 2:1 (labeled as 2P-1G), and 1:2 (designated as 1P-2G).The device architecture for these PSCs consisted of glass/FTO/compact TiO2 /mesoporous TiO2 ()/polymethyl methacrylate (PMMA): phenyl-C60-butyric acid methyl ester (PCBM)/ perovskite/passivation layer/spiro-OMeTAD/Au.Subsequent to applying the perovskite precursor solution via spin-coating on the substrate and annealing at 150 °C for 25 minutes, the passivation solution was spin-coated onto the substrate, subsequent to an additional annealing step at 150 °C for 10 minutes. We monitored the devices over time and observed a slight color change toward a brown–yellow appearance after extended exposure. This change indicates the onset of degradation, which is commonly associated with the partial transformation of the perovskite phase under ambient conditions. Although systematic outdoor stability tests were not performed, these observations suggest that environmental factors such as moisture, oxygen, and light can affect the long-term stability of the fabricated PSCs. Further detailed stability studies will be conducted in future work.\nSchematic illustrations of the device deposition procedures and structure are depicted in Figs 1 and 2. Before conducting the measurements, the light intensity was adjusted using a certified Fraunhofer CalLab reference cell. The J-V characteristic was recorded with a scan rate of 50 mV/s and a voltage step of 0.01 V, with the cells positioned in a specially designed measurement fixture and exposed to a flow of nitrogen gas. For the forward scan, a voltage range of −0.1 V to 1.25 V was used, while the reverse scan employed a range from 1.25 V to −0.1 V. The characterization was carried out without any prior preconditioning protocol. It is important to highlight that the short-circuit current density (Jsc) shows a slight increase as the ratio of Phenylethylammonium is raised. Specifically, the cell with the 1P-1G passivation layer exhibits a lower Jsc compared to the cell with the 1P-2G passivation layer. On the other hand, the cell with the 2P-1G passivation layer achieves the highest Jsc. This observed trend can be attributed to the significant impact of Phenylethylammonium passivation. Additionally, the higher Jsc and open-circuit voltage (Voc) in some cases might be due to reduced charge recombination, which suggests improved efficiency in charge carrier management.\nDownload:\nPNG\nlarger image\nTIFF\noriginal image\nFig 1.  PSC structure.\nhttps://doi.org/10.1371/journal.pone.0351439.g001\nDownload:\nPNG\nlarger image\nTIFF\noriginal image\nFig 2.  The introduction of PEABr, GuaBr, and their blend onto the surface.\nhttps://doi.org/10.1371/journal.pone.0351439.g002\nAmong the various compositions of cations with combined spacers, all showed comparable current-voltage (J-V) characteristics. However, the PSC with the 2P-1G passivation layer displayed superior stability over time. Therefore, this composition was selected as optimal for further characterization. The experimental procedure is shown in Fig 2. A sufficient number of devices were fabricated under each condition to ensure the reliability of the reported results. The device performance was evaluated based on multiple independent samples, and the averaged values were used to draw conclusions. In terms of reproducibility, the devices exhibited consistent performance with only small variations in the key photovoltaic parameters (such as Jsc, Voc, FF, and PCE). This indicates good reproducibility of the fabrication process. The consistency can be attributed to the robustness of the processing method, particularly the rapid thermal treatment, which minimizes variability associated with prolonged annealing. Statistical data (e.g., average values and standard deviations) have been included to further support the reproducibility of the results.\n2.2 Characterization\nX-ray diffraction analyses were conducted utilizing theta-2theta geometry with Cu K radiation (wavelength: 1.56 Å) employing an X-ray diffractometer (model Explorer, manufactured by GNR Analytical Instruments in Novara, Italy. For the characterization of thin-film morphology, a high-resolution field emission scanning electron microscope (FE-SEM) JSM-7800F Prime (JEOL Ltd., Tokyo, Japan) equipped with an in-lens Schottky plus field emission electron gun was employed. The SEM utilized a thin conductive layer of Pt, approximately 20 Å thick, deposited on the films prior to imaging. The surface morphology of the samples was examined using a FEI Verios SEM with an acceleration voltage of 2 kV and a probe current of 25 pA. UV-Vis spectra were obtained with a UV/VIS spectrometer (Perkin-Elmer Lambda 35, manufactured by PerkinElmer Instruments in Shelton, CT, USA), while photoluminescent (PL) spectra were collected using a fluorescence spectrophotometer (Perkin-Elmer LS55). The cross-sectional sample of the perovskite solar cell was prepared using Helios NanoLab 600 Focused Ion Beam (FIB) milling. The microstructure of the perovskite device was examined with a JEOL 2100F transmission electron microscope (TEM) operating at 200 keV, while atomic force microscopy (AFM) topographic analysis was performed using a Bruker Icon scanning probe microscope.\n3 Result and discussion\nFig 3 illustrates the distributions of photovoltaic characteristics for the devices that were fabricated. It is evident from the data that the device incorporating a 2P-1G passivation layer achieved an increase in PCE compared to both 1P-1G and 1P-2G cells, reaching a peak efficiency of 25.11%for the top-performing cell. This overall enhancement in efficiency across all passivated devices can be attributed to improvements in both fill factor (FF) and open-circuit voltage () observed in these samples. The superior performance of the 2P-1G dual-cation passivation strategy arises from the complementary mechanisms of n-phenylethylammonium bromide (PEABr) and guanidinium bromide (GuaBr). PEABr primarily contributes to interfacial passivation: its aromatic phenyl group forms  stacking interactions and hydrogen bonds with undercoordinated iodide species, effectively reducing surface trap states, suppressing non-radiative recombination, and enhancing charge extraction. GuaBr, in contrast, is small enough to partially diffuse into the perovskite bulk and localize at grain boundaries, where it passivates deep defects, reduces ion migration, and improves grain boundary stability. Together, these effects create a synergistic balance: PEABr improves electronic coupling and hydrophobic stability at the surface, while GuaBr mitigates bulk defects and stabilizes crystal growth. This dual-action mechanism explains why the 2P-1G configuration achieved higher efficiency (PCE 25.11%) and superior stability compared to single-cation passivation, which lacks either strong interfacial passivation (GuaBr alone) or bulk defect suppression (PEABr alone). Specifically, the application of the passivation layer led to increased  values across all conditions when compared to the 1P-1G sample, within the highest average  of 1.21 V recorded for the 1P-1G cell. Notably, the 2P-1G configuration exhibited an average  of 1.23 V, surpassing that of other cell types tested. The superior performance of the 2P-1G (PEABr:GuaBr) configuration can be attributed to a synergistic mechanism between the two spacer cations, with phenylethylammonium (PEABr) playing the dominant role. The excess of PEABr enhances surface passivation by forming strong hydrogen bonds with undercoordinated iodide ions and reducing non-radiative recombination at the perovskite/HTL interface, thereby improving charge extraction and short-circuit current density (Jsc). At the same time, the aromatic phenyl group facilitates  stacking, which contributes to improved structural rigidity and interfacial stability. Guanidinium (GuaBr), on the other hand, partially diffuses into the perovskite bulk and localizes at grain boundaries, where it reduces trap density and ion migration. Thus, the combination of bulk passivation from GuaBr and superior interfacial passivation from PEABr leads to enhanced long-term stability. The observed improvement in Jsc and device durability in the 2P-1G sample can therefore be explained as a cooperative effect, where PEABr dominates surface/interface quality while GuaBr complements by passivating grain boundaries. This increase in  across the passivated samples suggests a reduction in nonradiative recombination, a topic to be explored further. In Fig 3c, it can be observed that the addition of the passivation layer at the HTL/perovskite interface resulted in a slight improvement in FF for all treated conditions. Unlike certain other passivation methods such as PMMA:PCBM, which often sacrifice FF for voltage gains, the methods employed here maintained or slightly enhanced FF while improving. Furthermore, the device with 2P-1G passivation displayed the highest short-circuit current density (), which contributed significantly to its superior PCE compared to both 1P-1G and 1P-2G passivated devices. The underlying reasons for the increased  will be discussed in detail later.\nDownload:\nPNG\nlarger image\nTIFF\noriginal image\nFig 3.  (a) Efficiency per time, (b) The J-V of 1P-1G, 2P-1G and 1P-2G, (c) The QE curves of simulated perovskite films of 1P-1G, 2P-1G and 1P-2G.\nhttps://doi.org/10.1371/journal.pone.0351439.g003\nFurthermore, Fig 3 displays the statistical distribution of device performance, showing enhancements primarily due to increased open-circuit voltage  and fill factor (FF). Each device exhibits minimal photocurrent hysteresis at a scan rate of 55 . Hysteresis is indeed a well-documented challenge in perovskite solar cells due to charge trapping/detrapping and ion migration at interfaces. In our study, J–V measurements were conducted without preconditioning, including both forward and reverse scans, to capture potential hysteresis effects. The results (Fig 3b) revealed minimal hysteresis across all devices, indicating that the applied passivation strategies effectively suppressed interfacial trap states. Among the three passivation conditions, the 2P-1G configuration exhibited the least hysteresis, consistent with its higher Voc and Jsc. This behavior can be attributed to the synergistic action of PEABr and GuaBr: PEABr reduces non-radiative recombination and interfacial trap density through strong surface passivation, while GuaBr localizes at grain boundaries, mitigating ion migration. The reduced hysteresis observed in 2P-1G devices therefore confirms that dual-cation passivation not only enhances efficiency and stability but also significantly improves charge carrier dynamics by minimizing trap-mediated charge accumulation. The light-soaking stability of the devices was evaluated under continuous 1-sunlight illumination in an inert atmosphere (nitrogen gas), with the cells’ voltage fixed at the initial voltage at maximum power point (VMPP). As depicted in Fig 4a, the efficiencies at MPP remained stable after 1100 seconds for all conditions. Additionally, a shelf-life stability assessment testing was performed on different uncovered devices. exposed to ambient atmosphere with approximately 80% relative humidity over 25 days. The results indicated that the 2P-1G cell retained approximately 80% of its initial efficiency, demonstrating superior stability compared to other conditions. All stability tests in this study were conducted on unencapsulated devices to directly assess the intrinsic effects of passivation. Under shelf-life conditions (80% RH) and continuous light-soaking in an inert atmosphere, the 2P-1G device retained 80% of its initial efficiency after 25 days, which we attribute to the strong hydrophobicity and defect passivation imparted by the dual-cation layer. While these results demonstrate significant improvement compared to single-cation passivation, we acknowledge that real-world outdoor environments impose more stringent stress factors, including fluctuating temperature, higher humidity, and prolonged illumination. Given the demonstrated hydrophobicity of phenylethylammonium and the grain boundary passivation of guanidinium, we anticipate that the 2P-1G device would maintain superior stability relative to non-passivated or single-passivated devices under operational conditions. However, further studies involving encapsulated modules under accelerated aging protocols (e.g., damp-heat, thermal cycling, and outdoor field testing) will be essential to fully validate the long-term operational stability of this passivation strategy. Moreover, a light-soaking stability test was performed over 50 hours, during which J–V curves were continuously monitored at hourly intervals. Fig 4b illustrates the comparative J–V performance of leading PSCs, namely 1P-1G,2P-1G, and 1P-2G. It is evident that the 2P-1G cells exhibit a notable enhancement in power conversion efficiency (PCE), increasing from 23.2% to 25.11% compared to the as-prepared cells.\nDownload:\nPNG\nlarger image\nTIFF\noriginal image\nFig 4.  (a-c) SEM images and (d–f) AFM images of the perovskite films.\nhttps://doi.org/10.1371/journal.pone.0351439.g004\nThis improvement primarily results from a significant increase in short-circuit current density () and a slight improvement in fill factor (FF). Notably, the highest PCE of 25.11% was achieved with the 2P-1G configuration. The enhanced PCE can be attributed to the increase in from 1.21 V to 1.23 V and an FF of 85.7%, despite a slight decrease in  to . Statistical analysis of PCE distribution confirms the consistency of these results, underscoring that the dual surface passivation using guanidinium and phenylethylammonium spacer cations effectively enhances PSC performance. The incident photon-to-current efficiency (IPCE) was evaluated using the QEX10 Solar Cell Quantum Efficiency Measurement System. In Fig 4c, the IPCE curves of perovskite solar cells 1P-1G, 2P-1G and 1P-2G are illustrated. These curves exhibit a gradual decrease from the 300–400 nm range, tapering off towards the absorption edge at approximately 820 nm. Notably, the device 2P-1G displayed superior quantum efficacy, indicating higher quality. Efficient transfer of electrons and holes was observed within the high-energy range of visible light, while optimal device interfaces were crucial in the low-energy spectrum (600–800 nm). The decline in efficiency of these solar cells can be attributed to spectral mismatch, where the input energy of photons does not align with the solar cell’s band gap. Photons with lower energy than the bandgap cannot be absorbed, leading to their excess energy being converted into the kinetic energy of electron-hole pairs, which is subsequently dissipated as heat. This outcome demonstrates a significant suppression of non-radiative losses in the perovskite layer through dual surface passivation utilizing phenylethylammonium and guanidinium spacer cations. If we could completely eliminate non-radiative recombination in the perovskite layer, whether at the surface or the interface, we could potentially raise the  closer to its limit of 1.25 V. This improvement could potentially increase the PCE of PSCs over 25%. JSC integrated from EQE data in Fig 4c, are listed in Table 1.\nDownload:\nPNG\nlarger image\nTIFF\noriginal image\nTable 1.  JSC integrated from EQE data.\nhttps://doi.org/10.1371/journal.pone.0351439.t001\nTo understand why the 2P-1G sample is more efficient, a detailed analysis of its properties was conducted. Initially, the morphology of surface of the samples was examined using scanning electron microscopy (SEM) (Fig 5a–5c). Upon application of the PEABr passivation layer on the perovskite absorber, a slight increase in grain size was observed, likely due to the Ostwald ripening process facilitated by the partial dissolution of perovskite crystals in an IPA solution containing bromide. [54,58] The grain size remained relatively unchanged in films with 1P-1G and 2P-1G configurations. Additionally, atomic force microscopy (AFM) analysis of surface roughness revealed the most even surface for the 2P-1G sample, with a root-mean-square (RMS) roughness of 7.47 nm, compared to 10.15 nm for 1P-1G, 10.87 nm for 1P-1G, and the reference film (Fig 5d-5f). A smoother perovskite layer surface can mitigate nonradiative recombination and facilitate improved charge extraction at the interface by enhancing contact with the transport layer. [53,65,66] At low magnification, cross-sectional bright-field transmission electron microscopy (BF-TEM) images revealed a thin passivation layer that was not prominently visible at the HTL/perovskite interface. However, high-resolution TEM clearly revealed a uniform, thin passivation layer at the interface, with measured lattice spacings of 7.018 Å and 3.789 Å, corresponding to the 1D/2D structure of the passivation layer and the structure of the perovskite bulk, in their particular cases (Fig 6a), consistent with previous studies [52]. It is noted that distinguishing between 1D and 2D perovskite structures in TEM images can be challenging due to their similar lattice spacings [67]. The passivation layer thickness was estimated to be approximately 20 nm based on BF-TEM images. X-ray diffraction was employed to characterize the crystallographic changes induced by different passivation layers (Fig 6b). The main peaks observed in all films correspond to the perovskite structure. Additional peaks at 3.2° and 9.9° in the 1P-1G and 2P-1G samples indicate the presence of 2D perovskite layers. Meanwhile, a peak at 9.9° in the 1P-2G sample suggests the formation of 1D perovskite. The X-ray diffraction (XRD) patterns show that the intensity of peaks related to 1D/2D structures is minimal compared to the predominant peaks from the perovskite structure [36,67,74]. We acknowledge that the XRD signals corresponding to 1D/2D perovskite phases appear with relatively low intensity compared to the dominant 3D perovskite peaks, which can make interpretation challenging. However, our structural assignment is supported by complementary characterizations. High-resolution TEM (Fig 5a) clearly revealed a thin and continuous passivation layer at the perovskite/HTL interface, with lattice spacings of 7.018 Å and 3.789 Å consistent with 1D/2D layered structures. Additionally, steady-state and time-resolved photoluminescence (PL and TRPL, Fig 6a, Table 2) confirmed suppressed non-radiative recombination and extended carrier lifetimes, both characteristic signatures of effective 1D/2D surface passivation. AFM results further showed smoother surfaces in the 2P-1G films, consistent with uniform low-dimensional capping. While GIWAXS was not performed in this study, the convergence of evidence from XRD, TEM, PL, and AFM provides strong confidence in the presence of low-dimensional perovskite phases at the interface. From these results, the highest amount of 2D perovskite is observed in the P-passivated film, followed by the 2P-1G film. The 2P-1G film, which includes both P and G passivation agents, contains a mixture of 2D structures and a small amount of 1D structures. Previous studies using conventional X-ray diffraction did not detect specific peaks for films with low concentrations of guanidinium cation [58,67,68]. SEM cross-sectional images for the other PSCs have now been included to provide a comprehensive comparison of the device architecture under different processing conditions. These cross-sectional images confirm the formation of well-defined and continuous layers across all devices, including the perovskite absorber, transport layers, and electrodes. No significant differences in layer thickness or interfacial contact are observed, indicating that the fabrication process yields consistent device structures. Minor variations in morphology may be present, particularly in terms of film compactness and grain connectivity, which can influence charge transport and recombination. However, overall, the cross-sectional SEM images demonstrate that all PSCs exhibit good layer uniformity and intimate interfacial contact, supporting the observed device performance.\nDownload:\nPNG\nlarger image\nTIFF\noriginal image\nFig 5.  (a) BR-TEM image of the PSC device at perovskite/HTL interface, (b) XRD of 1P-1G, 2P-1G and 1P-2G.\nhttps://doi.org/10.1371/journal.pone.0351439.g005\nDownload:\nPNG\nlarger image\nTIFF\noriginal image\nFig 6.  (a)The normalized PL spectra for samples 1P-1G,2P-1G and 1P-2G, (b) Tauc plot.\nhttps://doi.org/10.1371/journal.pone.0351439.g006\nDownload:\nPNG\nlarger image\nTIFF\noriginal image\nTable 2.  Life time for different samples.\nhttps://doi.org/10.1371/journal.pone.0351439.t002\nSteady-state photoluminescence (SS-PL) spectroscopy was employed to analyze the charge recombination behavior of perovskite films on bare glass both before and after implementing surface passivation. The results revealed the highest PL intensity across all samples (Fig 6a), indicating that dual cations effectively reduce nonradiative charge recombination. Time-resolved PL (TRPL) measurements confirmed these findings, showing reduced decay in treated on the surface perovskite samples (Table 2). Lifetime calculations using a biexponential model yielded values of 296 ns for 1P-1G, 315 ns for 2P-1G, and 276 ns for 1P-2G, consistent with trends observed in  and highlighting the passivation layers’ efficacy in suppressing nonradiative carrier recombination.To further explore optical performance, ultraviolet–visible–near infrared (UV–vis–NIR) spectroscopy was employed. Tauc plot (Fig 6b) exhibited significant differences among samples, indicating the impact of passivation layers on optical properties. The optical bandgaps were determined via Tauc plot analysis, revealing variations among samples. Specifically, the minimum bandgap about of 1.68 eV was calculated for 1P-1G and 1P-2G samples, while the 2P-1G sample exhibited a slightly higher bandgap of 1.72 eV. These results underscore the influence of passivation strategies on both photoluminescence dynamics and optical properties of perovskite films.\nPhotoluminescence (PL) is a valuable technique for assessing disorder within a system and determining the purity and crystalline quality of semiconductors. The photoluminescence spectra (PL) for all films excited by a 450 nm laser are presented. Each sample displays a single peak within the range of 805–814 nm. The steady-state PL spectra reveal that the absorbance and PL peaks of perovskite films are consistently shiftedfor 2P-1G.\nThe 2P-1G sample, which exhibits a slightly higher optical bandgap of 1.72 eV compared to ∼1.68 eV for the other samples, shows a corresponding blue-shift in the absorption edge, indicating that photon absorption is shifted toward shorter wavelengths. This behavior is consistent with the fundamental relationship between bandgap and absorption, where an increase in bandgap results in reduced absorption in the low-energy (long-wavelength) region. As observed from the UV–Vis and EQE spectra (Figs 3c and 7b), the absorption onset of the 2P-1G device occurs at a shorter wavelength (∼720–750 nm), confirming the widened bandgap.\nDownload:\nPNG\nlarger image\nTIFF\noriginal image\nFig 7.  Comparative passivation mechanisms of phenylethylammonium (PEA) and octylammonium (OAm) at the perovskite/HTL interface.\nhttps://doi.org/10.1371/journal.pone.0351439.g007\nDespite this slight reduction in near-band-edge absorption, the 2P-1G sample maintains high overall absorption in the visible region (300–750 nm), which is attributed to improved film quality and reduced defect density. The enhanced absorption efficiency is further supported by the higher EQE response across the visible spectrum, indicating more effective photon harvesting and charge generation. Importantly, the improved photovoltaic performance (PCE = 25.11%) is not limited by the increased bandgap, as the reduction in non-radiative recombination and improved charge extraction compensate for the slight loss in long-wavelength absorption. This behavior is consistent with recent reports on higher-bandgap perovskites. For instance, Qi Jiang et al. demonstrated that surface-passivated perovskites with slightly increased bandgaps (∼1.7–1.75 eV) can achieve PCEs above 23%, owing to suppressed non-radiative recombination and enhanced open-circuit voltage. Similarly, Naeimeh Mozaffari reported PCE ≈23.13% using binary passivation strategies, where improved interfacial quality outweighed minor absorption losses. These studies highlight that bandgap widening, when accompanied by effective passivation, can lead to higher device efficiency through improved voltage and carrier dynamics rather than purely enhanced absorption. Our study underscores the effectiveness of passivation in the 2P-1G configuration, highlighting the crucial role played by PEABr in enhancing the performance of perovskite solar cells (PSCs). PEABr’s composition contributes significantly to this improvement, leveraging its unique electronic and optical properties. Specifically, PEABr aids in reducing nonradiative recombination processes within the perovskite layer, thereby enhancing charge carrier lifetime and overall photovoltaic efficiency. This passivation effect is crucial as it helps to mitigate losses in open-circuit voltage () and fill factor (FF), ultimately leading to higher power conversion efficiencies (PCEs). The electronic structure of PEABr facilitates improved charge transport properties and better energy level alignment at the interfaces, which is essential for efficient charge extraction and collection within the solar cell device. Phenylethylammonium bromide (PEABr) plays a dual role in enhancing both the electronic and optical properties of perovskite solar cells in the 2P-1G configuration. Electronically, the phenyl group in PEABr forms strong hydrogen bonds with undercoordinated iodide ions at the perovskite surface, effectively reducing trap density and suppressing non-radiative recombination. Its conjugated aromatic structure also facilitates improved electronic coupling and energy level alignment, which enhances charge extraction and reduces voltage losses. Optically, PEABr contributes to a smoother and more uniform perovskite surface, as confirmed by AFM, which minimizes scattering losses and promotes more efficient light absorption. Additionally,  stacking interactions from the aromatic rings increase structural rigidity at the interface, further improving stability. Compared to octylammonium, which mainly offers hydrophobic protection but introduces an insulating barrier due to its long alkyl chain, PEABr provides a better balance between hydrophobicity, defect passivation, and charge transport. This explains why PEABr-based passivation in the 2P-1G system outperforms octylammonium, achieving higher PCE  and superior long-term stability. Furthermore, PEABr’s optical properties contribute to enhanced light absorption and utilization within the perovskite layer, thereby maximizing photon-to-electron conversion efficiency. Overall, our findings underscore PEABr as a pivotal component in optimizing the performance of PSCs, highlighting its dual role in enhancing both electronic and optical characteristics critical for achieving high-efficiency photovoltaic devices. The innovative aspect of this manuscript lies in the application of phenylethylammonium in conjunction with guanidinium spacer cations for dual surface passivation of perovskite layers. Our study demonstrates that phenylethylammonium alone provides superior passivation compared to previous methods. We have achieved a Power Conversion Efficiency (PCE) exceeding 25%, surpassing the 23% PCE achieved by Mozaffari using octylammonium. Replacing octylammonium with phenylethylammonium provides distinct mechanistic advantages for passivation in perovskite solar cells. As shown in Fig 7, the aromatic phenyl group of phenylethylammonium introduces  stacking interactions and stronger hydrogen bonding with undercoordinated iodide species, leading to more effective defect passivation and suppression of non-radiative recombination. Additionally, its conjugated system enhances electronic coupling and charge transfer at the interface, while maintaining sufficient hydrophobicity to protect against moisture. In contrast, long-chain alkylammonium cations such as octylammonium primarily provide hydrophobic stability but act as insulating barriers, which can hinder charge transport due to their bulky, flexible chains. This balance of structural rigidity, defect passivation, and efficient carrier extraction explains why phenylethylammonium outperforms octylammonium in both device efficiency and long-term stability. The selection of phenylethylammonium is justified by its exceptional passivation capabilities, coupled with its advantageous optical and electrical properties. These attributes contribute to improved efficiency in perovskite solar cells, highlighting the effectiveness of phenylethylammonium as a passivation material.\nThe enhanced photovoltaic performance of the dual-cation–passivated devices can be attributed to a synergistic reduction in both interfacial and bulk defect densities, which directly suppresses non-radiative recombination pathways. In particular, the increase in open-circuit voltage () from ∼1.21 V to 1.23 V for the 2P-1G device indicates improved quasi-Fermi level splitting due to effective passivation of trap states at the perovskite/HTL interface. Phenylethylammonium bromide (PEABr) primarily contributes to surface passivation by forming a low-dimensional (1D/2D) perovskite capping layer that reduces undercoordinated Pb2+ defects and acts as a physical barrier against charge recombination. In contrast, guanidinium bromide (GuaBr), owing to its smaller ionic size, partially penetrates the perovskite lattice and passivates grain boundaries through hydrogen bonding with halide ions, thereby reducing deep-level trap states. This complementary passivation mechanism leads to a significant decrease in Shockley–Read–Hall recombination, which is further supported by the prolonged carrier lifetime observed in time-resolved photoluminescence measurements (315 ns for 2P-1G).\nIn addition to  improvement, the increase in short-circuit current density () to 24.96 mA cm−2 is associated with enhanced charge collection efficiency and improved interfacial charge transport. The reduced trap density extends carrier diffusion lengths, allowing photogenerated carriers to reach the electrodes with minimal recombination losses. Morphological analysis reveals a smoother and more uniform perovskite surface (RMS roughness of 7.47 nm), which improves physical contact with the hole transport layer and facilitates efficient charge extraction. Furthermore, incident photon-to-current efficiency (IPCE) measurements indicate superior spectral response across the visible region, suggesting that electrical improvements outweigh the slight increase in bandgap (1.72 eV) observed for the 2P-1G sample. The marginal bandgap widening can be attributed to the formation of low-dimensional perovskite phases and reduced band tailing, which minimizes sub-bandgap recombination losses.\nThe fill factor (FF) enhancement to ∼85.7% further confirms improved charge transport dynamics and reduced series resistance within the device. Unlike conventional passivation strategies that often compromise FF, the dual-cation approach maintains efficient carrier extraction by optimizing energy level alignment at the perovskite/HTL interface and minimizing charge accumulation. Structural characterization using X-ray diffraction reveals the coexistence of 2D and minor 1D perovskite phases, forming a mixed-dimensional heterostructure that combines the superior charge transport properties of 3D perovskites with the defect passivation and environmental stability of low-dimensional layers. This architecture effectively reduces ion migration and enhances interfacial stability.\nPhotoluminescence analysis provides direct evidence of suppressed non-radiative recombination, as indicated by increased PL intensity and extended carrier lifetimes. These findings confirm that the dual-passivation strategy significantly improves the optoelectronic quality of the perovskite films. Moreover, the enhanced environmental stability, with ∼80% efficiency retention after prolonged exposure to high humidity conditions, is attributed to the hydrophobic nature of the PEABr layer and the stabilization of iodide ions by guanidinium through hydrogen bonding. This combination effectively inhibits moisture ingress and ion migration, which are primary degradation pathways in perovskite solar cells.\nOverall, the superior performance of the 2P-1G configuration arises from an optimal balance between surface and bulk passivation. A higher proportion of PEABr ensures effective surface defect suppression and moisture resistance, while an appropriate amount of GuaBr enables efficient bulk defect passivation without disrupting the perovskite lattice. This dual-cation strategy therefore simultaneously enhances charge carrier dynamics, reduces recombination losses, and improves structural stability, ultimately leading to high power conversion efficiency exceeding 25% and improved device durability.\nDownload:\nPNG\nlarger image\nTIFF\noriginal image\nTable 3.  Comparison of single- and dual-cation passivation strategies in PSCs.\nhttps://doi.org/10.1371/journal.pone.0351439.t003\nA comparison with previously reported passivation strategies clearly highlights the advantages of dual-cation engineering over single-cation approaches. Single-cation systems such as phenylethylammonium (PEA+) primarily improve surface defect passivation by forming a 2D perovskite capping layer, which enhances open-circuit voltage () through suppression of interfacial recombination. However, their effect is largely confined to the surface, limiting their ability to address bulk defects and grain boundary recombination. In contrast, guanidinium-based passivation exhibits the opposite behavior, where smaller cations can penetrate into the perovskite lattice and effectively passivate bulk and grain boundary defects, but provide weaker surface protection (Table 4).\nDownload:\nPNG\nlarger image\nTIFF\noriginal image\nTable 4.  Key Findings for Table 3.\nhttps://doi.org/10.1371/journal.pone.0351439.t004\nDual-cation strategies, such as the combination of guanidinium with octylammonium reported by Mozaffari et al. [61], demonstrate improved device performance (PCE ≈23.13%) due to the formation of mixed-dimensional (1D/2D–3D) structures that simultaneously enhance surface hydrophobicity and reduce recombination losses. More recent studies further confirm that combining different organic cations enables simultaneous passivation of both exposed and buried interfaces, leading to improved charge transport and stability.\nIn this context, the present work achieves a superior PCE of 25.11% by employing a dual-cation system (PEABr + GuaBr), which optimally balances surface and bulk passivation. Unlike earlier dual-cation systems, replacing long alkyl chains (e.g., octylammonium) with phenylethylammonium introduces improved electronic coupling and charge transport, while maintaining hydrophobic protection. This results in enhanced carrier lifetime, reduced trap density, and improved energy level alignment. Consequently, the dual-passivation strategy presented here outperforms both single-cation and previously reported binary systems, demonstrating that rational selection of complementary cations is critical for maximizing both efficiency and stability in perovskite solar cells. Fig 8 comprehensively summarizes the impact of different passivation strategies on the performance and stability of perovskite solar cells. As shown in panel (A), the dual-cation 2P-1G device exhibits the highest photovoltaic performance, achieving a PCE of 25.11%, along with an enhanced open-circuit voltage () of 1.23 V and a high short-circuit current density () of 24.96 mA cm−2. These values clearly outperform both the single-cation and unpassivated devices.\nDownload:\nPNG\nlarger image\nTIFF\noriginal image\nFig 8.  2P-1G dual-cation passivation yields highest efficiency (25.11% PCE), prolonged stability (∼80% after 25 days @ 80% RH), extended carrier lifetime (315 ns), and smoothest morphology (7.47 nm rms).\nhttps://doi.org/10.1371/journal.pone.0351439.g008\nPanel (B) illustrates the long-term operational stability under ambient conditions (80% relative humidity). The 2P-1G device retains approximately 80% of its initial efficiency after 25 days, demonstrating significantly improved stability compared to the other samples, which show more pronounced degradation over time.\nFurthermore, panel (C) reveals a substantial increase in charge carrier lifetime for the 2P-1G sample, reaching 315 ns. This enhancement indicates effective suppression of non-radiative recombination, which is a key factor contributing to the improved device performance.\nThis observation is supported by the morphological analysis shown in panel (D). Atomic force microscopy (AFM) results indicate that the 2P-1G film exhibits the lowest surface roughness (RMS = 7.47 nm), confirming the formation of a smoother and more uniform perovskite surface compared to the other passivation conditions.\n4 Conclusion\nTo summarize, we employed structural manipulation for efficient passivation the perovskite/HTL interface using dual spacer cations, namely n-PEABr and GuaBr. The binary cation passivation layer resulted in a 50 mV increase in  in contrast to the control device, achieving a maximum efficiency of 25.11% and outperforming devices with single-cation PEABr passivation. Our stability tests under ambient conditions with 80% relative humidity identified the 2P-1G sample regarded as highly stable, attributed to its high contact angle that repels humidity and low imperfection density. In light-soaking stability tests, the 1P-1g device exhibited reduced nonradiative recombination centers, validated by photoluminescence measurements, and improved interaction with the adjacent HTL, facilitating better charge extraction. X-ray diffraction analysis revealed two peaks indicative of 2D perovskite in both 1P-1G and 2P-1G samples, with a minimal 1D property peak in the P-passivated sample. Consistent with prior studies using phenylethylammonium cations for surface passivation, we hypothesize that these ions typically accumulate at perovskite grain boundaries, forming hydrogen bonds with undercoordinated iodine species to inhibit iodide ion migration. High-resolution TEM imaging verified the presence of a uniform, continuous 1D/2D passivation coating predominantly originating from PEABr atop the 3D perovskite layer in the mixed-cation passivation sample. Furthermore, space-charge-limited current measurements indicated a threefold increased trap-dense limit voltage in the 1P-1G sample compared to the 2P-1G sample, suggesting fewer trapped states in the passivated cell. In conclusion, the enhanced photovoltaic effectiveness of the 2P-1G passivated cell can be credited to reduced recombination trap states and improved charge collection efficiency. Exploring alternative dual spacer cations for surface passivation holds promise for further enhancing cell performance and stability in future studies.\nAcknowledgments\nThis work was supported through the Annual Funding track by the Deanship of Scientific Research, Vice Presidency for Graduate Studies and Scientific Research, King Faisal University, Saudi Arabia [KFU262906].\nReferences\n1.\nLi F, Deng X, Qi F, Li Z, Liu D, Shen D. J Am Chem Soc. 2020;142:20134.\nView Article\nGoogle Scholar\n2.\nJeong MJ, Yeom KM, Kim SJ, Jung EH, Noh JH. Energy Environ Sci. Energy Environ Sci. 2021;14:2419.\nView Article\nGoogle Scholar\n3.\nWang P, Li R, Chen B, Hou F, Zhang J, Zhao Y. Adv Mater. 2020;32:1905766.\n4.\nJeon NJ, Na H, Jung EH, Yang T, Lee YG, Kim G. Nat Energy. 2018.\n5.\nN R E L. Best research-cell efficiency chart. 2021. https://www.nrel.gov/pv/cell-efficiency.html\n6.\nKojima A, Teshima K, Shirai Y, Miyasaka T. J Am Chem Soc. 2009;131:6050.\nView Article\nGoogle Scholar\n7.\nZhu P, Chen C, Dai J, Zhang Y, Mao R, Chen S, et al. Toward the Commercialization of Perovskite Solar Modules. Adv Mater. 2024;36(15):e2307357.  pmid:38214179\nView Article\nPubMed/NCBI\nGoogle Scholar\n8.\nChauhan AK, Kumar P, Sharma SN. Perovskite solar cells: Past, present, and future. Photovoltaics Beyond Silicon. 2024. p. 113–63. https://doi.org/10.1016/B978-0-323-90188-8.00015-4\n9.\nCommercial perovskites imminent. PV Magazine. 2023. https://www.pv-magazine.com/2023/10/31/commercial-perovskites-imminent/\nView Article\nGoogle Scholar\n10.\nXia J, Liang C, Gu H, Mei S, Li S, Zhang N, et al. Surface passivation toward efficient and stable perovskite solar cells. Energy & Environmental Materials. 2023;6:e12296.\nView Article\nGoogle Scholar\n11.\nHui W, Chao L, Lu H, Xia F, Wei Q, Su Z. Science. 2021;371:1359.\n12.\nWang R, Huang T, Xue J, Tong J, Zhu K, Yang Y. Nature Photonics. 2021;15:411.\nView Article\nGoogle Scholar\n13.\nNREL. Best Research-Cell Efficiency Chart. https://www.nrel.gov/pv/cell-efficiency.html\n14.\nGreen MA, Dunlop ED, Yoshita M, Kopidakis N, Bothe K, Siefer G. Solar cell efficiency tables (Version 64). Progress in Photovoltaics: Research and Applications. 2024;32:425–41.\nView Article\nGoogle Scholar\n15.\nP V T I M E. 871 million yuan! Perovskite pilot line to be launched in Anhui province of China. 2024. Accessed 2024 July 12.\n16.\nChen J, He D, Park NG. Sol RRL. 2022;6:2100767.\n17.\nZhu L, Zhang X, Li M, Shang X, Lei K, Zhang B. Adv Energy Mater. Adv Energy Mater. 2021;11:2100529.\nView Article\nGoogle Scholar\n18.\nBu T, Li J, Li H, Tian C, Su J, Tong G. Science. 2021;372:1327.\n19.\nXie J, Yan K, Zhu H, Li G, Wang H, Zhu H. Sci Bull. 2020;65:1726.\n20.\nXie L, Vashishtha P, Koh TM, Harikesh PC, Jamaludin NF, Bruno A. Advanced Materials. 2020;32:2003296.\nView Article\nGoogle Scholar\n21.\nMarchioro A, Teuscher J, Friedrich D, Kunst M, Van De Krol R, Moehl T. Nat photonics. Nat Photonics. 2014;8:250.\nView Article\nGoogle Scholar\n22.\nChong WK, Giovanni D, Sum TC. Halide Perovskites Photovoltaics, Light Emitting Devices, and Beyond. Weinheim: Wiley-VCH. 2018.\n23.\nRajagopal A, Yao K, Jen AKY. Adv Mater. Adv Mater. 2018;30:1800455.\nView Article\nGoogle Scholar\n24.\nTan H, Jain A, Voznyy O, Lan X, De Arquer FPG, Fan JZ. Science. Science. 2017;355:722.\nView Article\nGoogle Scholar\n25.\nTao C, Neutzner S, Colella L, Marras S, Srimath Kandada AR, Gandini M. Energy and Environmental Science. Energy Environ Sci. 2015;8:2365.\nView Article\nGoogle Scholar\n26.\nZhang F, Shi W, Luo J, Pellet N, Yi C, Li X. Adv Mater. 2017;29:1606806.\n27.\nWang F, Shimazaki A, Yang F, Kanahashi K, Matsuki K, Miyauchi Y. J Phys Chem C. 2017;121:1562.\nView Article\nGoogle Scholar\n28.\nKoushik D, Verhees W, Kuang Y, Veenstra S, Zhang D, Verheijen M. Energy Environ Sci. 2017;10:91.\n29.\nMahmud MA, Duong T, Yin Y, Pham HT, Walter D, Peng J. Advanced Functional Materials. 2020;30:1907962.\nView Article\nGoogle Scholar\n30.\nMahmud M, Duong T, Yin Y, Peng J, Wu Y, Lu T. Small. 2020;16:2005022.\nView Article\nGoogle Scholar\n31.\nZhao P, Kim BJ, Jung HS. Mater Today Energy. Mater Today Energy. 2018;7:267.\nView Article\nGoogle Scholar\n32.\nZhang F, Xiao C, Chen X, Larson BW, Harvey SP, Berry JJ. Joule. 2019;3:1452.\nView Article\nGoogle Scholar\n33.\nZhang F, Shi W, Luo J, Pellet N, Yi C, Li X. Adv Mater. 2017;29:1606806.\n34.\nEperon GE, Leijtens T, Bush KA, Prasanna R, Green T, Wang JTW. Science. Science. 2016;354:861.\nView Article\nGoogle Scholar\n35.\nGrancini G, Roldán-Carmona C, Zimmermann I, Mosconi E, Lee X, Martineau D. Nature Communications. 2017;8:1.\nView Article\nGoogle Scholar\n36.\nZheng X, Troughton J, Gasparini N, Lin Y, Wei M, Hou Y. Joule. 2019;3:1963.\nView Article\nGoogle Scholar\n37.\nGao L, Spanopoulos I, Ke W, Huang S, Hadar I, Chen L. ACS Energy Lett. 2019;4:1763.\nView Article\nGoogle Scholar\n38.\nFan J, Ma Y, Zhang C, Liu C, Li W, Schropp REI. Advanced Energy Materials. 2018;8:1703421.\nView Article\nGoogle Scholar\n39.\nHu Y, Qiu T, Bai F, Ruan W, Zhang S. Adv Energy Mater. Adv Energy Mater. 2018;8:1703620.\nView Article\nGoogle Scholar\n40.\nZhou Y, Xue H, Jia YH, Brocks G, Tao S, Zhao N. Advanced Functional Materials. 2019;29:1.\nView Article\nGoogle Scholar\n41.\nKim H, Lee SU, Lee DY, Paik MJ, Na H, Lee J. Adv Energy Mater. Adv Energy Mater. 2019;9:1902740.\nView Article\nGoogle Scholar\n42.\nBu T, Li J, Huang W, Mao W, Zheng F, Bi P. Journal of Materials Chemistry A. 2019;7:6793.\nView Article\nGoogle Scholar\n43.\nKim M, Kim GH, Lee TK, Choi IW, Choi HW, Jo Y. Joule. 2019;3:2179.\nView Article\nGoogle Scholar\n44.\nParitmongkol W, Dahod NS, Stollmann A, Mao N, Settens C, Zheng SL. Chem Mater. 2019;31:5592.\nView Article\nGoogle Scholar\n45.\nPark IH, Zhang Q, Kwon KC, Zhu Z, Yu W, Leng K. J Am Chem Soc. 2019;141:15972.\nView Article\nGoogle Scholar\n46.\nZhang Y, Wang P, Tang MC, Barrit D, Ke W, Liu J. J Am Chem Soc. 2019;141:2684.\nView Article\nGoogle Scholar\n47.\nSoe CMM, Stoumpos CC, Kepenekian M, Traoré B, Tsai H, Nie W. J Am Chem Soc. 2017;139:16297.\nView Article\nGoogle Scholar\n48.\nZhang F, Kim DH, Zhu K. Curr Opin Electrochem. 2018;11:105.\nView Article\nGoogle Scholar\n49.\nYoo JJ, Wieghold S, Sponseller MC, Chua MR, Bertram SN, Hartono NTP. Energy Environ Sci. 2019;12:2192.\nView Article\nGoogle Scholar\n50.\nMa C, Leng C, Ji Y, Wei X, Sun K, Tang L, et al. Nanoscale. 2016;8:18309.\nView Article\nGoogle Scholar\n51.\nHu Y, Schlipf J, Wussler M, Petrus ML, Jaegermann W, Bein T. ACS Nano. 2016;10:5999.\nView Article\nGoogle Scholar\n52.\nKoh TM, Shanmugam V, Guo X, Lim SS, Filonik O, Herzig EM. Journal of Materials Chemistry A. 2018;6:2122.\nView Article\nGoogle Scholar\n53.\nDuong T, Pham H, Yin Y, Peng J, Mahmud MA, Wu YL. Journal of Materials Chemistry A. 2021;9:18454.\nView Article\nGoogle Scholar\n54.\nGharibzadeh S, Abdollahi Nejand B, Jakoby M, Abzieher T, Hauschild D, Moghadamzadeh S. Adv Energy Mater. Adv Energy Mater. 2019;9:1803699.\nView Article\nGoogle Scholar\n55.\nDuong T, Pham H, Kho TC, Phang P, Fong KC, Yan D, et al. Adv Energy Mater. 2020;10:1903553.\nView Article\nGoogle Scholar\n56.\nStolterfoht M, Wolff CM, Márquez JA, Zhang S, Hages CJ, Rothhardt D. Nature Energy. 2018;3:847.\nView Article\nGoogle Scholar\n57.\nSchulz P. ACS Energy Lett. 2018;3:1287.\nView Article\nGoogle Scholar\n58.\nMahmud MA, Pham HT, Duong T, Yin Y, Peng J, Wu Y. Advanced Functional Materials. 2021;31:2104251.\nView Article\nGoogle Scholar\n59.\nChavan RD, Prochowicz D, Tavakoli MM, Yadav P, Hong CK. Adv Mater Interfaces. 2020;7:1.\nView Article\nGoogle Scholar\n60.\nPham ND, Tiong VT, Yao D, Martens W, Guerrero A, Bisquert J. Nano Energy. 2017;41:476.\nView Article\nGoogle Scholar\n61.\nTeale S, Degani M, Chen B, Sargent EH, Grancini G. Molecular cation and low-dimensional perovskite surface passivation in perovskite solar cells. Nat Energy. 2024;9(7):779–92.\nView Article\nGoogle Scholar\n62.\nJeong J, Chawanpunyawat T, Kim M, Sláma V, Lempesis N, Agosta L, et al. Carbazole Treated Waterproof Perovskite Films with Improved Solar Cell Performance. Advanced Energy Materials. 2024;15(2).\nView Article\nGoogle Scholar\n63.\nAlmalki M, Alotaibi MH, Alanazi AQ, Eickemeyer FT, Alenzi SM, Alzahrani YA. Interfacial Modulation through Mixed-Dimensional Heterostructures for Efficient and Hole Conductor-Free Perovskite Solar Cells. Advanced Functional Materials. 2024;34:2309789.\nView Article\nGoogle Scholar\n64.\nGan Y, Sun J, Guo P, Jiang H, Li J, Zhu H, et al. Advances in the research of carbon electrodes for perovskite solar cells. Dalton Trans. 2023;52(45):16558–77.  pmid:37831439\nView Article\nPubMed/NCBI\nGoogle Scholar\n65.\nKhadka DB, Shirai Y, Yanagida M, Ota H, Lyalin A, Taketsugu T, et al. Defect passivation in methylammonium/bromine free inverted perovskite solar cells using charge-modulated molecular bonding. Nat Commun. 2024;15(1):882.  pmid:38287031\nView Article\nPubMed/NCBI\nGoogle Scholar\n66.\nChen S, Shen N, Zhang L, Kong W, Zhang L, Cheng C. Journal of Materials Chemistry A. 2019;7:9542.\nView Article\nGoogle Scholar\n67.\nTan S, Zhou N, Chen Y, Li L, Liu G, Liu P. Advanced Energy Materials. 2019;9:1803024.\nView Article\nGoogle Scholar\n68.\nQiu J, Xia Y, Zheng Y, Hui W, Gu H, Yuan W. ACS Energy Lett. 2019;4:1513.\nView Article\nGoogle Scholar\n69.\nZhang Y, Chen J, Lian X, Qin M, Li J, Andersen TR. Small Methods. Small Methods. 2019;3:1.\nView Article\nGoogle Scholar\n70.\nNazarenko O, Kotyrba MR, Yakunin S, Aebli M, Rainò G, Benin BM. J Am Chem Soc. 2018;140:3850.\nView Article\nGoogle Scholar\n71.\nJiang Q, Zhao Y, Zhang X, Yang X, Chen Y, Chu Z, et al. Surface passivation of perovskite film for efficient solar cells. Nat Photonics. 2019;13(7):460–6.\nView Article\nGoogle Scholar\n72.\nMozaffari N, Duong T, Shehata MM, Bui AD, Pham HT, Yin Y. Above 23% efficiency by binary surface passivation of perovskite solar cells using guanidinium and octylammonium spacer cations. Sol RRL. 2022;6:2200355.\nView Article\nGoogle Scholar\n73.\nOsman MM, El-naggar AM, Alanazi AQ, Aldhafiri AM, Albassam AA. Development of Perovskite (MACl)0.33FA0.99MA0.01Pb(I0.99Br0.01)3 Solar Cells via n-Octylammonium Iodide Surface Passivation. Nanomaterials. 2023;13:1492.\nView Article\nGoogle Scholar\n74.\nJiang Q, Zhao Y, Zhang X, Yang X, Chen Y, Chu Z, et al. Nat Photonics. 2019;13:460.\nView Article\nGoogle Scholar\nDownload PDF\nCitation\nXML\nPrint\nShare\nReddit\nFacebook\nLinkedIn\nMendeley\nBluesky\nEmail\nRelated PLOS Articles\nhas CORRECTION\nCorrection: Enhancing perovskite solar cells efficiency via dual surface passivation\nView Page\nPDF\nAdvertisement\nSubject Areas\n?\nFor more information about PLOS Subject Areas, click\nhere.\nWe want your feedback. Do these Subject Areas make sense for this article? Click the target next to the incorrect Subject Area and let us know. Thanks for your help!\nCations\nIs the Subject Area \"Cations\" applicable to this article?\nYes\nNo\nThanks for your feedback.\nPhotovoltaic power\nIs the Subject Area \"Photovoltaic power\" applicable to this article?\nYes\nNo\nThanks for your feedback.\nBromides\nIs the Subject Area \"Bromides\" applicable to this article?\nYes\nNo\nThanks for your feedback.\nAlternative energy\nIs the Subject Area \"Alternative energy\" applicable to this article?\nYes\nNo\nThanks for your feedback.\nAtomic force microscopy\nIs the Subject Area \"Atomic force microscopy\" applicable to this article?\nYes\nNo\nThanks for your feedback.\nHydrogen bonding\nIs the Subject Area \"Hydrogen bonding\" applicable to this article?\nYes\nNo\nThanks for your feedback.\nScanning electron microscopy\nIs the Subject Area \"Scanning electron microscopy\" applicable to this article?\nYes\nNo\nThanks for your feedback.\nX-ray diffraction\nIs the Subject Area \"X-ray diffraction\" applicable to this article?\nYes\nNo\nThanks for your feedback.",
+      "source_url": "https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0351439",
+      "acquisition": {
+        "format": "html",
+        "coverage": "metadata_or_page_text",
+        "final_url": "https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0351439",
+        "truncated": false,
+        "text_scope": "primary_page_text_and_publisher_citation_metadata",
+        "requested_url": "https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0351439",
+        "publisher_abstract_spans": [
+          {
+            "end": 2255,
+            "basis": "explicit_publisher_abstract_container_paragraph",
+            "quote": "Effective defect passivation is essential for achieving high performance in perovskite solar cells (PSCs). Dimensional engineering provides a powerful strategy to suppress non-radiative recombination in both the bulk and surface regions of PSCs. In this work, we present a novel interfacial passivation approach for the perovskite/hole transport layer interface using a dual-cation passivation layer composed of guanidinium bromide (GuaBr) and n-phenylethylammonium bromide (n-PEABr). This dual-cation strategy delivers an open-circuit voltage of 1.23 V and a power conversion efficiency (PCE) of 25.11%, significantly outperforming devices based on single-cation passivation. The combined cations induce the formation of a mixed 1D/2D perovskite structure, resulting in a more uniform and hydrophobic surface compared with unpassivated films. Moreover, stability tests conducted under ambient conditions (80% relative humidity) and continuous light-soaking reveal markedly enhanced device stability. The results demonstrate the superior passivation effectiveness of phenylethylammonium compared with previously reported methods. In particular, this approach surpasses the 23% PCE achieved using octylammonium passivation, achieving efficiencies exceeding 25%. Overall, the excellent defect passivation and favorable optical and electrical properties of phenylethylammonium play a key role in significantly improving both the efficiency and stability of PSCs.",
+            "start": 796
+          }
+        ]
+      },
+      "evidence_id": "ev-3b962f41",
+      "reliability": 0.7,
+      "source_type": "web",
+      "collected_at": "2026-10-21T09:52:22.296438+00:00",
+      "collected_by": "browser",
+      "source_title": "Enhancing perovskite solar cells efficiency via dual surface passivation | PLOS One",
+      "source_backend": "pinned-http",
+      "source_channel": "web",
+      "tokens_estimate": 0
+    }
+  ],
+  "node_outcomes": [
+    {
+      "status": "success",
+      "node_id": "corpus-source-0",
+      "cost_usd": 0.0,
+      "tool_name": "browse_webpage",
+      "retry_count": 0,
+      "tokens_used": 0,
+      "result_count": 1,
+      "tool_call_id": "call-b9fb10b5",
+      "error_message": null,
+      "error_category": null,
+      "approval_request_id": null
+    },
+    {
+      "status": "success",
+      "node_id": "corpus-source-0",
+      "cost_usd": 0.0,
+      "tool_name": "browse_webpage",
+      "retry_count": 0,
+      "tokens_used": 0,
+      "result_count": 1,
+      "tool_call_id": "call-267c2e26",
+      "error_message": null,
+      "error_category": null,
+      "approval_request_id": null
+    }
+  ],
+  "source_checks": {
+    "proofs": [
+      {
+        "end": 420,
+        "quote": "citation_title: Enhancing perovskite solar cells efficiency via dual surface passivation",
+        "start": 332,
+        "source_url": "https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0351439",
+        "evidence_id": "ev-3b962f41"
+      },
+      {
+        "end": 2611,
+        "quote": "; Published:  July 10, 2026",
+        "start": 2584,
+        "source_url": "https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0351439",
+        "evidence_id": "ev-3b962f41"
+      },
+      {
+        "end": 331,
+        "quote": "citation_author: Shrouq H. Aleithan\ncitation_author_institution: Department of Physics, College of Science, King Faisal University, Al-Ahsa, Saudi Arabia",
+        "start": 178,
+        "source_url": "https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0351439",
+        "evidence_id": "ev-3b962f41"
+      },
+      {
+        "end": 2391,
+        "quote": "Citation: Sai R, Aleithan SH (2026) Enhancing perovskite solar cells efficiency via dual surface passivation. PLoS One 21(7):\ne0351439.",
+        "start": 2256,
+        "source_url": "https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0351439",
+        "evidence_id": "ev-3b962f41"
+      },
+      {
+        "end": 1280,
+        "quote": "Dimensional engineering provides a powerful strategy to suppress non-radiative recombination in both the bulk and surface regions of PSCs. In this work, we present a novel interfacial passivation approach for the perovskite/hole transport layer interface using a dual-cation passivation layer composed of guanidinium bromide (GuaBr) and n-phenylethylammonium bromide (n-PEABr).",
+        "start": 903,
+        "source_url": "https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0351439",
+        "evidence_id": "ev-3b962f41"
+      },
+      {
+        "end": 717,
+        "quote": "Correction\n20 Aug 2026:\nSai R,\nAleithan SH\n(2026)\nCorrection: Enhancing perovskite solar cells efficiency via dual surface passivation.\nPLOS ONE  21(8): e0356803.",
+        "start": 555,
+        "source_url": "https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0351439",
+        "evidence_id": "ev-3b962f41"
+      }
+    ],
+    "status": "source_quote_and_reference_checked_not_independent_semantic_review",
+    "accepted_output_count": 1,
+    "available_evidence_ids": [
+      "ev-3b962f41"
+    ],
+    "analyst_excerpt_evidence_ids": [
+      "ev-3b962f41"
+    ]
+  },
+  "total_tokens": 56646
+}

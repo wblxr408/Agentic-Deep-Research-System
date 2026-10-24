@@ -1,0 +1,196 @@
+[
+  {
+    "case": "workflow-import",
+    "session_id": "725771bd-180f-4aa1-9f75-da07e29bd24b",
+    "status": "failed",
+    "runtime_status": "terminal_failed",
+    "last_error_category": null,
+    "budget_hard_stop": "token_limit",
+    "corpus": null
+  },
+  {
+    "case": "interruption",
+    "session_id": "c8fa4bbe-f65d-44d9-8696-9c69e074a7bd",
+    "status": "failed",
+    "runtime_status": "terminal_failed",
+    "last_error_category": "worker_interrupted_budget_expired",
+    "budget_hard_stop": "worker_interrupted_budget_expired",
+    "corpus": null
+  },
+  {
+    "case": "search-before",
+    "session_id": "e784b177-a641-4f8d-aa30-94627081939b",
+    "status": "failed",
+    "runtime_status": "retryable_failed",
+    "last_error_category": "empty_content",
+    "budget_hard_stop": null,
+    "corpus": null
+  },
+  {
+    "case": "overlap-before",
+    "session_id": "1933500f-1647-4518-bb6a-8ee0ef81fa60",
+    "status": "completed",
+    "runtime_status": "completed",
+    "last_error_category": null,
+    "budget_hard_stop": null,
+    "corpus": {
+      "counts": {
+        "source_candidates": 1,
+        "pending_candidates": 0,
+        "duplicate_seed_urls": 0,
+        "excluded_candidates": 1,
+        "accepted_publications": 0,
+        "accepted_research_families": 0,
+        "accepted_without_full_text": 0
+      },
+      "limits": [
+        "检索式和纳入条件属于声明，学科／主题尚未独立分类。",
+        "页面／检索线索不等于发表记录；采纳仅指通过本次原文字面、日期和归属检查。",
+        "未取得全文不等于不可获得；不会自动跳转PDF或扩大来源。"
+      ],
+      "records": [
+        {
+          "title": "DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving",
+          "reason": "Publisher date bounds outside declared range",
+          "stages": [
+            {
+              "at": "2026-10-21T07:35:02.920796+00:00",
+              "status": "candidate"
+            },
+            {
+              "at": "2026-10-21T07:35:08.882505+00:00",
+              "status": "source_acquired",
+              "coverage": "metadata_or_page_text"
+            },
+            {
+              "at": "2026-10-21T07:35:45.714194+00:00",
+              "status": "excluded",
+              "reason_code": "publication_date_out_of_scope"
+            }
+          ],
+          "source_url": "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin",
+          "reason_code": "publication_date_out_of_scope",
+          "record_kind": "publication_candidate",
+          "evidence_ids": [
+            "ev-b06754df"
+          ],
+          "admission_status": "excluded",
+          "full_text_status": "not_acquired",
+          "publisher_metadata": {
+            "basis": "single_primary_bibtex_and_matching_page_title_not_independent_semantic_review",
+            "title": "DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving",
+            "published_on": "2024-07-01",
+            "date_precision": "month",
+            "literal_fields": {
+              "year": {
+                "end": 2693,
+                "quote": "year = {2024}",
+                "start": 2680,
+                "value": "2024"
+              },
+              "month": {
+                "end": 2893,
+                "quote": "month = jul",
+                "start": 2882,
+                "value": "jul"
+              },
+              "title": {
+                "end": 2584,
+                "quote": "title = {{DistServe}: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving}",
+                "start": 2475,
+                "value": "DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving"
+              }
+            },
+            "published_until": "2024-07-31"
+          }
+        }
+      ],
+      "coverage": "declared_retrieved_sample_not_real_world_census",
+      "declaration": {
+        "exclusion": [
+          "unsupported source",
+          "publication date outside range",
+          "unselected output type",
+          "unverified identity/date/title retained as candidate, not silently accepted"
+        ],
+        "inclusion": {
+          "topic": "systems research",
+          "end_date": "2024-07-31",
+          "entities": [
+            {
+              "name": "Peking University",
+              "type": "university",
+              "aliases": [],
+              "entity_id": "pku",
+              "unit_kind": "organization",
+              "source_urls": [
+                "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin"
+              ],
+              "resolution_status": "pending"
+            }
+          ],
+          "start_date": "2024-07-16",
+          "disciplines": [
+            "computer science"
+          ],
+          "output_types": [
+            "conference_paper"
+          ],
+          "organization_types": [
+            "university"
+          ],
+          "topic_and_discipline_status": "requested_labels_not_independently_classified"
+        },
+        "seed_urls": [
+          "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin"
+        ],
+        "output_types": [
+          "conference_paper"
+        ],
+        "rule_version": "adrs-corpus-v1",
+        "search_terms": [
+          "DistServe Peking University",
+          "Harp 2026"
+        ],
+        "source_scope": {
+          "groups": [
+            "publishers"
+          ],
+          "official_domains": [],
+          "publisher_domains": [
+            "usenix.org"
+          ]
+        },
+        "source_policy": {
+          "groups": [
+            "publishers"
+          ],
+          "source_uses": {
+            "publishers": "paper_or_proceedings"
+          },
+          "catalog_version": "2026-10-18.1",
+          "domains_by_group": {
+            "publishers": [
+              "usenix.org"
+            ]
+          }
+        },
+        "collection_mode": "seeds_only",
+        "full_text_policy": "read_explicit_sources_only_no_automatic_pdf_following",
+        "duplicate_seed_urls": 0,
+        "effective_seed_urls": [
+          "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin"
+        ],
+        "effective_search_terms": [
+          "DistServe Peking University",
+          "Harp 2026"
+        ]
+      },
+      "evaluated_at": "2026-10-21T07:35:45.714194+00:00",
+      "counting_unit": "canonical_primary_source_url_for_candidates_and_publications; explicit_family_links_only",
+      "schema_version": "adrs-corpus-v1",
+      "executed_queries": [],
+      "request_frozen_at": "2026-10-21T07:35:02.920796+00:00"
+    }
+  }
+]

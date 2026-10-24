@@ -1,0 +1,2123 @@
+{
+  "session_id": "22a2f57f-c75c-4399-9124-560365672ad0",
+  "query": "研究 MIT 与 CSAIL 在计算机网络领域的公开研究方向，依据已取得的官网资料分别说明范围、共同主题及证据缺口，不要求猜测论文全集。",
+  "status": "completed",
+  "runtime_status": "completed",
+  "report": "# MIT 与 CSAIL 在计算机网络领域的公开研究方向：范围、共同主题与证据缺口\n\n> Generated: 2026-10-20 | Research Depth: Comprehensive\n\n## Executive Summary\n\n基于本次已取得的官网资料，**无法对 MIT 与 CSAIL 在计算机网络领域的公开研究方向给出实质结论**。两个核心官网页面（MIT 研究主页、CSAIL 研究主页）抓取到的内容仅为页面框架：前者只概述 MIT 研究分布于 **30 个系、五个学院和一个学院及数十个中心/实验室/项目**，未展开具体条目，也未提及计算机网络 [citation:1]；后者几乎全为导航菜单，无任何研究内容 [citation:2]。可确认的仅为结构性事实（MIT 研究呈多院系+多中心的分散结构，置信度 HIGH）[citation:1]；网络领域的研究方向、共同主题与差异均属**证据缺口**，而非\"无研究\"。\n\n## 1. 背景与范围\n\n### 1.1 研究契约与对象\n\n本研究依据固定契约，范围限定为两个组织实体：**MIT**（university，来源 https://www.mit.edu/research/）与 **CSAIL**（laboratory，来源 https://www.csail.mit.edu/research/），学科限定为计算机科学，主题为\"计算机网络领域的公开研究方向\"，时间窗为 **2020-01-01 至 2026-10-20**，证据截止 **2026-10-20T14:03:16Z**。契约明确要求：分别研究每个对象，再比较共同主题及差异；官网页面仅作背景，页面出现对象名称不证明成果归属，抓取时间不证明发表时间。\n\n### 1.2 方法约束\n\n契约规定：缺少成果或日期证据须列为待核，**不能用零篇或完整论文全集代替**；权重仅为用户偏好，不能推翻硬条件或缺失事实。本次检索实际取得的与研究对象直接相关的证据仅 4 条（MIT 研究主页、CSAIL 研究主页、MIT 主站两处引用）[citation:1][citation:2][citation:3][citation:20]，其余多为招生/介绍页 [citation:4]–[citation:9] 及与本研究无关的 Microsoft 页面 [citation:10]–[citation:19]。这一证据分布本身即构成对结论强度的硬约束。\n\n## 2. 关键发现\n\n### 2.1 MIT：可确认的结构性范围，网络方向不可确认\n\nMIT 研究主页可确认的实质内容为组织结构描述：研究\"在 **30 个系、五个学院和一个学院**中蓬勃发展，并在**数十个中心、实验室和项目**中跨学科汇聚专家\"，同时提及 MIT Lincoln Laboratory、Woods Hole Oceanographic Institution、与产业界的研究关系及全球合作 [citation:1]。页面列出\"Centers, Labs & Programs\"\"Collaborating Institutions\"等栏目标题，但**未展开具体条目**，全文**未提及计算机网络** [citation:1]。\n\nMIT 主站宣传口径列出的研究主题为**人类健康、能源创新、量子计算、先进制造**，不含网络 [citation:3][citation:20]。需强调：这仅反映主站宣传口径（置信度 MEDIUM），**不能证明 MIT 无网络研究**。\n\n> 结论（MIT 范围）：可确认\"多院系+多中心\"的分散研究结构（HIGH）[citation:1]；网络领域的具体研究方向**不可确认**（LOW）。\n\n### 2.2 CSAIL：页面无实质研究内容\n\nCSAIL 研究主页抓取内容几乎全为导航菜单（FOR STUDENTS、FOR INDUSTRY、FOR MEMBERS、ACCESSIBILITY、Press Requests 等），**无任何研究内容** [citation:2]。因此，CSAIL 在计算机网络领域的公开研究方向在本次证据下**完全不可确认**。\n\nCSAIL 与 MIT 存在层级包含关系（CSAIL 为 MIT 下属实验室），但契约规定\"页面出现对象名称不证明成果归属\"，故**不能据此推断二者在网络领域的研究方向分工**。\n\n> 结论（CSAIL 范围）：研究方向**不可得**（LOW/不可得），属证据缺口。\n\n### 2.3 共同主题与差异：无法识别\n\n由于 MIT 侧仅有组织结构描述、CSAIL 侧无研究内容，**共同主题与差异均无法识别** [citation:1][citation:2]。这是**证据缺口**，而非\"二者无网络研究\"的证据。任何关于共同主题（如网络架构、协议、测量等）的陈述在本次证据下均缺乏支撑，不予给出。\n\n## 3. 数据与统计\n\n| 维度 | MIT | CSAIL | 证据 |\n|---|---|---|---|\n| 官网页面实质内容 | 组织结构概述（30 系/5 学院+1 学院/数十中心） | 仅导航菜单 | [citation:1][citation:2] |\n| 是否提及计算机网络 | 否 | 否（无研究内容） | [citation:1][citation:2] |\n| 主站宣传主题 | 健康、能源、量子、先进制造 | 不适用 | [citation:3][citation:20] |\n| 网络方向可确认度 | LOW | 不可得 | 分析判断 |\n| 组织结构事实置信度 | HIGH | — | [citation:1] |\n\n**证据质量统计**：直接相关证据 **4 条**；无关证据（Microsoft 页面）**10 条** [citation:10]–[citation:19]；招生/介绍页 **6 条** [citation:4]–[citation:9]。核心页面均为\"框架级\"抓取，无条目级内容 [citation:1][citation:2]。\n\n## 4. 专家视角（分析性判断）\n\n> 本次证据下，最稳健的结论是\"结构性事实可确认、主题性结论不可得\"。将页面框架误读为研究方向，或以主站宣传口径推断\"无网络研究\"，均属超出证据的推断。\n\n分析要点：\n- **结构性事实（HIGH）**：MIT 研究组织高度分散，网络相关研究若存在，最可能分布于\"数十个中心、实验室和项目\"之中，但本次页面未列出清单 [citation:1]。\n- **宣传口径的边界（MEDIUM）**：主站主题列表是传播选择而非研究全集 [citation:3][citation:20]。\n- **归属规则**：CSAIL 隶属 MIT 不构成成果归属证据，契约已明确排除此推断路径。\n\n## 5. 结论与建议\n\n### 5.1 结论\n\n1. **MIT**：可确认多院系、多中心的分散研究结构（HIGH）[citation:1]；计算机网络领域的具体公开研究方向**无法从本次证据确认**（LOW）。\n2. **CSAIL**：研究主页无实质内容，网络方向**不可得**（LOW/不可得）[citation:2]。\n3. **共同主题与差异**：**无法识别**，属证据缺口，不等于\"无研究\" [citation:1][citation:2]。\n\n### 5.2 待核清单（必须补齐后方可下主题性结论）\n\n- CSAIL 研究页的**实质内容**（当前仅菜单）[citation:2]；\n- MIT **中心/实验室/项目清单**及其中网络相关单元 [citation:1]；\n- 两对象**网络相关项目与成果及其日期**（2020-01-01 至 2026-10-20 窗口内）；\n- **成果归属证据**（署名、项目页、出版物元数据），而非页面名称出现；\n- **检索质量复核**（本次无关证据占比高）[citation:10]–[citation:19]。\n\n### 5.3 建议\n\n在补齐上述待核项前，**不应**发布\"MIT/CSAIL 网络研究方向\"的实质性比较结论；可将本报告作为**证据基线**，明确标注结构性事实与主题性缺口的边界。若需推进，优先获取 CSAIL 研究页条目级内容与 MIT 中心清单，并按契约的归属与日期规则逐条绑定证据。\n\n## References\n\n[citation:1] Research | MIT — https://www.mit.edu/research/\n[citation:2] Research | MIT CSAIL — https://www.csail.mit.edu/research\n[citation:3] MIT — Massachusetts Institute of Technology（主站）— https://web.mit.edu/\n[citation:4]–[citation:9] 招生/介绍类页面（背景参考，未支撑主题结论）\n[citation:10]–[citation:19] 与本研究无关的 Microsoft 页面（检索噪声）\n[citation:20] MIT 主站宣传主题引用（同 [citation:3] 来源）\n\n*置信度说明：组织结构事实 HIGH [citation:1]；宣传口径 MEDIUM [citation:3][citation:20]；网络领域研究方向与比较结论 LOW/不可得 [citation:1][citation:2]。*\n\n## 核验结果\n\n自动来源支持：14/31 项；人工复核：未复核。模型置信度不代表人工确认。\n支持状态来自模型语义判断与原文引语校验，不能保证结论为真。\n\n- claim:1 [missing_citation] Generated: 2026-10-20 | Research Depth: Comprehensive — Awaiting source support judgement\n- claim:3 [missing_citation] 本研究依据固定契约，范围限定为两个组织实体：**MIT**（university，来源 https://www.mit.edu/research/）与 **CSAIL**（laboratory，来源 https://www.csail.mit.edu/research/），学科限定为计算机科学，主题为\"计算机网络领域的公开研究方向\"，时间窗为 **2020-01-01 至 2026-10-20**，证据截止 **2026-10-20T14:03:16Z**。契约明确要求：分别研究每个对象，再比较共同主题及差异；官网页面仅作背景，页面出现对象名称不证明成果归属，抓取时间不证明发表时间。 — Awaiting source support judgement\n- claim:4 [unsupported] 契约规定：缺少成果或日期证据须列为待核，**不能用零篇或完整论文全集代替**；权重仅为用户偏好，不能推翻硬条件或缺失事实。本次检索实际取得的与研究对象直接相关的证据仅 4 条（MIT 研究主页、CSAIL 研究主页、MIT 主站两处引用）[citation:1][citation:2][citation:3][citation:20]，其余多为招生/介绍页 [citation:4]–[citation:9] 及与本研究无关的 Microsoft 页面 [citation:10]–[citation:19]。这一证据分布本身即构成对结论强度的硬约束。 — The claim asserts a contract rule (missing evidence must be listed as pending, not replaced by zero or full paper sets; weights are only preferences) and a specific evidence distribution (exactly 4 relevant items, citations 4-9 admissions/intro pages, 10-19 unrelated Microsoft pages). The supplied excerpts contain none of this contract text nor the cited pages 5-19, so the counts and categorization cannot be verified from the passages.\n- claim:9 [missing_citation] CSAIL 与 MIT 存在层级包含关系（CSAIL 为 MIT 下属实验室），但契约规定\"页面出现对象名称不证明成果归属\"，故**不能据此推断二者在网络领域的研究方向分工**。 — Awaiting source support judgement\n- claim:10 [missing_citation] 结论（CSAIL 范围）：研究方向**不可得**（LOW/不可得），属证据缺口。 — Awaiting source support judgement\n- claim:15 [missing_citation] | 网络方向可确认度 | LOW | 不可得 | 分析判断 | — Awaiting source support judgement\n- claim:16 [unverifiable] | 组织结构事实置信度 | HIGH | — | [citation:1] | — The claim is a table row asserting an organizational-structure fact confidence of HIGH. The MIT research page describes departments, schools, and centers, but contains no confidence rating or assessment framework; the HIGH confidence label cannot be derived from the excerpt.\n- claim:17 [unverifiable] **证据质量统计**：直接相关证据 **4 条**；无关证据（Microsoft 页面）**10 条** [citation:10]–[citation:19]；招生/介绍页 **6 条** [citation:4]–[citation:9]。核心页面均为\"框架级\"抓取，无条目级内容 [citation:1][citation:2]。 — The claim asserts specific evidence-quality counts (4 direct, 10 irrelevant Microsoft pages, 6 admissions pages) and that core pages are framework-level with no item-level content. The supplied excerpts are MIT pages and do not contain these counts or the Microsoft-page characterization, so the statistics cannot be verified from the passages.\n- claim:18 [missing_citation] 本次证据下，最稳健的结论是\"结构性事实可确认、主题性结论不可得\"。将页面框架误读为研究方向，或以主站宣传口径推断\"无网络研究\"，均属超出证据的推断。 — Awaiting source support judgement\n- claim:19 [missing_citation] 分析要点： — Awaiting source support judgement\n- claim:21 [unverifiable] **宣传口径的边界（MEDIUM）**：主站主题列表是传播选择而非研究全集 [citation:3][citation:20]。 — The claim asserts that the main site's topic list is a communication selection rather than the full research set. The excerpt lists topics (health, energy, quantum, manufacturing) but does not state that this list is selective or non-exhaustive, so the interpretive claim is not entailed.\n- claim:22 [missing_citation] **归属规则**：CSAIL 隶属 MIT 不构成成果归属证据，契约已明确排除此推断路径。 — Awaiting source support judgement\n- claim:25 [unverifiable] **共同主题与差异**：**无法识别**，属证据缺口，不等于\"无研究\" [citation:1][citation:2]。 — The claim asserts that common themes and differences cannot be identified and that this is an evidence gap, not 'no research.' The excerpts are generic MIT research page text and a CSAIL menu; they do not establish the absence of identifiable themes or frame it as an evidence gap.\n- claim:28 [missing_citation] 两对象**网络相关项目与成果及其日期**（2020-01-01 至 2026-10-20 窗口内）； — Awaiting source support judgement\n- claim:29 [missing_citation] **成果归属证据**（署名、项目页、出版物元数据），而非页面名称出现； — Awaiting source support judgement\n- claim:30 [unverifiable] **检索质量复核**（本次无关证据占比高）[citation:10]–[citation:19]。 — The claim is a meta-observation that irrelevant evidence dominates among citations 10-19. The supplied excerpts (Copilot models, Teams tips) are indeed unrelated to the research topic, but the excerpts alone do not establish the overall proportion or the review conclusion.\n- claim:31 [missing_citation] 在补齐上述待核项前，**不应**发布\"MIT/CSAIL 网络研究方向\"的实质性比较结论；可将本报告作为**证据基线**，明确标注结构性事实与主题性缺口的边界。若需推进，优先获取 CSAIL 研究页条目级内容与 MIT 中心清单，并按契约的归属与日期规则逐条绑定证据。 — Awaiting source support judgement",
+  "citations": [
+    {
+      "citation_id": "citation:1",
+      "source_url": "https://www.mit.edu/research/",
+      "source_title": "Research | MIT - Massachusetts Institute of Technology",
+      "source_type": "web",
+      "extracted_evidence": "# Massachusetts Institute of Technology\n\n## Research\n\n## Centers, Labs & Programs\n\n## Collaborating Institutions\n\nAt MIT, pushing the boundaries of knowledge and possibility is our joyful obsession, and we celebrate fundamental discoveries and practical applications alike. As educators, we also valu",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-20T14:04:48.289177"
+    },
+    {
+      "citation_id": "citation:2",
+      "source_url": "https://www.csail.mit.edu/research",
+      "source_title": "Research | MIT CSAIL",
+      "source_type": "web",
+      "extracted_evidence": "# Research\n\n## MIT CSAIL\n\n- FOR STUDENTS\n\n- FOR INDUSTRY\n\n- FOR MEMBERS\n\n- ACCESSIBILITY\n\n- For Students\n\n- For Industry\n\n- For Members\n\n- Accessibility\n\n- Press Requests\n\n- Accessibility\n\n- Press Requests\n\n- Accessibility",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-20T14:04:48.289177"
+    },
+    {
+      "citation_id": "citation:3",
+      "source_url": "https://web.mit.edu/",
+      "source_title": "MIT - Massachusetts Institute of Technology",
+      "source_type": "web",
+      "extracted_evidence": "MIT - Massachusetts Institute of Technology: MIT’s vital research and education — on topics such as human health, energy innovation, quantum computing, and advanced manufacturing — continue to advance national security, economic competitiveness, and quality of life for all Americans.",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-20T14:04:48.289177"
+    },
+    {
+      "citation_id": "citation:4",
+      "source_url": "https://en.wikipedia.org/wiki/Massachusetts_Institute_of_Technology",
+      "source_title": "Massachusetts Institute of Technology - Wikipedia",
+      "source_type": "web",
+      "extracted_evidence": "Massachusetts Institute of Technology - Wikipedia: Engineering remains its largest school, though MIT has also developed prominent programs in basic science, economics, management, architecture, and humanities. MIT has an urban campus that extends more than a mile (1.6 km) along the Charles River. A",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-20T14:04:48.289177"
+    },
+    {
+      "citation_id": "citation:5",
+      "source_url": "https://ocw.mit.edu/",
+      "source_title": "MIT OpenCourseWare | Free Online Course Materials",
+      "source_type": "web",
+      "extracted_evidence": "MIT OpenCourseWare | Free Online Course Materials: MIT OpenCourseWare publishes materials from more than 2,500 MIT courses, spanning undergraduate and graduate programs. As her college career continued, Sok explored more OpenCourseWare resources, including Principles of Macroeconomics, Multivariable",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-20T14:04:48.289177"
+    },
+    {
+      "citation_id": "citation:6",
+      "source_url": "https://www.mit.edu/about/",
+      "source_title": "About MIT - Massachusetts Institute of Technology",
+      "source_type": "web",
+      "extracted_evidence": "About MIT - Massachusetts Institute of Technology: Founded to accelerate the nation’s industrial revolution, MIT is profoundly American. With ingenuity and drive, our graduates have invented fundamental technologies, launched new industries, and created millions of American jobs.",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-20T14:04:48.289177"
+    },
+    {
+      "citation_id": "citation:7",
+      "source_url": "https://www.mit.edu/visitmit/",
+      "source_title": "Visit | MIT - Massachusetts Institute of Technology",
+      "source_type": "web",
+      "extracted_evidence": "Visit | MIT - Massachusetts Institute of Technology: MIT is located in Cambridge, Massachusetts, across the Charles River from Boston, in the vibrant innovation district of Kendall Square. Founded in 1865, MIT established a new kind of independent educational institution relevant to an increasingly ",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-20T14:04:48.289177"
+    },
+    {
+      "citation_id": "citation:8",
+      "source_url": "https://learn.mit.edu/",
+      "source_title": "Learn with MIT | MIT Learn",
+      "source_type": "web",
+      "extracted_evidence": "Learn with MIT | MIT Learn: The courses at MIT Sloan Executive Education brought together true leaders from across the world. You’re in classes with diplomats, CEOs, heads of family businesses and Fortune 500s—every course is a different mix.",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-20T14:04:48.289177"
+    },
+    {
+      "citation_id": "citation:9",
+      "source_url": "https://mitadmissions.org/apply/",
+      "source_title": "Apply | MIT Admissions",
+      "source_type": "web",
+      "extracted_evidence": "Apply | MIT Admissions: At MIT Admissions, we recruit and enroll a talented and diverse class of undergraduates who will learn to use science, technology, and other areas of scholarship to serve the nation and the world in the 21st century.",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-20T14:04:48.289177"
+    },
+    {
+      "citation_id": "citation:10",
+      "source_url": "https://techcommunity.microsoft.com/blog/microsoft-copilot-blog/more-models-one-copilot/4559035",
+      "source_title": "More Models, One Copilot | Microsoft Community Hub",
+      "source_type": "web",
+      "extracted_evidence": "More Models, One Copilot | Microsoft Community Hub: Claude Opus 5.5 and GPT-6 Sol are joining model choice in Microsoft Copilot.",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-20T14:04:48.289177"
+    },
+    {
+      "citation_id": "citation:11",
+      "source_url": "https://techcommunity.microsoft.com/category/windows/discussions/windowsinsiderprogram",
+      "source_title": "Windows Insider Program | Microsoft Community Hub",
+      "source_type": "web",
+      "extracted_evidence": "Windows Insider Program | Microsoft Community Hub: Microsoft Store Account profile Download Center Microsoft Store support Returns Order tracking Certified Refurbished Microsoft Store Promise Flexible Payments Education Microsoft in education Devices for education Microsoft Teams for Education Micro",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-20T14:04:48.289177"
+    },
+    {
+      "citation_id": "citation:12",
+      "source_url": "https://support.microsoft.com/en-gb/contactus",
+      "source_title": "Contact Us - Microsoft Support",
+      "source_type": "web",
+      "extracted_evidence": "Contact Us - Microsoft Support: Contact Microsoft Support. Find solutions to common problems, or get help from a support agent.",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-20T14:04:48.289177"
+    },
+    {
+      "citation_id": "citation:13",
+      "source_url": "https://support.microsoft.com/fr-fr/windows/mettre-%C3%A0-jour-les-pilotes-via-gestionnaire-de-p%C3%A9riph%C3%A9riques-dans-windows-ec62f46c-ff14-c91d-eead-d7126dc1f7b6",
+      "source_title": "Mettre à jour les pilotes via Gestionnaire de périphériques dans ...",
+      "source_type": "web",
+      "extracted_evidence": "Mettre à jour les pilotes via Gestionnaire de périphériques dans ...: Découvrez comment mettre à jour ou réinstaller des pilotes dans Windows à l’aide de Gestionnaire de périphériques.",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-20T14:04:48.289177"
+    },
+    {
+      "citation_id": "citation:14",
+      "source_url": "https://support.microsoft.com/en-au/support/index",
+      "source_title": "Contact Microsoft customer support",
+      "source_type": "web",
+      "extracted_evidence": "Contact Microsoft customer support: Contact Microsoft customer support The type of support Microsoft provides depends on the product you're calling about and if you have a product for home or for business use. It can also depend on if you want help for an issue with a service like OneDrive or Outloo",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-20T14:04:48.289177"
+    },
+    {
+      "citation_id": "citation:15",
+      "source_url": "https://support.microsoft.com/en-us/forms/sign-in-to-microsoft-forms",
+      "source_title": "Sign in to Microsoft Forms",
+      "source_type": "web",
+      "extracted_evidence": "Sign in to Microsoft Forms: Create surveys, quizzes, and polls, and easily see results as they come in. Invite others to respond to your form using any web browser or mobile device. Use built-in analytics to evaluate responses as they're submitted. Export form data, such as quiz results, to Excel fo",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-20T14:04:48.289177"
+    },
+    {
+      "citation_id": "citation:16",
+      "source_url": "https://techcommunity.microsoft.com/blog/Microsoft-Security-Baselines/windows-11-version-26h2-security-baseline/4560382",
+      "source_title": "Windows 11, version 26H2 security baseline | Microsoft Community Hub",
+      "source_type": "web",
+      "extracted_evidence": "Windows 11, version 26H2 security baseline | Microsoft Community Hub: Update: The Windows 11, version 26H2 security baseline has been updated to reflect the general availability of Administrator protection. An updated v2...",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-20T14:04:48.289177"
+    },
+    {
+      "citation_id": "citation:17",
+      "source_url": "https://support.microsoft.com/en-us/outlook/people/edit-or-delete-a-group-in-outlook",
+      "source_title": "Edit or delete a Group in Outlook | Microsoft Support",
+      "source_type": "web",
+      "extracted_evidence": "Edit or delete a Group in Outlook | Microsoft Support: The type of Microsoft 365 Group you created will determine what kind of settings you can edit. Learn about Microsoft 365 Groups. Looking for information on contact lists? Check out Create, edit, or delete a contact list (or contact group) in Out",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-20T14:04:48.289177"
+    },
+    {
+      "citation_id": "citation:18",
+      "source_url": "https://techcommunity.microsoft.com/discussions/windowsinsiderprogram/windows-8-1-iso-download-for-64-and-32-bit/4454650",
+      "source_title": "Windows 8.1 ISO download for 64 and 32 bit | Microsoft Community Hub",
+      "source_type": "web",
+      "extracted_evidence": "Windows 8.1 ISO download for 64 and 32 bit | Microsoft Community Hub: We have a couple of Windows 7 laptops and desktop PCs to upgraded to Windows 8.1 for software testing. It seems Microsoft no longer hosts the Windows 8 or Windows 8.1 ISO file. What is the best place to let me download Windows 8.1",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-20T14:04:48.289177"
+    },
+    {
+      "citation_id": "citation:19",
+      "source_url": "https://techcommunity.microsoft.com/blog/microsoftteamsblog/top-10-keyboard-shortcuts-to-make-you-a-microsoft-teams-super-user/1384428",
+      "source_title": "December Tech Tips for Microsoft Teams",
+      "source_type": "web",
+      "extracted_evidence": "December Tech Tips for Microsoft Teams: Hello Microsoft Tech Community! We want you to have some quick guidance videos for common tasks in Microsoft Teams. We've published several that we think will be helpful. Community management using Microsoft Teams and Yammer - Microsoft Teams is a powerful too",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-20T14:04:48.289177"
+    },
+    {
+      "citation_id": "citation:20",
+      "source_url": "https://web.mit.edu/",
+      "source_title": "MIT - Massachusetts Institute of Technology",
+      "source_type": "web",
+      "extracted_evidence": "MIT - Massachusetts Institute of Technology: MIT’s vital research and education — on topics such as human health, energy innovation, quantum computing, and advanced manufacturing — continue to advance national security, economic competitiveness, and quality of life for all Americans.",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-20T14:04:48.289177"
+    },
+    {
+      "citation_id": "citation:21",
+      "source_url": "https://en.wikipedia.org/wiki/Massachusetts_Institute_of_Technology",
+      "source_title": "Massachusetts Institute of Technology - Wikipedia",
+      "source_type": "web",
+      "extracted_evidence": "Massachusetts Institute of Technology - Wikipedia: Engineering remains its largest school, though MIT has also developed prominent programs in basic science, economics, management, architecture, and humanities. MIT has an urban campus that extends more than a mile (1.6 km) along the Charles River. A",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-20T14:04:48.289177"
+    },
+    {
+      "citation_id": "citation:22",
+      "source_url": "https://ocw.mit.edu/",
+      "source_title": "MIT OpenCourseWare | Free Online Course Materials",
+      "source_type": "web",
+      "extracted_evidence": "MIT OpenCourseWare | Free Online Course Materials: MIT OpenCourseWare publishes materials from more than 2,500 MIT courses, spanning undergraduate and graduate programs. As her college career continued, Sok explored more OpenCourseWare resources, including Principles of Macroeconomics, Multivariable",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-20T14:04:48.289177"
+    },
+    {
+      "citation_id": "citation:23",
+      "source_url": "https://www.mit.edu/about/",
+      "source_title": "About MIT - Massachusetts Institute of Technology",
+      "source_type": "web",
+      "extracted_evidence": "About MIT - Massachusetts Institute of Technology: Founded to accelerate the nation’s industrial revolution, MIT is profoundly American. With ingenuity and drive, our graduates have invented fundamental technologies, launched new industries, and created millions of American jobs.",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-20T14:04:48.289177"
+    },
+    {
+      "citation_id": "citation:24",
+      "source_url": "https://www.mit.edu/visitmit/",
+      "source_title": "Visit | MIT - Massachusetts Institute of Technology",
+      "source_type": "web",
+      "extracted_evidence": "Visit | MIT - Massachusetts Institute of Technology: MIT is located in Cambridge, Massachusetts, across the Charles River from Boston, in the vibrant innovation district of Kendall Square. Founded in 1865, MIT established a new kind of independent educational institution relevant to an increasingly ",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-20T14:04:48.289177"
+    },
+    {
+      "citation_id": "citation:25",
+      "source_url": "https://learn.mit.edu/",
+      "source_title": "Learn with MIT | MIT Learn",
+      "source_type": "web",
+      "extracted_evidence": "Learn with MIT | MIT Learn: The courses at MIT Sloan Executive Education brought together true leaders from across the world. You’re in classes with diplomats, CEOs, heads of family businesses and Fortune 500s—every course is a different mix.",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-20T14:04:48.289177"
+    },
+    {
+      "citation_id": "citation:26",
+      "source_url": "https://mitadmissions.org/apply/",
+      "source_title": "Apply | MIT Admissions",
+      "source_type": "web",
+      "extracted_evidence": "Apply | MIT Admissions: At MIT Admissions, we recruit and enroll a talented and diverse class of undergraduates who will learn to use science, technology, and other areas of scholarship to serve the nation and the world in the 21st century.",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-20T14:04:48.289177"
+    },
+    {
+      "citation_id": "citation:27",
+      "source_url": "https://web.mit.edu/",
+      "source_title": "MIT - Massachusetts Institute of Technology",
+      "source_type": "web",
+      "extracted_evidence": "MIT - Massachusetts Institute of Technology: MIT’s vital research and education — on topics such as human health, energy innovation, quantum computing, and advanced manufacturing — continue to advance national security, economic competitiveness, and quality of life for all Americans.",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-20T14:04:48.289177"
+    },
+    {
+      "citation_id": "citation:28",
+      "source_url": "https://en.wikipedia.org/wiki/Massachusetts_Institute_of_Technology",
+      "source_title": "Massachusetts Institute of Technology - Wikipedia",
+      "source_type": "web",
+      "extracted_evidence": "Massachusetts Institute of Technology - Wikipedia: Engineering remains its largest school, though MIT has also developed prominent programs in basic science, economics, management, architecture, and humanities. MIT has an urban campus that extends more than a mile (1.6 km) along the Charles River. A",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-20T14:04:48.289177"
+    },
+    {
+      "citation_id": "citation:29",
+      "source_url": "https://ocw.mit.edu/",
+      "source_title": "MIT OpenCourseWare | Free Online Course Materials",
+      "source_type": "web",
+      "extracted_evidence": "MIT OpenCourseWare | Free Online Course Materials: MIT OpenCourseWare publishes materials from more than 2,500 MIT courses, spanning undergraduate and graduate programs. As her college career continued, Sok explored more OpenCourseWare resources, including Principles of Macroeconomics, Multivariable",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-20T14:04:48.289177"
+    },
+    {
+      "citation_id": "citation:30",
+      "source_url": "https://www.mit.edu/about/",
+      "source_title": "About MIT - Massachusetts Institute of Technology",
+      "source_type": "web",
+      "extracted_evidence": "About MIT - Massachusetts Institute of Technology: Founded to accelerate the nation’s industrial revolution, MIT is profoundly American. With ingenuity and drive, our graduates have invented fundamental technologies, launched new industries, and created millions of American jobs.",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-20T14:04:48.289177"
+    },
+    {
+      "citation_id": "citation:31",
+      "source_url": "https://www.mit.edu/visitmit/",
+      "source_title": "Visit | MIT - Massachusetts Institute of Technology",
+      "source_type": "web",
+      "extracted_evidence": "Visit | MIT - Massachusetts Institute of Technology: MIT is located in Cambridge, Massachusetts, across the Charles River from Boston, in the vibrant innovation district of Kendall Square. Founded in 1865, MIT established a new kind of independent educational institution relevant to an increasingly ",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-20T14:04:48.289177"
+    },
+    {
+      "citation_id": "citation:32",
+      "source_url": "https://learn.mit.edu/",
+      "source_title": "Learn with MIT | MIT Learn",
+      "source_type": "web",
+      "extracted_evidence": "Learn with MIT | MIT Learn: The courses at MIT Sloan Executive Education brought together true leaders from across the world. You’re in classes with diplomats, CEOs, heads of family businesses and Fortune 500s—every course is a different mix.",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-20T14:04:48.289177"
+    },
+    {
+      "citation_id": "citation:33",
+      "source_url": "https://mitadmissions.org/apply/",
+      "source_title": "Apply | MIT Admissions",
+      "source_type": "web",
+      "extracted_evidence": "Apply | MIT Admissions: At MIT Admissions, we recruit and enroll a talented and diverse class of undergraduates who will learn to use science, technology, and other areas of scholarship to serve the nation and the world in the 21st century.",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-20T14:04:48.289177"
+    }
+  ],
+  "agent_trace": [
+    {
+      "agent": "planner",
+      "content": "Planning research for: 研究 MIT 与 CSAIL 在计算机网络领域的公开研究方向，依据已取得的官网资料分别说明范围、共同主题及证据缺口，不要求猜测论文全集。",
+      "timestamp": "2026-10-20T14:03:17.090358",
+      "event_type": "agent_start"
+    },
+    {
+      "agent": "planner",
+      "content": "Generated DAG 'MIT 与 CSAIL 计算机网络公开研究方向（官网证据）' with 11 nodes, execution order: [['n1', 'n2', 'n3', 'n4', 'n7', 'n9'], ['n6', 'n5'], ['n8'], ['n10'], ['analyst']]",
+      "timestamp": "2026-10-20T14:03:23.500754",
+      "event_type": "agent_complete"
+    },
+    {
+      "agent": "dag_executor",
+      "content": "Executing batch: ['n1', 'n2', 'n3', 'n4', 'n7', 'n9'] (parallel)",
+      "timestamp": "2026-10-20T14:03:23.581977",
+      "event_type": "agent_start"
+    },
+    {
+      "agent": "browser",
+      "content": "Executing 1 browser nodes",
+      "timestamp": "2026-10-20T14:03:23.652679",
+      "event_type": "agent_start"
+    },
+    {
+      "args": {
+        "url": "https://www.mit.edu/research/",
+        "query": "https://www.mit.edu/research/"
+      },
+      "agent": "browser",
+      "content": "Browsing: https://www.mit.edu/research/",
+      "timestamp": "2026-10-20T14:03:23.652679",
+      "tool_name": "browse_webpage",
+      "event_type": "tool_start"
+    },
+    {
+      "agent": "browser",
+      "status": "success",
+      "content": "Extracted 1 pages for: https://www.mit.edu/research/",
+      "timestamp": "2026-10-20T14:03:45.770776",
+      "tool_name": "browse_webpage",
+      "event_type": "tool_complete",
+      "result_summary": "1 browser pages"
+    },
+    {
+      "agent": "browser",
+      "content": "Collected 1 evidence from browser",
+      "timestamp": "2026-10-20T14:03:45.770776",
+      "event_type": "agent_complete"
+    },
+    {
+      "agent": "browser",
+      "content": "Executing 1 browser nodes",
+      "timestamp": "2026-10-20T14:03:23.653183",
+      "event_type": "agent_start"
+    },
+    {
+      "args": {
+        "url": "https://www.csail.mit.edu/research/",
+        "query": "https://www.csail.mit.edu/research/"
+      },
+      "agent": "browser",
+      "content": "Browsing: https://www.csail.mit.edu/research/",
+      "timestamp": "2026-10-20T14:03:23.653183",
+      "tool_name": "browse_webpage",
+      "event_type": "tool_start"
+    },
+    {
+      "agent": "browser",
+      "status": "success",
+      "content": "Extracted 1 pages for: https://www.csail.mit.edu/research/",
+      "timestamp": "2026-10-20T14:03:58.315320",
+      "tool_name": "browse_webpage",
+      "event_type": "tool_complete",
+      "result_summary": "1 browser pages"
+    },
+    {
+      "agent": "browser",
+      "content": "Collected 1 evidence from browser",
+      "timestamp": "2026-10-20T14:03:58.315320",
+      "event_type": "agent_complete"
+    },
+    {
+      "agent": "search",
+      "content": "Executing 1 search nodes",
+      "timestamp": "2026-10-20T14:03:23.653859",
+      "event_type": "agent_start"
+    },
+    {
+      "args": {
+        "query": "MIT 官网 research areas 计算机网络 networking 研究方向 site:mit.edu"
+      },
+      "agent": "search",
+      "content": "Searching: MIT 官网 research areas 计算机网络 networking 研究方向 site:mit.edu",
+      "timestamp": "2026-10-20T14:03:23.653859",
+      "tool_name": "duckduckgo_search",
+      "event_type": "tool_start"
+    },
+    {
+      "agent": "search",
+      "content": "渠道采集结果",
+      "timestamp": "2026-10-20T14:03:27.473210",
+      "event_type": "tool_complete",
+      "channel_attempts": [
+        {
+          "status": "failed",
+          "backend": "duckduckgo",
+          "channel": "web",
+          "call_count": 1,
+          "duration_ms": 2171,
+          "result_count": 0,
+          "error_category": "access_denied"
+        },
+        {
+          "status": "success",
+          "backend": "bing-rss",
+          "channel": "web",
+          "call_count": 1,
+          "duration_ms": 1625,
+          "result_count": 7,
+          "error_category": null
+        }
+      ]
+    },
+    {
+      "agent": "search",
+      "error": null,
+      "status": "success",
+      "content": "Found 7 results for: MIT 官网 research areas 计算机网络 networking 研究方向 site:mit.edu",
+      "timestamp": "2026-10-20T14:03:27.473210",
+      "tool_name": "duckduckgo_search",
+      "event_type": "tool_complete",
+      "result_summary": "7 search results"
+    },
+    {
+      "agent": "search",
+      "content": "Collected 7 evidence from search",
+      "timestamp": "2026-10-20T14:03:27.473210",
+      "event_type": "agent_complete"
+    },
+    {
+      "agent": "search",
+      "content": "Executing 1 search nodes",
+      "timestamp": "2026-10-20T14:03:23.654364",
+      "event_type": "agent_start"
+    },
+    {
+      "args": {
+        "query": "CSAIL research groups networks networking 研究组 site:csail.mit.edu"
+      },
+      "agent": "search",
+      "content": "Searching: CSAIL research groups networks networking 研究组 site:csail.mit.edu",
+      "timestamp": "2026-10-20T14:03:23.654364",
+      "tool_name": "duckduckgo_search",
+      "event_type": "tool_start"
+    },
+    {
+      "agent": "search",
+      "content": "渠道采集结果",
+      "timestamp": "2026-10-20T14:03:28.338136",
+      "event_type": "tool_complete",
+      "channel_attempts": [
+        {
+          "status": "failed",
+          "backend": "duckduckgo",
+          "channel": "web",
+          "call_count": 1,
+          "duration_ms": 3109,
+          "result_count": 0,
+          "error_category": "access_denied"
+        },
+        {
+          "status": "success",
+          "backend": "bing-rss",
+          "channel": "web",
+          "call_count": 1,
+          "duration_ms": 1530,
+          "result_count": 10,
+          "error_category": null
+        }
+      ]
+    },
+    {
+      "agent": "search",
+      "error": null,
+      "status": "success",
+      "content": "Found 10 results for: CSAIL research groups networks networking 研究组 site:csail.mit.edu",
+      "timestamp": "2026-10-20T14:03:28.338136",
+      "tool_name": "duckduckgo_search",
+      "event_type": "tool_complete",
+      "result_summary": "10 search results"
+    },
+    {
+      "agent": "search",
+      "content": "Collected 10 evidence from search",
+      "timestamp": "2026-10-20T14:03:28.338136",
+      "event_type": "agent_complete"
+    },
+    {
+      "agent": "search",
+      "content": "Executing 1 search nodes",
+      "timestamp": "2026-10-20T14:03:23.655503",
+      "event_type": "agent_start"
+    },
+    {
+      "args": {
+        "query": "MIT CSAIL 计算机网络 研究方向 2020..2026 官网 新闻/项目页面（限定 site:mit.edu OR site:csail.mit.edu）"
+      },
+      "agent": "search",
+      "content": "Searching: MIT CSAIL 计算机网络 研究方向 2020..2026 官网 新闻/项目页面（限定 site:mit.edu OR site:csail.mit.edu）",
+      "timestamp": "2026-10-20T14:03:23.655503",
+      "tool_name": "duckduckgo_search",
+      "event_type": "tool_start"
+    },
+    {
+      "agent": "search",
+      "content": "渠道采集结果",
+      "timestamp": "2026-10-20T14:03:28.387213",
+      "event_type": "tool_complete",
+      "channel_attempts": [
+        {
+          "status": "failed",
+          "backend": "duckduckgo",
+          "channel": "web",
+          "call_count": 1,
+          "duration_ms": 1875,
+          "result_count": 0,
+          "error_category": "access_denied"
+        },
+        {
+          "status": "success",
+          "backend": "bing-rss",
+          "channel": "web",
+          "call_count": 1,
+          "duration_ms": 2811,
+          "result_count": 7,
+          "error_category": null
+        }
+      ]
+    },
+    {
+      "agent": "search",
+      "error": null,
+      "status": "success",
+      "content": "Found 7 results for: MIT CSAIL 计算机网络 研究方向 2020..2026 官网 新闻/项目页面（限定 site:mit.edu OR site:csail.mit.edu）",
+      "timestamp": "2026-10-20T14:03:28.387213",
+      "tool_name": "duckduckgo_search",
+      "event_type": "tool_complete",
+      "result_summary": "7 search results"
+    },
+    {
+      "agent": "search",
+      "content": "Collected 7 evidence from search",
+      "timestamp": "2026-10-20T14:03:28.387213",
+      "event_type": "agent_complete"
+    },
+    {
+      "agent": "search",
+      "content": "Executing 1 search nodes",
+      "timestamp": "2026-10-20T14:03:23.656044",
+      "event_type": "agent_start"
+    },
+    {
+      "args": {
+        "query": "MIT CSAIL 官网 计算机网络 相关研究中心/跨机构合作 公开页面（如无线网络、互联网政策、网络系统）site:mit.edu"
+      },
+      "agent": "search",
+      "content": "Searching: MIT CSAIL 官网 计算机网络 相关研究中心/跨机构合作 公开页面（如无线网络、互联网政策、网络系统）site:mit.edu",
+      "timestamp": "2026-10-20T14:03:23.656044",
+      "tool_name": "duckduckgo_search",
+      "event_type": "tool_start"
+    },
+    {
+      "agent": "search",
+      "content": "渠道采集结果",
+      "timestamp": "2026-10-20T14:03:28.471371",
+      "event_type": "tool_complete",
+      "channel_attempts": [
+        {
+          "status": "failed",
+          "backend": "duckduckgo",
+          "channel": "web",
+          "call_count": 1,
+          "duration_ms": 2859,
+          "result_count": 0,
+          "error_category": "access_denied"
+        },
+        {
+          "status": "success",
+          "backend": "bing-rss",
+          "channel": "web",
+          "call_count": 1,
+          "duration_ms": 1905,
+          "result_count": 7,
+          "error_category": null
+        }
+      ]
+    },
+    {
+      "agent": "search",
+      "error": null,
+      "status": "success",
+      "content": "Found 7 results for: MIT CSAIL 官网 计算机网络 相关研究中心/跨机构合作 公开页面（如无线网络、互联网政策、网络系统）site:mit.edu",
+      "timestamp": "2026-10-20T14:03:28.471371",
+      "tool_name": "duckduckgo_search",
+      "event_type": "tool_complete",
+      "result_summary": "7 search results"
+    },
+    {
+      "agent": "search",
+      "content": "Collected 7 evidence from search",
+      "timestamp": "2026-10-20T14:03:28.471371",
+      "event_type": "agent_complete"
+    },
+    {
+      "agent": "budget_guardrail",
+      "content": "Budget warning: tool_calls=10, tokens=3151, cost=0.0, wall_clock=41s",
+      "timestamp": "2026-10-20T14:03:58.394762",
+      "event_type": "agent_complete",
+      "budget_state": {
+        "warning": true,
+        "estimated": true,
+        "citation_max": 15,
+        "max_cost_usd": 0.5,
+        "used_cost_usd": 0.0,
+        "budget_profile": "medium",
+        "max_tool_calls": 12,
+        "rag_max_results": 8,
+        "used_tool_calls": 10,
+        "hard_stop_reason": null,
+        "max_total_tokens": 60000,
+        "report_max_tokens": 6000,
+        "used_total_tokens": 3151,
+        "search_max_queries": 4,
+        "search_max_results": 10,
+        "browser_max_results": 2,
+        "max_retries_per_tool": 2,
+        "max_wall_clock_seconds": 420,
+        "elapsed_wall_clock_seconds": 41
+      }
+    },
+    {
+      "agent": "failure_memory",
+      "content": "Captured 10 failure memory records",
+      "timestamp": "2026-10-20T14:03:58.394762",
+      "event_type": "agent_complete",
+      "failure_memory": {
+        "records": [
+          {
+            "query": "https://www.mit.edu/research/",
+            "node_type": "browser",
+            "last_error": null,
+            "retry_count": 0,
+            "next_retry_at": null,
+            "repeat_blocked": false,
+            "backoff_seconds": 0,
+            "terminal_failure": false,
+            "last_error_category": null
+          },
+          {
+            "query": "https://www.csail.mit.edu/research/",
+            "node_type": "browser",
+            "last_error": null,
+            "retry_count": 0,
+            "next_retry_at": null,
+            "repeat_blocked": false,
+            "backoff_seconds": 0,
+            "terminal_failure": false,
+            "last_error_category": null
+          },
+          {
+            "query": "MIT 官网 research areas 计算机网络 networking 研究方向 site:mit.edu",
+            "node_type": "search",
+            "last_error": null,
+            "retry_count": 0,
+            "next_retry_at": null,
+            "repeat_blocked": false,
+            "backoff_seconds": 0,
+            "terminal_failure": false,
+            "last_error_category": null
+          },
+          {
+            "query": "CSAIL research groups networks networking 研究组 site:csail.mit.edu",
+            "node_type": "search",
+            "last_error": null,
+            "retry_count": 0,
+            "next_retry_at": null,
+            "repeat_blocked": false,
+            "backoff_seconds": 0,
+            "terminal_failure": false,
+            "last_error_category": null
+          },
+          {
+            "query": "CSAIL 官网研究组/中心页面（如 networks、distributed systems、wireless 相关 group 页面）— 记录各组公开描述的研究主题、所属学科、页面更新时间",
+            "node_type": "browser",
+            "last_error": null,
+            "retry_count": 0,
+            "next_retry_at": null,
+            "repeat_blocked": false,
+            "backoff_seconds": 0,
+            "terminal_failure": false,
+            "last_error_category": null
+          },
+          {
+            "query": "MIT 相关院系/实验室官网页面（EECS、LIDS、无线网络相关中心等，仅限官网）— 记录与计算机网络相关的公开研究方向描述与页面日期",
+            "node_type": "browser",
+            "last_error": null,
+            "retry_count": 0,
+            "next_retry_at": null,
+            "repeat_blocked": false,
+            "backoff_seconds": 0,
+            "terminal_failure": false,
+            "last_error_category": null
+          },
+          {
+            "query": "MIT CSAIL 计算机网络 研究方向 2020..2026 官网 新闻/项目页面（限定 site:mit.edu OR site:csail.mit.edu）",
+            "node_type": "search",
+            "last_error": null,
+            "retry_count": 0,
+            "next_retry_at": null,
+            "repeat_blocked": false,
+            "backoff_seconds": 0,
+            "terminal_failure": false,
+            "last_error_category": null
+          },
+          {
+            "query": "MIT 与 CSAIL 官网公开的项目/成果列表页（publications、projects、news 栏目）— 仅记录页面是否提供可核验的成果条目、日期字段与归属标注方式，不推断论文全集",
+            "node_type": "browser",
+            "last_error": null,
+            "retry_count": 0,
+            "next_retry_at": null,
+            "repeat_blocked": false,
+            "backoff_seconds": 0,
+            "terminal_failure": false,
+            "last_error_category": null
+          },
+          {
+            "query": "MIT CSAIL 官网 计算机网络 相关研究中心/跨机构合作 公开页面（如无线网络、互联网政策、网络系统）site:mit.edu",
+            "node_type": "search",
+            "last_error": null,
+            "retry_count": 0,
+            "next_retry_at": null,
+            "repeat_blocked": false,
+            "backoff_seconds": 0,
+            "terminal_failure": false,
+            "last_error_category": null
+          },
+          {
+            "query": "核对 n1–n9 所得页面：区分「页面出现机构名称」与「成果归属证据」，记录每页的抓取时间与页面自身日期标识，标注缺失日期/缺失归属的条目",
+            "node_type": "browser",
+            "last_error": null,
+            "retry_count": 0,
+            "next_retry_at": null,
+            "repeat_blocked": false,
+            "backoff_seconds": 0,
+            "terminal_failure": false,
+            "last_error_category": null
+          }
+        ],
+        "max_retries_per_tool": 2,
+        "repeat_blocked_nodes": []
+      }
+    },
+    {
+      "agent": "budget_guardrail",
+      "content": "Budget warning: tool_calls=10, tokens=3151, cost=0.0, wall_clock=41s",
+      "timestamp": "2026-10-20T14:03:58.394762",
+      "event_type": "agent_complete",
+      "budget_state": {
+        "warning": true,
+        "estimated": true,
+        "citation_max": 15,
+        "max_cost_usd": 0.5,
+        "used_cost_usd": 0.0,
+        "budget_profile": "medium",
+        "max_tool_calls": 12,
+        "rag_max_results": 8,
+        "used_tool_calls": 10,
+        "hard_stop_reason": null,
+        "max_total_tokens": 60000,
+        "report_max_tokens": 6000,
+        "used_total_tokens": 3151,
+        "search_max_queries": 4,
+        "search_max_results": 10,
+        "browser_max_results": 2,
+        "max_retries_per_tool": 2,
+        "max_wall_clock_seconds": 420,
+        "elapsed_wall_clock_seconds": 41
+      }
+    },
+    {
+      "agent": "failure_memory",
+      "content": "Captured 10 failure memory records",
+      "timestamp": "2026-10-20T14:03:58.394762",
+      "event_type": "agent_complete",
+      "failure_memory": {
+        "records": [
+          {
+            "query": "https://www.mit.edu/research/",
+            "node_type": "browser",
+            "last_error": null,
+            "retry_count": 0,
+            "next_retry_at": null,
+            "repeat_blocked": false,
+            "backoff_seconds": 0,
+            "terminal_failure": false,
+            "last_error_category": null
+          },
+          {
+            "query": "https://www.csail.mit.edu/research/",
+            "node_type": "browser",
+            "last_error": null,
+            "retry_count": 0,
+            "next_retry_at": null,
+            "repeat_blocked": false,
+            "backoff_seconds": 0,
+            "terminal_failure": false,
+            "last_error_category": null
+          },
+          {
+            "query": "MIT 官网 research areas 计算机网络 networking 研究方向 site:mit.edu",
+            "node_type": "search",
+            "last_error": null,
+            "retry_count": 0,
+            "next_retry_at": null,
+            "repeat_blocked": false,
+            "backoff_seconds": 0,
+            "terminal_failure": false,
+            "last_error_category": null
+          },
+          {
+            "query": "CSAIL research groups networks networking 研究组 site:csail.mit.edu",
+            "node_type": "search",
+            "last_error": null,
+            "retry_count": 0,
+            "next_retry_at": null,
+            "repeat_blocked": false,
+            "backoff_seconds": 0,
+            "terminal_failure": false,
+            "last_error_category": null
+          },
+          {
+            "query": "CSAIL 官网研究组/中心页面（如 networks、distributed systems、wireless 相关 group 页面）— 记录各组公开描述的研究主题、所属学科、页面更新时间",
+            "node_type": "browser",
+            "last_error": null,
+            "retry_count": 0,
+            "next_retry_at": null,
+            "repeat_blocked": false,
+            "backoff_seconds": 0,
+            "terminal_failure": false,
+            "last_error_category": null
+          },
+          {
+            "query": "MIT 相关院系/实验室官网页面（EECS、LIDS、无线网络相关中心等，仅限官网）— 记录与计算机网络相关的公开研究方向描述与页面日期",
+            "node_type": "browser",
+            "last_error": null,
+            "retry_count": 0,
+            "next_retry_at": null,
+            "repeat_blocked": false,
+            "backoff_seconds": 0,
+            "terminal_failure": false,
+            "last_error_category": null
+          },
+          {
+            "query": "MIT CSAIL 计算机网络 研究方向 2020..2026 官网 新闻/项目页面（限定 site:mit.edu OR site:csail.mit.edu）",
+            "node_type": "search",
+            "last_error": null,
+            "retry_count": 0,
+            "next_retry_at": null,
+            "repeat_blocked": false,
+            "backoff_seconds": 0,
+            "terminal_failure": false,
+            "last_error_category": null
+          },
+          {
+            "query": "MIT 与 CSAIL 官网公开的项目/成果列表页（publications、projects、news 栏目）— 仅记录页面是否提供可核验的成果条目、日期字段与归属标注方式，不推断论文全集",
+            "node_type": "browser",
+            "last_error": null,
+            "retry_count": 0,
+            "next_retry_at": null,
+            "repeat_blocked": false,
+            "backoff_seconds": 0,
+            "terminal_failure": false,
+            "last_error_category": null
+          },
+          {
+            "query": "MIT CSAIL 官网 计算机网络 相关研究中心/跨机构合作 公开页面（如无线网络、互联网政策、网络系统）site:mit.edu",
+            "node_type": "search",
+            "last_error": null,
+            "retry_count": 0,
+            "next_retry_at": null,
+            "repeat_blocked": false,
+            "backoff_seconds": 0,
+            "terminal_failure": false,
+            "last_error_category": null
+          },
+          {
+            "query": "核对 n1–n9 所得页面：区分「页面出现机构名称」与「成果归属证据」，记录每页的抓取时间与页面自身日期标识，标注缺失日期/缺失归属的条目",
+            "node_type": "browser",
+            "last_error": null,
+            "retry_count": 0,
+            "next_retry_at": null,
+            "repeat_blocked": false,
+            "backoff_seconds": 0,
+            "terminal_failure": false,
+            "last_error_category": null
+          }
+        ],
+        "max_retries_per_tool": 2,
+        "repeat_blocked_nodes": []
+      }
+    },
+    {
+      "agent": "dag_executor",
+      "content": "Executing batch: ['n6', 'n5'] (parallel)",
+      "timestamp": "2026-10-20T14:03:58.477868",
+      "event_type": "agent_start"
+    },
+    {
+      "agent": "browser",
+      "content": "Executing 1 browser nodes",
+      "timestamp": "2026-10-20T14:03:58.562329",
+      "event_type": "agent_start"
+    },
+    {
+      "args": {
+        "url": "MIT 相关院系/实验室官网页面（EECS、LIDS、无线网络相关中心等，仅限官网）— 记录与计算机网络相关的公开研究方向描述与页面日期",
+        "query": "MIT 相关院系/实验室官网页面（EECS、LIDS、无线网络相关中心等，仅限官网）— 记录与计算机网络相关的公开研究方向描述与页面日期"
+      },
+      "agent": "browser",
+      "content": "Browsing: MIT 相关院系/实验室官网页面（EECS、LIDS、无线网络相关中心等，仅限官网）— 记录与计算机网络相关的公开研究方向描述与页面日期",
+      "timestamp": "2026-10-20T14:03:58.562329",
+      "tool_name": "browse_webpage",
+      "event_type": "tool_start"
+    },
+    {
+      "agent": "browser",
+      "content": "Collected 0 evidence from browser",
+      "timestamp": "2026-10-20T14:03:58.562329",
+      "event_type": "agent_complete"
+    },
+    {
+      "agent": "browser",
+      "content": "Executing 1 browser nodes",
+      "timestamp": "2026-10-20T14:03:58.563134",
+      "event_type": "agent_start"
+    },
+    {
+      "args": {
+        "url": "CSAIL 官网研究组/中心页面（如 networks、distributed systems、wireless 相关 group 页面）— 记录各组公开描述的研究主题、所属学科、页面更新时间",
+        "query": "CSAIL 官网研究组/中心页面（如 networks、distributed systems、wireless 相关 group 页面）— 记录各组公开描述的研究主题、所属学科、页面更新时间"
+      },
+      "agent": "browser",
+      "content": "Browsing: CSAIL 官网研究组/中心页面（如 networks、distributed systems、wireless 相关 group 页面）— 记录各组公开描述的研究主题、所属学科、页面更新时间",
+      "timestamp": "2026-10-20T14:03:58.563134",
+      "tool_name": "browse_webpage",
+      "event_type": "tool_start"
+    },
+    {
+      "agent": "browser",
+      "content": "Collected 0 evidence from browser",
+      "timestamp": "2026-10-20T14:03:58.563134",
+      "event_type": "agent_complete"
+    },
+    {
+      "agent": "budget_guardrail",
+      "content": "Budget breaker triggered: tool_call_limit. Skipped 2 pending tool nodes.",
+      "timestamp": "2026-10-20T14:03:58.644234",
+      "event_type": "agent_complete",
+      "budget_state": {
+        "warning": false,
+        "estimated": true,
+        "citation_max": 15,
+        "max_cost_usd": 0.5,
+        "used_cost_usd": 0.0,
+        "budget_profile": "medium",
+        "max_tool_calls": 12,
+        "rag_max_results": 8,
+        "used_tool_calls": 12,
+        "hard_stop_reason": "tool_call_limit",
+        "max_total_tokens": 60000,
+        "report_max_tokens": 6000,
+        "used_total_tokens": 3151,
+        "search_max_queries": 4,
+        "search_max_results": 10,
+        "browser_max_results": 2,
+        "max_retries_per_tool": 2,
+        "max_wall_clock_seconds": 420,
+        "elapsed_wall_clock_seconds": 41
+      },
+      "skipped_nodes": [
+        "n8",
+        "n10"
+      ]
+    },
+    {
+      "agent": "failure_memory",
+      "content": "Captured 10 failure memory records",
+      "timestamp": "2026-10-20T14:03:58.644234",
+      "event_type": "agent_complete",
+      "failure_memory": {
+        "records": [
+          {
+            "query": "https://www.mit.edu/research/",
+            "node_type": "browser",
+            "last_error": null,
+            "retry_count": 0,
+            "next_retry_at": null,
+            "repeat_blocked": false,
+            "backoff_seconds": 0,
+            "terminal_failure": false,
+            "last_error_category": null
+          },
+          {
+            "query": "https://www.csail.mit.edu/research/",
+            "node_type": "browser",
+            "last_error": null,
+            "retry_count": 0,
+            "next_retry_at": null,
+            "repeat_blocked": false,
+            "backoff_seconds": 0,
+            "terminal_failure": false,
+            "last_error_category": null
+          },
+          {
+            "query": "MIT 官网 research areas 计算机网络 networking 研究方向 site:mit.edu",
+            "node_type": "search",
+            "last_error": null,
+            "retry_count": 0,
+            "next_retry_at": null,
+            "repeat_blocked": false,
+            "backoff_seconds": 0,
+            "terminal_failure": false,
+            "last_error_category": null
+          },
+          {
+            "query": "CSAIL research groups networks networking 研究组 site:csail.mit.edu",
+            "node_type": "search",
+            "last_error": null,
+            "retry_count": 0,
+            "next_retry_at": null,
+            "repeat_blocked": false,
+            "backoff_seconds": 0,
+            "terminal_failure": false,
+            "last_error_category": null
+          },
+          {
+            "query": "CSAIL 官网研究组/中心页面（如 networks、distributed systems、wireless 相关 group 页面）— 记录各组公开描述的研究主题、所属学科、页面更新时间",
+            "node_type": "browser",
+            "last_error": "uri_format_error:url",
+            "retry_count": 0,
+            "next_retry_at": null,
+            "repeat_blocked": true,
+            "backoff_seconds": 0,
+            "terminal_failure": true,
+            "last_error_category": "schema_validation"
+          },
+          {
+            "query": "MIT 相关院系/实验室官网页面（EECS、LIDS、无线网络相关中心等，仅限官网）— 记录与计算机网络相关的公开研究方向描述与页面日期",
+            "node_type": "browser",
+            "last_error": "uri_format_error:url",
+            "retry_count": 0,
+            "next_retry_at": null,
+            "repeat_blocked": true,
+            "backoff_seconds": 0,
+            "terminal_failure": true,
+            "last_error_category": "schema_validation"
+          },
+          {
+            "query": "MIT CSAIL 计算机网络 研究方向 2020..2026 官网 新闻/项目页面（限定 site:mit.edu OR site:csail.mit.edu）",
+            "node_type": "search",
+            "last_error": null,
+            "retry_count": 0,
+            "next_retry_at": null,
+            "repeat_blocked": false,
+            "backoff_seconds": 0,
+            "terminal_failure": false,
+            "last_error_category": null
+          },
+          {
+            "query": "MIT 与 CSAIL 官网公开的项目/成果列表页（publications、projects、news 栏目）— 仅记录页面是否提供可核验的成果条目、日期字段与归属标注方式，不推断论文全集",
+            "node_type": "browser",
+            "last_error": "tool_call_limit",
+            "retry_count": 0,
+            "next_retry_at": null,
+            "repeat_blocked": false,
+            "backoff_seconds": 0,
+            "terminal_failure": false,
+            "last_error_category": "budget_exceeded"
+          },
+          {
+            "query": "MIT CSAIL 官网 计算机网络 相关研究中心/跨机构合作 公开页面（如无线网络、互联网政策、网络系统）site:mit.edu",
+            "node_type": "search",
+            "last_error": null,
+            "retry_count": 0,
+            "next_retry_at": null,
+            "repeat_blocked": false,
+            "backoff_seconds": 0,
+            "terminal_failure": false,
+            "last_error_category": null
+          },
+          {
+            "query": "核对 n1–n9 所得页面：区分「页面出现机构名称」与「成果归属证据」，记录每页的抓取时间与页面自身日期标识，标注缺失日期/缺失归属的条目",
+            "node_type": "browser",
+            "last_error": "tool_call_limit",
+            "retry_count": 0,
+            "next_retry_at": null,
+            "repeat_blocked": false,
+            "backoff_seconds": 0,
+            "terminal_failure": false,
+            "last_error_category": "budget_exceeded"
+          }
+        ],
+        "max_retries_per_tool": 2,
+        "repeat_blocked_nodes": [
+          "n5",
+          "n6"
+        ]
+      }
+    },
+    {
+      "agent": "budget_guardrail",
+      "content": "Budget breaker triggered: tool_call_limit. Skipped 2 pending tool nodes.",
+      "timestamp": "2026-10-20T14:03:58.644234",
+      "event_type": "agent_complete",
+      "budget_state": {
+        "warning": false,
+        "estimated": true,
+        "citation_max": 15,
+        "max_cost_usd": 0.5,
+        "used_cost_usd": 0.0,
+        "budget_profile": "medium",
+        "max_tool_calls": 12,
+        "rag_max_results": 8,
+        "used_tool_calls": 12,
+        "hard_stop_reason": "tool_call_limit",
+        "max_total_tokens": 60000,
+        "report_max_tokens": 6000,
+        "used_total_tokens": 3151,
+        "search_max_queries": 4,
+        "search_max_results": 10,
+        "browser_max_results": 2,
+        "max_retries_per_tool": 2,
+        "max_wall_clock_seconds": 420,
+        "elapsed_wall_clock_seconds": 41
+      },
+      "skipped_nodes": [
+        "n8",
+        "n10"
+      ]
+    },
+    {
+      "agent": "failure_memory",
+      "content": "Captured 10 failure memory records",
+      "timestamp": "2026-10-20T14:03:58.644234",
+      "event_type": "agent_complete",
+      "failure_memory": {
+        "records": [
+          {
+            "query": "https://www.mit.edu/research/",
+            "node_type": "browser",
+            "last_error": null,
+            "retry_count": 0,
+            "next_retry_at": null,
+            "repeat_blocked": false,
+            "backoff_seconds": 0,
+            "terminal_failure": false,
+            "last_error_category": null
+          },
+          {
+            "query": "https://www.csail.mit.edu/research/",
+            "node_type": "browser",
+            "last_error": null,
+            "retry_count": 0,
+            "next_retry_at": null,
+            "repeat_blocked": false,
+            "backoff_seconds": 0,
+            "terminal_failure": false,
+            "last_error_category": null
+          },
+          {
+            "query": "MIT 官网 research areas 计算机网络 networking 研究方向 site:mit.edu",
+            "node_type": "search",
+            "last_error": null,
+            "retry_count": 0,
+            "next_retry_at": null,
+            "repeat_blocked": false,
+            "backoff_seconds": 0,
+            "terminal_failure": false,
+            "last_error_category": null
+          },
+          {
+            "query": "CSAIL research groups networks networking 研究组 site:csail.mit.edu",
+            "node_type": "search",
+            "last_error": null,
+            "retry_count": 0,
+            "next_retry_at": null,
+            "repeat_blocked": false,
+            "backoff_seconds": 0,
+            "terminal_failure": false,
+            "last_error_category": null
+          },
+          {
+            "query": "CSAIL 官网研究组/中心页面（如 networks、distributed systems、wireless 相关 group 页面）— 记录各组公开描述的研究主题、所属学科、页面更新时间",
+            "node_type": "browser",
+            "last_error": "uri_format_error:url",
+            "retry_count": 0,
+            "next_retry_at": null,
+            "repeat_blocked": true,
+            "backoff_seconds": 0,
+            "terminal_failure": true,
+            "last_error_category": "schema_validation"
+          },
+          {
+            "query": "MIT 相关院系/实验室官网页面（EECS、LIDS、无线网络相关中心等，仅限官网）— 记录与计算机网络相关的公开研究方向描述与页面日期",
+            "node_type": "browser",
+            "last_error": "uri_format_error:url",
+            "retry_count": 0,
+            "next_retry_at": null,
+            "repeat_blocked": true,
+            "backoff_seconds": 0,
+            "terminal_failure": true,
+            "last_error_category": "schema_validation"
+          },
+          {
+            "query": "MIT CSAIL 计算机网络 研究方向 2020..2026 官网 新闻/项目页面（限定 site:mit.edu OR site:csail.mit.edu）",
+            "node_type": "search",
+            "last_error": null,
+            "retry_count": 0,
+            "next_retry_at": null,
+            "repeat_blocked": false,
+            "backoff_seconds": 0,
+            "terminal_failure": false,
+            "last_error_category": null
+          },
+          {
+            "query": "MIT 与 CSAIL 官网公开的项目/成果列表页（publications、projects、news 栏目）— 仅记录页面是否提供可核验的成果条目、日期字段与归属标注方式，不推断论文全集",
+            "node_type": "browser",
+            "last_error": "tool_call_limit",
+            "retry_count": 0,
+            "next_retry_at": null,
+            "repeat_blocked": false,
+            "backoff_seconds": 0,
+            "terminal_failure": false,
+            "last_error_category": "budget_exceeded"
+          },
+          {
+            "query": "MIT CSAIL 官网 计算机网络 相关研究中心/跨机构合作 公开页面（如无线网络、互联网政策、网络系统）site:mit.edu",
+            "node_type": "search",
+            "last_error": null,
+            "retry_count": 0,
+            "next_retry_at": null,
+            "repeat_blocked": false,
+            "backoff_seconds": 0,
+            "terminal_failure": false,
+            "last_error_category": null
+          },
+          {
+            "query": "核对 n1–n9 所得页面：区分「页面出现机构名称」与「成果归属证据」，记录每页的抓取时间与页面自身日期标识，标注缺失日期/缺失归属的条目",
+            "node_type": "browser",
+            "last_error": "tool_call_limit",
+            "retry_count": 0,
+            "next_retry_at": null,
+            "repeat_blocked": false,
+            "backoff_seconds": 0,
+            "terminal_failure": false,
+            "last_error_category": "budget_exceeded"
+          }
+        ],
+        "max_retries_per_tool": 2,
+        "repeat_blocked_nodes": [
+          "n5",
+          "n6"
+        ]
+      }
+    },
+    {
+      "agent": "analyst",
+      "content": "Analyzing 33 evidence items",
+      "timestamp": "2026-10-20T14:03:58.727569",
+      "event_type": "agent_start"
+    },
+    {
+      "agent": "analyst",
+      "content": "Analysis complete",
+      "timestamp": "2026-10-20T14:04:11.810001",
+      "event_type": "agent_complete"
+    },
+    {
+      "agent": "analyst",
+      "content": "Analyzing 33 evidence items",
+      "timestamp": "2026-10-20T14:03:58.727569",
+      "event_type": "agent_start"
+    },
+    {
+      "agent": "analyst",
+      "content": "Analysis complete",
+      "timestamp": "2026-10-20T14:04:11.810001",
+      "event_type": "agent_complete"
+    },
+    {
+      "agent": "analyst",
+      "content": "Generated 720 chars of analysis from 33 evidence items",
+      "timestamp": "2026-10-20T14:04:11.810001",
+      "event_type": "agent_complete"
+    },
+    {
+      "agent": "reflection",
+      "content": "Validating analysis with 33 evidence items",
+      "timestamp": "2026-10-20T14:04:11.907065",
+      "event_type": "agent_start"
+    },
+    {
+      "agent": "reflection",
+      "content": "Verification failed: confidence=0.72, hallucination_rate=41.67%, needs_revision=True",
+      "timestamp": "2026-10-20T14:04:17.989781",
+      "event_type": "agent_complete"
+    },
+    {
+      "agent": "reflection",
+      "content": "Verification: confidence=0.72, needs_revision=True",
+      "timestamp": "2026-10-20T14:04:17.989781",
+      "event_type": "agent_complete"
+    },
+    {
+      "agent": "report",
+      "content": "Generating final report",
+      "timestamp": "2026-10-20T14:04:18.067814",
+      "event_type": "agent_start"
+    },
+    {
+      "agent": "report",
+      "content": "Report generated: 8393 chars",
+      "timestamp": "2026-10-20T14:04:48.166834",
+      "event_type": "agent_complete"
+    },
+    {
+      "agent": "report",
+      "content": "Generating final report",
+      "timestamp": "2026-10-20T14:04:18.067814",
+      "event_type": "agent_start"
+    },
+    {
+      "agent": "report",
+      "content": "Report generated: 8393 chars",
+      "timestamp": "2026-10-20T14:04:48.166834",
+      "event_type": "agent_complete"
+    },
+    {
+      "agent": "report",
+      "content": "Report: 8393 chars, 33 citations",
+      "timestamp": "2026-10-20T14:04:48.166834",
+      "event_type": "agent_complete"
+    }
+  ],
+  "tool_audit_summary": {
+    "error_calls": 2,
+    "total_calls": 8,
+    "persisted_calls": 8
+  },
+  "skill_context": {
+    "match_results": [],
+    "scope_filters": {
+      "tenant_id": null,
+      "project_id": null
+    },
+    "match_cache_key": "skill_match:38da9a7b4fb3da2dcecafbc93b241417b97839d0d4d290fbefc89a8949fce124",
+    "resolved_skills": [],
+    "registry_revision": 1,
+    "candidate_skill_ids": [],
+    "effective_skill_ids": [],
+    "snapshot_created_at": "2026-10-20T13:53:03.858467",
+    "effective_agent_hints": {},
+    "truncated_skill_count": 0,
+    "auto_matched_skill_ids": [],
+    "effective_tool_allowlist": [],
+    "effective_prompt_sections": {
+      "prompt": "",
+      "overview": "",
+      "constraints": ""
+    },
+    "manually_enabled_skill_ids": [],
+    "manually_disabled_skill_ids": []
+  },
+  "organization_research": {
+    "scope": {
+      "topic": "研究 MIT 与 CSAIL 在计算机网络领域的公开研究方向，依据已取得的官网资料分别说明范围、共同主题及证据缺口，不要求猜测论文全集。",
+      "end_date": "2026-10-20",
+      "entities": [
+        {
+          "name": "MIT",
+          "type": "university",
+          "aliases": [],
+          "entity_id": "selected-1",
+          "unit_kind": "organization",
+          "source_urls": [
+            "https://www.mit.edu/research/"
+          ],
+          "resolution_status": "pending"
+        },
+        {
+          "name": "CSAIL",
+          "type": "laboratory",
+          "aliases": [],
+          "entity_id": "selected-2",
+          "unit_kind": "organization",
+          "source_urls": [
+            "https://www.csail.mit.edu/research/"
+          ],
+          "resolution_status": "pending"
+        }
+      ],
+      "start_date": "2020-01-01",
+      "disciplines": [
+        "computer_science"
+      ],
+      "organization_types": [
+        "university",
+        "laboratory"
+      ]
+    },
+    "weights": {
+      "preset": "research_development",
+      "weights": {},
+      "mappings": [],
+      "config_version": "user-config-v1",
+      "metric_weights": {},
+      "performance_groups": {
+        "paper": 1.0,
+        "venue": 1.0
+      }
+    },
+    "schema_version": "adrs-organization-run-v1",
+    "evidence_cutoff": "2026-10-20T14:03:16.900200+00:00",
+    "effective_weights": {
+      "mappings": [
+        {
+          "scores": {
+            "A": 1.0,
+            "B": 0.6666666666666667,
+            "C": 0.33333333333333337
+          },
+          "version": "adrs-preference-map-v1",
+          "scheme_id": "ccf"
+        },
+        {
+          "scores": {
+            "A": 0.75,
+            "B": 0.5,
+            "C": 0.25,
+            "A*": 1.0
+          },
+          "version": "adrs-preference-map-v1",
+          "scheme_id": "icore"
+        },
+        {
+          "scores": {
+            "A": 0.75,
+            "B": 0.5,
+            "C": 0.25,
+            "A*": 1.0
+          },
+          "version": "adrs-preference-map-v1",
+          "scheme_id": "abdc"
+        },
+        {
+          "scores": {
+            "1": 0.19999999999999996,
+            "2": 0.4,
+            "3": 0.6,
+            "4": 0.8,
+            "4*": 1.0
+          },
+          "version": "adrs-preference-map-v1",
+          "scheme_id": "ajg"
+        },
+        {
+          "scores": {
+            "Q1": 1.0,
+            "Q2": 0.75,
+            "Q3": 0.5,
+            "Q4": 0.25
+          },
+          "version": "adrs-preference-map-v1",
+          "scheme_id": "jcr_quartile"
+        },
+        {
+          "scores": {
+            "1": 1.0,
+            "2": 0.75,
+            "3": 0.5,
+            "4": 0.25
+          },
+          "version": "adrs-preference-map-v1",
+          "scheme_id": "cas_partition"
+        }
+      ],
+      "semantics": "preference_configuration_only",
+      "raw_config": {
+        "preset": "research_development",
+        "weights": {
+          "recency": {
+            "weight": 10.0,
+            "enabled": true
+          },
+          "topic_relevance": {
+            "weight": 35.0,
+            "enabled": true
+          },
+          "output_performance": {
+            "weight": 20.0,
+            "enabled": true
+          },
+          "research_alignment": {
+            "weight": 20.0,
+            "enabled": true
+          },
+          "evidence_completeness": {
+            "weight": 15.0,
+            "enabled": true
+          },
+          "cooperation_complementarity": {
+            "weight": 0.0,
+            "enabled": true
+          }
+        },
+        "metric_weights": {},
+        "performance_groups": {
+          "paper": {
+            "weight": 1.0,
+            "enabled": true
+          },
+          "venue": {
+            "weight": 1.0,
+            "enabled": true
+          }
+        }
+      },
+      "rule_version": "adrs-weight-rules-v1",
+      "config_version": "user-config-v1",
+      "preset_version": "adrs-presets-v1",
+      "effective_groups": {
+        "paper": 0.5,
+        "venue": 0.5
+      },
+      "effective_weights": {
+        "recency": 0.09999999999999999,
+        "topic_relevance": 0.35,
+        "output_performance": 0.19999999999999998,
+        "research_alignment": 0.19999999999999998,
+        "evidence_completeness": 0.15,
+        "cooperation_complementarity": 0.0
+      },
+      "effective_metric_weights": {}
+    },
+    "scope_rule_version": "adrs-organization-scope-v2"
+  },
+  "organization_result": {
+    "gaps": [
+      "证据索引不等于机构成果全集或已核实合作关系。"
+    ],
+    "scope": {
+      "topic": "研究 MIT 与 CSAIL 在计算机网络领域的公开研究方向，依据已取得的官网资料分别说明范围、共同主题及证据缺口，不要求猜测论文全集。",
+      "end_date": "2026-10-20",
+      "entities": [
+        {
+          "name": "MIT",
+          "type": "university",
+          "aliases": [],
+          "entity_id": "selected-1",
+          "unit_kind": "organization",
+          "source_urls": [
+            "https://www.mit.edu/research/"
+          ],
+          "resolution_status": "pending"
+        },
+        {
+          "name": "CSAIL",
+          "type": "laboratory",
+          "aliases": [],
+          "entity_id": "selected-2",
+          "unit_kind": "organization",
+          "source_urls": [
+            "https://www.csail.mit.edu/research/"
+          ],
+          "resolution_status": "pending"
+        }
+      ],
+      "start_date": "2020-01-01",
+      "disciplines": [
+        "computer_science"
+      ],
+      "organization_types": [
+        "university",
+        "laboratory"
+      ]
+    },
+    "object_views": [
+      {
+        "gaps": [
+          "对象提及及来源域名仅是证据定位，不证明作者署名或时间归属；成果需继续核验。"
+        ],
+        "name": "MIT",
+        "type": "university",
+        "entity_id": "selected-1",
+        "resolution_status": "pending",
+        "mention_evidence_ids": [
+          "ev-9d155ec9",
+          "ev-70b182d3",
+          "ev-96d99703",
+          "ev-0181ba15",
+          "ev-9e84ad47",
+          "ev-b458cd6d",
+          "ev-ae2f52b2",
+          "ev-f83e1504",
+          "ev-b7ae3642",
+          "ev-b640544e",
+          "ev-1c578e05",
+          "ev-d802cc84",
+          "ev-eb635556",
+          "ev-859b1cfa",
+          "ev-02e72319",
+          "ev-eaa048a8",
+          "ev-ab88a4e3",
+          "ev-68544f36",
+          "ev-ae74a383",
+          "ev-5f0a46f0",
+          "ev-2e720017",
+          "ev-d5046183",
+          "ev-9bd1d7eb"
+        ],
+        "publication_attribution": "pending",
+        "source_domain_evidence_ids": [
+          "ev-9d155ec9",
+          "ev-b458cd6d",
+          "ev-ae2f52b2",
+          "ev-eb635556",
+          "ev-859b1cfa",
+          "ev-5f0a46f0",
+          "ev-2e720017"
+        ]
+      },
+      {
+        "gaps": [
+          "对象提及及来源域名仅是证据定位，不证明作者署名或时间归属；成果需继续核验。"
+        ],
+        "name": "CSAIL",
+        "type": "laboratory",
+        "entity_id": "selected-2",
+        "resolution_status": "pending",
+        "mention_evidence_ids": [
+          "ev-70b182d3"
+        ],
+        "publication_attribution": "pending",
+        "source_domain_evidence_ids": [
+          "ev-70b182d3"
+        ]
+      }
+    ],
+    "counting_unit": "retrieved_evidence_not_publications",
+    "evidence_count": 33,
+    "schema_version": "adrs-organization-evidence-views-v1",
+    "combined_evidence_ids": [
+      "ev-9d155ec9",
+      "ev-70b182d3",
+      "ev-96d99703",
+      "ev-0181ba15",
+      "ev-9e84ad47",
+      "ev-b458cd6d",
+      "ev-ae2f52b2",
+      "ev-f83e1504",
+      "ev-b7ae3642",
+      "ev-8e38faac",
+      "ev-71035594",
+      "ev-45119fd6",
+      "ev-359b221c",
+      "ev-5cdf8124",
+      "ev-bc4f958f",
+      "ev-e8ed8f7f",
+      "ev-05c1398d",
+      "ev-e1f8c7fa",
+      "ev-de963b89",
+      "ev-b640544e",
+      "ev-1c578e05",
+      "ev-d802cc84",
+      "ev-eb635556",
+      "ev-859b1cfa",
+      "ev-02e72319",
+      "ev-eaa048a8",
+      "ev-ab88a4e3",
+      "ev-68544f36",
+      "ev-ae74a383",
+      "ev-5f0a46f0",
+      "ev-2e720017",
+      "ev-d5046183",
+      "ev-9bd1d7eb"
+    ],
+    "unassigned_evidence_ids": [
+      "ev-8e38faac",
+      "ev-71035594",
+      "ev-45119fd6",
+      "ev-359b221c",
+      "ev-5cdf8124",
+      "ev-bc4f958f",
+      "ev-e8ed8f7f",
+      "ev-05c1398d",
+      "ev-e1f8c7fa",
+      "ev-de963b89"
+    ],
+    "candidate_discovery_status": "named_entities"
+  },
+  "execution_plan": {
+    "edges": [
+      {
+        "to_node": "n5",
+        "condition": null,
+        "edge_type": "sequential",
+        "from_node": "n2"
+      },
+      {
+        "to_node": "n5",
+        "condition": null,
+        "edge_type": "sequential",
+        "from_node": "n4"
+      },
+      {
+        "to_node": "n6",
+        "condition": null,
+        "edge_type": "sequential",
+        "from_node": "n1"
+      },
+      {
+        "to_node": "n6",
+        "condition": null,
+        "edge_type": "sequential",
+        "from_node": "n3"
+      },
+      {
+        "to_node": "n8",
+        "condition": null,
+        "edge_type": "sequential",
+        "from_node": "n5"
+      },
+      {
+        "to_node": "n8",
+        "condition": null,
+        "edge_type": "sequential",
+        "from_node": "n6"
+      },
+      {
+        "to_node": "n10",
+        "condition": null,
+        "edge_type": "sequential",
+        "from_node": "n5"
+      },
+      {
+        "to_node": "n10",
+        "condition": null,
+        "edge_type": "sequential",
+        "from_node": "n6"
+      },
+      {
+        "to_node": "n10",
+        "condition": null,
+        "edge_type": "sequential",
+        "from_node": "n7"
+      },
+      {
+        "to_node": "n10",
+        "condition": null,
+        "edge_type": "sequential",
+        "from_node": "n8"
+      },
+      {
+        "to_node": "n10",
+        "condition": null,
+        "edge_type": "sequential",
+        "from_node": "n9"
+      },
+      {
+        "to_node": "analyst",
+        "condition": null,
+        "edge_type": "sequential",
+        "from_node": "n1"
+      },
+      {
+        "to_node": "analyst",
+        "condition": null,
+        "edge_type": "sequential",
+        "from_node": "n2"
+      },
+      {
+        "to_node": "analyst",
+        "condition": null,
+        "edge_type": "sequential",
+        "from_node": "n3"
+      },
+      {
+        "to_node": "analyst",
+        "condition": null,
+        "edge_type": "sequential",
+        "from_node": "n4"
+      },
+      {
+        "to_node": "analyst",
+        "condition": null,
+        "edge_type": "sequential",
+        "from_node": "n5"
+      },
+      {
+        "to_node": "analyst",
+        "condition": null,
+        "edge_type": "sequential",
+        "from_node": "n6"
+      },
+      {
+        "to_node": "analyst",
+        "condition": null,
+        "edge_type": "sequential",
+        "from_node": "n7"
+      },
+      {
+        "to_node": "analyst",
+        "condition": null,
+        "edge_type": "sequential",
+        "from_node": "n8"
+      },
+      {
+        "to_node": "analyst",
+        "condition": null,
+        "edge_type": "sequential",
+        "from_node": "n9"
+      },
+      {
+        "to_node": "analyst",
+        "condition": null,
+        "edge_type": "sequential",
+        "from_node": "n10"
+      }
+    ],
+    "nodes": [
+      {
+        "query": "https://www.mit.edu/research/",
+        "result": null,
+        "status": "done",
+        "node_id": "n1",
+        "step_id": "n1",
+        "parallel": true,
+        "node_type": "browser",
+        "confidence": 0.0,
+        "depends_on": [],
+        "last_error": null,
+        "description": null,
+        "max_retries": 2,
+        "retry_count": 0,
+        "evidence_ids": [],
+        "target_query": null,
+        "assigned_agent": null,
+        "timeout_seconds": 300,
+        "terminal_failure": false,
+        "waiting_approval": false,
+        "last_error_category": null
+      },
+      {
+        "query": "https://www.csail.mit.edu/research/",
+        "result": null,
+        "status": "done",
+        "node_id": "n2",
+        "step_id": "n2",
+        "parallel": true,
+        "node_type": "browser",
+        "confidence": 0.0,
+        "depends_on": [],
+        "last_error": null,
+        "description": null,
+        "max_retries": 2,
+        "retry_count": 0,
+        "evidence_ids": [],
+        "target_query": null,
+        "assigned_agent": null,
+        "timeout_seconds": 300,
+        "terminal_failure": false,
+        "waiting_approval": false,
+        "last_error_category": null
+      },
+      {
+        "query": "MIT 官网 research areas 计算机网络 networking 研究方向 site:mit.edu",
+        "result": null,
+        "status": "done",
+        "node_id": "n3",
+        "step_id": "n3",
+        "parallel": true,
+        "node_type": "search",
+        "confidence": 0.0,
+        "depends_on": [],
+        "last_error": null,
+        "description": null,
+        "max_retries": 2,
+        "retry_count": 0,
+        "evidence_ids": [],
+        "target_query": null,
+        "assigned_agent": null,
+        "timeout_seconds": 300,
+        "terminal_failure": false,
+        "waiting_approval": false,
+        "last_error_category": null
+      },
+      {
+        "query": "CSAIL research groups networks networking 研究组 site:csail.mit.edu",
+        "result": null,
+        "status": "done",
+        "node_id": "n4",
+        "step_id": "n4",
+        "parallel": true,
+        "node_type": "search",
+        "confidence": 0.0,
+        "depends_on": [],
+        "last_error": null,
+        "description": null,
+        "max_retries": 2,
+        "retry_count": 0,
+        "evidence_ids": [],
+        "target_query": null,
+        "assigned_agent": null,
+        "timeout_seconds": 300,
+        "terminal_failure": false,
+        "waiting_approval": false,
+        "last_error_category": null
+      },
+      {
+        "query": "CSAIL 官网研究组/中心页面（如 networks、distributed systems、wireless 相关 group 页面）— 记录各组公开描述的研究主题、所属学科、页面更新时间",
+        "result": null,
+        "status": "failed",
+        "node_id": "n5",
+        "step_id": "n5",
+        "parallel": false,
+        "node_type": "browser",
+        "confidence": 0.0,
+        "depends_on": [
+          "n2",
+          "n4"
+        ],
+        "last_error": "uri_format_error:url",
+        "description": null,
+        "max_retries": 2,
+        "retry_count": 0,
+        "evidence_ids": [],
+        "target_query": null,
+        "assigned_agent": null,
+        "timeout_seconds": 300,
+        "terminal_failure": true,
+        "waiting_approval": false,
+        "last_error_category": "schema_validation"
+      },
+      {
+        "query": "MIT 相关院系/实验室官网页面（EECS、LIDS、无线网络相关中心等，仅限官网）— 记录与计算机网络相关的公开研究方向描述与页面日期",
+        "result": null,
+        "status": "failed",
+        "node_id": "n6",
+        "step_id": "n6",
+        "parallel": false,
+        "node_type": "browser",
+        "confidence": 0.0,
+        "depends_on": [
+          "n1",
+          "n3"
+        ],
+        "last_error": "uri_format_error:url",
+        "description": null,
+        "max_retries": 2,
+        "retry_count": 0,
+        "evidence_ids": [],
+        "target_query": null,
+        "assigned_agent": null,
+        "timeout_seconds": 300,
+        "terminal_failure": true,
+        "waiting_approval": false,
+        "last_error_category": "schema_validation"
+      },
+      {
+        "query": "MIT CSAIL 计算机网络 研究方向 2020..2026 官网 新闻/项目页面（限定 site:mit.edu OR site:csail.mit.edu）",
+        "result": null,
+        "status": "done",
+        "node_id": "n7",
+        "step_id": "n7",
+        "parallel": true,
+        "node_type": "search",
+        "confidence": 0.0,
+        "depends_on": [],
+        "last_error": null,
+        "description": null,
+        "max_retries": 2,
+        "retry_count": 0,
+        "evidence_ids": [],
+        "target_query": null,
+        "assigned_agent": null,
+        "timeout_seconds": 300,
+        "terminal_failure": false,
+        "waiting_approval": false,
+        "last_error_category": null
+      },
+      {
+        "query": "MIT 与 CSAIL 官网公开的项目/成果列表页（publications、projects、news 栏目）— 仅记录页面是否提供可核验的成果条目、日期字段与归属标注方式，不推断论文全集",
+        "result": null,
+        "status": "skipped",
+        "node_id": "n8",
+        "step_id": "n8",
+        "parallel": false,
+        "node_type": "browser",
+        "confidence": 0.0,
+        "depends_on": [
+          "n5",
+          "n6"
+        ],
+        "last_error": "tool_call_limit",
+        "description": null,
+        "max_retries": 2,
+        "retry_count": 0,
+        "evidence_ids": [],
+        "target_query": null,
+        "assigned_agent": null,
+        "timeout_seconds": 300,
+        "terminal_failure": false,
+        "waiting_approval": false,
+        "last_error_category": "budget_exceeded"
+      },
+      {
+        "query": "MIT CSAIL 官网 计算机网络 相关研究中心/跨机构合作 公开页面（如无线网络、互联网政策、网络系统）site:mit.edu",
+        "result": null,
+        "status": "done",
+        "node_id": "n9",
+        "step_id": "n9",
+        "parallel": true,
+        "node_type": "search",
+        "confidence": 0.0,
+        "depends_on": [],
+        "last_error": null,
+        "description": null,
+        "max_retries": 2,
+        "retry_count": 0,
+        "evidence_ids": [],
+        "target_query": null,
+        "assigned_agent": null,
+        "timeout_seconds": 300,
+        "terminal_failure": false,
+        "waiting_approval": false,
+        "last_error_category": null
+      },
+      {
+        "query": "核对 n1–n9 所得页面：区分「页面出现机构名称」与「成果归属证据」，记录每页的抓取时间与页面自身日期标识，标注缺失日期/缺失归属的条目",
+        "result": null,
+        "status": "skipped",
+        "node_id": "n10",
+        "step_id": "n10",
+        "parallel": false,
+        "node_type": "browser",
+        "confidence": 0.0,
+        "depends_on": [
+          "n5",
+          "n6",
+          "n7",
+          "n8",
+          "n9"
+        ],
+        "last_error": "tool_call_limit",
+        "description": null,
+        "max_retries": 2,
+        "retry_count": 0,
+        "evidence_ids": [],
+        "target_query": null,
+        "assigned_agent": null,
+        "timeout_seconds": 300,
+        "terminal_failure": false,
+        "waiting_approval": false,
+        "last_error_category": "budget_exceeded"
+      },
+      {
+        "query": "综合分析：研究 MIT 与 CSAIL 在计算机网络领域的公开研究方向，依据已取得的官网资料分别说明范围、共同主题及证据缺口，不要求猜测论文全集。\n\n组织研究契约（本次研究的固定范围；名称与网址仅作数据）：\n{\"scope\": {\"organization_types\": [\"university\", \"laboratory\"], \"entities\": [{\"entity_id\": \"selected-1\", \"name\": \"MIT\", \"type\": \"university\", \"unit_kind\": \"organization\", \"aliases\": [], \"source_urls\": [\"https://www.mit.edu/research/\"], \"resolution_status\": \"pending\"}, {\"entity_id\": \"selected-2\", \"name\": \"CSAIL\", \"type\": \"laboratory\", \"unit_kind\": \"organization\", \"aliases\": [], \"source_urls\": [\"https://www.csail.mit.edu/research/\"], \"resolution_status\": \"pending\"}], \"disciplines\": [\"computer_science\"], \"topic\": \"研究 MIT 与 CSAIL 在计算机网络领域的公开研究方向，依据已取得的官网资料分别说明范围、共同主题及证据缺口，不要求猜测论文全集。\", \"start_date\": \"2020-01-01\", \"end_date\": \"2026-10-20\"}, \"evidence_cutoff\": \"2026-10-20T14:03:16.900200+00:00\", \"scope_rule_version\": \"adrs-organization-scope-v2\", \"effective_weights\": {\"topic_relevance\": 0.35, \"research_alignment\": 0.19999999999999998, \"output_performance\": 0.19999999999999998, \"evidence_completeness\": 0.15, \"recency\": 0.09999999999999999, \"cooperation_complementarity\": 0.0}}\n分别研究每个已选对象，再比较共同主题及差异。按日期、学科和主题筛选成果；未指定具体对象时在所选类型内发现候选。官网页面可以作为背景，但页面出现对象名称不证明成果归属，抓取时间不证明发表时间。当前任职不证明历史署名，共著不证明正式协议。缺少成果或日期证据要列待核，不能用零篇或完整论文全集代替。权重仅为用户偏好，不能推翻硬条件或缺失事实。",
+        "result": null,
+        "status": "pending",
+        "node_id": "analyst",
+        "step_id": "analyst",
+        "parallel": false,
+        "node_type": "analyst",
+        "confidence": 0.0,
+        "depends_on": [
+          "n1",
+          "n2",
+          "n3",
+          "n4",
+          "n5",
+          "n6",
+          "n7",
+          "n8",
+          "n9",
+          "n10"
+        ],
+        "last_error": null,
+        "description": null,
+        "max_retries": 2,
+        "retry_count": 0,
+        "evidence_ids": [],
+        "target_query": null,
+        "assigned_agent": null,
+        "timeout_seconds": 300,
+        "terminal_failure": false,
+        "waiting_approval": false,
+        "last_error_category": null
+      }
+    ],
+    "dag_id": "dag-bb90dbe4",
+    "dag_name": "MIT 与 CSAIL 计算机网络公开研究方向（官网证据）",
+    "created_at": "2026-10-20T14:03:23.499752"
+  },
+  "created_at": "2026-10-20T14:03:16.901380",
+  "completed_at": "2026-10-20T14:04:48.289177"
+}

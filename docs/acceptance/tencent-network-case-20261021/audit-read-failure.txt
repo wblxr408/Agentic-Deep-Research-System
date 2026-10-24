@@ -1,0 +1,22 @@
+  File "D:\Agentic-Deep-Research-System\.venv\Lib\site-packages\starlette\routing.py", line 73, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "C:\Users\wblxr\anaconda3\Lib\site-packages\fastapi\routing.py", line 301, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\wblxr\anaconda3\Lib\site-packages\fastapi\routing.py", line 212, in run_endpoint_function
+    return await dependant.call(**values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Agentic-Deep-Research-System\app\api\research.py", line 788, in get_research_tool_calls
+    result.append(ToolCallAuditRecord(
+                  ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\wblxr\anaconda3\Lib\site-packages\pydantic\main.py", line 214, in __init__
+    validated_self = self.__pydantic_validator__.validate_python(data, self_instance=self)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+pydantic_core._pydantic_core.ValidationError: 2 validation errors for ToolCallAuditRecord
+args_json
+  Input should be a valid dictionary [type=dict_type, input_value='{"query": "https://www.u...fd5-bc66-bf088b35a2f5"}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.10/v/dict_type
+safety_json
+  Input should be a valid dictionary [type=dict_type, input_value='{"source": "harness_tool...chema_validated": true}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.10/v/dict_type

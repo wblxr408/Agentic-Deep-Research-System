@@ -1,0 +1,56 @@
+{
+  "sources": [
+    {
+      "source_id": "openalex-W1951724000-fwci-2026-10-19",
+      "scheme_id": "fwci",
+      "edition": "OpenAlex snapshot 2026-10-19",
+      "metric_year": 2026,
+      "provider": "OpenAlex",
+      "source_url": "https://api.openalex.org/works/W1951724000",
+      "retrieved_on": "2026-10-19",
+      "access": "public",
+      "authorized": false,
+      "coverage": "partial",
+      "provider_updated_at": "2026-10-19T09:35:57.686232",
+      "records": [
+        {
+          "target_id": "openalex:W1951724000",
+          "track": "work",
+          "category": "https://openalex.org/subfields/2613 | Statistics and Probability",
+          "raw_value": 3266.5958,
+          "status": "available",
+          "publication_year": 2015,
+          "document_type": "article",
+          "citation_cutoff": "2018-12-31"
+        }
+      ]
+    },
+    {
+      "source_id": "openalex-W1951724000-citation_percentile-2026-10-19",
+      "scheme_id": "citation_percentile",
+      "edition": "OpenAlex snapshot 2026-10-19",
+      "metric_year": 2026,
+      "provider": "OpenAlex",
+      "source_url": "https://api.openalex.org/works/W1951724000",
+      "retrieved_on": "2026-10-19",
+      "access": "public",
+      "authorized": false,
+      "coverage": "partial",
+      "provider_updated_at": "2026-10-19T09:35:57.686232",
+      "records": [
+        {
+          "target_id": "openalex:W1951724000",
+          "track": "work",
+          "category": "https://openalex.org/subfields/2613 | Statistics and Probability",
+          "raw_value": 1.0,
+          "status": "available",
+          "publication_year": 2015,
+          "document_type": "article",
+          "citation_cutoff": "2018-12-31"
+        }
+      ]
+    }
+  ],
+  "provenance": "caller_provided_openalex_payload",
+  "external_sources_checked": false
+}

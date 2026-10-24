@@ -1,0 +1,37 @@
+{
+  "query": "只研究 CSAIL 实验室官网公开的研究方向，用简短报告说明可核实的主题和证据缺口，不要求企业业务或合作名单。",
+  "use_internal_docs": false,
+  "rag_group": null,
+  "output_length": "short",
+  "enabled_skill_ids": [],
+  "disabled_skill_ids": [],
+  "channels": [],
+  "organization_research": {
+    "scope": {
+      "organization_types": [
+        "laboratory"
+      ],
+      "entities": [
+        {
+          "entity_id": "selected-1",
+          "name": "CSAIL",
+          "type": "laboratory",
+          "aliases": [],
+          "source_urls": [
+            "https://www.csail.mit.edu/research"
+          ],
+          "resolution_status": "pending"
+        }
+      ],
+      "disciplines": [
+        "computer_science"
+      ],
+      "topic": "只研究 CSAIL 实验室官网公开的研究方向，用简短报告说明可核实的主题和证据缺口，不要求企业业务或合作名单。",
+      "start_date": "2020-01-01",
+      "end_date": "2026-10-20"
+    },
+    "weights": {
+      "preset": "research_development"
+    }
+  }
+}

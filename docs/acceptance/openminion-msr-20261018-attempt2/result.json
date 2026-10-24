@@ -1,0 +1,67 @@
+{
+  "schema_version": "1",
+  "run_id": "c32923bef9bd430e9fe260f368b1d1b3",
+  "status": "failed",
+  "started_at": "2026-10-18T10:17:09.480798+00:00",
+  "scope": {
+    "organizations": [
+      {
+        "name": "Microsoft Research",
+        "type": "laboratory"
+      }
+    ],
+    "topic": "2024至2025年数据中心网络拥塞控制的研究问题、技术路线、成果及尚未解决的问题；根据公开论文和研究机构原始来源分析，不推断内部研发战略",
+    "start_year": 2024,
+    "end_year": 2025,
+    "seed_urls": [
+      "https://www.microsoft.com/en-us/research/group/networking/"
+    ],
+    "timeout_seconds": 300,
+    "max_tool_calls": 10
+  },
+  "plan": [
+    "按组织与主题检索公开原始来源",
+    "读取原文并保存证据",
+    "综合各对象研究方向与缺口",
+    "核对最终主张及引文"
+  ],
+  "trace": [],
+  "evidence": [],
+  "report": "",
+  "audit": null,
+  "errors": [
+    "ProviderError"
+  ],
+  "model": "qwen-plus",
+  "provider": "qwen",
+  "sdk_version": "0.1.7",
+  "error_locations": [
+    {
+      "file": "bootstrap.py",
+      "line": 222,
+      "function": "from_manager"
+    },
+    {
+      "file": "infrastructure.py",
+      "line": 164,
+      "function": "build_runtime_infrastructure"
+    },
+    {
+      "file": "factory.py",
+      "line": 128,
+      "function": "build_runtime_llm_handle"
+    },
+    {
+      "file": "factory.py",
+      "line": 279,
+      "function": "_provider_settings_for_llmctl_bridge"
+    }
+  ],
+  "budget": {
+    "calls": 0,
+    "bytes": 0,
+    "exhausted": false,
+    "elapsed_seconds": 22.093
+  },
+  "completed_at": "2026-10-18T10:17:31.577085+00:00"
+}

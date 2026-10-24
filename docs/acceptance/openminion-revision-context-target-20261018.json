@@ -1,0 +1,13 @@
+{
+  "source_result": "docs/acceptance/openminion-msr-r14-20261018T151552Z/result/result.json",
+  "scope": "current_context_failure_only_not_new_collection",
+  "format_recoveries": [
+    {
+      "status": "failed",
+      "invalid_output": "organization-research: I couldn't continue safely because the decision context exceeded the available token budget for this turn.",
+      "reason": "Typed brief validation failed; one tools-free format repair"
+    }
+  ],
+  "error": "AgentOutputValidationError",
+  "invalid_output": "organization-research: {\"findings\": [], \"questions\": [\"请提供需要修复的原始研究简报内容（findings、organizations、work names、citations 及 questions 的原文）。\"], \"gaps\": [\"未提供可修复的源研究简报数据；无法在不新增事实的前提下重建 findings。\", \"无任何 organization、work、facet、statement 或 citation_ids 可verbatim保留。\"], \"missing_requirements\": [\"原始研究简报 JSON 或等价文本（含全部 findings 与 citations）\", \"原始 questions 列表（若超过四条需标注保留哪四条）\"]}"
+}

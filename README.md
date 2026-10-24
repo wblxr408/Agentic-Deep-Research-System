@@ -8,6 +8,8 @@ ADRS 面向企业、高校和科研实验室的研究发展分析：从公开论
 
 [主TODO](docs/OPTIMIZATION_TODO.md) · [实施账本与选型](docs/IMPLEMENTATION_LEDGER.md) · [统一真实旅程及失败记录](docs/acceptance/unified-research-20261023.md) · [当前使用说明](docs/organization-research-guide.md)
 
+2026-10-24 本地工作迁入任务分支并接续云端编码，范围与执行归属见[云端交接](docs/CLOUD_CONTINUATION_20261024.md)。最新北大A7已在232703／240000 Token处暂停，审核58／104项，尚未完整交付；本机数据库、密钥、会话和依赖不随Git迁移。
+
 | 能力 | 当前状态与依据 |
 | --- | --- |
 | 对象、学科、评价与权重 | 单／多组织、历史署名、评价适用性与版本、硬条件、分项贡献、缺失区间、个人预设及固定证据重排已接入。历史复合交付29/34；后五项及本轮跨对象／跨学科整体交付待统一验收。[组织研究计划](docs/RESEARCH_DEVELOPMENT_PLAN.md) |

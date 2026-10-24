@@ -1,0 +1,30 @@
+{
+  "session_id": "5b56e7b4-b594-4fd5-bc66-bf088b35a2f5",
+  "total_tokens": 50799,
+  "total_cost_usd": "0.000000",
+  "tool_calls": 9,
+  "report_chars": 22251,
+  "citations": 32,
+  "summary": {
+    "output_ids": [
+      "harp-nsdi26"
+    ],
+    "output_count": 1,
+    "counting_method": "full",
+    "publication_count": 1,
+    "research_family_ids": [
+      "publication:harp-nsdi26"
+    ],
+    "research_family_count": 1,
+    "unlinked_publication_count": 1
+  },
+  "gaps": [
+    "证据索引不等于机构成果全集或已核实合作关系。",
+    "仅覆盖本次取得的样本；空样本不代表现实中零成果，来源未覆盖年份不补零。",
+    "学科比较组使用请求标签，尚未逐篇核定学科；不输出跨学科或载体的统一质量榜。",
+    "原文位置与引用检查不等于独立语义复核；模型推断、建议和未来情景仍须复核。",
+    "评价目录为冻结的部分样本及授权要求，未自动应用到本次成果；缺失指标不作零分或最低等级。",
+    "funding 关系尚无已纳入的直接依据；不表示该关系不存在。",
+    "citation 关系尚无已纳入的直接依据；不表示该关系不存在。"
+  ]
+}

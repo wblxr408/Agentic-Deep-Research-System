@@ -1,0 +1,1051 @@
+{
+  "started_at": "2026-10-12T11:26:23.875627+00:00",
+  "base_url": "http://127.0.0.1:8021",
+  "username": "channel_test",
+  "checks": [
+    {
+      "name": "password_login",
+      "passed": true
+    },
+    {
+      "name": "authenticated_identity",
+      "passed": true
+    },
+    {
+      "name": "anonymous_collection_rejected",
+      "passed": true
+    },
+    {
+      "name": "incorrect_password_rejected",
+      "passed": true
+    },
+    {
+      "name": "save_github",
+      "passed": true
+    },
+    {
+      "name": "save_rss",
+      "passed": true
+    },
+    {
+      "name": "save_web",
+      "passed": true
+    },
+    {
+      "name": "save_bilibili",
+      "passed": true
+    },
+    {
+      "name": "save_xiaoyuzhou",
+      "passed": true
+    },
+    {
+      "name": "save_exa",
+      "passed": true
+    },
+    {
+      "name": "save_youtube",
+      "passed": true
+    },
+    {
+      "name": "priority_persisted",
+      "passed": true
+    },
+    {
+      "name": "github_read_structured_response",
+      "passed": true
+    },
+    {
+      "name": "github_read_content_has_source",
+      "passed": true
+    },
+    {
+      "name": "github_search_structured_response",
+      "passed": true
+    },
+    {
+      "name": "github_search_content_has_source",
+      "passed": true
+    },
+    {
+      "name": "github_search_content_has_source",
+      "passed": true
+    },
+    {
+      "name": "github_search_content_has_source",
+      "passed": true
+    },
+    {
+      "name": "github_search_content_has_source",
+      "passed": true
+    },
+    {
+      "name": "github_search_content_has_source",
+      "passed": true
+    },
+    {
+      "name": "v2ex_read_structured_response",
+      "passed": true
+    },
+    {
+      "name": "v2ex_read_content_has_source",
+      "passed": true
+    },
+    {
+      "name": "rss_read_structured_response",
+      "passed": true
+    },
+    {
+      "name": "rss_search_structured_response",
+      "passed": true
+    },
+    {
+      "name": "rss_search_content_has_source",
+      "passed": true
+    },
+    {
+      "name": "rss_search_content_has_source",
+      "passed": true
+    },
+    {
+      "name": "rss_search_content_has_source",
+      "passed": true
+    },
+    {
+      "name": "rss_search_content_has_source",
+      "passed": true
+    },
+    {
+      "name": "rss_search_content_has_source",
+      "passed": true
+    },
+    {
+      "name": "web_search_structured_response",
+      "passed": true
+    },
+    {
+      "name": "web_search_content_has_source",
+      "passed": true
+    },
+    {
+      "name": "web_search_content_has_source",
+      "passed": true
+    },
+    {
+      "name": "web_search_content_has_source",
+      "passed": true
+    },
+    {
+      "name": "web_search_content_has_source",
+      "passed": true
+    },
+    {
+      "name": "web_read_structured_response",
+      "passed": true
+    },
+    {
+      "name": "web_read_content_has_source",
+      "passed": true
+    },
+    {
+      "name": "bilibili_search_structured_response",
+      "passed": true
+    },
+    {
+      "name": "bilibili_search_content_has_source",
+      "passed": true
+    },
+    {
+      "name": "bilibili_search_content_has_source",
+      "passed": true
+    },
+    {
+      "name": "bilibili_search_content_has_source",
+      "passed": true
+    },
+    {
+      "name": "bilibili_search_content_has_source",
+      "passed": true
+    },
+    {
+      "name": "youtube_search_structured_response",
+      "passed": true
+    },
+    {
+      "name": "youtube_search_content_has_source",
+      "passed": true
+    },
+    {
+      "name": "youtube_search_content_has_source",
+      "passed": true
+    },
+    {
+      "name": "youtube_search_content_has_source",
+      "passed": true
+    },
+    {
+      "name": "youtube_search_content_has_source",
+      "passed": true
+    },
+    {
+      "name": "youtube_search_content_has_source",
+      "passed": true
+    },
+    {
+      "name": "exa_search_structured_response",
+      "passed": true
+    },
+    {
+      "name": "exa_search_content_has_source",
+      "passed": true
+    },
+    {
+      "name": "exa_search_content_has_source",
+      "passed": true
+    },
+    {
+      "name": "exa_search_content_has_source",
+      "passed": true
+    },
+    {
+      "name": "exa_search_content_has_source",
+      "passed": true
+    },
+    {
+      "name": "exa_search_content_has_source",
+      "passed": true
+    },
+    {
+      "name": "twitter_search_structured_response",
+      "passed": true
+    },
+    {
+      "name": "reddit_search_structured_response",
+      "passed": true
+    },
+    {
+      "name": "xiaohongshu_search_structured_response",
+      "passed": true
+    },
+    {
+      "name": "facebook_search_structured_response",
+      "passed": true
+    },
+    {
+      "name": "instagram_search_structured_response",
+      "passed": true
+    },
+    {
+      "name": "linkedin_search_structured_response",
+      "passed": true
+    },
+    {
+      "name": "boss_search_structured_response",
+      "passed": true
+    },
+    {
+      "name": "xueqiu_search_structured_response",
+      "passed": true
+    },
+    {
+      "name": "xiaoyuzhou_read_structured_response",
+      "passed": true
+    },
+    {
+      "name": "xiaoyuzhou_read_content_has_source",
+      "passed": true
+    },
+    {
+      "name": "xiaoyuzhou_read_structured_response",
+      "passed": true
+    },
+    {
+      "name": "xiaoyuzhou_read_content_has_source",
+      "passed": true
+    },
+    {
+      "name": "xiaoyuzhou_read_structured_response",
+      "passed": true
+    },
+    {
+      "name": "removed_podcast_is_not_evidence",
+      "passed": true
+    },
+    {
+      "name": "all_attempts_persisted",
+      "passed": true
+    },
+    {
+      "name": "history_matches_latest_collection",
+      "passed": true
+    },
+    {
+      "name": "history_excludes_queries_and_credentials",
+      "passed": true
+    },
+    {
+      "name": "logout_revokes_session",
+      "passed": true
+    }
+  ],
+  "collections": [
+    {
+      "channel": "github",
+      "operation": "read",
+      "query": "https://github.com/Panniantong/Agent-Reach",
+      "required": true,
+      "status": "success",
+      "call_count": 2,
+      "duration_ms": 3578,
+      "attempts": [
+        {
+          "channel": "github",
+          "backend": "github-api",
+          "status": "success",
+          "result_count": 1,
+          "error_category": null,
+          "duration_ms": 3546,
+          "call_count": 2
+        }
+      ],
+      "items": [
+        {
+          "url": "https://github.com/Panniantong/Agent-Reach",
+          "title": "Panniantong/Agent-Reach",
+          "backend": "github-api",
+          "collected_at": "2026-10-12T11:26:25.124745+00:00",
+          "content_chars": 8000,
+          "excerpt": "👁️ Agent Reach\n\n\n  给你的 AI Agent 一键装上互联网能力\n\n\n\n  当下最稳的接入方式，替你选好、装好、体检好——接入方式会换代，你不用操心\n\n\n\n  \n  \n\n\n\n  \n "
+        }
+      ]
+    },
+    {
+      "channel": "github",
+      "operation": "search",
+      "query": "LangGraph",
+      "required": true,
+      "status": "success",
+      "call_count": 1,
+      "duration_ms": 1813,
+      "attempts": [
+        {
+          "channel": "github",
+          "backend": "github-api",
+          "status": "success",
+          "result_count": 5,
+          "error_category": null,
+          "duration_ms": 1797,
+          "call_count": 1
+        }
+      ],
+      "items": [
+        {
+          "url": "https://github.com/langchain-ai/langgraph",
+          "title": "langchain-ai/langgraph",
+          "backend": "github-api",
+          "collected_at": "2026-10-12T11:26:28.707062+00:00",
+          "content_chars": 23,
+          "excerpt": "Build resilient agents."
+        },
+        {
+          "url": "https://github.com/google-gemini/gemini-fullstack-langgraph-quickstart",
+          "title": "google-gemini/gemini-fullstack-langgraph-quickstart",
+          "backend": "github-api",
+          "collected_at": "2026-10-12T11:26:28.707062+00:00",
+          "content_chars": 73,
+          "excerpt": "Get started with building Fullstack Agents using Gemini 2.5 and LangGraph"
+        },
+        {
+          "url": "https://github.com/langgraph4j/langgraph4j",
+          "title": "langgraph4j/langgraph4j",
+          "backend": "github-api",
+          "collected_at": "2026-10-12T11:26:28.707062+00:00",
+          "content_chars": 197,
+          "excerpt": "🚀 LangGraph for Java is a library for Graph Engineering, designed to build sophisticated AI agentic "
+        },
+        {
+          "url": "https://github.com/langchain-ai/langgraphjs",
+          "title": "langchain-ai/langgraphjs",
+          "backend": "github-api",
+          "collected_at": "2026-10-12T11:26:28.707062+00:00",
+          "content_chars": 55,
+          "excerpt": "Framework to build resilient language agents as graphs."
+        },
+        {
+          "url": "https://github.com/mayooear/ai-pdf-chatbot-langchain",
+          "title": "mayooear/ai-pdf-chatbot-langchain",
+          "backend": "github-api",
+          "collected_at": "2026-10-12T11:26:28.707062+00:00",
+          "content_chars": 53,
+          "excerpt": "AI PDF chatbot agent built with LangChain & LangGraph"
+        }
+      ]
+    },
+    {
+      "channel": "v2ex",
+      "operation": "read",
+      "query": "https://www.v2ex.com/t/1000000",
+      "required": true,
+      "status": "success",
+      "call_count": 2,
+      "duration_ms": 4546,
+      "attempts": [
+        {
+          "channel": "v2ex",
+          "backend": "v2ex-api",
+          "status": "success",
+          "result_count": 1,
+          "error_category": null,
+          "duration_ms": 4516,
+          "call_count": 2
+        }
+      ],
+      "items": [
+        {
+          "url": "https://www.v2ex.com/t/1000000",
+          "title": "程序员如何从公司上班转型",
+          "backend": "v2ex-api",
+          "collected_at": "2026-10-12T11:26:30.526251+00:00",
+          "content_chars": 8000,
+          "excerpt": "程序员如何从公司上班转型  \r\n环境不好，裁的比较多，感觉纯靠在公司上班哪天就要被裁掉  \r\n年龄也上来了，要提前考虑后面的出路了\n抱歉跑个题，但是本帖真的是论坛第一个 7 位数帖 /t/100000"
+        }
+      ]
+    },
+    {
+      "channel": "rss",
+      "operation": "read",
+      "query": "https://hnrss.org/newest?count=5",
+      "required": true,
+      "status": "failed",
+      "call_count": 1,
+      "duration_ms": 21610,
+      "attempts": [
+        {
+          "channel": "rss",
+          "backend": "feed",
+          "status": "failed",
+          "result_count": 0,
+          "error_category": "network",
+          "duration_ms": 21594,
+          "call_count": 1
+        }
+      ],
+      "items": []
+    },
+    {
+      "channel": "rss",
+      "operation": "search",
+      "query": "a",
+      "required": true,
+      "status": "success",
+      "call_count": 1,
+      "duration_ms": 1359,
+      "attempts": [
+        {
+          "channel": "rss",
+          "backend": "feed",
+          "status": "success",
+          "result_count": 5,
+          "error_category": null,
+          "duration_ms": 1327,
+          "call_count": 1
+        }
+      ],
+      "items": [
+        {
+          "url": "https://www.bbc.com/culture/article/20261009-how-vikings-beat-columbus-to-america-by-500-years",
+          "title": "The Vikings who reached the Americas 500 years before Columbus",
+          "backend": "feed",
+          "collected_at": "2026-10-12T11:26:56.690753+00:00",
+          "content_chars": 191,
+          "excerpt": "Article URL: https://www.bbc.com/culture/article/20261009-how-vikings-beat-columbus-to-america-by-50"
+        },
+        {
+          "url": "https://www.reddit.com/r/oxforduni/comments/q0giir/my_all_souls_exam_experience/",
+          "title": "My All Souls Exam Experience",
+          "backend": "feed",
+          "collected_at": "2026-10-12T11:26:56.690753+00:00",
+          "content_chars": 177,
+          "excerpt": "Article URL: https://www.reddit.com/r/oxforduni/comments/q0giir/my_all_souls_exam_experience/\nCommen"
+        },
+        {
+          "url": "https://aditya.rs/blog/2026/10/12/on-intelligence-and-sentience/",
+          "title": "Intelligence Is Not Sentience",
+          "backend": "feed",
+          "collected_at": "2026-10-12T11:26:56.690753+00:00",
+          "content_chars": 161,
+          "excerpt": "Article URL: https://aditya.rs/blog/2026/10/12/on-intelligence-and-sentience/\nComments URL: https://"
+        },
+        {
+          "url": "https://www.youtube.com/watch?v=qcGtWW8uERI",
+          "title": "China's Race Towards 'Infinite' Energy [video]",
+          "backend": "feed",
+          "collected_at": "2026-10-12T11:26:56.690753+00:00",
+          "content_chars": 140,
+          "excerpt": "Article URL: https://www.youtube.com/watch?v=qcGtWW8uERI\nComments URL: https://news.ycombinator.com/"
+        },
+        {
+          "url": "https://danielmangum.com/posts/whats-on-that-access-port/",
+          "title": "What's on That Access Port?",
+          "backend": "feed",
+          "collected_at": "2026-10-12T11:26:56.690753+00:00",
+          "content_chars": 154,
+          "excerpt": "Article URL: https://danielmangum.com/posts/whats-on-that-access-port/\nComments URL: https://news.yc"
+        }
+      ]
+    },
+    {
+      "channel": "web",
+      "operation": "search",
+      "query": "LangGraph",
+      "required": true,
+      "status": "success",
+      "call_count": 2,
+      "duration_ms": 3719,
+      "attempts": [
+        {
+          "channel": "web",
+          "backend": "duckduckgo",
+          "status": "failed",
+          "result_count": 0,
+          "error_category": "access_denied",
+          "duration_ms": 1875,
+          "call_count": 1
+        },
+        {
+          "channel": "web",
+          "backend": "bing-rss",
+          "status": "success",
+          "result_count": 4,
+          "error_category": null,
+          "duration_ms": 1813,
+          "call_count": 1
+        }
+      ],
+      "items": [
+        {
+          "url": "https://ai.itheima.com/",
+          "title": "AI大模型开发培训｜0基础学RAG/Agent大模型应用工程师课程 |黑马程序员",
+          "backend": "bing-rss",
+          "collected_at": "2026-10-12T11:26:58.048771+00:00",
+          "content_chars": 111,
+          "excerpt": "阶段五 能力画像： 通过LangGraph框架完成Agent Workflow及Agent Loop、Agent Harness等定制化开发 胜任岗位： gent开发工程师、智能体全栈开发工程师 参考"
+        },
+        {
+          "url": "https://ai.itheima.com/itheima/phoneteacher.html",
+          "title": "黑马程序员师资团队_16级标准严选师资",
+          "backend": "bing-rss",
+          "collected_at": "2026-10-12T11:26:58.048771+00:00",
+          "content_chars": 152,
+          "excerpt": "10年互联网研发与教学经验，曾在多家企业担任开发工程师、技术经理等职务，精通Java全栈，具有高并发，高可用系统实战能力，并不断研究AI前沿技术，聚焦AI大模型与业务能力深度融合落地，对于Python"
+        },
+        {
+          "url": "https://ai.itheima.com/teacher.html?hm-pc-dh",
+          "title": "师资力量|讲师介绍_黑马程序员",
+          "backend": "bing-rss",
+          "collected_at": "2026-10-12T11:26:58.048771+00:00",
+          "content_chars": 152,
+          "excerpt": "10年互联网研发与教学经验，曾在多家企业担任开发工程师、技术经理等职务，精通Java全栈，具有高并发，高可用系统实战能力，并不断研究AI前沿技术，聚焦AI大模型与业务能力深度融合落地，对于Python"
+        },
+        {
+          "url": "https://ai.itheima.com/news/javaee_144.html",
+          "title": "黑马程序员Javaee最新技术文章_JavaEE资讯_第144页",
+          "backend": "bing-rss",
+          "collected_at": "2026-10-12T11:26:58.048771+00:00",
+          "content_chars": 127,
+          "excerpt": "nginx return指令的用法介绍 Nginx return指令该指令用于完成对请求的处理，直接向客户端返回。在return后的所有Nginx配置都是无效的。 查看全文>> 技术文章 2021-0"
+        }
+      ]
+    },
+    {
+      "channel": "web",
+      "operation": "read",
+      "query": "https://example.com",
+      "required": false,
+      "status": "success",
+      "call_count": 1,
+      "duration_ms": 1969,
+      "attempts": [
+        {
+          "channel": "web",
+          "backend": "jina",
+          "status": "success",
+          "result_count": 1,
+          "error_category": null,
+          "duration_ms": 1922,
+          "call_count": 1
+        }
+      ],
+      "items": [
+        {
+          "url": "https://example.com",
+          "title": "Example Domain",
+          "backend": "jina",
+          "collected_at": "2026-10-12T11:27:01.761648+00:00",
+          "content_chars": 958,
+          "excerpt": "This domain is for use in documentation examples without needing permission. This is not a service; "
+        }
+      ]
+    },
+    {
+      "channel": "bilibili",
+      "operation": "search",
+      "query": "LangGraph",
+      "required": true,
+      "status": "success",
+      "call_count": 1,
+      "duration_ms": 4906,
+      "attempts": [
+        {
+          "channel": "bilibili",
+          "backend": "bili",
+          "status": "success",
+          "result_count": 4,
+          "error_category": null,
+          "duration_ms": 4875,
+          "call_count": 1
+        }
+      ],
+      "items": [
+        {
+          "url": "https://www.bilibili.com/video/BV1z3NY66EY1",
+          "title": "尚硅谷LangGraph教程，langgraph入门，langgraph智能体项目实战",
+          "backend": "bili",
+          "collected_at": "2026-10-12T11:27:03.721432+00:00",
+          "content_chars": 43,
+          "excerpt": "尚硅谷LangGraph教程，langgraph入门，langgraph智能体项目实战"
+        },
+        {
+          "url": "https://www.bilibili.com/video/BV1HVFLzfEeS",
+          "title": "挑战19分钟搞定，LangGraph快速入门与原理剖析",
+          "backend": "bili",
+          "collected_at": "2026-10-12T11:27:03.721432+00:00",
+          "content_chars": 27,
+          "excerpt": "挑战19分钟搞定，LangGraph快速入门与原理剖析"
+        },
+        {
+          "url": "https://www.bilibili.com/video/BV1Nopt6EEtB",
+          "title": "60min入门LangGraph，从零打造具备 ReAct 推理能力的智能体",
+          "backend": "bili",
+          "collected_at": "2026-10-12T11:27:03.721432+00:00",
+          "content_chars": 38,
+          "excerpt": "60min入门LangGraph，从零打造具备 ReAct 推理能力的智能体"
+        },
+        {
+          "url": "https://www.bilibili.com/video/BV13roYBXELs",
+          "title": "【吊打付费】26年最新LangGraph多智能体实战教程全面剖析：多智能体架构+核心组件+代码实战，存下吧！很难找全的！",
+          "backend": "bili",
+          "collected_at": "2026-10-12T11:27:03.721432+00:00",
+          "content_chars": 60,
+          "excerpt": "【吊打付费】26年最新LangGraph多智能体实战教程全面剖析：多智能体架构+核心组件+代码实战，存下吧！很难找全的！"
+        }
+      ]
+    },
+    {
+      "channel": "youtube",
+      "operation": "search",
+      "query": "Python tutorial",
+      "required": true,
+      "status": "success",
+      "call_count": 1,
+      "duration_ms": 19406,
+      "attempts": [
+        {
+          "channel": "youtube",
+          "backend": "yt-dlp",
+          "status": "success",
+          "result_count": 5,
+          "error_category": null,
+          "duration_ms": 19375,
+          "call_count": 1
+        }
+      ],
+      "items": [
+        {
+          "url": "https://www.youtube.com/watch?v=ix9cRaBkVe0",
+          "title": "Python Full Course for free 🐍",
+          "backend": "yt-dlp",
+          "collected_at": "2026-10-12T11:27:08.629426+00:00",
+          "content_chars": 3619,
+          "excerpt": "#python #tutorial #beginners \nPython tutorial for beginners' full course 2024\n\n*Learn Python in 1 HO"
+        },
+        {
+          "url": "https://www.youtube.com/watch?v=_uQrJ0TkZlc",
+          "title": "Python Full Course for Beginners",
+          "backend": "yt-dlp",
+          "collected_at": "2026-10-12T11:27:08.629426+00:00",
+          "content_chars": 2743,
+          "excerpt": "Learn Python for AI, machine learning, and web development with this beginner-friendly course! 🚀 Get"
+        },
+        {
+          "url": "https://www.youtube.com/watch?v=K5KVEU3aaeQ",
+          "title": "Python Full Course for Beginners",
+          "backend": "yt-dlp",
+          "collected_at": "2026-10-12T11:27:08.629426+00:00",
+          "content_chars": 1744,
+          "excerpt": "Master Python from scratch 🚀 No fluff—just clear, practical coding skills to kickstart your journey!"
+        },
+        {
+          "url": "https://www.youtube.com/watch?v=kqtD5dpn9C8",
+          "title": "Python for Beginners - Learn Coding with Python in 1 Hour",
+          "backend": "yt-dlp",
+          "collected_at": "2026-10-12T11:27:08.629426+00:00",
+          "content_chars": 1363,
+          "excerpt": "Learn Python basics in just 1 hour! Perfect for beginners interested in AI and coding. ⚡ Plus, get 6"
+        },
+        {
+          "url": "https://www.youtube.com/watch?v=fWjsdhR3z3c",
+          "title": "Learn Python in Less than 10 Minutes for Beginners (Fast & Easy)",
+          "backend": "yt-dlp",
+          "collected_at": "2026-10-12T11:27:08.629426+00:00",
+          "content_chars": 254,
+          "excerpt": "In this crash course I'll be teaching you the basics of Python in less than 10 minutes. Python is su"
+        }
+      ]
+    },
+    {
+      "channel": "exa",
+      "operation": "search",
+      "query": "LangGraph",
+      "required": true,
+      "status": "success",
+      "call_count": 1,
+      "duration_ms": 5000,
+      "attempts": [
+        {
+          "channel": "exa",
+          "backend": "exa-mcp",
+          "status": "success",
+          "result_count": 5,
+          "error_category": null,
+          "duration_ms": 4968,
+          "call_count": 1
+        }
+      ],
+      "items": [
+        {
+          "url": "https://www.langchain.com/langgraph",
+          "title": "LangGraph: Agent Orchestration Framework for Reliable AI ...",
+          "backend": "exa-mcp",
+          "collected_at": "2026-10-12T11:27:28.034937+00:00",
+          "content_chars": 1811,
+          "excerpt": "Published: N/A\nAuthor: N/A\nHighlights:\nLangGraph: Agent Orchestration Framework for Reliable AI Agen"
+        },
+        {
+          "url": "https://docs.langchain.com/oss/python/langgraph/overview",
+          "title": "N/A",
+          "backend": "exa-mcp",
+          "collected_at": "2026-10-12T11:27:28.034937+00:00",
+          "content_chars": 5001,
+          "excerpt": "Published: N/A\nAuthor: N/A\nHighlights:\nLangGraph overview - Docs by LangChain\n\n# LangGraph overview\n"
+        },
+        {
+          "url": "https://github.com/langchain-ai/langgraph",
+          "title": "langchain-ai/langgraph",
+          "backend": "exa-mcp",
+          "collected_at": "2026-10-12T11:27:28.034937+00:00",
+          "content_chars": 3409,
+          "excerpt": "Published: 2023-08-09T00:00:00.000Z\nAuthor: N/A\nHighlights:\n# langchain-ai/langgraph\n\nBuild resilien"
+        },
+        {
+          "url": "https://docs.langchain.com/oss/python/langgraph/graph-api",
+          "title": "N/A",
+          "backend": "exa-mcp",
+          "collected_at": "2026-10-12T11:27:28.034937+00:00",
+          "content_chars": 7993,
+          "excerpt": "Published: N/A\nAuthor: N/A\nHighlights:\nLangGraph models agent workflows as graphs: define state, nod"
+        },
+        {
+          "url": "https://docs.langchain.com/oss/python/langgraph/use-graph-api",
+          "title": "N/A",
+          "backend": "exa-mcp",
+          "collected_at": "2026-10-12T11:27:28.034937+00:00",
+          "content_chars": 6181,
+          "excerpt": "Published: N/A\nAuthor: N/A\nHighlights:\nUse the graph API - Docs by LangChain\n...\nThis guide demonstr"
+        }
+      ]
+    },
+    {
+      "channel": "twitter",
+      "operation": "search",
+      "query": "LangGraph",
+      "required": false,
+      "status": "failed",
+      "call_count": 0,
+      "duration_ms": 47,
+      "attempts": [
+        {
+          "channel": "twitter",
+          "backend": "twitter",
+          "status": "failed",
+          "result_count": 0,
+          "error_category": "auth_required",
+          "duration_ms": 0,
+          "call_count": 0
+        }
+      ],
+      "items": []
+    },
+    {
+      "channel": "reddit",
+      "operation": "search",
+      "query": "LangGraph",
+      "required": false,
+      "status": "failed",
+      "call_count": 1,
+      "duration_ms": 2109,
+      "attempts": [
+        {
+          "channel": "reddit",
+          "backend": "opencli",
+          "status": "failed",
+          "result_count": 0,
+          "error_category": "upstream_error",
+          "duration_ms": 2078,
+          "call_count": 1
+        }
+      ],
+      "items": []
+    },
+    {
+      "channel": "xiaohongshu",
+      "operation": "search",
+      "query": "人工智能",
+      "required": false,
+      "status": "failed",
+      "call_count": 2,
+      "duration_ms": 6219,
+      "attempts": [
+        {
+          "channel": "xiaohongshu",
+          "backend": "opencli",
+          "status": "failed",
+          "result_count": 0,
+          "error_category": "upstream_error",
+          "duration_ms": 5750,
+          "call_count": 1
+        },
+        {
+          "channel": "xiaohongshu",
+          "backend": "xhs-mcp",
+          "status": "failed",
+          "result_count": 0,
+          "error_category": "configuration_required",
+          "duration_ms": 422,
+          "call_count": 1
+        }
+      ],
+      "items": []
+    },
+    {
+      "channel": "facebook",
+      "operation": "search",
+      "query": "Python",
+      "required": false,
+      "status": "failed",
+      "call_count": 1,
+      "duration_ms": 3953,
+      "attempts": [
+        {
+          "channel": "facebook",
+          "backend": "opencli",
+          "status": "failed",
+          "result_count": 0,
+          "error_category": "upstream_error",
+          "duration_ms": 3906,
+          "call_count": 1
+        }
+      ],
+      "items": []
+    },
+    {
+      "channel": "instagram",
+      "operation": "search",
+      "query": "python",
+      "required": false,
+      "status": "failed",
+      "call_count": 1,
+      "duration_ms": 4766,
+      "attempts": [
+        {
+          "channel": "instagram",
+          "backend": "opencli",
+          "status": "failed",
+          "result_count": 0,
+          "error_category": "upstream_error",
+          "duration_ms": 4734,
+          "call_count": 1
+        }
+      ],
+      "items": []
+    },
+    {
+      "channel": "linkedin",
+      "operation": "search",
+      "query": "Python engineer",
+      "required": false,
+      "status": "failed",
+      "call_count": 0,
+      "duration_ms": 47,
+      "attempts": [
+        {
+          "channel": "linkedin",
+          "backend": "linkedin-mcp",
+          "status": "failed",
+          "result_count": 0,
+          "error_category": "auth_required",
+          "duration_ms": 0,
+          "call_count": 0
+        }
+      ],
+      "items": []
+    },
+    {
+      "channel": "boss",
+      "operation": "search",
+      "query": "Python",
+      "required": false,
+      "status": "failed",
+      "call_count": 1,
+      "duration_ms": 10109,
+      "attempts": [
+        {
+          "channel": "boss",
+          "backend": "boss",
+          "status": "failed",
+          "result_count": 0,
+          "error_category": "auth_required",
+          "duration_ms": 10093,
+          "call_count": 1
+        }
+      ],
+      "items": []
+    },
+    {
+      "channel": "xueqiu",
+      "operation": "search",
+      "query": "AAPL",
+      "required": false,
+      "status": "failed",
+      "call_count": 1,
+      "duration_ms": 11375,
+      "attempts": [
+        {
+          "channel": "xueqiu",
+          "backend": "opencli",
+          "status": "failed",
+          "result_count": 0,
+          "error_category": "network",
+          "duration_ms": 11328,
+          "call_count": 1
+        }
+      ],
+      "items": []
+    },
+    {
+      "channel": "xiaoyuzhou",
+      "operation": "read",
+      "query": "https://www.xiaoyuzhoufm.com/podcast/6022a180ef5fdaddc30bb101",
+      "required": true,
+      "status": "success",
+      "call_count": 1,
+      "duration_ms": 2844,
+      "attempts": [
+        {
+          "channel": "xiaoyuzhou",
+          "backend": "xiaoyuzhou-page",
+          "status": "success",
+          "result_count": 1,
+          "error_category": null,
+          "duration_ms": 2811,
+          "call_count": 1
+        }
+      ],
+      "items": [
+        {
+          "url": "https://www.xiaoyuzhoufm.com/podcast/6022a180ef5fdaddc30bb101",
+          "title": "商业就是这样",
+          "backend": "xiaoyuzhou-page",
+          "collected_at": "2026-10-12T11:28:11.662611+00:00",
+          "content_chars": 8000,
+          "excerpt": "公开节目介绍 / shownotes（音频转录未获取）\n\n用简单易懂的语言解读商业现象。\n\n城市就是这样22｜中国的“中位数城市”是哪座？\nhttps://www.xiaoyuzhoufm.com/e"
+        }
+      ]
+    },
+    {
+      "channel": "xiaoyuzhou",
+      "operation": "read",
+      "query": "https://www.xiaoyuzhoufm.com/episode/6ac65b91e742e36efcbf66c8",
+      "required": true,
+      "status": "success",
+      "call_count": 1,
+      "duration_ms": 2734,
+      "attempts": [
+        {
+          "channel": "xiaoyuzhou",
+          "backend": "xiaoyuzhou-page",
+          "status": "success",
+          "result_count": 1,
+          "error_category": null,
+          "duration_ms": 2702,
+          "call_count": 1
+        }
+      ],
+      "items": [
+        {
+          "url": "https://www.xiaoyuzhoufm.com/episode/6ac65b91e742e36efcbf66c8",
+          "title": "城市就是这样22｜中国的“中位数城市”是哪座？",
+          "backend": "xiaoyuzhou-page",
+          "collected_at": "2026-10-12T11:28:14.511291+00:00",
+          "content_chars": 1731,
+          "excerpt": "公开节目介绍 / shownotes（音频转录未获取）\n\n第一次见面，我们就知道会和余师傅（David Fishman）录不止一期播客。他在上海工作15年，从事能源咨询工作。他的业务兴趣是研究中国城市"
+        }
+      ]
+    },
+    {
+      "channel": "xiaoyuzhou",
+      "operation": "read",
+      "query": "https://www.xiaoyuzhoufm.com/podcast/5e280fb1418a84a0461f6183",
+      "required": false,
+      "status": "failed",
+      "call_count": 1,
+      "duration_ms": 2157,
+      "attempts": [
+        {
+          "channel": "xiaoyuzhou",
+          "backend": "xiaoyuzhou-page",
+          "status": "failed",
+          "result_count": 0,
+          "error_category": "not_found",
+          "duration_ms": 2125,
+          "call_count": 1
+        }
+      ],
+      "items": []
+    }
+  ],
+  "owner_id": "762e4604-dc16-4bc4-b25c-297410c9a474",
+  "channels": [
+    "web",
+    "exa",
+    "github",
+    "youtube",
+    "bilibili",
+    "rss",
+    "v2ex",
+    "twitter",
+    "reddit",
+    "xiaohongshu",
+    "facebook",
+    "instagram",
+    "linkedin",
+    "boss",
+    "xueqiu",
+    "xiaoyuzhou"
+  ],
+  "required_failures": [
+    "rss/read"
+  ],
+  "completed_at": "2026-10-12T11:28:19.409996+00:00",
+  "history_records": 100
+}

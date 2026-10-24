@@ -1,0 +1,67 @@
+{
+  "schema_version": "1",
+  "run_id": "ce217b8faf4843cba654978d64d70b0e",
+  "status": "failed",
+  "started_at": "2026-10-18T10:15:59.777147+00:00",
+  "scope": {
+    "organizations": [
+      {
+        "name": "Microsoft Research",
+        "type": "laboratory"
+      }
+    ],
+    "topic": "2024至2025年数据中心网络拥塞控制的研究问题、技术路线、成果及尚未解决的问题；根据公开论文和研究机构原始来源分析，不推断内部研发战略",
+    "start_year": 2024,
+    "end_year": 2025,
+    "seed_urls": [
+      "https://www.microsoft.com/en-us/research/group/networking/"
+    ],
+    "timeout_seconds": 300,
+    "max_tool_calls": 10
+  },
+  "plan": [
+    "按组织与主题检索公开原始来源",
+    "读取原文并保存证据",
+    "综合各对象研究方向与缺口",
+    "核对最终主张及引文"
+  ],
+  "trace": [],
+  "evidence": [],
+  "report": "",
+  "audit": null,
+  "errors": [
+    "NotADirectoryError"
+  ],
+  "model": "qwen-plus",
+  "provider": "qwen",
+  "sdk_version": "0.1.7",
+  "error_locations": [
+    {
+      "file": "tempfile.py",
+      "line": 890,
+      "function": "_rmtree"
+    },
+    {
+      "file": "shutil.py",
+      "line": 759,
+      "function": "rmtree"
+    },
+    {
+      "file": "shutil.py",
+      "line": 603,
+      "function": "_rmtree_unsafe"
+    },
+    {
+      "file": "shutil.py",
+      "line": 600,
+      "function": "_rmtree_unsafe"
+    }
+  ],
+  "budget": {
+    "calls": 0,
+    "bytes": 0,
+    "exhausted": false,
+    "elapsed_seconds": 20.328
+  },
+  "completed_at": "2026-10-18T10:16:20.111492+00:00"
+}

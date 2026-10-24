@@ -1,0 +1,2125 @@
+{
+  "session_id": "749cc8a8-7a1d-4b31-b7af-62d62d0b603a",
+  "query": "只以 DistServe 出版商页面核实北京大学在该篇成果中的署名与研究主题，说明有来源样本与缺口。",
+  "status": "completed",
+  "runtime_status": "completed",
+  "report": "# 只以 DistServe 出版商页面核实北京大学署名与研究主题\n\n> Generated: 2026-10-20 | Research Depth: Comprehensive（受限于单一来源，实际为单页核实）\n\n## Executive Summary\n仅依据 USENIX 的 DistServe 论文页面，可高置信度确认：该文发表于 **OSDI '24（2024 年 7 月）**，8 位作者中 **5 位标注 Peking University**，含第一作者 Yinmin Zhong；研究主题为**大语言模型服务系统的 prefill/decoding 分离与 goodput 优化** [citation:1]。但该页面只提供“作者署名单位”层面的证据，**不构成**机构隶属、资助或合作协议证据，且日期仅精确到月、样本仅 1 篇 [citation:1]。\n\n## 1. Background and Context\n本研究契约限定：仅以 DistServe 的出版商（USENIX）页面为来源，核实北京大学在该成果中的署名与研究主题，并说明来源样本与缺口；学科限定 computer_science，时间窗 2024-01-01 至 2024-12-31 [citation:1]。USENIX 为总部位于美国的非营利专业协会，主办 OSDI 等系统领域会议 [citation:2][citation:5]。需强调：页面出现机构名称只证明作者署名标注，不证明机构层面归属或正式合作。\n\n## 2. Key Findings\n\n### 2.1 成果识别（高置信度）\n页面 BibTeX 与 citation_* 元数据一致给出：标题《DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving》，收录于 18th USENIX Symposium on Operating Systems Design and Implementation (OSDI 24)，2024 年 7 月，Santa Clara, CA，页码 193–210，出版方 USENIX Association [citation:1]。标题、年份、会议名三项互相印证 [citation:1]。\n\n### 2.2 北京大学署名（高置信度，仅限作者列表层面）\n页面作者行列出：Yinmin Zhong、Shengyu Liu（Peking University）；Junda Chen（UC San Diego）；Jianbo Hu（Peking University）；Yibo Zhu（StepFun）；Xuanzhe Liu、Xin Jin（Peking University）；Hao Zhang（UC San Diego）[citation:1]。即 **8 位作者中 5 位标注 Peking University**，覆盖第一作者 [citation:1]。\n\n| 作者 | 页面标注单位 |\n|---|---|\n| Yinmin Zhong（第一作者） | Peking University |\n| Shengyu Liu | Peking University |\n| Jianbo Hu | Peking University |\n| Xuanzhe Liu | Peking University |\n| Xin Jin | Peking University |\n| Junda Chen | UC San Diego |\n| Hao Zhang | UC San Diego |\n| Yibo Zhu | StepFun |\n\n来源：[citation:1]。此表为“署名单位”证据，**非**机构隶属、资助或合作协议证据。\n\n### 2.3 研究主题（高置信度）\n页面摘要说明：DistServe 将 prefill 与 decoding 计算分离到不同 GPU，消除两阶段干扰，并按应用 TTFT/TPOT 时延要求协同优化资源分配与并行策略，同时依据集群带宽放置两阶段以减少通信开销 [citation:1]。评估显示相比 SOTA 系统可服务 **7.4× 更多请求**或 **12.6× 更紧 SLO**，同时 **>90% 请求**满足时延约束 [citation:1]。主题属计算机系统 / LLM 服务系统方向，落在契约学科与 2024 时间窗内 [citation:1]。\n\n## 3. Data and Statistics\n\n| 指标 | 数值 | 来源 |\n|---|---|---|\n| 有效样本（出版商页面） | 1 | [citation:1] |\n| 有效成果（会议论文） | 1（OSDI '24） | [citation:1] |\n| 作者总数 / 标注北大者 | 8 / 5 | [citation:1] |\n| 发表时间精度 | 月（2024-07） | [citation:1] |\n| 性能提升 | 7.4× 请求量 或 12.6× 更紧 SLO | [citation:1] |\n\n## 4. Expert Perspectives\n> 说明：本节无独立专家访谈来源，以下为基于页面证据的分析判断（标注为分析，非事实）。\n\n- **分析（中置信度）**：5/8 作者含第一作者标注北大，说明北大在该成果中承担显著署名角色；但署名比例不等于贡献份额，页面未提供贡献声明 [citation:1]。\n- **分析（高置信度）**：单一出版商页面不能代表北大在该方向的成果全集，也不能作为“零篇/全集”判断依据 [citation:1]。\n\n## 5. Conclusions and Recommendations\n1. **可确认**：DistServe 为 OSDI '24 论文，2024 年 7 月发表；5 位作者标注 Peking University，含第一作者；主题为 LLM 服务系统 prefill/decoding 分离与 goodput 优化 [citation:1]。\n2. **不可确认（缺口）**：\n   - 页面仅有作者单位行，**无院系、实验室、资助致谢或机构协议**，无法推断北大与 UC San Diego、StepFun 的正式合作安排 [citation:1]。\n   - 日期仅精确到**月**，无精确发表日 [citation:1]。\n   - 样本仅 1 篇，不能代表成果全集 [citation:1]。\n   - 其余检索证据（USENIX 主页、USENIX Security '27、百科、博客）与 DistServe 无关，不构成补充证据 [citation:2][citation:3][citation:4][citation:5][citation:6]。\n3. **建议**：获取论文 PDF 首页/致谢与 OSDI '24 程序册，以核实院系归属与资助信息；在此之前，仅可表述为“5 位作者在出版商页面标注 Peking University”，selected-1 的 resolution_status 应保持 **pending** [citation:1]。\n\n## References\n1. [citation:1] USENIX, \"DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving,\" OSDI '24. https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin\n2. [citation:2] USENIX Home. https://www.usenix.org/\n3. [citation:3] USENIX Security '27. https://www.usenix.org/conference/usenixsecurity27\n4. [citation:4] USENIX_百度百科. https://baike.baidu.com/item/USENIX/16660019\n5. [citation:5] USENIX - 维基百科. https://zh.wikipedia.org/zh-cn/USENIX\n6. [citation:6] USENIX Security 2026 录用论文深度解读（博客）. https://yaoyue123.github.io/2026/08/13/usenix-security-2026-accepted-papers-deep-dive/index.html\n\n> 置信度说明：署名与主题结论为**高置信度**（直接引自出版商页面）；机构层面合作、精确日期、成果全集为**未核实缺口**。\n\n## 核验结果\n\n自动来源支持：0/30 项；人工复核：未复核。模型置信度不代表人工确认。\n支持状态来自模型语义判断与原文引语校验，不能保证结论为真。\n\n- claim:1 [missing_citation] Generated: 2026-10-20 | Research Depth: Comprehensive（受限于单一来源，实际为单页核实） — Awaiting source support judgement\n- claim:2 [not_checked] 仅依据 USENIX 的 DistServe 论文页面，可高置信度确认：该文发表于 **OSDI '24（2024 年 7 月）**，8 位作者中 **5 位标注 Peking University**，含第一作者 Yinmin Zhong；研究主题为**大语言模型服务系统的 prefill/decoding 分离与 goodput 优化** [citation:1]。但该页面只提供“作者署名单位”层面的证据，**不构成**机构隶属、资助或合作协议证据，且日期仅精确到月、样本仅 1 篇 [citation:1]。 — Verification token/time budget exhausted\n- claim:3 [not_checked] 本研究契约限定：仅以 DistServe 的出版商（USENIX）页面为来源，核实北京大学在该成果中的署名与研究主题，并说明来源样本与缺口；学科限定 computer_science，时间窗 2024-01-01 至 2024-12-31 [citation:1]。USENIX 为总部位于美国的非营利专业协会，主办 OSDI 等系统领域会议 [citation:2][citation:5]。需强调：页面出现机构名称只证明作者署名标注，不证明机构层面归属或正式合作。 — Verification token/time budget exhausted\n- claim:4 [not_checked] 页面 BibTeX 与 citation_* 元数据一致给出：标题《DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving》，收录于 18th USENIX Symposium on Operating Systems Design and Implementation (OSDI 24)，2024 年 7 月，Santa Clara, CA，页码 193–210，出版方 USENIX Association [citation:1]。标题、年份、会议名三项互相印证 [citation:1]。 — Verification token/time budget exhausted\n- claim:5 [not_checked] 页面作者行列出：Yinmin Zhong、Shengyu Liu（Peking University）；Junda Chen（UC San Diego）；Jianbo Hu（Peking University）；Yibo Zhu（StepFun）；Xuanzhe Liu、Xin Jin（Peking University）；Hao Zhang（UC San Diego）[citation:1]。即 **8 位作者中 5 位标注 Peking University**，覆盖第一作者 [citation:1]。 — Verification token/time budget exhausted\n- claim:6 [missing_citation] | Yinmin Zhong（第一作者） | Peking University | — Awaiting source support judgement\n- claim:7 [missing_citation] | Shengyu Liu | Peking University | — Awaiting source support judgement\n- claim:8 [missing_citation] | Jianbo Hu | Peking University | — Awaiting source support judgement\n- claim:9 [missing_citation] | Xuanzhe Liu | Peking University | — Awaiting source support judgement\n- claim:10 [missing_citation] | Xin Jin | Peking University | — Awaiting source support judgement\n- claim:11 [missing_citation] | Junda Chen | UC San Diego | — Awaiting source support judgement\n- claim:12 [missing_citation] | Hao Zhang | UC San Diego | — Awaiting source support judgement\n- claim:13 [missing_citation] | Yibo Zhu | StepFun | — Awaiting source support judgement\n- claim:14 [not_checked] 来源：[citation:1]。此表为“署名单位”证据，**非**机构隶属、资助或合作协议证据。 — Verification token/time budget exhausted\n- claim:15 [not_checked] 页面摘要说明：DistServe 将 prefill 与 decoding 计算分离到不同 GPU，消除两阶段干扰，并按应用 TTFT/TPOT 时延要求协同优化资源分配与并行策略，同时依据集群带宽放置两阶段以减少通信开销 [citation:1]。评估显示相比 SOTA 系统可服务 **7.4× 更多请求**或 **12.6× 更紧 SLO**，同时 **>90% 请求**满足时延约束 [citation:1]。主题属计算机系统 / LLM 服务系统方向，落在契约学科与 2024 时间窗内 [citation:1]。 — Verification token/time budget exhausted\n- claim:16 [not_checked] | 有效样本（出版商页面） | 1 | [citation:1] | — Verification token/time budget exhausted\n- claim:17 [not_checked] | 有效成果（会议论文） | 1（OSDI '24） | [citation:1] | — Verification token/time budget exhausted\n- claim:18 [not_checked] | 作者总数 / 标注北大者 | 8 / 5 | [citation:1] | — Verification token/time budget exhausted\n- claim:19 [not_checked] | 发表时间精度 | 月（2024-07） | [citation:1] | — Verification token/time budget exhausted\n- claim:20 [not_checked] | 性能提升 | 7.4× 请求量 或 12.6× 更紧 SLO | [citation:1] | — Verification token/time budget exhausted\n- claim:21 [missing_citation] 说明：本节无独立专家访谈来源，以下为基于页面证据的分析判断（标注为分析，非事实）。 — Awaiting source support judgement\n- claim:22 [not_checked] **分析（中置信度）**：5/8 作者含第一作者标注北大，说明北大在该成果中承担显著署名角色；但署名比例不等于贡献份额，页面未提供贡献声明 [citation:1]。 — Verification token/time budget exhausted\n- claim:23 [not_checked] **分析（高置信度）**：单一出版商页面不能代表北大在该方向的成果全集，也不能作为“零篇/全集”判断依据 [citation:1]。 — Verification token/time budget exhausted\n- claim:24 [not_checked] **可确认**：DistServe 为 OSDI '24 论文，2024 年 7 月发表；5 位作者标注 Peking University，含第一作者；主题为 LLM 服务系统 prefill/decoding 分离与 goodput 优化 [citation:1]。 — Verification token/time budget exhausted\n- claim:25 [missing_citation] **不可确认（缺口）**： — Awaiting source support judgement\n- claim:26 [not_checked] 页面仅有作者单位行，**无院系、实验室、资助致谢或机构协议**，无法推断北大与 UC San Diego、StepFun 的正式合作安排 [citation:1]。 — Verification token/time budget exhausted\n- claim:27 [not_checked] 日期仅精确到**月**，无精确发表日 [citation:1]。 — Verification token/time budget exhausted\n- claim:28 [not_checked] 样本仅 1 篇，不能代表成果全集 [citation:1]。 — Verification token/time budget exhausted\n- claim:29 [not_checked] 其余检索证据（USENIX 主页、USENIX Security '27、百科、博客）与 DistServe 无关，不构成补充证据 [citation:2][citation:3][citation:4][citation:5][citation:6]。 — Verification token/time budget exhausted\n- claim:30 [not_checked] **建议**：获取论文 PDF 首页/致谢与 OSDI '24 程序册，以核实院系归属与资助信息；在此之前，仅可表述为“5 位作者在出版商页面标注 Peking University”，selected-1 的 resolution_status 应保持 **pending** [citation:1]。 — Verification token/time budget exhausted\n\n## 可复核样本与对象比较\n计数由结构化记录计算，仅覆盖本次取得并通过原文校验的样本；未链接版本暂按单条发表独立计数。\n| 对象 | 发表记录 | 研究家族 |\n| --- | ---: | ---: |\n| Peking University | 1 | 1 |\n| 去重汇总 | 1 | 1 |\n相同成果可分别归属多个对象，合并总量取成果／家族并集，不相加各对象行。\n### 同口径样本比较\n2024／conference_paper；学科口径来自请求：computer_science。仅比较该组已取得样本，不作科研质量排序。\n| 对象 | 本组研究家族数 |\n| --- | ---: |\n| Peking University | 1 |\n### 已纳入成果与依据\n- DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving；日期区间 2024-07-01 至 2024-07-31（month 精度）；[citation:1]\n### 缺口与解释边界\n待核记录 0 项；未确立的关系：coauthorship、funding、citation。未取得证据不表示关系不存在。\n机构署名按所选名称／别名与发表来源对照；不推出当前任职、正式协议、内部研发投入或科研质量优劣。跨载体／年份不汇成统一质量榜。\n### 后续评估建议（模型判断，待复核）\n- 建议下一步获取论文 PDF 首页与致谢、OSDI '24 程序册，以核实北京大学的院系/实验室归属与资助信息；在获得这些材料前，selected-1 的 resolution_status 应保持 pending。 [citation:1]\n",
+  "citations": [
+    {
+      "citation_id": "citation:1",
+      "source_url": "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin",
+      "source_title": "DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving | USENIX",
+      "source_type": "web",
+      "extracted_evidence": "@inproceedings {298687,\n\tauthor = {Yinmin Zhong and Shengyu Liu and Junda Chen and Jianbo Hu and Yibo Zhu and Xuanzhe Liu and Xin Jin and Hao Zhang},\n\ttitle = {{DistServe}: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving},\n\tbooktitle = {18th USENIX Symposium on",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-20T15:17:24.415278"
+    },
+    {
+      "citation_id": "citation:2",
+      "source_url": "https://www.usenix.org/",
+      "source_title": "USENIX Home",
+      "source_type": "web",
+      "extracted_evidence": "USENIX Home: USENIX is a nonprofit organization, dedicated to supporting the advanced computing systems communities and furthering the reach of innovative research.",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-20T15:17:24.415278"
+    },
+    {
+      "citation_id": "citation:3",
+      "source_url": "https://www.usenix.org/conference/usenixsecurity27",
+      "source_title": "USENIX Security '27",
+      "source_type": "web",
+      "extracted_evidence": "USENIX Security '27: USENIX Security brings together researchers, practitioners, system programmers, and others to share and explore the latest advances in the security and privacy of computer systems and networks.",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-20T15:17:24.415278"
+    },
+    {
+      "citation_id": "citation:4",
+      "source_url": "https://baike.baidu.com/item/USENIX/16660019",
+      "source_title": "USENIX_百度百科",
+      "source_type": "web",
+      "extracted_evidence": "USENIX_百度百科: USENIX Association，又称USENIX高级计算系统协会，亦称The Advanced Computing Systems Association，成立于1975年，是计算机系统领域受开发者和研究者尊敬的国际学术组织。 协会拥有自身的知识产权，其商标“USENIX THE ADVANCED COMPUTING SYSTEMS ASSOCIATION”于2019年4月4日申请。",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-20T15:17:24.415278"
+    },
+    {
+      "citation_id": "citation:5",
+      "source_url": "https://zh.wikipedia.org/zh-cn/USENIX",
+      "source_title": "USENIX - 维基百科，自由的百科全书 - zh.wikipedia.org",
+      "source_type": "web",
+      "extracted_evidence": "USENIX - 维基百科，自由的百科全书 - zh.wikipedia.org: USENIX （正式全称 USENIX Association，即“USENIX协会”，中文通译“高等计算系统协会”）成立于1975年，是总部位于美国 加州 伯克利 的 非营利 专业协会，依美国税法注册为 501 (c) (3)组织。",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-20T15:17:24.415278"
+    },
+    {
+      "citation_id": "citation:6",
+      "source_url": "https://yaoyue123.github.io/2026/08/13/usenix-security-2026-accepted-papers-deep-dive/index.html",
+      "source_title": "USENIX Security 2026 录用论文深度解读（165 篇） | yaoyue的博客",
+      "source_type": "web",
+      "extracted_evidence": "USENIX Security 2026 录用论文深度解读（165 篇） | yaoyue的博客: 能否构造可问责、支持单多项式切分的分布式码基 PCS？ USENIX Security 2026（第 35 届）于 2026 年 8 月在波士顿举行，第一轮录用 165 篇。 本文按研究方向分类，对每篇论文基于全文精读给出深度解读（含独立分析思考），并附论文 PDF 链接。",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-20T15:17:24.415278"
+    }
+  ],
+  "agent_trace": [
+    {
+      "agent": "planner",
+      "content": "Planning research for: 只以 DistServe 出版商页面核实北京大学在该篇成果中的署名与研究主题，说明有来源样本与缺口。",
+      "timestamp": "2026-10-20T15:16:23.357556",
+      "event_type": "agent_start"
+    },
+    {
+      "agent": "planner",
+      "content": "Generated DAG 'DistServe OSDI24 出版商页面核实：北京大学署名与研究主题' with 7 nodes, execution order: [['n1', 'n5'], ['n2', 'n3', 'n4', 'n6'], ['analyst']]",
+      "timestamp": "2026-10-20T15:16:29.871654",
+      "event_type": "agent_complete"
+    },
+    {
+      "agent": "dag_executor",
+      "content": "Executing batch: ['n1', 'n5'] (parallel)",
+      "timestamp": "2026-10-20T15:16:30.190047",
+      "event_type": "agent_start"
+    },
+    {
+      "agent": "browser",
+      "content": "Executing 1 browser nodes",
+      "timestamp": "2026-10-20T15:16:30.857236",
+      "event_type": "agent_start"
+    },
+    {
+      "args": {
+        "url": "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin",
+        "query": "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin"
+      },
+      "agent": "browser",
+      "content": "Browsing: https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin",
+      "timestamp": "2026-10-20T15:16:30.857236",
+      "tool_name": "browse_webpage",
+      "event_type": "tool_start"
+    },
+    {
+      "agent": "browser",
+      "status": "success",
+      "content": "Extracted 1 pages for: https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin",
+      "timestamp": "2026-10-20T15:16:57.811233",
+      "tool_name": "browse_webpage",
+      "event_type": "tool_complete",
+      "result_summary": "1 browser pages"
+    },
+    {
+      "agent": "browser",
+      "content": "Collected 1 evidence from browser",
+      "timestamp": "2026-10-20T15:16:57.811233",
+      "event_type": "agent_complete"
+    },
+    {
+      "agent": "search",
+      "content": "Executing 1 search nodes",
+      "timestamp": "2026-10-20T15:16:30.858766",
+      "event_type": "agent_start"
+    },
+    {
+      "args": {
+        "query": "USENIX OSDI 2024 DistServe 论文官方页面 usenix.org 技术 sessions 列表，确认该论文在 OSDI '24 程序中的收录条目与标题拼写"
+      },
+      "agent": "search",
+      "content": "Searching: USENIX OSDI 2024 DistServe 论文官方页面 usenix.org 技术 sessions 列表，确认该论文在 OSDI '24 程序中的收录条目与标题拼写",
+      "timestamp": "2026-10-20T15:16:30.858766",
+      "tool_name": "duckduckgo_search",
+      "event_type": "tool_start"
+    },
+    {
+      "agent": "search",
+      "content": "渠道采集结果",
+      "timestamp": "2026-10-20T15:16:34.643882",
+      "event_type": "tool_complete",
+      "channel_attempts": [
+        {
+          "status": "failed",
+          "backend": "duckduckgo",
+          "channel": "web",
+          "call_count": 1,
+          "duration_ms": 1953,
+          "result_count": 0,
+          "error_category": "access_denied"
+        },
+        {
+          "status": "success",
+          "backend": "bing-rss",
+          "channel": "web",
+          "call_count": 1,
+          "duration_ms": 1811,
+          "result_count": 5,
+          "error_category": null
+        }
+      ]
+    },
+    {
+      "agent": "search",
+      "error": null,
+      "status": "success",
+      "content": "Found 5 results for: USENIX OSDI 2024 DistServe 论文官方页面 usenix.org 技术 sessions 列表，确认该论文在 OSDI '24 程序中的收录条目与标题拼写",
+      "timestamp": "2026-10-20T15:16:34.644413",
+      "tool_name": "duckduckgo_search",
+      "event_type": "tool_complete",
+      "result_summary": "5 search results"
+    },
+    {
+      "agent": "search",
+      "content": "Collected 5 evidence from search",
+      "timestamp": "2026-10-20T15:16:34.644413",
+      "event_type": "agent_complete"
+    },
+    {
+      "agent": "failure_memory",
+      "content": "Captured 6 failure memory records",
+      "timestamp": "2026-10-20T15:16:58.126482",
+      "event_type": "agent_complete",
+      "failure_memory": {
+        "records": [
+          {
+            "query": "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin",
+            "node_type": "browser",
+            "last_error": null,
+            "retry_count": 0,
+            "next_retry_at": null,
+            "repeat_blocked": false,
+            "backoff_seconds": 0,
+            "terminal_failure": false,
+            "last_error_category": null
+          },
+          {
+            "query": "在该 USENIX 页面内定位并逐字摘录作者机构标注（affiliation lines），确认是否存在 'Peking University' 或 '北京大学' 字样，记录其对应作者姓名与标注原文；若页面无机构标注，明确记录'页面未列机构'",
+            "node_type": "browser",
+            "last_error": null,
+            "retry_count": 0,
+            "next_retry_at": null,
+            "repeat_blocked": false,
+            "backoff_seconds": 0,
+            "terminal_failure": false,
+            "last_error_category": null
+          },
+          {
+            "query": "从该 USENIX 页面提取论文摘要与主题关键词原文，归纳该成果的研究主题（如 LLM 服务、推理系统、goodput、prefill/decode 分离等），仅使用页面原文表述，不引入外部推断",
+            "node_type": "browser",
+            "last_error": null,
+            "retry_count": 0,
+            "next_retry_at": null,
+            "repeat_blocked": false,
+            "backoff_seconds": 0,
+            "terminal_failure": false,
+            "last_error_category": null
+          },
+          {
+            "query": "在该 USENIX 页面查找并记录发表时间证据：OSDI '24 会议日期、论文 PDF 链接、BibTeX/引用条目中的年份字段；区分'页面抓取时间'与'正式发表时间'",
+            "node_type": "browser",
+            "last_error": null,
+            "retry_count": 0,
+            "next_retry_at": null,
+            "repeat_blocked": false,
+            "backoff_seconds": 0,
+            "terminal_failure": false,
+            "last_error_category": null
+          },
+          {
+            "query": "USENIX OSDI 2024 DistServe 论文官方页面 usenix.org 技术 sessions 列表，确认该论文在 OSDI '24 程序中的收录条目与标题拼写",
+            "node_type": "search",
+            "last_error": null,
+            "retry_count": 0,
+            "next_retry_at": null,
+            "repeat_blocked": false,
+            "backoff_seconds": 0,
+            "terminal_failure": false,
+            "last_error_category": null
+          },
+          {
+            "query": "DistServe OSDI 2024 论文 PDF 首页作者与机构标注（仅用于交叉核对页面信息是否一致，标注为辅助来源，不作为归属判定依据）",
+            "node_type": "search",
+            "last_error": null,
+            "retry_count": 0,
+            "next_retry_at": null,
+            "repeat_blocked": false,
+            "backoff_seconds": 0,
+            "terminal_failure": false,
+            "last_error_category": null
+          }
+        ],
+        "max_retries_per_tool": 1,
+        "repeat_blocked_nodes": []
+      }
+    },
+    {
+      "agent": "failure_memory",
+      "content": "Captured 6 failure memory records",
+      "timestamp": "2026-10-20T15:16:58.126482",
+      "event_type": "agent_complete",
+      "failure_memory": {
+        "records": [
+          {
+            "query": "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin",
+            "node_type": "browser",
+            "last_error": null,
+            "retry_count": 0,
+            "next_retry_at": null,
+            "repeat_blocked": false,
+            "backoff_seconds": 0,
+            "terminal_failure": false,
+            "last_error_category": null
+          },
+          {
+            "query": "在该 USENIX 页面内定位并逐字摘录作者机构标注（affiliation lines），确认是否存在 'Peking University' 或 '北京大学' 字样，记录其对应作者姓名与标注原文；若页面无机构标注，明确记录'页面未列机构'",
+            "node_type": "browser",
+            "last_error": null,
+            "retry_count": 0,
+            "next_retry_at": null,
+            "repeat_blocked": false,
+            "backoff_seconds": 0,
+            "terminal_failure": false,
+            "last_error_category": null
+          },
+          {
+            "query": "从该 USENIX 页面提取论文摘要与主题关键词原文，归纳该成果的研究主题（如 LLM 服务、推理系统、goodput、prefill/decode 分离等），仅使用页面原文表述，不引入外部推断",
+            "node_type": "browser",
+            "last_error": null,
+            "retry_count": 0,
+            "next_retry_at": null,
+            "repeat_blocked": false,
+            "backoff_seconds": 0,
+            "terminal_failure": false,
+            "last_error_category": null
+          },
+          {
+            "query": "在该 USENIX 页面查找并记录发表时间证据：OSDI '24 会议日期、论文 PDF 链接、BibTeX/引用条目中的年份字段；区分'页面抓取时间'与'正式发表时间'",
+            "node_type": "browser",
+            "last_error": null,
+            "retry_count": 0,
+            "next_retry_at": null,
+            "repeat_blocked": false,
+            "backoff_seconds": 0,
+            "terminal_failure": false,
+            "last_error_category": null
+          },
+          {
+            "query": "USENIX OSDI 2024 DistServe 论文官方页面 usenix.org 技术 sessions 列表，确认该论文在 OSDI '24 程序中的收录条目与标题拼写",
+            "node_type": "search",
+            "last_error": null,
+            "retry_count": 0,
+            "next_retry_at": null,
+            "repeat_blocked": false,
+            "backoff_seconds": 0,
+            "terminal_failure": false,
+            "last_error_category": null
+          },
+          {
+            "query": "DistServe OSDI 2024 论文 PDF 首页作者与机构标注（仅用于交叉核对页面信息是否一致，标注为辅助来源，不作为归属判定依据）",
+            "node_type": "search",
+            "last_error": null,
+            "retry_count": 0,
+            "next_retry_at": null,
+            "repeat_blocked": false,
+            "backoff_seconds": 0,
+            "terminal_failure": false,
+            "last_error_category": null
+          }
+        ],
+        "max_retries_per_tool": 1,
+        "repeat_blocked_nodes": []
+      }
+    },
+    {
+      "agent": "dag_executor",
+      "content": "Executing batch: ['n2', 'n3', 'n4', 'n6'] (parallel)",
+      "timestamp": "2026-10-20T15:16:58.444428",
+      "event_type": "agent_start"
+    },
+    {
+      "agent": "browser",
+      "content": "Executing 1 browser nodes",
+      "timestamp": "2026-10-20T15:16:58.757465",
+      "event_type": "agent_start"
+    },
+    {
+      "args": {
+        "url": "在该 USENIX 页面内定位并逐字摘录作者机构标注（affiliation lines），确认是否存在 'Peking University' 或 '北京大学' 字样，记录其对应作者姓名与标注原文；若页面无机构标注，明确记录'页面未列机构'",
+        "query": "在该 USENIX 页面内定位并逐字摘录作者机构标注（affiliation lines），确认是否存在 'Peking University' 或 '北京大学' 字样，记录其对应作者姓名与标注原文；若页面无机构标注，明确记录'页面未列机构'"
+      },
+      "agent": "browser",
+      "content": "Browsing: 在该 USENIX 页面内定位并逐字摘录作者机构标注（affiliation lines），确认是否存在 'Peking University' 或 '北京大学' 字样，记录其对应作者姓名与标注原文；若页面无机构标注，明确记录'页面未列机构'",
+      "timestamp": "2026-10-20T15:16:58.758577",
+      "tool_name": "browse_webpage",
+      "event_type": "tool_start"
+    },
+    {
+      "agent": "browser",
+      "content": "Collected 0 evidence from browser",
+      "timestamp": "2026-10-20T15:16:58.758577",
+      "event_type": "agent_complete"
+    },
+    {
+      "agent": "browser",
+      "content": "Executing 1 browser nodes",
+      "timestamp": "2026-10-20T15:16:58.759585",
+      "event_type": "agent_start"
+    },
+    {
+      "args": {
+        "url": "从该 USENIX 页面提取论文摘要与主题关键词原文，归纳该成果的研究主题（如 LLM 服务、推理系统、goodput、prefill/decode 分离等），仅使用页面原文表述，不引入外部推断",
+        "query": "从该 USENIX 页面提取论文摘要与主题关键词原文，归纳该成果的研究主题（如 LLM 服务、推理系统、goodput、prefill/decode 分离等），仅使用页面原文表述，不引入外部推断"
+      },
+      "agent": "browser",
+      "content": "Browsing: 从该 USENIX 页面提取论文摘要与主题关键词原文，归纳该成果的研究主题（如 LLM 服务、推理系统、goodput、prefill/decode 分离等），仅使用页面原文表述，不引入外部推断",
+      "timestamp": "2026-10-20T15:16:58.759585",
+      "tool_name": "browse_webpage",
+      "event_type": "tool_start"
+    },
+    {
+      "agent": "browser",
+      "content": "Collected 0 evidence from browser",
+      "timestamp": "2026-10-20T15:16:58.759585",
+      "event_type": "agent_complete"
+    },
+    {
+      "agent": "browser",
+      "content": "Executing 1 browser nodes",
+      "timestamp": "2026-10-20T15:16:58.759585",
+      "event_type": "agent_start"
+    },
+    {
+      "args": {
+        "url": "在该 USENIX 页面查找并记录发表时间证据：OSDI '24 会议日期、论文 PDF 链接、BibTeX/引用条目中的年份字段；区分'页面抓取时间'与'正式发表时间'",
+        "query": "在该 USENIX 页面查找并记录发表时间证据：OSDI '24 会议日期、论文 PDF 链接、BibTeX/引用条目中的年份字段；区分'页面抓取时间'与'正式发表时间'"
+      },
+      "agent": "browser",
+      "content": "Browsing: 在该 USENIX 页面查找并记录发表时间证据：OSDI '24 会议日期、论文 PDF 链接、BibTeX/引用条目中的年份字段；区分'页面抓取时间'与'正式发表时间'",
+      "timestamp": "2026-10-20T15:16:58.759585",
+      "tool_name": "browse_webpage",
+      "event_type": "tool_start"
+    },
+    {
+      "agent": "browser",
+      "content": "Collected 0 evidence from browser",
+      "timestamp": "2026-10-20T15:16:58.759585",
+      "event_type": "agent_complete"
+    },
+    {
+      "agent": "search",
+      "content": "Executing 1 search nodes",
+      "timestamp": "2026-10-20T15:16:58.760998",
+      "event_type": "agent_start"
+    },
+    {
+      "agent": "search",
+      "content": "Collected 0 evidence from search",
+      "timestamp": "2026-10-20T15:16:58.760998",
+      "event_type": "agent_complete"
+    },
+    {
+      "agent": "budget_guardrail",
+      "content": "Budget breaker triggered: tool_call_limit. Skipped 0 pending tool nodes.",
+      "timestamp": "2026-10-20T15:16:59.070116",
+      "event_type": "agent_complete",
+      "budget_state": {
+        "warning": false,
+        "estimated": true,
+        "citation_max": 8,
+        "max_cost_usd": 0.2,
+        "used_cost_usd": 0.0,
+        "budget_profile": "short",
+        "max_tool_calls": 6,
+        "rag_max_results": 4,
+        "used_tool_calls": 6,
+        "hard_stop_reason": "tool_call_limit",
+        "max_total_tokens": 20000,
+        "report_max_tokens": 3000,
+        "used_total_tokens": 2618,
+        "search_max_queries": 2,
+        "search_max_results": 5,
+        "browser_max_results": 1,
+        "max_retries_per_tool": 1,
+        "max_wall_clock_seconds": 180,
+        "elapsed_wall_clock_seconds": 37
+      },
+      "skipped_nodes": []
+    },
+    {
+      "agent": "failure_memory",
+      "content": "Captured 6 failure memory records",
+      "timestamp": "2026-10-20T15:16:59.070116",
+      "event_type": "agent_complete",
+      "failure_memory": {
+        "records": [
+          {
+            "query": "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin",
+            "node_type": "browser",
+            "last_error": null,
+            "retry_count": 0,
+            "next_retry_at": null,
+            "repeat_blocked": false,
+            "backoff_seconds": 0,
+            "terminal_failure": false,
+            "last_error_category": null
+          },
+          {
+            "query": "在该 USENIX 页面内定位并逐字摘录作者机构标注（affiliation lines），确认是否存在 'Peking University' 或 '北京大学' 字样，记录其对应作者姓名与标注原文；若页面无机构标注，明确记录'页面未列机构'",
+            "node_type": "browser",
+            "last_error": "uri_format_error:url",
+            "retry_count": 0,
+            "next_retry_at": null,
+            "repeat_blocked": true,
+            "backoff_seconds": 0,
+            "terminal_failure": true,
+            "last_error_category": "schema_validation"
+          },
+          {
+            "query": "从该 USENIX 页面提取论文摘要与主题关键词原文，归纳该成果的研究主题（如 LLM 服务、推理系统、goodput、prefill/decode 分离等），仅使用页面原文表述，不引入外部推断",
+            "node_type": "browser",
+            "last_error": "uri_format_error:url",
+            "retry_count": 0,
+            "next_retry_at": null,
+            "repeat_blocked": true,
+            "backoff_seconds": 0,
+            "terminal_failure": true,
+            "last_error_category": "schema_validation"
+          },
+          {
+            "query": "在该 USENIX 页面查找并记录发表时间证据：OSDI '24 会议日期、论文 PDF 链接、BibTeX/引用条目中的年份字段；区分'页面抓取时间'与'正式发表时间'",
+            "node_type": "browser",
+            "last_error": "uri_format_error:url",
+            "retry_count": 0,
+            "next_retry_at": null,
+            "repeat_blocked": true,
+            "backoff_seconds": 0,
+            "terminal_failure": true,
+            "last_error_category": "schema_validation"
+          },
+          {
+            "query": "USENIX OSDI 2024 DistServe 论文官方页面 usenix.org 技术 sessions 列表，确认该论文在 OSDI '24 程序中的收录条目与标题拼写",
+            "node_type": "search",
+            "last_error": null,
+            "retry_count": 0,
+            "next_retry_at": null,
+            "repeat_blocked": false,
+            "backoff_seconds": 0,
+            "terminal_failure": false,
+            "last_error_category": null
+          },
+          {
+            "query": "DistServe OSDI 2024 论文 PDF 首页作者与机构标注（仅用于交叉核对页面信息是否一致，标注为辅助来源，不作为归属判定依据）",
+            "node_type": "search",
+            "last_error": null,
+            "retry_count": 0,
+            "next_retry_at": null,
+            "repeat_blocked": false,
+            "backoff_seconds": 0,
+            "terminal_failure": false,
+            "last_error_category": "budget_exceeded"
+          }
+        ],
+        "max_retries_per_tool": 1,
+        "repeat_blocked_nodes": [
+          "n2",
+          "n3",
+          "n4"
+        ]
+      }
+    },
+    {
+      "agent": "budget_guardrail",
+      "content": "Budget breaker triggered: tool_call_limit. Skipped 0 pending tool nodes.",
+      "timestamp": "2026-10-20T15:16:59.070116",
+      "event_type": "agent_complete",
+      "budget_state": {
+        "warning": false,
+        "estimated": true,
+        "citation_max": 8,
+        "max_cost_usd": 0.2,
+        "used_cost_usd": 0.0,
+        "budget_profile": "short",
+        "max_tool_calls": 6,
+        "rag_max_results": 4,
+        "used_tool_calls": 6,
+        "hard_stop_reason": "tool_call_limit",
+        "max_total_tokens": 20000,
+        "report_max_tokens": 3000,
+        "used_total_tokens": 2618,
+        "search_max_queries": 2,
+        "search_max_results": 5,
+        "browser_max_results": 1,
+        "max_retries_per_tool": 1,
+        "max_wall_clock_seconds": 180,
+        "elapsed_wall_clock_seconds": 37
+      },
+      "skipped_nodes": []
+    },
+    {
+      "agent": "failure_memory",
+      "content": "Captured 6 failure memory records",
+      "timestamp": "2026-10-20T15:16:59.070116",
+      "event_type": "agent_complete",
+      "failure_memory": {
+        "records": [
+          {
+            "query": "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin",
+            "node_type": "browser",
+            "last_error": null,
+            "retry_count": 0,
+            "next_retry_at": null,
+            "repeat_blocked": false,
+            "backoff_seconds": 0,
+            "terminal_failure": false,
+            "last_error_category": null
+          },
+          {
+            "query": "在该 USENIX 页面内定位并逐字摘录作者机构标注（affiliation lines），确认是否存在 'Peking University' 或 '北京大学' 字样，记录其对应作者姓名与标注原文；若页面无机构标注，明确记录'页面未列机构'",
+            "node_type": "browser",
+            "last_error": "uri_format_error:url",
+            "retry_count": 0,
+            "next_retry_at": null,
+            "repeat_blocked": true,
+            "backoff_seconds": 0,
+            "terminal_failure": true,
+            "last_error_category": "schema_validation"
+          },
+          {
+            "query": "从该 USENIX 页面提取论文摘要与主题关键词原文，归纳该成果的研究主题（如 LLM 服务、推理系统、goodput、prefill/decode 分离等），仅使用页面原文表述，不引入外部推断",
+            "node_type": "browser",
+            "last_error": "uri_format_error:url",
+            "retry_count": 0,
+            "next_retry_at": null,
+            "repeat_blocked": true,
+            "backoff_seconds": 0,
+            "terminal_failure": true,
+            "last_error_category": "schema_validation"
+          },
+          {
+            "query": "在该 USENIX 页面查找并记录发表时间证据：OSDI '24 会议日期、论文 PDF 链接、BibTeX/引用条目中的年份字段；区分'页面抓取时间'与'正式发表时间'",
+            "node_type": "browser",
+            "last_error": "uri_format_error:url",
+            "retry_count": 0,
+            "next_retry_at": null,
+            "repeat_blocked": true,
+            "backoff_seconds": 0,
+            "terminal_failure": true,
+            "last_error_category": "schema_validation"
+          },
+          {
+            "query": "USENIX OSDI 2024 DistServe 论文官方页面 usenix.org 技术 sessions 列表，确认该论文在 OSDI '24 程序中的收录条目与标题拼写",
+            "node_type": "search",
+            "last_error": null,
+            "retry_count": 0,
+            "next_retry_at": null,
+            "repeat_blocked": false,
+            "backoff_seconds": 0,
+            "terminal_failure": false,
+            "last_error_category": null
+          },
+          {
+            "query": "DistServe OSDI 2024 论文 PDF 首页作者与机构标注（仅用于交叉核对页面信息是否一致，标注为辅助来源，不作为归属判定依据）",
+            "node_type": "search",
+            "last_error": null,
+            "retry_count": 0,
+            "next_retry_at": null,
+            "repeat_blocked": false,
+            "backoff_seconds": 0,
+            "terminal_failure": false,
+            "last_error_category": "budget_exceeded"
+          }
+        ],
+        "max_retries_per_tool": 1,
+        "repeat_blocked_nodes": [
+          "n2",
+          "n3",
+          "n4"
+        ]
+      }
+    },
+    {
+      "agent": "analyst",
+      "content": "Analyzing 6 evidence items",
+      "timestamp": "2026-10-20T15:16:59.380324",
+      "event_type": "agent_start"
+    },
+    {
+      "agent": "analyst",
+      "content": "Analysis complete",
+      "timestamp": "2026-10-20T15:17:08.123268",
+      "event_type": "agent_complete"
+    },
+    {
+      "agent": "analyst",
+      "content": "Analyzing 6 evidence items",
+      "timestamp": "2026-10-20T15:16:59.380324",
+      "event_type": "agent_start"
+    },
+    {
+      "agent": "analyst",
+      "content": "Analysis complete",
+      "timestamp": "2026-10-20T15:17:08.123268",
+      "event_type": "agent_complete"
+    },
+    {
+      "agent": "analyst",
+      "content": "Generated 1588 chars of analysis from 6 evidence items",
+      "timestamp": "2026-10-20T15:17:08.123268",
+      "event_type": "agent_complete"
+    },
+    {
+      "agent": "reflection",
+      "content": "Validating analysis with 6 evidence items",
+      "timestamp": "2026-10-20T15:17:08.423050",
+      "event_type": "agent_start"
+    },
+    {
+      "agent": "reflection",
+      "content": "Verification failed: confidence=0.82, hallucination_rate=14.29%, needs_revision=True",
+      "timestamp": "2026-10-20T15:17:13.622025",
+      "event_type": "agent_complete"
+    },
+    {
+      "agent": "reflection",
+      "content": "Verification: confidence=0.82, needs_revision=True",
+      "timestamp": "2026-10-20T15:17:13.622025",
+      "event_type": "agent_complete"
+    },
+    {
+      "agent": "report",
+      "content": "Generating final report",
+      "timestamp": "2026-10-20T15:17:13.937247",
+      "event_type": "agent_start"
+    },
+    {
+      "agent": "report",
+      "content": "Report generated: 9337 chars",
+      "timestamp": "2026-10-20T15:17:23.697418",
+      "event_type": "agent_complete"
+    },
+    {
+      "agent": "report",
+      "content": "Generating final report",
+      "timestamp": "2026-10-20T15:17:13.937247",
+      "event_type": "agent_start"
+    },
+    {
+      "agent": "report",
+      "content": "Report generated: 9337 chars",
+      "timestamp": "2026-10-20T15:17:23.697418",
+      "event_type": "agent_complete"
+    },
+    {
+      "agent": "report",
+      "content": "Report: 9337 chars, 6 citations",
+      "timestamp": "2026-10-20T15:17:23.697418",
+      "event_type": "agent_complete"
+    }
+  ],
+  "tool_audit_summary": {
+    "error_calls": 3,
+    "total_calls": 5,
+    "persisted_calls": 5
+  },
+  "skill_context": {
+    "match_results": [],
+    "scope_filters": {
+      "tenant_id": null,
+      "project_id": null
+    },
+    "match_cache_key": "skill_match:b193f61ad6581598e537e22940b3591d962ca8daf7891225213750858640af99",
+    "resolved_skills": [],
+    "registry_revision": 1,
+    "candidate_skill_ids": [],
+    "effective_skill_ids": [],
+    "snapshot_created_at": "2026-10-20T15:16:21.709977",
+    "effective_agent_hints": {},
+    "truncated_skill_count": 0,
+    "auto_matched_skill_ids": [],
+    "effective_tool_allowlist": [],
+    "effective_prompt_sections": {
+      "prompt": "",
+      "overview": "",
+      "constraints": ""
+    },
+    "manually_enabled_skill_ids": [],
+    "manually_disabled_skill_ids": []
+  },
+  "organization_research": {
+    "scope": {
+      "topic": "只以 DistServe 出版商页面核实北京大学在该篇成果中的署名与研究主题，说明有来源样本与缺口。",
+      "end_date": "2024-12-31",
+      "entities": [
+        {
+          "name": "Peking University",
+          "type": "university",
+          "aliases": [],
+          "entity_id": "selected-1",
+          "unit_kind": "organization",
+          "source_urls": [
+            "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin"
+          ],
+          "resolution_status": "pending"
+        }
+      ],
+      "start_date": "2024-01-01",
+      "disciplines": [
+        "computer_science"
+      ],
+      "organization_types": [
+        "university"
+      ]
+    },
+    "weights": {
+      "preset": "research_development",
+      "weights": {},
+      "mappings": [],
+      "config_version": "user-config-v1",
+      "metric_weights": {},
+      "performance_groups": {
+        "paper": 1.0,
+        "venue": 1.0
+      }
+    },
+    "schema_version": "adrs-organization-run-v2",
+    "evidence_cutoff": "2026-10-20T15:16:21.742043+00:00",
+    "selected_preset": null,
+    "catalog_manifest": {
+      "schemes": [
+        {
+          "level": "venue",
+          "family": "directory",
+          "adapter": "exact_catalogue",
+          "editions": [],
+          "scheme_id": "ccf",
+          "source_url": "https://www.ccf.org.cn/Academic_Evaluation/By_category/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "directory",
+          "adapter": "exact_catalogue",
+          "editions": [],
+          "scheme_id": "icore",
+          "source_url": "https://portal.core.edu.au/conf-ranks/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "index",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "wos_scie",
+          "source_url": "https://mjl.clarivate.com/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "index",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "wos_ssci",
+          "source_url": "https://mjl.clarivate.com/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "index",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "wos_ahci",
+          "source_url": "https://mjl.clarivate.com/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "index",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "wos_esci",
+          "source_url": "https://mjl.clarivate.com/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "index",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "scopus",
+          "source_url": "https://www.scopus.com/sources",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "journal_metric",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "jcr_jif",
+          "source_url": "https://jcr.clarivate.com/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "journal_metric",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "jcr_quartile",
+          "source_url": "https://jcr.clarivate.com/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "journal_metric",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "jcr_jci",
+          "source_url": "https://jcr.clarivate.com/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "journal_metric",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "cas_partition",
+          "source_url": "https://www.fenqubiao.com/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "journal_metric",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "citescore",
+          "source_url": "https://www.scopus.com/sources",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "journal_metric",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "citescore_percentile",
+          "source_url": "https://www.scopus.com/sources",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "journal_metric",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "sjr",
+          "source_url": "https://www.scimagojr.com/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "journal_metric",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "snip",
+          "source_url": "https://www.scopus.com/sources",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "directory",
+          "adapter": "exact_catalogue",
+          "editions": [],
+          "scheme_id": "abdc",
+          "source_url": "https://abdc.edu.au/abdc-journal-quality-list/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "directory",
+          "adapter": "exact_catalogue",
+          "editions": [],
+          "scheme_id": "ajg",
+          "source_url": "https://charteredabs.org/academic-journal-guide",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "work",
+          "family": "paper_metric",
+          "adapter": "paper_metric",
+          "editions": [],
+          "scheme_id": "citation_percentile",
+          "source_url": "https://help.openalex.org/data/works/citations/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "work",
+          "family": "paper_metric",
+          "adapter": "paper_metric",
+          "editions": [],
+          "scheme_id": "cnci",
+          "source_url": "https://incites.help.clarivate.com/Content/Indicators-Handbook/ih-normalized-citation-impact.htm",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "work",
+          "family": "paper_metric",
+          "adapter": "paper_metric",
+          "editions": [],
+          "scheme_id": "fwci",
+          "source_url": "https://help.openalex.org/data/works/citations/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        }
+      ],
+      "sources": [
+        {
+          "access": "public",
+          "edition": "2012",
+          "records": [
+            {
+              "track": "main",
+              "status": "available",
+              "category": "Computer networks",
+              "raw_value": "B",
+              "target_id": "dblp:conf/nsdi",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            },
+            {
+              "track": "main",
+              "status": "available",
+              "category": "Computer networks",
+              "raw_value": "A",
+              "target_id": "dblp:conf/sigcomm",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            }
+          ],
+          "coverage": "partial",
+          "provider": "CCF (issued PDF, public mirror)",
+          "scheme_id": "ccf",
+          "source_id": "public-ccf-2012",
+          "authorized": false,
+          "source_url": "https://risame.github.io/sun/ccf.pdf",
+          "metric_year": 2012,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": null
+        },
+        {
+          "access": "public",
+          "edition": "2022",
+          "records": [
+            {
+              "track": "main",
+              "status": "available",
+              "category": "Computer networks",
+              "raw_value": "A",
+              "target_id": "dblp:conf/nsdi",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            },
+            {
+              "track": "main",
+              "status": "available",
+              "category": "Computer networks",
+              "raw_value": "A",
+              "target_id": "dblp:conf/sigcomm",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            }
+          ],
+          "coverage": "partial",
+          "provider": "CCF (issued PDF, public mirror)",
+          "scheme_id": "ccf",
+          "source_id": "public-ccf-2022",
+          "authorized": false,
+          "source_url": "https://scdm-shu.github.io/ccf/2022-CCF-Ranking.pdf",
+          "metric_year": 2022,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": null
+        },
+        {
+          "access": "public",
+          "edition": "CORE2023",
+          "records": [
+            {
+              "track": "main",
+              "status": "available",
+              "category": "4606",
+              "raw_value": "A*",
+              "target_id": "dblp:conf/sigcomm",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            }
+          ],
+          "coverage": "partial",
+          "provider": "ICORE",
+          "scheme_id": "icore",
+          "source_id": "public-icore-2023",
+          "authorized": false,
+          "source_url": "https://portal.core.edu.au/conf-ranks/?search=SIGCOMM&by=all&source=CORE2023&sort=atitle&page=1",
+          "metric_year": 2023,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": null
+        },
+        {
+          "access": "public",
+          "edition": "ICORE2026",
+          "records": [
+            {
+              "track": "main",
+              "status": "available",
+              "category": "4606",
+              "raw_value": "A*",
+              "target_id": "dblp:conf/sigcomm",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            }
+          ],
+          "coverage": "partial",
+          "provider": "ICORE",
+          "scheme_id": "icore",
+          "source_id": "public-icore-2026",
+          "authorized": false,
+          "source_url": "https://portal.core.edu.au/conf-ranks/?search=SIGCOMM&by=all&source=ICORE2026&sort=atitle&page=1",
+          "metric_year": 2026,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": null
+        },
+        {
+          "access": "public",
+          "edition": "2010",
+          "records": [
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "1503",
+              "raw_value": "A*",
+              "target_id": "issn:0047-2506",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            },
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "1503",
+              "raw_value": "A*",
+              "target_id": "issn:1478-6990",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            }
+          ],
+          "coverage": "partial",
+          "provider": "ABDC",
+          "scheme_id": "abdc",
+          "source_id": "public-abdc-2010",
+          "authorized": false,
+          "source_url": "https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx",
+          "metric_year": 2010,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": null
+        },
+        {
+          "access": "public",
+          "edition": "2013",
+          "records": [
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "1503",
+              "raw_value": "A*",
+              "target_id": "issn:0047-2506",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            },
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "1503",
+              "raw_value": "A*",
+              "target_id": "issn:1478-6990",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            }
+          ],
+          "coverage": "partial",
+          "provider": "ABDC",
+          "scheme_id": "abdc",
+          "source_id": "public-abdc-2013",
+          "authorized": false,
+          "source_url": "https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx",
+          "metric_year": 2013,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": null
+        },
+        {
+          "access": "public",
+          "edition": "2016",
+          "records": [
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "1503",
+              "raw_value": "A*",
+              "target_id": "issn:0047-2506",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            },
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "1503",
+              "raw_value": "A*",
+              "target_id": "issn:1478-6990",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            }
+          ],
+          "coverage": "partial",
+          "provider": "ABDC",
+          "scheme_id": "abdc",
+          "source_id": "public-abdc-2016",
+          "authorized": false,
+          "source_url": "https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx",
+          "metric_year": 2016,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": null
+        },
+        {
+          "access": "public",
+          "edition": "2019",
+          "records": [
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "1503",
+              "raw_value": "A*",
+              "target_id": "issn:0047-2506",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            },
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "1503",
+              "raw_value": "A*",
+              "target_id": "issn:1478-6990",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            }
+          ],
+          "coverage": "partial",
+          "provider": "ABDC",
+          "scheme_id": "abdc",
+          "source_id": "public-abdc-2019",
+          "authorized": false,
+          "source_url": "https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx",
+          "metric_year": 2019,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": null
+        },
+        {
+          "access": "public",
+          "edition": "2022",
+          "records": [
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "3507",
+              "raw_value": "A*",
+              "target_id": "issn:0047-2506",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            },
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "3507",
+              "raw_value": "A*",
+              "target_id": "issn:1478-6990",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            }
+          ],
+          "coverage": "partial",
+          "provider": "ABDC",
+          "scheme_id": "abdc",
+          "source_id": "public-abdc-2022",
+          "authorized": false,
+          "source_url": "https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx",
+          "metric_year": 2022,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": null
+        },
+        {
+          "access": "public",
+          "edition": "2025",
+          "records": [
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "3507",
+              "raw_value": "A*",
+              "target_id": "issn:0047-2506",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            },
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "3507",
+              "raw_value": "A*",
+              "target_id": "issn:1478-6990",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            }
+          ],
+          "coverage": "partial",
+          "provider": "ABDC",
+          "scheme_id": "abdc",
+          "source_id": "public-abdc-2025",
+          "authorized": false,
+          "source_url": "https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx",
+          "metric_year": 2025,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": null
+        },
+        {
+          "access": "public",
+          "edition": "OpenAlex snapshot 2026-10-19",
+          "records": [
+            {
+              "track": "work",
+              "status": "available",
+              "category": "https://openalex.org/subfields/2613 | Statistics and Probability",
+              "raw_value": 3266.5958,
+              "target_id": "openalex:W1951724000",
+              "document_type": "article",
+              "citation_cutoff": "2018-12-31",
+              "publication_year": 2015
+            }
+          ],
+          "coverage": "partial",
+          "provider": "OpenAlex",
+          "scheme_id": "fwci",
+          "source_id": "openalex-W1951724000-fwci-2026-10-19",
+          "authorized": false,
+          "source_url": "https://api.openalex.org/works/W1951724000",
+          "metric_year": 2026,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": "2026-10-19T09:35:57.686232"
+        },
+        {
+          "access": "public",
+          "edition": "OpenAlex snapshot 2026-10-19",
+          "records": [
+            {
+              "track": "work",
+              "status": "available",
+              "category": "https://openalex.org/subfields/2613 | Statistics and Probability",
+              "raw_value": 1.0,
+              "target_id": "openalex:W1951724000",
+              "document_type": "article",
+              "citation_cutoff": "2018-12-31",
+              "publication_year": 2015
+            }
+          ],
+          "coverage": "partial",
+          "provider": "OpenAlex",
+          "scheme_id": "citation_percentile",
+          "source_id": "openalex-W1951724000-citation_percentile-2026-10-19",
+          "authorized": false,
+          "source_url": "https://api.openalex.org/works/W1951724000",
+          "metric_year": 2026,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": "2026-10-19T09:35:57.686232"
+        }
+      ],
+      "captured_at": "2026-10-20T15:16:21.742043+00:00",
+      "schema_version": "adrs-evaluation-catalog-v1",
+      "availability_note": "Frozen public samples and import requirements; not a live lookup or verified evaluation of collected evidence.",
+      "applied_to_evidence": false,
+      "adapter_rule_version": "adrs-evaluation-adapters-v1"
+    },
+    "effective_weights": {
+      "mappings": [
+        {
+          "scores": {
+            "A": 1.0,
+            "B": 0.6666666666666667,
+            "C": 0.33333333333333337
+          },
+          "version": "adrs-preference-map-v1",
+          "scheme_id": "ccf"
+        },
+        {
+          "scores": {
+            "A": 0.75,
+            "B": 0.5,
+            "C": 0.25,
+            "A*": 1.0
+          },
+          "version": "adrs-preference-map-v1",
+          "scheme_id": "icore"
+        },
+        {
+          "scores": {
+            "A": 0.75,
+            "B": 0.5,
+            "C": 0.25,
+            "A*": 1.0
+          },
+          "version": "adrs-preference-map-v1",
+          "scheme_id": "abdc"
+        },
+        {
+          "scores": {
+            "1": 0.19999999999999996,
+            "2": 0.4,
+            "3": 0.6,
+            "4": 0.8,
+            "4*": 1.0
+          },
+          "version": "adrs-preference-map-v1",
+          "scheme_id": "ajg"
+        },
+        {
+          "scores": {
+            "Q1": 1.0,
+            "Q2": 0.75,
+            "Q3": 0.5,
+            "Q4": 0.25
+          },
+          "version": "adrs-preference-map-v1",
+          "scheme_id": "jcr_quartile"
+        },
+        {
+          "scores": {
+            "1": 1.0,
+            "2": 0.75,
+            "3": 0.5,
+            "4": 0.25
+          },
+          "version": "adrs-preference-map-v1",
+          "scheme_id": "cas_partition"
+        }
+      ],
+      "semantics": "preference_configuration_only",
+      "raw_config": {
+        "preset": "research_development",
+        "weights": {
+          "recency": {
+            "weight": 10.0,
+            "enabled": true
+          },
+          "topic_relevance": {
+            "weight": 35.0,
+            "enabled": true
+          },
+          "output_performance": {
+            "weight": 20.0,
+            "enabled": true
+          },
+          "research_alignment": {
+            "weight": 20.0,
+            "enabled": true
+          },
+          "evidence_completeness": {
+            "weight": 15.0,
+            "enabled": true
+          },
+          "cooperation_complementarity": {
+            "weight": 0.0,
+            "enabled": true
+          }
+        },
+        "metric_weights": {},
+        "performance_groups": {
+          "paper": {
+            "weight": 1.0,
+            "enabled": true
+          },
+          "venue": {
+            "weight": 1.0,
+            "enabled": true
+          }
+        }
+      },
+      "rule_version": "adrs-weight-rules-v1",
+      "config_version": "user-config-v1",
+      "preset_version": "adrs-presets-v1",
+      "effective_groups": {
+        "paper": 0.5,
+        "venue": 0.5
+      },
+      "effective_weights": {
+        "recency": 0.09999999999999999,
+        "topic_relevance": 0.35,
+        "output_performance": 0.19999999999999998,
+        "research_alignment": 0.19999999999999998,
+        "evidence_completeness": 0.15,
+        "cooperation_complementarity": 0.0
+      },
+      "effective_metric_weights": {}
+    },
+    "scope_rule_version": "adrs-organization-scope-v2"
+  },
+  "organization_result": {
+    "gaps": [
+      "证据索引不等于机构成果全集或已核实合作关系。"
+    ],
+    "scope": {
+      "topic": "只以 DistServe 出版商页面核实北京大学在该篇成果中的署名与研究主题，说明有来源样本与缺口。",
+      "end_date": "2024-12-31",
+      "entities": [
+        {
+          "name": "Peking University",
+          "type": "university",
+          "aliases": [],
+          "entity_id": "selected-1",
+          "unit_kind": "organization",
+          "source_urls": [
+            "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin"
+          ],
+          "resolution_status": "pending"
+        }
+      ],
+      "start_date": "2024-01-01",
+      "disciplines": [
+        "computer_science"
+      ],
+      "organization_types": [
+        "university"
+      ]
+    },
+    "coverage": "retrieved_sample_not_real_world_census",
+    "extraction": {
+      "status": "returned",
+      "finish_reason": "stop",
+      "response_fields": [
+        "analysis_text",
+        "organization_data"
+      ]
+    },
+    "inferences": [
+      {
+        "kind": "inference",
+        "statement": "仅凭 DistServe 的 USENIX OSDI '24 页面，可确认 8 位作者中有 5 位标注 Peking University（含第一作者 Yinmin Zhong），研究主题为 LLM 服务的 prefill/decoding 分离与 goodput 优化；但该页面不构成机构层面隶属、资助或正式合作协议的证据，且发表日仅精确到 2024 年 7 月。",
+        "entity_ids": [
+          "selected-1"
+        ],
+        "evidence_ids": [
+          "ev-48d2cb6b",
+          "ev-48d2cb6b"
+        ],
+        "verification_status": "model_interpretation_requires_review"
+      }
+    ],
+    "object_views": [
+      {
+        "gaps": [
+          "对象提及及来源域名仅是证据定位，不证明作者署名或时间归属；成果需继续核验。"
+        ],
+        "name": "Peking University",
+        "type": "university",
+        "entity_id": "selected-1",
+        "resolution_status": "pending",
+        "mention_evidence_ids": [
+          "ev-48d2cb6b"
+        ],
+        "publication_attribution": "pending",
+        "source_domain_evidence_ids": [
+          "ev-48d2cb6b",
+          "ev-b4be5691",
+          "ev-759cc5db"
+        ]
+      }
+    ],
+    "scope_result": {
+      "scope": {
+        "topic": "只以 DistServe 出版商页面核实北京大学在该篇成果中的署名与研究主题，说明有来源样本与缺口。",
+        "end_date": "2024-12-31",
+        "entities": [
+          {
+            "name": "Peking University",
+            "type": "university",
+            "aliases": [],
+            "entity_id": "selected-1",
+            "unit_kind": "organization",
+            "source_urls": [
+              "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin"
+            ],
+            "resolution_status": "pending"
+          }
+        ],
+        "start_date": "2024-01-01",
+        "disciplines": [
+          "computer_science"
+        ],
+        "organization_types": [
+          "university"
+        ]
+      },
+      "views": [
+        {
+          "name": "Peking University",
+          "type": "university",
+          "entity_id": "selected-1",
+          "output_ids": [
+            "out-distserve-osdi24"
+          ],
+          "output_count": 1,
+          "counting_method": "full",
+          "direct_output_ids": [
+            "out-distserve-osdi24"
+          ],
+          "publication_count": 1,
+          "research_family_ids": [
+            "publication:out-distserve-osdi24"
+          ],
+          "inherited_output_ids": [],
+          "research_family_count": 1,
+          "unlinked_publication_count": 1
+        }
+      ],
+      "outputs": [
+        {
+          "title": "DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving",
+          "output_id": "out-distserve-osdi24",
+          "source_urls": [
+            "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin"
+          ],
+          "affiliations": [
+            {
+              "author_id": "Yinmin Zhong",
+              "entity_id": "selected-1",
+              "source_urls": [
+                "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin"
+              ],
+              "raw_affiliation": "Peking University"
+            },
+            {
+              "author_id": "Shengyu Liu",
+              "entity_id": "selected-1",
+              "source_urls": [
+                "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin"
+              ],
+              "raw_affiliation": "Peking University"
+            },
+            {
+              "author_id": "Jianbo Hu",
+              "entity_id": "selected-1",
+              "source_urls": [
+                "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin"
+              ],
+              "raw_affiliation": "Peking University"
+            },
+            {
+              "author_id": "Xuanzhe Liu",
+              "entity_id": "selected-1",
+              "source_urls": [
+                "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin"
+              ],
+              "raw_affiliation": "Peking University"
+            },
+            {
+              "author_id": "Xin Jin",
+              "entity_id": "selected-1",
+              "source_urls": [
+                "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin"
+              ],
+              "raw_affiliation": "Peking University"
+            }
+          ],
+          "published_on": "2024-07-01",
+          "date_precision": "month",
+          "published_until": "2024-07-31"
+        }
+      ],
+      "summary": {
+        "output_ids": [
+          "out-distserve-osdi24"
+        ],
+        "output_count": 1,
+        "counting_method": "full",
+        "publication_count": 1,
+        "research_family_ids": [
+          "publication:out-distserve-osdi24"
+        ],
+        "research_family_count": 1,
+        "unlinked_publication_count": 1
+      },
+      "verification": {
+        "source_status": "provided_records_only",
+        "external_sources_checked": false
+      },
+      "relationships": [],
+      "schema_version": "2",
+      "selection_mode": "named_entities",
+      "discovery_query": null,
+      "relation_counts": {
+        "funding": 0,
+        "citation": 0,
+        "coauthorship": 0
+      },
+      "output_relations": [],
+      "research_families": [],
+      "selected_entities": [
+        {
+          "name": "Peking University",
+          "type": "university",
+          "aliases": [],
+          "entity_id": "selected-1",
+          "unit_kind": "organization",
+          "source_urls": [
+            "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin"
+          ],
+          "resolution_status": "pending"
+        }
+      ],
+      "pending_entity_ids": [
+        "selected-1"
+      ],
+      "excluded_candidates": [],
+      "current_affiliations": [],
+      "undated_relationship_count": 0
+    },
+    "counting_unit": "retrieved_evidence_not_publications",
+    "source_checks": {
+      "proofs": [
+        {
+          "end": 260,
+          "quote": "title = {{DistServe}: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving}",
+          "start": 151,
+          "source_url": "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin",
+          "evidence_id": "ev-48d2cb6b"
+        },
+        {
+          "end": 935,
+          "quote": "DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving",
+          "start": 838,
+          "source_url": "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin",
+          "evidence_id": "ev-48d2cb6b"
+        },
+        {
+          "end": 370,
+          "quote": "year = {2024",
+          "start": 358,
+          "source_url": "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin",
+          "evidence_id": "ev-48d2cb6b"
+        },
+        {
+          "end": 577,
+          "quote": "month = jul",
+          "start": 566,
+          "source_url": "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin",
+          "evidence_id": "ev-48d2cb6b"
+        },
+        {
+          "end": 1029,
+          "quote": "Yinmin Zhong and Shengyu Liu, Peking University",
+          "start": 982,
+          "source_url": "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin",
+          "evidence_id": "ev-48d2cb6b"
+        },
+        {
+          "end": 1085,
+          "quote": "Jianbo Hu, Peking University",
+          "start": 1057,
+          "source_url": "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin",
+          "evidence_id": "ev-48d2cb6b"
+        },
+        {
+          "end": 1148,
+          "quote": "Xuanzhe Liu and Xin Jin, Peking University",
+          "start": 1106,
+          "source_url": "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin",
+          "evidence_id": "ev-48d2cb6b"
+        },
+        {
+          "end": 355,
+          "quote": "booktitle = {18th USENIX Symposium on Operating Systems Design and Implementation (OSDI 24)}",
+          "start": 263,
+          "source_url": "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin",
+          "evidence_id": "ev-48d2cb6b"
+        },
+        {
+          "end": 1173,
+          "quote": "Yinmin Zhong and Shengyu Liu, Peking University; Junda Chen, UC San Diego; Jianbo Hu, Peking University; Yibo Zhu, StepFun; Xuanzhe Liu and Xin Jin, Peking University; Hao Zhang, UC San Diego",
+          "start": 982,
+          "source_url": "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin",
+          "evidence_id": "ev-48d2cb6b"
+        },
+        {
+          "end": 1305,
+          "quote": "DistServe improves the performance of large language models (LLMs) serving by disaggregating the prefill and decoding computation.",
+          "start": 1175,
+          "source_url": "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin",
+          "evidence_id": "ev-48d2cb6b"
+        },
+        {
+          "end": 2882,
+          "quote": "OSDI '24 Open Access Sponsored by\nKing Abdullah University of Science and Technology (KAUST)",
+          "start": 2790,
+          "source_url": "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin",
+          "evidence_id": "ev-48d2cb6b"
+        }
+      ],
+      "status": "source_quote_and_reference_checked_not_independent_semantic_review",
+      "accepted_output_count": 1,
+      "available_evidence_ids": [
+        "ev-48d2cb6b",
+        "ev-b4be5691",
+        "ev-759cc5db",
+        "ev-ae015c00",
+        "ev-bf31d3a1",
+        "ev-17e6ce26"
+      ],
+      "analyst_excerpt_evidence_ids": [
+        "ev-48d2cb6b",
+        "ev-b4be5691",
+        "ev-759cc5db",
+        "ev-ae015c00",
+        "ev-bf31d3a1",
+        "ev-17e6ce26"
+      ]
+    },
+    "evidence_count": 6,
+    "schema_version": "adrs-organization-findings-v1",
+    "pending_records": [],
+    "recommendations": [
+      {
+        "kind": "recommendation",
+        "statement": "建议下一步获取论文 PDF 首页与致谢、OSDI '24 程序册，以核实北京大学的院系/实验室归属与资助信息；在获得这些材料前，selected-1 的 resolution_status 应保持 pending。",
+        "entity_ids": [
+          "selected-1"
+        ],
+        "evidence_ids": [
+          "ev-48d2cb6b"
+        ],
+        "verification_status": "model_interpretation_requires_review"
+      }
+    ],
+    "comparison_groups": [
+      {
+        "measure": "source_supported_sample_family_count_not_quality",
+        "objects": [
+          {
+            "entity_id": "selected-1",
+            "research_family_count": 1
+          }
+        ],
+        "ranking": null,
+        "disciplines": [
+          "computer_science"
+        ],
+        "output_type": "conference_paper",
+        "discipline_basis": "requested_scope",
+        "publication_year": 2024
+      }
+    ],
+    "attribution_status": "source_supported_sample",
+    "publication_metadata": {
+      "out-distserve-osdi24": {
+        "year": 2024,
+        "venue": "18th USENIX Symposium on Operating Systems Design and Implementation (OSDI 24)",
+        "date_basis": "publisher_fields",
+        "output_type": "conference_paper",
+        "evidence_ids": [
+          "ev-48d2cb6b"
+        ],
+        "identity_basis": "primary_source_url"
+      }
+    },
+    "combined_evidence_ids": [
+      "ev-48d2cb6b",
+      "ev-b4be5691",
+      "ev-759cc5db",
+      "ev-ae015c00",
+      "ev-bf31d3a1",
+      "ev-17e6ce26"
+    ],
+    "relationship_coverage": {
+      "funding": "not_established",
+      "citation": "not_established",
+      "coauthorship": "not_established"
+    },
+    "unassigned_evidence_ids": [
+      "ev-b4be5691",
+      "ev-759cc5db",
+      "ev-ae015c00",
+      "ev-bf31d3a1",
+      "ev-17e6ce26"
+    ],
+    "candidate_discovery_status": "named_entities"
+  },
+  "execution_plan": {
+    "edges": [
+      {
+        "to_node": "n2",
+        "condition": null,
+        "edge_type": "sequential",
+        "from_node": "n1"
+      },
+      {
+        "to_node": "n3",
+        "condition": null,
+        "edge_type": "sequential",
+        "from_node": "n1"
+      },
+      {
+        "to_node": "n4",
+        "condition": null,
+        "edge_type": "sequential",
+        "from_node": "n1"
+      },
+      {
+        "to_node": "n6",
+        "condition": null,
+        "edge_type": "conditional",
+        "from_node": "n1"
+      },
+      {
+        "to_node": "analyst",
+        "condition": null,
+        "edge_type": "sequential",
+        "from_node": "n1"
+      },
+      {
+        "to_node": "analyst",
+        "condition": null,
+        "edge_type": "sequential",
+        "from_node": "n2"
+      },
+      {
+        "to_node": "analyst",
+        "condition": null,
+        "edge_type": "sequential",
+        "from_node": "n3"
+      },
+      {
+        "to_node": "analyst",
+        "condition": null,
+        "edge_type": "sequential",
+        "from_node": "n4"
+      },
+      {
+        "to_node": "analyst",
+        "condition": null,
+        "edge_type": "sequential",
+        "from_node": "n5"
+      },
+      {
+        "to_node": "analyst",
+        "condition": null,
+        "edge_type": "sequential",
+        "from_node": "n6"
+      }
+    ],
+    "nodes": [
+      {
+        "query": "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin",
+        "result": null,
+        "status": "done",
+        "node_id": "n1",
+        "step_id": "n1",
+        "parallel": true,
+        "node_type": "browser",
+        "confidence": 0.0,
+        "depends_on": [],
+        "last_error": null,
+        "description": null,
+        "max_retries": 2,
+        "retry_count": 0,
+        "evidence_ids": [],
+        "target_query": null,
+        "assigned_agent": null,
+        "timeout_seconds": 300,
+        "terminal_failure": false,
+        "waiting_approval": false,
+        "last_error_category": null
+      },
+      {
+        "query": "在该 USENIX 页面内定位并逐字摘录作者机构标注（affiliation lines），确认是否存在 'Peking University' 或 '北京大学' 字样，记录其对应作者姓名与标注原文；若页面无机构标注，明确记录'页面未列机构'",
+        "result": null,
+        "status": "failed",
+        "node_id": "n2",
+        "step_id": "n2",
+        "parallel": false,
+        "node_type": "browser",
+        "confidence": 0.0,
+        "depends_on": [
+          "n1"
+        ],
+        "last_error": "uri_format_error:url",
+        "description": null,
+        "max_retries": 2,
+        "retry_count": 0,
+        "evidence_ids": [],
+        "target_query": null,
+        "assigned_agent": null,
+        "timeout_seconds": 300,
+        "terminal_failure": true,
+        "waiting_approval": false,
+        "last_error_category": "schema_validation"
+      },
+      {
+        "query": "从该 USENIX 页面提取论文摘要与主题关键词原文，归纳该成果的研究主题（如 LLM 服务、推理系统、goodput、prefill/decode 分离等），仅使用页面原文表述，不引入外部推断",
+        "result": null,
+        "status": "failed",
+        "node_id": "n3",
+        "step_id": "n3",
+        "parallel": false,
+        "node_type": "browser",
+        "confidence": 0.0,
+        "depends_on": [
+          "n1"
+        ],
+        "last_error": "uri_format_error:url",
+        "description": null,
+        "max_retries": 2,
+        "retry_count": 0,
+        "evidence_ids": [],
+        "target_query": null,
+        "assigned_agent": null,
+        "timeout_seconds": 300,
+        "terminal_failure": true,
+        "waiting_approval": false,
+        "last_error_category": "schema_validation"
+      },
+      {
+        "query": "在该 USENIX 页面查找并记录发表时间证据：OSDI '24 会议日期、论文 PDF 链接、BibTeX/引用条目中的年份字段；区分'页面抓取时间'与'正式发表时间'",
+        "result": null,
+        "status": "failed",
+        "node_id": "n4",
+        "step_id": "n4",
+        "parallel": false,
+        "node_type": "browser",
+        "confidence": 0.0,
+        "depends_on": [
+          "n1"
+        ],
+        "last_error": "uri_format_error:url",
+        "description": null,
+        "max_retries": 2,
+        "retry_count": 0,
+        "evidence_ids": [],
+        "target_query": null,
+        "assigned_agent": null,
+        "timeout_seconds": 300,
+        "terminal_failure": true,
+        "waiting_approval": false,
+        "last_error_category": "schema_validation"
+      },
+      {
+        "query": "USENIX OSDI 2024 DistServe 论文官方页面 usenix.org 技术 sessions 列表，确认该论文在 OSDI '24 程序中的收录条目与标题拼写",
+        "result": null,
+        "status": "done",
+        "node_id": "n5",
+        "step_id": "n5",
+        "parallel": true,
+        "node_type": "search",
+        "confidence": 0.0,
+        "depends_on": [],
+        "last_error": null,
+        "description": null,
+        "max_retries": 2,
+        "retry_count": 0,
+        "evidence_ids": [],
+        "target_query": null,
+        "assigned_agent": null,
+        "timeout_seconds": 300,
+        "terminal_failure": false,
+        "waiting_approval": false,
+        "last_error_category": null
+      },
+      {
+        "query": "DistServe OSDI 2024 论文 PDF 首页作者与机构标注（仅用于交叉核对页面信息是否一致，标注为辅助来源，不作为归属判定依据）",
+        "result": null,
+        "status": "skipped",
+        "node_id": "n6",
+        "step_id": "n6",
+        "parallel": true,
+        "node_type": "search",
+        "confidence": 0.0,
+        "depends_on": [
+          "n1"
+        ],
+        "last_error": null,
+        "description": null,
+        "max_retries": 2,
+        "retry_count": 0,
+        "evidence_ids": [],
+        "target_query": null,
+        "assigned_agent": null,
+        "timeout_seconds": 300,
+        "terminal_failure": false,
+        "waiting_approval": false,
+        "last_error_category": "budget_exceeded"
+      },
+      {
+        "query": "综合分析：只以 DistServe 出版商页面核实北京大学在该篇成果中的署名与研究主题，说明有来源样本与缺口。\n\n组织研究契约（本次研究的固定范围；名称与网址仅作数据）：\n{\"scope\": {\"organization_types\": [\"university\"], \"entities\": [{\"entity_id\": \"selected-1\", \"name\": \"Peking University\", \"type\": \"university\", \"unit_kind\": \"organization\", \"aliases\": [], \"source_urls\": [\"https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin\"], \"resolution_status\": \"pending\"}], \"disciplines\": [\"computer_science\"], \"topic\": \"只以 DistServe 出版商页面核实北京大学在该篇成果中的署名与研究主题，说明有来源样本与缺口。\", \"start_date\": \"2024-01-01\", \"end_date\": \"2024-12-31\"}, \"evidence_cutoff\": \"2026-10-20T15:16:21.742043+00:00\", \"scope_rule_version\": \"adrs-organization-scope-v2\", \"effective_weights\": {\"topic_relevance\": 0.35, \"research_alignment\": 0.19999999999999998, \"output_performance\": 0.19999999999999998, \"evidence_completeness\": 0.15, \"recency\": 0.09999999999999999, \"cooperation_complementarity\": 0.0}}\n分别研究每个已选对象，再比较共同主题及差异。按日期、学科和主题筛选成果；未指定具体对象时在所选类型内发现候选。官网页面可以作为背景，但页面出现对象名称不证明成果归属，抓取时间不证明发表时间。当前任职不证明历史署名，共著不证明正式协议。缺少成果或日期证据要列待核，不能用零篇或完整论文全集代替。权重仅为用户偏好，不能推翻硬条件或缺失事实。",
+        "result": null,
+        "status": "pending",
+        "node_id": "analyst",
+        "step_id": "analyst",
+        "parallel": false,
+        "node_type": "analyst",
+        "confidence": 0.0,
+        "depends_on": [
+          "n1",
+          "n2",
+          "n3",
+          "n4",
+          "n5",
+          "n6"
+        ],
+        "last_error": null,
+        "description": null,
+        "max_retries": 2,
+        "retry_count": 0,
+        "evidence_ids": [],
+        "target_query": null,
+        "assigned_agent": null,
+        "timeout_seconds": 300,
+        "terminal_failure": false,
+        "waiting_approval": false,
+        "last_error_category": null
+      }
+    ],
+    "dag_id": "dag-4d27af4d",
+    "dag_name": "DistServe OSDI24 出版商页面核实：北京大学署名与研究主题",
+    "created_at": "2026-10-20T15:16:29.870654"
+  },
+  "created_at": "2026-10-20T15:16:21.769410",
+  "completed_at": "2026-10-20T15:17:24.415278"
+}

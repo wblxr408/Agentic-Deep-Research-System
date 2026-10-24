@@ -1,0 +1,399 @@
+[
+  {
+    "call_id": "call-07dc1d1a",
+    "session_id": "5b56e7b4-b594-4fd5-bc66-bf088b35a2f5",
+    "node_id": "n1",
+    "agent_type": "browser",
+    "tool_name": "execute_browse",
+    "args_json": {
+      "query": "https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu",
+      "task_id": "5b56e7b4-b594-4fd5-bc66-bf088b35a2f5"
+    },
+    "args_hash": "91791447195c40d0bcdb9d4ff9cccdb02d06298489e1bdae91a1488c96781436",
+    "status": "success",
+    "error_category": null,
+    "error_message": null,
+    "retry_count": 0,
+    "result_summary": "1 browser pages",
+    "result_hash": "2ce59d0cd6e6de9fe8635ac9b93146aa2c531f6ae6a7cd08b7d0babb0de31bdb",
+    "tokens_used": 0,
+    "cost_usd": 0.0,
+    "decision_id": null,
+    "approved_by": null,
+    "server_fingerprint": null,
+    "safety_json": {
+      "source": "harness_tool_layer",
+      "audited": true,
+      "schema_validated": true
+    },
+    "usage_source": "provider",
+    "estimated": false,
+    "started_at": "2026-10-21T04:39:28.260779",
+    "completed_at": "2026-10-21T04:39:46.906993",
+    "created_at": "2026-10-21T04:39:49.694780"
+  },
+  {
+    "call_id": "call-27304176",
+    "session_id": "5b56e7b4-b594-4fd5-bc66-bf088b35a2f5",
+    "node_id": "n2",
+    "agent_type": "browser",
+    "tool_name": "execute_browse",
+    "args_json": {
+      "query": "https://www.usenix.org/conference/nsdi26/technical-sessions",
+      "task_id": "5b56e7b4-b594-4fd5-bc66-bf088b35a2f5"
+    },
+    "args_hash": "27f92707cf05561de5330f4c853b38fbb8ff19dcc2ea294a06e8769b7657a3d0",
+    "status": "success",
+    "error_category": null,
+    "error_message": null,
+    "retry_count": 0,
+    "result_summary": "1 browser pages",
+    "result_hash": "2ce59d0cd6e6de9fe8635ac9b93146aa2c531f6ae6a7cd08b7d0babb0de31bdb",
+    "tokens_used": 0,
+    "cost_usd": 0.0,
+    "decision_id": null,
+    "approved_by": null,
+    "server_fingerprint": null,
+    "safety_json": {
+      "source": "harness_tool_layer",
+      "audited": true,
+      "schema_validated": true
+    },
+    "usage_source": "provider",
+    "estimated": false,
+    "started_at": "2026-10-21T04:39:28.262194",
+    "completed_at": "2026-10-21T04:39:49.686679",
+    "created_at": "2026-10-21T04:39:49.694780"
+  },
+  {
+    "call_id": "call-61fb553b",
+    "session_id": "5b56e7b4-b594-4fd5-bc66-bf088b35a2f5",
+    "node_id": "n7",
+    "agent_type": "search",
+    "tool_name": "execute_search",
+    "args_json": {
+      "query": "NSDI 2026 accepted papers list Tencent Cloud networking (Harp) — 确认是否为唯一一项腾讯 VPC 故障检测成果，避免以数量推断投入",
+      "task_id": "5b56e7b4-b594-4fd5-bc66-bf088b35a2f5"
+    },
+    "args_hash": "1029fa53ea801ac934ef34aca1f33c46a0c79053641266e685e372414ae01461",
+    "status": "error",
+    "error_category": "budget_exceeded",
+    "error_message": "budget_exceeded",
+    "retry_count": 1,
+    "result_summary": null,
+    "result_hash": null,
+    "tokens_used": 0,
+    "cost_usd": 0.0,
+    "decision_id": null,
+    "approved_by": null,
+    "server_fingerprint": null,
+    "safety_json": {
+      "source": "harness_tool_layer",
+      "audited": true,
+      "channel_attempts": [
+        {
+          "status": "failed",
+          "backend": "duckduckgo",
+          "channel": "web",
+          "call_count": 1,
+          "duration_ms": 2092,
+          "result_count": 0,
+          "error_category": "access_denied"
+        },
+        {
+          "status": "failed",
+          "backend": "bing-rss",
+          "channel": "web",
+          "call_count": 0,
+          "duration_ms": 0,
+          "result_count": 0,
+          "error_category": "budget_exceeded"
+        }
+      ]
+    },
+    "usage_source": "provider",
+    "estimated": false,
+    "started_at": "2026-10-21T04:39:28.263690",
+    "completed_at": "2026-10-21T04:39:30.381504",
+    "created_at": "2026-10-21T04:39:49.694780"
+  },
+  {
+    "call_id": "call-7036867c",
+    "session_id": "5b56e7b4-b594-4fd5-bc66-bf088b35a2f5",
+    "node_id": "n3",
+    "agent_type": "search",
+    "tool_name": "execute_search",
+    "args_json": {
+      "query": "NSDI 2026 Harp Tencent VPC network failure detection recovery paper title authors",
+      "task_id": "5b56e7b4-b594-4fd5-bc66-bf088b35a2f5"
+    },
+    "args_hash": "27ecff88f0adece7ac40c1df659078dce36974f67cdb5869f78e8c77a49c1867",
+    "status": "success",
+    "error_category": null,
+    "error_message": null,
+    "retry_count": 0,
+    "result_summary": "10 search results",
+    "result_hash": "f0edc7a8a0ee6f626cc0224b00a84f91631ca944ca9c0d839b1ce2ae628fe69e",
+    "tokens_used": 0,
+    "cost_usd": 0.0,
+    "decision_id": null,
+    "approved_by": null,
+    "server_fingerprint": null,
+    "safety_json": {
+      "source": "harness_tool_layer",
+      "audited": true,
+      "channel_attempts": [
+        {
+          "status": "failed",
+          "backend": "duckduckgo",
+          "channel": "web",
+          "call_count": 1,
+          "duration_ms": 3264,
+          "result_count": 0,
+          "error_category": "access_denied"
+        },
+        {
+          "status": "success",
+          "backend": "bing-rss",
+          "channel": "web",
+          "call_count": 1,
+          "duration_ms": 1375,
+          "result_count": 10,
+          "error_category": null
+        }
+      ],
+      "schema_validated": true
+    },
+    "usage_source": "provider",
+    "estimated": false,
+    "started_at": "2026-10-21T04:39:28.262194",
+    "completed_at": "2026-10-21T04:39:32.934160",
+    "created_at": "2026-10-21T04:39:49.694780"
+  },
+  {
+    "call_id": "call-7e1f7f1f",
+    "session_id": "5b56e7b4-b594-4fd5-bc66-bf088b35a2f5",
+    "node_id": "n5",
+    "agent_type": "search",
+    "tool_name": "execute_search",
+    "args_json": {
+      "query": "Tencent VPC network failure detection recovery 2026 paper software path monitoring bypass mechanism",
+      "task_id": "5b56e7b4-b594-4fd5-bc66-bf088b35a2f5"
+    },
+    "args_hash": "10aae1041a8485ee62aa69946c279a53a7c8b31e8c789a721115064d4dd1ba47",
+    "status": "success",
+    "error_category": null,
+    "error_message": null,
+    "retry_count": 0,
+    "result_summary": "10 search results",
+    "result_hash": "f0edc7a8a0ee6f626cc0224b00a84f91631ca944ca9c0d839b1ce2ae628fe69e",
+    "tokens_used": 0,
+    "cost_usd": 0.0,
+    "decision_id": null,
+    "approved_by": null,
+    "server_fingerprint": null,
+    "safety_json": {
+      "source": "harness_tool_layer",
+      "audited": true,
+      "channel_attempts": [
+        {
+          "status": "failed",
+          "backend": "duckduckgo",
+          "channel": "web",
+          "call_count": 1,
+          "duration_ms": 2655,
+          "result_count": 0,
+          "error_category": "access_denied"
+        },
+        {
+          "status": "success",
+          "backend": "bing-rss",
+          "channel": "web",
+          "call_count": 1,
+          "duration_ms": 1625,
+          "result_count": 10,
+          "error_category": null
+        }
+      ],
+      "schema_validated": true
+    },
+    "usage_source": "provider",
+    "estimated": false,
+    "started_at": "2026-10-21T04:39:28.262194",
+    "completed_at": "2026-10-21T04:39:32.583412",
+    "created_at": "2026-10-21T04:39:49.694780"
+  },
+  {
+    "call_id": "call-ae6fa605",
+    "session_id": "5b56e7b4-b594-4fd5-bc66-bf088b35a2f5",
+    "node_id": "n6",
+    "agent_type": "search",
+    "tool_name": "execute_search",
+    "args_json": {
+      "query": "Hu Jiayu Tencent NSDI 2026 co-authors university affiliation (Tsinghua / Peking / SJTU / HKUST etc.)",
+      "task_id": "5b56e7b4-b594-4fd5-bc66-bf088b35a2f5"
+    },
+    "args_hash": "14b64b572feb189f8eebe31a287ce73a1c18744ae9cc8cf98c128c241c3fbde2",
+    "status": "error",
+    "error_category": "budget_exceeded",
+    "error_message": "budget_exceeded",
+    "retry_count": 1,
+    "result_summary": null,
+    "result_hash": null,
+    "tokens_used": 0,
+    "cost_usd": 0.0,
+    "decision_id": null,
+    "approved_by": null,
+    "server_fingerprint": null,
+    "safety_json": {
+      "source": "harness_tool_layer",
+      "audited": true,
+      "channel_attempts": [
+        {
+          "status": "failed",
+          "backend": "duckduckgo",
+          "channel": "web",
+          "call_count": 1,
+          "duration_ms": 1827,
+          "result_count": 0,
+          "error_category": "access_denied"
+        },
+        {
+          "status": "failed",
+          "backend": "bing-rss",
+          "channel": "web",
+          "call_count": 0,
+          "duration_ms": 0,
+          "result_count": 0,
+          "error_category": "budget_exceeded"
+        }
+      ]
+    },
+    "usage_source": "provider",
+    "estimated": false,
+    "started_at": "2026-10-21T04:39:28.263690",
+    "completed_at": "2026-10-21T04:39:30.121489",
+    "created_at": "2026-10-21T04:39:49.694780"
+  },
+  {
+    "call_id": "call-f4138a15",
+    "session_id": "5b56e7b4-b594-4fd5-bc66-bf088b35a2f5",
+    "node_id": "n4",
+    "agent_type": "search",
+    "tool_name": "execute_search",
+    "args_json": {
+      "query": "\"Harp\" NSDI '26 Hu Jiayu Tencent virtual private cloud failure detection rerouting",
+      "task_id": "5b56e7b4-b594-4fd5-bc66-bf088b35a2f5"
+    },
+    "args_hash": "777705df8ae6e3df45618a36e2a466242c20437bd7aa50e50c8ee0bd2db70aaf",
+    "status": "success",
+    "error_category": null,
+    "error_message": null,
+    "retry_count": 0,
+    "result_summary": "10 search results",
+    "result_hash": "f0edc7a8a0ee6f626cc0224b00a84f91631ca944ca9c0d839b1ce2ae628fe69e",
+    "tokens_used": 0,
+    "cost_usd": 0.0,
+    "decision_id": null,
+    "approved_by": null,
+    "server_fingerprint": null,
+    "safety_json": {
+      "source": "harness_tool_layer",
+      "audited": true,
+      "channel_attempts": [
+        {
+          "status": "failed",
+          "backend": "duckduckgo",
+          "channel": "web",
+          "call_count": 1,
+          "duration_ms": 1811,
+          "result_count": 0,
+          "error_category": "access_denied"
+        },
+        {
+          "status": "success",
+          "backend": "bing-rss",
+          "channel": "web",
+          "call_count": 1,
+          "duration_ms": 1438,
+          "result_count": 10,
+          "error_category": null
+        }
+      ],
+      "schema_validated": true
+    },
+    "usage_source": "provider",
+    "estimated": false,
+    "started_at": "2026-10-21T04:39:28.262194",
+    "completed_at": "2026-10-21T04:39:31.536998",
+    "created_at": "2026-10-21T04:39:49.694780"
+  },
+  {
+    "call_id": "call-4f3c4ebf",
+    "session_id": "5b56e7b4-b594-4fd5-bc66-bf088b35a2f5",
+    "node_id": "n8",
+    "agent_type": "browser",
+    "tool_name": "execute_browse",
+    "args_json": {
+      "query": "USENIX BibTeX 条目原文（Harp, NSDI '26）：核对 year=2026、month=may 字段，保留月精度，不推断具体日期",
+      "task_id": "5b56e7b4-b594-4fd5-bc66-bf088b35a2f5"
+    },
+    "args_hash": "8371e750c191facf749bc3bc4d4ce8aa105b131d4a970f328f90ecc526989bd8",
+    "status": "error",
+    "error_category": "schema_validation",
+    "error_message": "uri_format_error:url",
+    "retry_count": 0,
+    "result_summary": null,
+    "result_hash": null,
+    "tokens_used": 0,
+    "cost_usd": 0.0,
+    "decision_id": null,
+    "approved_by": null,
+    "server_fingerprint": null,
+    "safety_json": {
+      "source": "harness_tool_layer",
+      "audited": true,
+      "sanitized_error": true,
+      "schema_validated": false
+    },
+    "usage_source": "provider",
+    "estimated": false,
+    "started_at": "2026-10-21T04:39:50.857255",
+    "completed_at": "2026-10-21T04:39:50.857255",
+    "created_at": "2026-10-21T04:39:50.871110"
+  },
+  {
+    "call_id": "call-f8bed633",
+    "session_id": "5b56e7b4-b594-4fd5-bc66-bf088b35a2f5",
+    "node_id": "n9",
+    "agent_type": "browser",
+    "tool_name": "execute_browse",
+    "args_json": {
+      "query": "尝试获取论文 PDF/全文（USENIX 开放获取页、arXiv、作者主页）：仅提取摘要可支持的 problem statement、software path monitoring、failure bypass/rerouting 机制描述；若无法取得全文，明确记录缺口，不补造实验条件与图表",
+      "task_id": "5b56e7b4-b594-4fd5-bc66-bf088b35a2f5"
+    },
+    "args_hash": "f42f4f722d5321b6c7ee83e2cec3d637a6070de79f53860dc2252fc0be2f7a19",
+    "status": "error",
+    "error_category": "schema_validation",
+    "error_message": "uri_format_error:url",
+    "retry_count": 0,
+    "result_summary": null,
+    "result_hash": null,
+    "tokens_used": 0,
+    "cost_usd": 0.0,
+    "decision_id": null,
+    "approved_by": null,
+    "server_fingerprint": null,
+    "safety_json": {
+      "source": "harness_tool_layer",
+      "audited": true,
+      "sanitized_error": true,
+      "schema_validated": false
+    },
+    "usage_source": "provider",
+    "estimated": false,
+    "started_at": "2026-10-21T04:39:50.857255",
+    "completed_at": "2026-10-21T04:39:50.857255",
+    "created_at": "2026-10-21T04:39:50.871110"
+  }
+]

@@ -1,0 +1,393 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><title>交付腾讯网络研究的一个有界、可分享案例：仅以 Harp 出版商页面 https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu 为种子，核实2026年腾讯在VPC网络故障检测与恢复方面的公开研究。识别论文题名、发表月份、Tencent署名及外部高校共著线索，解释摘要可支持的问题、软件路径监测与故障绕行机制。区分作者自述部署／生产结果与独立验证；无法取得全文时不补造实验条件和图表。仅一项公开成果，不代表腾讯2020—2026全集，不以数量推断投入，不把共著称为正式协议。BibTeX year=2026及month=may是发表时间来源，应保留月精度而非具体某日。没有直接依据的指标、资助、内部战略与未来方向保留缺口，最后给出待验证问题。</title><meta name="viewport" content="width=device-width,initial-scale=1"><style>
+body{margin:0;background:#fafafa;color:#252525;font:16px/1.8 system-ui,sans-serif}
+main{max-width:1000px;margin:32px auto;padding:36px;background:white;border:1px solid #e5e5e5;border-radius:16px}
+h1,h2,h3{line-height:1.4;margin:1.6em 0 .6em}h1{font-size:2em}h2{font-size:1.45em}h3{font-size:1.15em}
+a{color:#b44c00;overflow-wrap:anywhere}p,li{overflow-wrap:anywhere}table{border-collapse:collapse;width:100%;margin:1em 0}
+th,td{border:1px solid #ddd;text-align:left;padding:8px}th{background:#f6f6f6}details{padding:12px;border:1px solid #ddd;border-radius:10px;margin:12px 0}
+summary{cursor:pointer;font-weight:600}pre{white-space:pre-wrap;overflow-wrap:anywhere;padding:14px;background:#f6f6f6;overflow:auto}
+blockquote{margin-left:0;padding-left:16px;border-left:3px solid #e87924}section[aria-label="报告口径与冻结配置"]{padding:20px;background:#fff9f4;border:1px solid #e6d7cb;border-radius:12px}
+@media(max-width:600px){main{margin:0;padding:18px}table{display:block;overflow:auto}}
+@media print{body{background:white}main{border:0;margin:0;padding:0}details{break-inside:avoid}a{color:inherit}}
+</style></head><body><main><div class="report-content"><section aria-label="报告口径与冻结配置" class="mb-6 rounded-xl border border-xmgray-200 bg-xmgray-50 p-4 text-sm"><h2 class="font-semibold text-xmgray-800">研究对象、口径与权重</h2><p class="mt-2">Tencent · computer science</p><p class="mt-1 text-xs text-xmgray-600">2026-01-01 至 2026-10-21 · 配置 tencent-network-case-20261021-v1</p><details class="mt-3"><summary role="button" class="cursor-pointer text-xm-700">展开研究口径</summary><div class="mt-3 space-y-4"><section><h3>研究范围</h3><p>VPC network failure detection and recovery · 企业</p><p>请求冻结：2026-10-21T04:39:19.742424+00:00；采集时间在实际来源中逐项保留。</p><ul><li><a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer">Tencent</a> · 企业 · pending</li></ul></section><section><h3>统计口径</h3><p>分别保留发表记录与研究家族；同成果可归属多个对象，汇总取并集，未关联版本按独立发表计数。</p><table aria-label="报告对象样本"><thead><tr><th>对象</th><th>发表记录</th><th>研究家族</th></tr></thead><tbody><tr><th scope="row">Tencent</th><td>1</td><td>1</td></tr><tr><th scope="row">去重汇总</th><td>1</td><td>1</td></tr></tbody></table><p>偏好配置不等于已完成评分；结果页只读重排不改写本报告的配置、事实或证据。</p></section><section><h3>有效权重</h3><table aria-label="报告有效权重"><thead><tr><th>维度</th><th>生效比例</th></tr></thead><tbody><tr><th scope="row">时效性</th><td>10.00%</td></tr><tr><th scope="row">主题相关性</th><td>35.00%</td></tr><tr><th scope="row">成果表现</th><td>20.00%</td></tr><tr><th scope="row">研究路线契合</th><td>20.00%</td></tr><tr><th scope="row">证据完整度</th><td>15.00%</td></tr><tr><th scope="row">合作互补性</th><td>0.00%</td></tr></tbody></table><p>规则 adrs-weight-rules-v1 · 预设 adrs-presets-v1 · adrs-organization-scope-v2</p><details><summary>原始权重、组内比例及有序映射</summary><pre class="max-h-96 overflow-auto whitespace-pre-wrap break-words text-xs">{
+  "mappings": [
+    {
+      "scores": {
+        "A": 1,
+        "B": 0.6666666666666667,
+        "C": 0.33333333333333337
+      },
+      "version": "adrs-preference-map-v1",
+      "scheme_id": "ccf"
+    },
+    {
+      "scores": {
+        "A": 0.75,
+        "B": 0.5,
+        "C": 0.25,
+        "A*": 1
+      },
+      "version": "adrs-preference-map-v1",
+      "scheme_id": "icore"
+    },
+    {
+      "scores": {
+        "A": 0.75,
+        "B": 0.5,
+        "C": 0.25,
+        "A*": 1
+      },
+      "version": "adrs-preference-map-v1",
+      "scheme_id": "abdc"
+    },
+    {
+      "scores": {
+        "1": 0.19999999999999996,
+        "2": 0.4,
+        "3": 0.6,
+        "4": 0.8,
+        "4*": 1
+      },
+      "version": "adrs-preference-map-v1",
+      "scheme_id": "ajg"
+    },
+    {
+      "scores": {
+        "Q1": 1,
+        "Q2": 0.75,
+        "Q3": 0.5,
+        "Q4": 0.25
+      },
+      "version": "adrs-preference-map-v1",
+      "scheme_id": "jcr_quartile"
+    },
+    {
+      "scores": {
+        "1": 1,
+        "2": 0.75,
+        "3": 0.5,
+        "4": 0.25
+      },
+      "version": "adrs-preference-map-v1",
+      "scheme_id": "cas_partition"
+    }
+  ],
+  "semantics": "preference_configuration_only",
+  "raw_config": {
+    "preset": "research_development",
+    "weights": {
+      "recency": {
+        "weight": 10,
+        "enabled": true
+      },
+      "topic_relevance": {
+        "weight": 35,
+        "enabled": true
+      },
+      "output_performance": {
+        "weight": 20,
+        "enabled": true
+      },
+      "research_alignment": {
+        "weight": 20,
+        "enabled": true
+      },
+      "evidence_completeness": {
+        "weight": 15,
+        "enabled": true
+      },
+      "cooperation_complementarity": {
+        "weight": 0,
+        "enabled": true
+      }
+    },
+    "metric_weights": {},
+    "performance_groups": {
+      "paper": {
+        "weight": 1,
+        "enabled": true
+      },
+      "venue": {
+        "weight": 1,
+        "enabled": true
+      }
+    }
+  },
+  "rule_version": "adrs-weight-rules-v1",
+  "config_version": "tencent-network-case-20261021-v1",
+  "preset_version": "adrs-presets-v1",
+  "effective_groups": {
+    "paper": 0.5,
+    "venue": 0.5
+  },
+  "effective_weights": {
+    "recency": 0.09999999999999999,
+    "topic_relevance": 0.35,
+    "output_performance": 0.19999999999999998,
+    "research_alignment": 0.19999999999999998,
+    "evidence_completeness": 0.15,
+    "cooperation_complementarity": 0
+  },
+  "effective_metric_weights": {}
+}</pre></details></section><section><h3>评价口径与来源可用性</h3><p>目录样本未自动应用到本次成果；缺少指标不作零分或最低等级。</p><p>adrs-evaluation-catalog-v1 · adrs-evaluation-adapters-v1</p><ul><li><a href="https://www.ccf.org.cn/Academic_Evaluation/By_category/" target="_blank" rel="noopener noreferrer">ccf</a> · 部分公开样本</li><li><a href="https://portal.core.edu.au/conf-ranks/" target="_blank" rel="noopener noreferrer">icore</a> · 部分公开样本</li><li><a href="https://mjl.clarivate.com/" target="_blank" rel="noopener noreferrer">wos_scie</a> · 需授权导入／尚无公开样本</li><li><a href="https://mjl.clarivate.com/" target="_blank" rel="noopener noreferrer">wos_ssci</a> · 需授权导入／尚无公开样本</li><li><a href="https://mjl.clarivate.com/" target="_blank" rel="noopener noreferrer">wos_ahci</a> · 需授权导入／尚无公开样本</li><li><a href="https://mjl.clarivate.com/" target="_blank" rel="noopener noreferrer">wos_esci</a> · 需授权导入／尚无公开样本</li><li><a href="https://www.scopus.com/sources" target="_blank" rel="noopener noreferrer">scopus</a> · 需授权导入／尚无公开样本</li><li><a href="https://jcr.clarivate.com/" target="_blank" rel="noopener noreferrer">jcr_jif</a> · 需授权导入／尚无公开样本</li><li><a href="https://jcr.clarivate.com/" target="_blank" rel="noopener noreferrer">jcr_quartile</a> · 需授权导入／尚无公开样本</li><li><a href="https://jcr.clarivate.com/" target="_blank" rel="noopener noreferrer">jcr_jci</a> · 需授权导入／尚无公开样本</li><li><a href="https://www.fenqubiao.com/" target="_blank" rel="noopener noreferrer">cas_partition</a> · 需授权导入／尚无公开样本</li><li><a href="https://www.scopus.com/sources" target="_blank" rel="noopener noreferrer">citescore</a> · 需授权导入／尚无公开样本</li><li><a href="https://www.scopus.com/sources" target="_blank" rel="noopener noreferrer">citescore_percentile</a> · 需授权导入／尚无公开样本</li><li><a href="https://www.scimagojr.com/" target="_blank" rel="noopener noreferrer">sjr</a> · 需授权导入／尚无公开样本</li><li><a href="https://www.scopus.com/sources" target="_blank" rel="noopener noreferrer">snip</a> · 需授权导入／尚无公开样本</li><li><a href="https://abdc.edu.au/abdc-journal-quality-list/" target="_blank" rel="noopener noreferrer">abdc</a> · 部分公开样本</li><li><a href="https://charteredabs.org/academic-journal-guide" target="_blank" rel="noopener noreferrer">ajg</a> · 需授权导入／尚无公开样本</li><li><a href="https://help.openalex.org/data/works/citations/" target="_blank" rel="noopener noreferrer">citation_percentile</a> · 部分公开样本</li><li><a href="https://incites.help.clarivate.com/Content/Indicators-Handbook/ih-normalized-citation-impact.htm" target="_blank" rel="noopener noreferrer">cnci</a> · 需授权导入／尚无公开样本</li><li><a href="https://help.openalex.org/data/works/citations/" target="_blank" rel="noopener noreferrer">fwci</a> · 部分公开样本</li></ul><details><summary>目录来源版本与覆盖</summary><ul><li><a href="https://risame.github.io/sun/ccf.pdf" target="_blank" rel="noopener noreferrer">ccf · 2012 · 2012</a> · public · partial</li><li><a href="https://scdm-shu.github.io/ccf/2022-CCF-Ranking.pdf" target="_blank" rel="noopener noreferrer">ccf · 2022 · 2022</a> · public · partial</li><li><a href="https://portal.core.edu.au/conf-ranks/?search=SIGCOMM&amp;by=all&amp;source=CORE2023&amp;sort=atitle&amp;page=1" target="_blank" rel="noopener noreferrer">icore · CORE2023 · 2023</a> · public · partial</li><li><a href="https://portal.core.edu.au/conf-ranks/?search=SIGCOMM&amp;by=all&amp;source=ICORE2026&amp;sort=atitle&amp;page=1" target="_blank" rel="noopener noreferrer">icore · ICORE2026 · 2026</a> · public · partial</li><li><a href="https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx" target="_blank" rel="noopener noreferrer">abdc · 2010 · 2010</a> · public · partial</li><li><a href="https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx" target="_blank" rel="noopener noreferrer">abdc · 2013 · 2013</a> · public · partial</li><li><a href="https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx" target="_blank" rel="noopener noreferrer">abdc · 2016 · 2016</a> · public · partial</li><li><a href="https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx" target="_blank" rel="noopener noreferrer">abdc · 2019 · 2019</a> · public · partial</li><li><a href="https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx" target="_blank" rel="noopener noreferrer">abdc · 2022 · 2022</a> · public · partial</li><li><a href="https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx" target="_blank" rel="noopener noreferrer">abdc · 2025 · 2025</a> · public · partial</li><li><a href="https://api.openalex.org/works/W1951724000" target="_blank" rel="noopener noreferrer">fwci · OpenAlex snapshot 2026-10-19 · 2026</a> · public · partial</li><li><a href="https://api.openalex.org/works/W1951724000" target="_blank" rel="noopener noreferrer">citation_percentile · OpenAlex snapshot 2026-10-19 · 2026</a> · public · partial</li></ul></details></section><section><h3>实际取证来源</h3><ol><li><a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer">Harp: Improving VPC Network Availability via Efficient Failure Detection and Rerouting in Tencent Cloud | USENIX</a><span> · ev-249a9032 · 2026-10-21T04:39:46.906993</span></li><li><a href="https://www.usenix.org/conference/nsdi26/technical-sessions" target="_blank" rel="noopener noreferrer">NSDI '26 Technical Sessions | USENIX</a><span> · ev-7375e4f1 · 2026-10-21T04:39:49.686679</span></li><li><a href="https://www.fgdc.gov/nsdi/nsdi.html" target="_blank" rel="noopener noreferrer">NSDI | Overview — Federal Geographic Data Committee - FGDC</a><span> · ev-f6b1631f · 2026-10-21T04:39:28.274812+00:00</span></li><li><a href="https://www.usenix.org/conference/nsdi26" target="_blank" rel="noopener noreferrer">NSDI '26 | USENIX</a><span> · ev-cbd057ff · 2026-10-21T04:39:28.274812+00:00</span></li><li><a href="https://www.usenix.org/conference/nsdi24" target="_blank" rel="noopener noreferrer">NSDI '24 | USENIX</a><span> · ev-6863bbe3 · 2026-10-21T04:39:28.274812+00:00</span></li><li><a href="https://www.fgdc.gov/nsdi-plan" target="_blank" rel="noopener noreferrer">NSDI | Strategic Plan — Federal Geographic Data Committee</a><span> · ev-9fe5722d · 2026-10-21T04:39:28.274812+00:00</span></li><li><a href="https://dl.acm.org/conference/nsdi" target="_blank" rel="noopener noreferrer">NSDI Conference - Home</a><span> · ev-a937dff0 · 2026-10-21T04:39:28.274812+00:00</span></li><li><a href="https://dl.acm.org/doi/proceedings/10.5555/3691825" target="_blank" rel="noopener noreferrer">NSDI</a><span> · ev-85c8a45f · 2026-10-21T04:39:28.274812+00:00</span></li><li><a href="https://en.wikipedia.org/wiki/Symposium_on_Networked_Systems_Design_and_Implementation" target="_blank" rel="noopener noreferrer">Symposium on Networked Systems Design and Implementation</a><span> · ev-5f9577a5 · 2026-10-21T04:39:28.274812+00:00</span></li><li><a href="https://nsdi26fall.usenix.hotcrp.com/" target="_blank" rel="noopener noreferrer">NSDI ’26 Fall</a><span> · ev-b7f990e1 · 2026-10-21T04:39:28.274812+00:00</span></li><li><a href="https://www.ogc.org/initiatives/national-spatial-data-infrastructure-modernization-project/" target="_blank" rel="noopener noreferrer">OGC NSDI Modernization Project | Advancing U.S. Spatial Data</a><span> · ev-904b3946 · 2026-10-21T04:39:28.274812+00:00</span></li><li><a href="https://www.microsoft.com/en-us/research/blog/microsoft-at-nsdi-2026-advances-in-large-scale-networked-systems/" target="_blank" rel="noopener noreferrer">Microsoft at NSDI 2026: Advances in large-scale networked systems</a><span> · ev-7fafe161 · 2026-10-21T04:39:28.274812+00:00</span></li><li><a href="https://harp.cms.gov/" target="_blank" rel="noopener noreferrer">HARP Login</a><span> · ev-3fa39308 · 2026-10-21T04:39:28.270464+00:00</span></li><li><a href="https://en.wikipedia.org/wiki/Harp" target="_blank" rel="noopener noreferrer">Harp - Wikipedia</a><span> · ev-89749cdd · 2026-10-21T04:39:28.270464+00:00</span></li><li><a href="https://omh.ny.gov/omhweb/bho/harp.html" target="_blank" rel="noopener noreferrer">Health and Recovery Plans (HARPs)</a><span> · ev-42b7e814 · 2026-10-21T04:39:28.270464+00:00</span></li><li><a href="https://www.health.ny.gov/health_care/medicaid/program/medicaid_health_homes/harp_bh/index.htm" target="_blank" rel="noopener noreferrer">Health and Recovery Plan (HARP)/ Behavioral Health</a><span> · ev-ce948196 · 2026-10-21T04:39:28.270464+00:00</span></li><li><a href="https://www.musicalhow.com/harp-types/" target="_blank" rel="noopener noreferrer">12 Different Types of Harps - MusicalHow</a><span> · ev-01d613d5 · 2026-10-21T04:39:28.270464+00:00</span></li><li><a href="https://thebiographybytes.com/natalie-harp/" target="_blank" rel="noopener noreferrer">Natalie Harp Bio, Age, Height, Husband, Family, Health &amp; Net Worth</a><span> · ev-c55a7368 · 2026-10-21T04:39:28.270464+00:00</span></li><li><a href="https://www.britannica.com/art/harp-musical-instrument" target="_blank" rel="noopener noreferrer">Harp | Description, History, &amp; Facts | Britannica</a><span> · ev-30902970 · 2026-10-21T04:39:28.270464+00:00</span></li><li><a href="https://www.harp.com/" target="_blank" rel="noopener noreferrer">Harps | Harp Sheet Music - Harp Parts &amp; Accessories - Harp Strings | Harp</a><span> · ev-05bf7aee · 2026-10-21T04:39:28.270464+00:00</span></li><li><a href="https://theharpplace.com/harp-rentals/" target="_blank" rel="noopener noreferrer">Rentals and Sales - The Harp Place</a><span> · ev-c6491567 · 2026-10-21T04:39:28.270464+00:00</span></li><li><a href="https://www.merriam-webster.com/dictionary/harp" target="_blank" rel="noopener noreferrer">HARP Definition &amp; Meaning - Merriam-Webster</a><span> · ev-410ace9d · 2026-10-21T04:39:28.270464+00:00</span></li><li><a href="https://www.tencent.com/" target="_blank" rel="noopener noreferrer">Home - Tencent</a><span> · ev-a69d0310 · 2026-10-21T04:39:28.276988+00:00</span></li><li><a href="https://en.wikipedia.org/wiki/Tencent" target="_blank" rel="noopener noreferrer">Tencent - Wikipedia</a><span> · ev-26070100 · 2026-10-21T04:39:28.276988+00:00</span></li><li><a href="https://www.tencent.com.cn/zh-hk/" target="_blank" rel="noopener noreferrer">Home - Tencent</a><span> · ev-35762055 · 2026-10-21T04:39:28.276988+00:00</span></li><li><a href="https://meeting.tencent.com/download/" target="_blank" rel="noopener noreferrer">下载中心-腾讯会议</a><span> · ev-2c95fa60 · 2026-10-21T04:39:28.276988+00:00</span></li><li><a href="https://www.qq.com/" target="_blank" rel="noopener noreferrer">腾讯网</a><span> · ev-3c3e1bbd · 2026-10-21T04:39:28.276988+00:00</span></li><li><a href="https://www.britannica.com/money/Tencent" target="_blank" rel="noopener noreferrer">Tencent | Company, WeChat, Gaming, Controversy, &amp; Facts | Britannica Money</a><span> · ev-45591054 · 2026-10-21T04:39:28.276988+00:00</span></li><li><a href="https://meeting.tencent.com/" target="_blank" rel="noopener noreferrer">腾讯会议官方——腾讯会议 会开会</a><span> · ev-b41535ac · 2026-10-21T04:39:28.276988+00:00</span></li><li><a href="https://careers.tencent.com/en-us/home.html" target="_blank" rel="noopener noreferrer">Home | Tencent Careers</a><span> · ev-7de125a0 · 2026-10-21T04:39:28.276988+00:00</span></li><li><a href="https://finance.yahoo.com/quote/TCEHY/" target="_blank" rel="noopener noreferrer">Tencent Holdings Limited (TCEHY) Stock Price, News, Quote &amp; History ...</a><span> · ev-cac3e8b4 · 2026-10-21T04:39:28.276988+00:00</span></li><li><a href="https://hy.tencent.ai/" target="_blank" rel="noopener noreferrer">Tencent Hy</a><span> · ev-7af1d0b9 · 2026-10-21T04:39:28.276988+00:00</span></li></ol></section><section><h3>缺口与解释边界</h3><ul><li>证据索引不等于机构成果全集或已核实合作关系。</li><li>仅覆盖本次取得的样本；空样本不代表现实中零成果，来源未覆盖年份不补零。</li><li>学科比较组使用请求标签，尚未逐篇核定学科；不输出跨学科或载体的统一质量榜。</li><li>原文位置与引用检查不等于独立语义复核；模型推断、建议和未来情景仍须复核。</li><li>评价目录为冻结的部分样本及授权要求，未自动应用到本次成果；缺失指标不作零分或最低等级。</li><li>funding 关系尚无已纳入的直接依据；不表示该关系不存在。</li><li>citation 关系尚无已纳入的直接依据；不表示该关系不存在。</li></ul><ul></ul></section></div></details></section><h1>腾讯云 VPC 网络故障检测与恢复：Harp（NSDI '26）有界案例研究</h1>
+<blockquote>
+<p>Generated: 2026-10-21 | Research Depth: Comprehensive</p>
+</blockquote>
+<h2>Executive Summary</h2>
+<p>以 USENIX NSDI '26 的 Harp 展示页为唯一种子，可核实腾讯在 2026 年有一项关于 VPC 网络故障检测与恢复的公开会议论文：<em>Harp: Improving VPC Network Availability via Efficient Failure Detection and Rerouting in Tencent Cloud</em>，BibTeX 标注 <code>year = {2026}</code>、<code>month = may</code>，故发表时间应保留为 <strong>2026 年 5 月（月精度）</strong> <a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a>。论文由 <strong>5 位腾讯作者与 1 位复旦大学作者</strong>共著，摘要描述了不依赖特定硬件或传输协议的软件路径监测与故障绕行机制，并自述已在腾讯云部署两年多、生产环境中断时间降低 <strong>78.71%–99.97%</strong> <a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a>。上述生产指标属<strong>作者自述</strong>，种子页面未提供独立验证；本案例仅覆盖一项成果，不代表腾讯 2020–2026 年网络研究全集，也不能以数量推断研发投入 <a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a>。</p>
+<h2>1. 背景与研究范围</h2>
+<h3>1.1 范围契约</h3>
+<p>本研究按组织研究契约锁定单一实体 <strong>Tencent</strong>（别名 Tencent Cloud、腾讯、腾讯云），学科限定为计算机科学，主题为 VPC 网络故障检测与恢复，时间窗为 2026-01-01 至 2026-10-21，证据截止 2026-10-21T04:39:19Z。实体解析状态为 <code>pending</code>，唯一来源 URL 为 Harp 展示页 <a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a>。</p>
+<h3>1.2 方法边界</h3>
+<ul>
+<li><strong>单一种子</strong>：仅以出版商展示页为起点，未扩展检索腾讯其他网络论文，因此本案例是<strong>有界样本</strong>而非全集 <a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a>。</li>
+<li><strong>页面出现名称不等于归属</strong>：展示页同时出现 USENIX、KAUST 赞助方等名称，只有作者单位行与 BibTeX 作者字段被用于归属判定 <a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a>。</li>
+<li><strong>抓取时间不等于发表时间</strong>：发表时间以 BibTeX 的 <code>year</code>/<code>month</code> 字段为准，而非页面抓取时刻 <a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a>。</li>
+<li><strong>共著不等于正式协议</strong>：企业与高校同列作者仅构成学术合作线索，不构成机构级协议证据 <a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a>。</li>
+</ul>
+<h2>2. 关键发现</h2>
+<h3>2.1 论文题名、发表月份与出版信息</h3>
+<table><thead><tr><th>字段</th><th>内容</th><th>来源</th></tr></thead><tbody><tr><td>题名</td><td>Harp: Improving VPC Network Availability via Efficient Failure Detection and Rerouting in Tencent Cloud</td><td><a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a></td></tr><tr><td>会议</td><td>23rd USENIX Symposium on Networked Systems Design and Implementation (NSDI 26)</td><td><a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a></td></tr><tr><td>年份</td><td>2026</td><td><a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a></td></tr><tr><td>月份</td><td>may（5 月，月精度）</td><td><a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a></td></tr><tr><td>页码</td><td>1669–1684</td><td><a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a></td></tr><tr><td>出版方</td><td>USENIX Association</td><td><a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a></td></tr><tr><td>地点</td><td>Renton, WA</td><td><a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a></td></tr><tr><td>ISBN</td><td>978-1-939133-54-0</td><td><a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a></td></tr></tbody></table>
+<p>BibTeX 条目同时给出 <code>citation_publication_date: 2026</code> 与 <code>citation_conference_title</code>，与上述字段一致 <a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a>。技术日程页显示会议自 <strong>2026 年 5 月 4 日（周一）</strong> 开始，与 5 月发表一致；但该页未直接列出 Harp 的具体场次，因此<strong>不能据此确定论文的精确报告日</strong>，发表时间应保持月精度 <a href="https://www.usenix.org/conference/nsdi26/technical-sessions" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:2</a>。</p>
+<h3>2.2 Tencent 署名与外部高校共著线索</h3>
+<p>作者单位行原文为：“Jiayu Hu, Feng Jin, and Xianping Zhou, Tencent; Kai Zhang, Fudan University; Zhen Shen and Yongkang Luo, Tencent” <a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a>。据此：</p>
+<table><thead><tr><th>作者</th><th>单位</th><th>归属</th></tr></thead><tbody><tr><td>Jiayu Hu</td><td>Tencent</td><td>腾讯</td></tr><tr><td>Feng Jin</td><td>Tencent</td><td>腾讯</td></tr><tr><td>Xianping Zhou</td><td>Tencent</td><td>腾讯</td></tr><tr><td>Kai Zhang</td><td>Fudan University</td><td>外部高校</td></tr><tr><td>Zhen Shen</td><td>Tencent</td><td>腾讯</td></tr><tr><td>Yongkang Luo</td><td>Tencent</td><td>腾讯</td></tr></tbody></table>
+<p>即 <strong>6 位作者中 5 位腾讯、1 位复旦</strong>，构成企业与高校共著线索 <a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a>。需强调：该线索仅证明学术层面的共同署名，<strong>不构成腾讯与复旦大学之间的正式协议或机构级合作关系证明</strong>；复旦作者的具体角色与贡献在种子页面未披露 <a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a>。</p>
+<h3>2.3 摘要可支持的问题域与机制</h3>
+<p>摘要声明 Harp 是面向 VPC 网络的“高效且鲁棒”的故障检测与恢复机制 <a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a>。可核实的机制要点有三：</p>
+<ol>
+<li><strong>不依赖特定硬件特性或传输协议</strong>——与既有方法形成对照，降低部署前提 <a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a>。</li>
+<li><strong>软件路径监测</strong>——Harp 是轻量级软件实现，为每一对通信主机识别可行的物理路径并监测其健康状态 <a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a>。</li>
+<li><strong>故障绕行</strong>——发生网络故障时，将受影响流从故障路径快速切换到健康路径 <a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a>。</li>
+</ol>
+<p>摘要未披露具体算法、探测频率、控制面架构、路径计算方式等细节，这些均属<strong>全文缺口</strong>，不应补造 <a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a>。</p>
+<h3>2.4 作者自述部署／生产结果 vs. 独立验证</h3>
+<p>摘要自述：Harp 已在腾讯云部署<strong>两年多</strong>，并在处理网络故障方面“证明有效”；生产系统结果显示 VPC 网络中断时间降低 <strong>78.71%–99.97%</strong>，可在<strong>亚秒级</strong>绕过故障路径；作者还分享了部署中高效检测与处理故障的经验 <a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a>。</p>
+<table><thead><tr><th>结论类型</th><th>内容</th><th>证据性质</th><th>置信度</th></tr></thead><tbody><tr><td>部署时长</td><td>两年多</td><td>作者自述</td><td>中</td></tr><tr><td>中断时间降幅</td><td>78.71%–99.97%</td><td>作者自述生产结果</td><td>中</td></tr><tr><td>绕行时延</td><td>亚秒级</td><td>作者自述</td><td>中</td></tr><tr><td>独立复现/第三方评测</td><td>未提供</td><td>—</td><td>未知</td></tr></tbody></table>
+<p>种子页面未提供任何第三方独立复现、工件评估或外部评测证据，因此上述指标应标注为“<strong>作者报告</strong>”，而非独立验证 <a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a>。全文 PDF 未取得，故不补造实验条件、对照组、统计方法与图表 <a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a>。</p>
+<h2>3. 数据与统计</h2>
+<table><thead><tr><th>数据点</th><th>数值</th><th>来源</th><th>说明</th></tr></thead><tbody><tr><td>样本内公开成果数</td><td>1</td><td><a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a></td><td>单一种子，非全集</td></tr><tr><td>作者总数</td><td>6</td><td><a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a></td><td>—</td></tr><tr><td>腾讯作者数</td><td>5</td><td><a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a></td><td>—</td></tr><tr><td>外部高校作者数</td><td>1（复旦）</td><td><a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a></td><td>—</td></tr><tr><td>论文页数</td><td>16（1669–1684）</td><td><a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a></td><td>依页码推算</td></tr><tr><td>中断时间降幅</td><td>78.71%–99.97%</td><td><a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a></td><td>作者自述</td></tr><tr><td>部署时长</td><td>&gt;2 年</td><td><a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a></td><td>作者自述</td></tr></tbody></table>
+<p><strong>计数口径说明</strong>：上述“1 项成果”为确定性样本计数，采用 full 计数法，仅反映本次有界检索结果，<strong>不是现实全集，也不是科研质量排名</strong>，不得用于推断腾讯在该主题上的投入规模 <a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a>。</p>
+<h2>4. 专家视角与证据分级</h2>
+<p>本案例无外部专家评论可引用，以下为基于证据的分级判断（分析师解读，非文档事实）：</p>
+<ul>
+<li><strong>高置信</strong>：题名、作者与单位、发表年月（2026-05）、摘要机制描述——均直接引自出版商页面 <a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a>。</li>
+<li><strong>中置信</strong>：78.71%–99.97%、亚秒级、两年多部署——原文明确，但属作者自述、无独立验证 <a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a>。</li>
+<li><strong>低/未知</strong>：会议具体报告日、实验条件、基线对比、资助信息、内部战略与未来方向——种子页面无依据 <a href="https://www.usenix.org/conference/nsdi26/technical-sessions" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a>。</li>
+</ul>
+<blockquote>
+<p>摘要原文：“Harp has been deployed in Tencent Cloud for more than two years and has proven its effectiveness in handling network failures.” <a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a></p>
+</blockquote>
+<p>该引述本身即为作者自述，引用它不构成对其结论的独立背书。</p>
+<h2>5. 结论与建议</h2>
+<h3>5.1 可分享的结论</h3>
+<ol>
+<li>腾讯在 2026 年 5 月于 NSDI '26 发表了一项 VPC 网络故障检测与恢复研究，题名与出版信息如上表 <a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a>。</li>
+<li>该成果为腾讯主导、复旦大学参与的企业—高校共著，5:1 的作者构成清晰 <a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a>。</li>
+<li>技术路径为<strong>软件化路径监测 + 快速绕行</strong>，明确回避对特定硬件与传输协议的依赖 <a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a>。</li>
+<li>生产指标为作者自述，尚缺独立验证，引用时应保留“作者报告”限定语 <a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a>。</li>
+</ol>
+<h3>5.2 明确不成立的推断</h3>
+<ul>
+<li>不能以 1 项成果推断腾讯 2020–2026 年网络研究全集或研发投入 <a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a>。</li>
+<li>不能将腾讯—复旦共著表述为正式合作协议 <a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a>。</li>
+<li>不能将 BibTeX 的 <code>month = may</code> 细化为具体某日 <a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a>。</li>
+<li>不能补造实验条件、图表、资助信息或未来方向 <a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a>。</li>
+</ul>
+<h3>5.3 待验证问题</h3>
+<ol>
+<li>78.71%–99.97% 的<strong>测量口径、样本期与故障类型</strong>分别是什么？<a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a></li>
+<li>“两年多”部署的<strong>起始时间与覆盖区域</strong>为何？<a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a></li>
+<li>Harp 在 NSDI '26 是否有独立于作者的**工件评估（artifact evaluation）**记录？<a href="https://www.usenix.org/conference/nsdi26/technical-sessions" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:2</a></li>
+<li>是否存在<strong>后续版本或期刊扩展</strong>？<a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a></li>
+<li>复旦作者（Kai Zhang）的<strong>具体角色与贡献</strong>为何？<a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a></li>
+<li>论文的<strong>资助信息、内部战略与未来方向</strong>——种子页面无依据，保留为缺口 <a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a>。</li>
+</ol>
+<p><strong>建议下一步</strong>：获取 NSDI '26 全文 PDF 与可能的 artifact evaluation 记录，以核实实验条件、基线对比与独立验证情况 <a href="https://www.usenix.org/conference/nsdi26/technical-sessions" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:2</a>。</p>
+<h2>References</h2>
+<p><a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a> Jiayu Hu, Feng Jin, Xianping Zhou, Kai Zhang, Zhen Shen, Yongkang Luo. "Harp: Improving VPC Network Availability via Efficient Failure Detection and Rerouting in Tencent Cloud." 23rd USENIX Symposium on Networked Systems Design and Implementation (NSDI 26), pp. 1669–1684, Renton, WA, USENIX Association, 2026 (month = may). <a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu</a></p>
+<p><a href="https://www.usenix.org/conference/nsdi26/technical-sessions" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:2</a> USENIX. "NSDI '26 Technical Sessions." <a href="https://www.usenix.org/conference/nsdi26/technical-sessions" target="_blank" rel="noopener noreferrer" class="citation-ref">https://www.usenix.org/conference/nsdi26/technical-sessions</a></p>
+<h2>核验结果</h2>
+<p>自动来源支持：8/64 项；人工复核：未复核。模型置信度不代表人工确认。
+支持状态来自模型语义判断与原文引语校验，不能保证结论为真。</p>
+<ul>
+<li>claim:1 [missing_citation] Generated: 2026-10-21 | Research Depth: Comprehensive — Awaiting source support judgement</li>
+<li>claim:3 [unverifiable] 本研究按组织研究契约锁定单一实体 <strong>Tencent</strong>（别名 Tencent Cloud、腾讯、腾讯云），学科限定为计算机科学，主题为 VPC 网络故障检测与恢复，时间窗为 2026-01-01 至 2026-10-21，证据截止 2026-10-21T04:39:19Z。实体解析状态为 <code>pending</code>，唯一来源 URL 为 Harp 展示页 <a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a>。 — The excerpts confirm the single source URL, the Tencent/腾讯云 entity, the VPC failure detection/recovery topic, and 2026 publication. However, the research-contract details (entity resolution status 'pending', discipline 'computer science', time window 2026-01-01 to 2026-10-21, evidence cutoff timestamp) are not stated in the supplied passages and cannot be verified from them.</li>
+<li>claim:4 [unverifiable] <strong>单一种子</strong>：仅以出版商展示页为起点，未扩展检索腾讯其他网络论文，因此本案例是<strong>有界样本</strong>而非全集 <a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a>。 — The excerpts show a single publisher presentation page, but the claim about the research methodology (using only this seed, not expanding to other Tencent network papers, treating it as a bounded sample) is a process assertion not entailed by the source content itself.</li>
+<li>claim:9 [not_checked] | 会议 | 23rd USENIX Symposium on Networked Systems Design and Implementation (NSDI 26) | <a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a> | — Verification token/time budget exhausted</li>
+<li>claim:10 [not_checked] | 年份 | 2026 | <a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a> | — Verification token/time budget exhausted</li>
+<li>claim:11 [not_checked] | 月份 | may（5 月，月精度） | <a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a> | — Verification token/time budget exhausted</li>
+<li>claim:12 [not_checked] | 页码 | 1669–1684 | <a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a> | — Verification token/time budget exhausted</li>
+<li>claim:16 [not_checked] BibTeX 条目同时给出 <code>citation_publication_date: 2026</code> 与 <code>citation_conference_title</code>，与上述字段一致 <a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a>。技术日程页显示会议自 <strong>2026 年 5 月 4 日（周一）</strong> 开始，与 5 月发表一致；但该页未直接列出 Harp 的具体场次，因此<strong>不能据此确定论文的精确报告日</strong>，发表时间应保持月精度 <a href="https://www.usenix.org/conference/nsdi26/technical-sessions" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:2</a>。 — Verification token/time budget exhausted</li>
+<li>claim:17 [not_checked] 作者单位行原文为：“Jiayu Hu, Feng Jin, and Xianping Zhou, Tencent; Kai Zhang, Fudan University; Zhen Shen and Yongkang Luo, Tencent” <a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a>。据此： — Verification token/time budget exhausted</li>
+<li>claim:18 [missing_citation] | Jiayu Hu | Tencent | 腾讯 | — Awaiting source support judgement</li>
+<li>claim:19 [missing_citation] | Feng Jin | Tencent | 腾讯 | — Awaiting source support judgement</li>
+<li>claim:20 [missing_citation] | Xianping Zhou | Tencent | 腾讯 | — Awaiting source support judgement</li>
+<li>claim:21 [missing_citation] | Kai Zhang | Fudan University | 外部高校 | — Awaiting source support judgement</li>
+<li>claim:22 [missing_citation] | Zhen Shen | Tencent | 腾讯 | — Awaiting source support judgement</li>
+<li>claim:23 [missing_citation] | Yongkang Luo | Tencent | 腾讯 | — Awaiting source support judgement</li>
+<li>claim:24 [not_checked] 即 <strong>6 位作者中 5 位腾讯、1 位复旦</strong>，构成企业与高校共著线索 <a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a>。需强调：该线索仅证明学术层面的共同署名，<strong>不构成腾讯与复旦大学之间的正式协议或机构级合作关系证明</strong>；复旦作者的具体角色与贡献在种子页面未披露 <a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a>。 — Verification token/time budget exhausted</li>
+<li>claim:25 [not_checked] 摘要声明 Harp 是面向 VPC 网络的“高效且鲁棒”的故障检测与恢复机制 <a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a>。可核实的机制要点有三： — Verification token/time budget exhausted</li>
+<li>claim:26 [not_checked] <strong>不依赖特定硬件特性或传输协议</strong>——与既有方法形成对照，降低部署前提 <a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a>。 — Verification token/time budget exhausted</li>
+<li>claim:27 [not_checked] <strong>软件路径监测</strong>——Harp 是轻量级软件实现，为每一对通信主机识别可行的物理路径并监测其健康状态 <a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a>。 — Verification token/time budget exhausted</li>
+<li>claim:28 [not_checked] <strong>故障绕行</strong>——发生网络故障时，将受影响流从故障路径快速切换到健康路径 <a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a>。 — Verification token/time budget exhausted</li>
+<li>claim:29 [not_checked] 摘要未披露具体算法、探测频率、控制面架构、路径计算方式等细节，这些均属<strong>全文缺口</strong>，不应补造 <a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a>。 — Verification token/time budget exhausted</li>
+<li>claim:30 [not_checked] 摘要自述：Harp 已在腾讯云部署<strong>两年多</strong>，并在处理网络故障方面“证明有效”；生产系统结果显示 VPC 网络中断时间降低 <strong>78.71%–99.97%</strong>，可在<strong>亚秒级</strong>绕过故障路径；作者还分享了部署中高效检测与处理故障的经验 <a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a>。 — Verification token/time budget exhausted</li>
+<li>claim:31 [missing_citation] | 部署时长 | 两年多 | 作者自述 | 中 | — Awaiting source support judgement</li>
+<li>claim:32 [missing_citation] | 中断时间降幅 | 78.71%–99.97% | 作者自述生产结果 | 中 | — Awaiting source support judgement</li>
+<li>claim:33 [missing_citation] | 绕行时延 | 亚秒级 | 作者自述 | 中 | — Awaiting source support judgement</li>
+<li>claim:34 [missing_citation] | 独立复现/第三方评测 | 未提供 | — | 未知 | — Awaiting source support judgement</li>
+<li>claim:35 [not_checked] 种子页面未提供任何第三方独立复现、工件评估或外部评测证据，因此上述指标应标注为“<strong>作者报告</strong>”，而非独立验证 <a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a>。全文 PDF 未取得，故不补造实验条件、对照组、统计方法与图表 <a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a>。 — Verification token/time budget exhausted</li>
+<li>claim:36 [not_checked] | 样本内公开成果数 | 1 | <a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a> | 单一种子，非全集 | — Verification token/time budget exhausted</li>
+<li>claim:37 [not_checked] | 作者总数 | 6 | <a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a> | — | — Verification token/time budget exhausted</li>
+<li>claim:38 [not_checked] | 腾讯作者数 | 5 | <a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a> | — | — Verification token/time budget exhausted</li>
+<li>claim:39 [not_checked] | 外部高校作者数 | 1（复旦） | <a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a> | — | — Verification token/time budget exhausted</li>
+<li>claim:40 [not_checked] | 论文页数 | 16（1669–1684） | <a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a> | 依页码推算 | — Verification token/time budget exhausted</li>
+<li>claim:41 [not_checked] | 中断时间降幅 | 78.71%–99.97% | <a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a> | 作者自述 | — Not checked</li>
+<li>claim:42 [not_checked] | 部署时长 | &gt;2 年 | <a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a> | 作者自述 | — Not checked</li>
+<li>claim:43 [not_checked] <strong>计数口径说明</strong>：上述“1 项成果”为确定性样本计数，采用 full 计数法，仅反映本次有界检索结果，<strong>不是现实全集，也不是科研质量排名</strong>，不得用于推断腾讯在该主题上的投入规模 <a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a>。 — Not checked</li>
+<li>claim:44 [not_checked] 本案例无外部专家评论可引用，以下为基于证据的分级判断（分析师解读，非文档事实）： — Not checked</li>
+<li>claim:45 [not_checked] <strong>高置信</strong>：题名、作者与单位、发表年月（2026-05）、摘要机制描述——均直接引自出版商页面 <a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a>。 — Not checked</li>
+<li>claim:46 [not_checked] <strong>中置信</strong>：78.71%–99.97%、亚秒级、两年多部署——原文明确，但属作者自述、无独立验证 <a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a>。 — Not checked</li>
+<li>claim:47 [not_checked] <strong>低/未知</strong>：会议具体报告日、实验条件、基线对比、资助信息、内部战略与未来方向——种子页面无依据 <a href="https://www.usenix.org/conference/nsdi26/technical-sessions" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a>。 — Not checked</li>
+<li>claim:48 [not_checked] 摘要原文：“Harp has been deployed in Tencent Cloud for more than two years and has proven its effectiveness in handling network failures.” <a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a> — Not checked</li>
+<li>claim:49 [not_checked] 该引述本身即为作者自述，引用它不构成对其结论的独立背书。 — Not checked</li>
+<li>claim:50 [not_checked] 腾讯在 2026 年 5 月于 NSDI '26 发表了一项 VPC 网络故障检测与恢复研究，题名与出版信息如上表 <a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a>。 — Not checked</li>
+<li>claim:51 [not_checked] 该成果为腾讯主导、复旦大学参与的企业—高校共著，5:1 的作者构成清晰 <a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a>。 — Not checked</li>
+<li>claim:52 [not_checked] 技术路径为<strong>软件化路径监测 + 快速绕行</strong>，明确回避对特定硬件与传输协议的依赖 <a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a>。 — Not checked</li>
+<li>claim:53 [not_checked] 生产指标为作者自述，尚缺独立验证，引用时应保留“作者报告”限定语 <a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a>。 — Not checked</li>
+<li>claim:54 [not_checked] 不能以 1 项成果推断腾讯 2020–2026 年网络研究全集或研发投入 <a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a>。 — Not checked</li>
+<li>claim:55 [not_checked] 不能将腾讯—复旦共著表述为正式合作协议 <a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a>。 — Not checked</li>
+<li>claim:56 [not_checked] 不能将 BibTeX 的 <code>month = may</code> 细化为具体某日 <a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a>。 — Not checked</li>
+<li>claim:57 [not_checked] 不能补造实验条件、图表、资助信息或未来方向 <a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a>。 — Not checked</li>
+<li>claim:58 [not_checked] 78.71%–99.97% 的<strong>测量口径、样本期与故障类型</strong>分别是什么？<a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a> — Not checked</li>
+<li>claim:59 [not_checked] “两年多”部署的<strong>起始时间与覆盖区域</strong>为何？<a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a> — Not checked</li>
+<li>claim:60 [not_checked] Harp 在 NSDI '26 是否有独立于作者的**工件评估（artifact evaluation）**记录？<a href="https://www.usenix.org/conference/nsdi26/technical-sessions" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:2</a> — Not checked</li>
+<li>claim:61 [not_checked] 是否存在<strong>后续版本或期刊扩展</strong>？<a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a> — Not checked</li>
+<li>claim:62 [not_checked] 复旦作者（Kai Zhang）的<strong>具体角色与贡献</strong>为何？<a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a> — Not checked</li>
+<li>claim:63 [not_checked] 论文的<strong>资助信息、内部战略与未来方向</strong>——种子页面无依据，保留为缺口 <a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a>。 — Not checked</li>
+<li>claim:64 [not_checked] <strong>建议下一步</strong>：获取 NSDI '26 全文 PDF 与可能的 artifact evaluation 记录，以核实实验条件、基线对比与独立验证情况 <a href="https://www.usenix.org/conference/nsdi26/technical-sessions" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:2</a>。 — Not checked</li>
+</ul>
+<h2>研究对象、口径与冻结配置</h2>
+<p>主题：VPC network failure detection and recovery；学科：computer science；时间：2026-01-01 至 2026-10-21。
+对象类型：company；请求冻结时间：2026-10-21T04:39:19.742424+00:00。实际采集时间逐来源保留。
+范围规则：adrs-organization-scope-v2；配置版本：tencent-network-case-20261021-v1；权重规则：adrs-weight-rules-v1；预设版本：adrs-presets-v1。
+分别保留发表记录与研究家族；同成果可归属多个对象，汇总取并集，未关联版本按独立发表计数。
+偏好配置不等于已完成评分；结果页只读重排不改写本报告的配置、事实或证据。</p>
+<h3>对象与来源</h3>
+<ul>
+<li>Tencent（company；pending）：<a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu</a></li>
+</ul>
+<h3>原始与生效权重</h3>
+<table><thead><tr><th>维度</th><th style="text-align: right;">原始权重</th><th>开启</th><th style="text-align: right;">生效权重</th></tr></thead><tbody><tr><td>主题相关性</td><td style="text-align: right;">35.0</td><td>是</td><td style="text-align: right;">35.00%</td></tr><tr><td>研究路线契合</td><td style="text-align: right;">20.0</td><td>是</td><td style="text-align: right;">20.00%</td></tr><tr><td>成果表现</td><td style="text-align: right;">20.0</td><td>是</td><td style="text-align: right;">20.00%</td></tr><tr><td>证据完整度</td><td style="text-align: right;">15.0</td><td>是</td><td style="text-align: right;">15.00%</td></tr><tr><td>时效性</td><td style="text-align: right;">10.0</td><td>是</td><td style="text-align: right;">10.00%</td></tr><tr><td>合作互补性</td><td style="text-align: right;">0.0</td><td>是</td><td style="text-align: right;">0.00%</td></tr></tbody></table>
+<h3>成果表现组内权重</h3>
+<table><thead><tr><th>项目</th><th style="text-align: right;">原始权重</th><th>开启</th><th style="text-align: right;">组内生效权重</th></tr></thead><tbody><tr><td>venue</td><td style="text-align: right;">1.0</td><td>是</td><td style="text-align: right;">50.00%</td></tr><tr><td>paper</td><td style="text-align: right;">1.0</td><td>是</td><td style="text-align: right;">50.00%</td></tr></tbody></table>
+<h3>指标组内权重</h3>
+<table><thead><tr><th>项目</th><th style="text-align: right;">原始权重</th><th>开启</th><th style="text-align: right;">组内生效权重</th></tr></thead><tbody><tr><td>未显式配置</td><td style="text-align: right;">—</td><td>—</td><td style="text-align: right;">—</td></tr></tbody></table>
+<h3>有序偏好映射（产品偏好，非官方等价）</h3>
+<ul>
+<li>ccf／adrs-preference-map-v1：A=1.0；B=0.6666666666666667；C=0.33333333333333337</li>
+<li>icore／adrs-preference-map-v1：A*=1.0；A=0.75；B=0.5；C=0.25</li>
+<li>abdc／adrs-preference-map-v1：A*=1.0；A=0.75；B=0.5；C=0.25</li>
+<li>ajg／adrs-preference-map-v1：4*=1.0；4=0.8；3=0.6；2=0.4；1=0.19999999999999996</li>
+<li>jcr_quartile／adrs-preference-map-v1：Q1=1.0；Q2=0.75；Q3=0.5；Q4=0.25</li>
+<li>cas_partition／adrs-preference-map-v1：1=1.0；2=0.75；3=0.5；4=0.25</li>
+</ul>
+<h3>评价口径及可用性</h3>
+<p>目录版本：adrs-evaluation-catalog-v1；适配规则：adrs-evaluation-adapters-v1。目录样本不代表本次成果已核定评价。</p>
+<ul>
+<li>ccf：部分公开样本；<a href="https://www.ccf.org.cn/Academic_Evaluation/By_category/" target="_blank" rel="noopener noreferrer" class="citation-ref">https://www.ccf.org.cn/Academic_Evaluation/By_category/</a>；尚未核定本次成果。</li>
+<li>icore：部分公开样本；<a href="https://portal.core.edu.au/conf-ranks/" target="_blank" rel="noopener noreferrer" class="citation-ref">https://portal.core.edu.au/conf-ranks/</a>；尚未核定本次成果。</li>
+<li>wos_scie：需授权导入／尚无公开样本；<a href="https://mjl.clarivate.com/" target="_blank" rel="noopener noreferrer" class="citation-ref">https://mjl.clarivate.com/</a>；尚未核定本次成果。</li>
+<li>wos_ssci：需授权导入／尚无公开样本；<a href="https://mjl.clarivate.com/" target="_blank" rel="noopener noreferrer" class="citation-ref">https://mjl.clarivate.com/</a>；尚未核定本次成果。</li>
+<li>wos_ahci：需授权导入／尚无公开样本；<a href="https://mjl.clarivate.com/" target="_blank" rel="noopener noreferrer" class="citation-ref">https://mjl.clarivate.com/</a>；尚未核定本次成果。</li>
+<li>wos_esci：需授权导入／尚无公开样本；<a href="https://mjl.clarivate.com/" target="_blank" rel="noopener noreferrer" class="citation-ref">https://mjl.clarivate.com/</a>；尚未核定本次成果。</li>
+<li>scopus：需授权导入／尚无公开样本；<a href="https://www.scopus.com/sources" target="_blank" rel="noopener noreferrer" class="citation-ref">https://www.scopus.com/sources</a>；尚未核定本次成果。</li>
+<li>jcr_jif：需授权导入／尚无公开样本；<a href="https://jcr.clarivate.com/" target="_blank" rel="noopener noreferrer" class="citation-ref">https://jcr.clarivate.com/</a>；尚未核定本次成果。</li>
+<li>jcr_quartile：需授权导入／尚无公开样本；<a href="https://jcr.clarivate.com/" target="_blank" rel="noopener noreferrer" class="citation-ref">https://jcr.clarivate.com/</a>；尚未核定本次成果。</li>
+<li>jcr_jci：需授权导入／尚无公开样本；<a href="https://jcr.clarivate.com/" target="_blank" rel="noopener noreferrer" class="citation-ref">https://jcr.clarivate.com/</a>；尚未核定本次成果。</li>
+<li>cas_partition：需授权导入／尚无公开样本；<a href="https://www.fenqubiao.com/" target="_blank" rel="noopener noreferrer" class="citation-ref">https://www.fenqubiao.com/</a>；尚未核定本次成果。</li>
+<li>citescore：需授权导入／尚无公开样本；<a href="https://www.scopus.com/sources" target="_blank" rel="noopener noreferrer" class="citation-ref">https://www.scopus.com/sources</a>；尚未核定本次成果。</li>
+<li>citescore_percentile：需授权导入／尚无公开样本；<a href="https://www.scopus.com/sources" target="_blank" rel="noopener noreferrer" class="citation-ref">https://www.scopus.com/sources</a>；尚未核定本次成果。</li>
+<li>sjr：需授权导入／尚无公开样本；<a href="https://www.scimagojr.com/" target="_blank" rel="noopener noreferrer" class="citation-ref">https://www.scimagojr.com/</a>；尚未核定本次成果。</li>
+<li>snip：需授权导入／尚无公开样本；<a href="https://www.scopus.com/sources" target="_blank" rel="noopener noreferrer" class="citation-ref">https://www.scopus.com/sources</a>；尚未核定本次成果。</li>
+<li>abdc：部分公开样本；<a href="https://abdc.edu.au/abdc-journal-quality-list/" target="_blank" rel="noopener noreferrer" class="citation-ref">https://abdc.edu.au/abdc-journal-quality-list/</a>；尚未核定本次成果。</li>
+<li>ajg：需授权导入／尚无公开样本；<a href="https://charteredabs.org/academic-journal-guide" target="_blank" rel="noopener noreferrer" class="citation-ref">https://charteredabs.org/academic-journal-guide</a>；尚未核定本次成果。</li>
+<li>citation_percentile：部分公开样本；<a href="https://help.openalex.org/data/works/citations/" target="_blank" rel="noopener noreferrer" class="citation-ref">https://help.openalex.org/data/works/citations/</a>；尚未核定本次成果。</li>
+<li>cnci：需授权导入／尚无公开样本；<a href="https://incites.help.clarivate.com/Content/Indicators-Handbook/ih-normalized-citation-impact.htm" target="_blank" rel="noopener noreferrer" class="citation-ref">https://incites.help.clarivate.com/Content/Indicators-Handbook/ih-normalized-citation-impact.htm</a>；尚未核定本次成果。</li>
+<li>fwci：部分公开样本；<a href="https://help.openalex.org/data/works/citations/" target="_blank" rel="noopener noreferrer" class="citation-ref">https://help.openalex.org/data/works/citations/</a>；尚未核定本次成果。</li>
+<li>ccf／2012／指标年 2012：public，partial；<a href="https://risame.github.io/sun/ccf.pdf" target="_blank" rel="noopener noreferrer" class="citation-ref">https://risame.github.io/sun/ccf.pdf</a></li>
+<li>ccf／2022／指标年 2022：public，partial；<a href="https://scdm-shu.github.io/ccf/2022-CCF-Ranking.pdf" target="_blank" rel="noopener noreferrer" class="citation-ref">https://scdm-shu.github.io/ccf/2022-CCF-Ranking.pdf</a></li>
+<li>icore／CORE2023／指标年 2023：public，partial；<a href="https://portal.core.edu.au/conf-ranks/?search=SIGCOMM&amp;by=all&amp;source=CORE2023&amp;sort=atitle&amp;page=1" target="_blank" rel="noopener noreferrer" class="citation-ref">https://portal.core.edu.au/conf-ranks/?search=SIGCOMM&amp;by=all&amp;source=CORE2023&amp;sort=atitle&amp;page=1</a></li>
+<li>icore／ICORE2026／指标年 2026：public，partial；<a href="https://portal.core.edu.au/conf-ranks/?search=SIGCOMM&amp;by=all&amp;source=ICORE2026&amp;sort=atitle&amp;page=1" target="_blank" rel="noopener noreferrer" class="citation-ref">https://portal.core.edu.au/conf-ranks/?search=SIGCOMM&amp;by=all&amp;source=ICORE2026&amp;sort=atitle&amp;page=1</a></li>
+<li>abdc／2010／指标年 2010：public，partial；<a href="https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx" target="_blank" rel="noopener noreferrer" class="citation-ref">https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx</a></li>
+<li>abdc／2013／指标年 2013：public，partial；<a href="https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx" target="_blank" rel="noopener noreferrer" class="citation-ref">https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx</a></li>
+<li>abdc／2016／指标年 2016：public，partial；<a href="https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx" target="_blank" rel="noopener noreferrer" class="citation-ref">https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx</a></li>
+<li>abdc／2019／指标年 2019：public，partial；<a href="https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx" target="_blank" rel="noopener noreferrer" class="citation-ref">https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx</a></li>
+<li>abdc／2022／指标年 2022：public，partial；<a href="https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx" target="_blank" rel="noopener noreferrer" class="citation-ref">https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx</a></li>
+<li>abdc／2025／指标年 2025：public，partial；<a href="https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx" target="_blank" rel="noopener noreferrer" class="citation-ref">https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx</a></li>
+<li>fwci／OpenAlex snapshot 2026-10-19／指标年 2026：public，partial；<a href="https://api.openalex.org/works/W1951724000" target="_blank" rel="noopener noreferrer" class="citation-ref">https://api.openalex.org/works/W1951724000</a></li>
+<li>citation_percentile／OpenAlex snapshot 2026-10-19／指标年 2026：public，partial；<a href="https://api.openalex.org/works/W1951724000" target="_blank" rel="noopener noreferrer" class="citation-ref">https://api.openalex.org/works/W1951724000</a></li>
+</ul>
+<h3>实际取证来源</h3>
+<ul>
+<li>ev-249a9032：Harp: Improving VPC Network Availability via Efficient Failure Detection and Rerouting in Tencent Cloud | USENIX；<a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu</a>；采集 2026-10-21T04:39:46.906993。</li>
+<li>ev-7375e4f1：NSDI '26 Technical Sessions | USENIX；<a href="https://www.usenix.org/conference/nsdi26/technical-sessions" target="_blank" rel="noopener noreferrer" class="citation-ref">https://www.usenix.org/conference/nsdi26/technical-sessions</a>；采集 2026-10-21T04:39:49.686679。</li>
+<li>ev-f6b1631f：NSDI | Overview — Federal Geographic Data Committee - FGDC；<a href="https://www.fgdc.gov/nsdi/nsdi.html" target="_blank" rel="noopener noreferrer" class="citation-ref">https://www.fgdc.gov/nsdi/nsdi.html</a>；采集 2026-10-21T04:39:28.274812+00:00。</li>
+<li>ev-cbd057ff：NSDI '26 | USENIX；<a href="https://www.usenix.org/conference/nsdi26" target="_blank" rel="noopener noreferrer" class="citation-ref">https://www.usenix.org/conference/nsdi26</a>；采集 2026-10-21T04:39:28.274812+00:00。</li>
+<li>ev-6863bbe3：NSDI '24 | USENIX；<a href="https://www.usenix.org/conference/nsdi24" target="_blank" rel="noopener noreferrer" class="citation-ref">https://www.usenix.org/conference/nsdi24</a>；采集 2026-10-21T04:39:28.274812+00:00。</li>
+<li>ev-9fe5722d：NSDI | Strategic Plan — Federal Geographic Data Committee；<a href="https://www.fgdc.gov/nsdi-plan" target="_blank" rel="noopener noreferrer" class="citation-ref">https://www.fgdc.gov/nsdi-plan</a>；采集 2026-10-21T04:39:28.274812+00:00。</li>
+<li>ev-a937dff0：NSDI Conference - Home；<a href="https://dl.acm.org/conference/nsdi" target="_blank" rel="noopener noreferrer" class="citation-ref">https://dl.acm.org/conference/nsdi</a>；采集 2026-10-21T04:39:28.274812+00:00。</li>
+<li>ev-85c8a45f：NSDI；<a href="https://dl.acm.org/doi/proceedings/10.5555/3691825" target="_blank" rel="noopener noreferrer" class="citation-ref">https://dl.acm.org/doi/proceedings/10.5555/3691825</a>；采集 2026-10-21T04:39:28.274812+00:00。</li>
+<li>ev-5f9577a5：Symposium on Networked Systems Design and Implementation；<a href="https://en.wikipedia.org/wiki/Symposium_on_Networked_Systems_Design_and_Implementation" target="_blank" rel="noopener noreferrer" class="citation-ref">https://en.wikipedia.org/wiki/Symposium_on_Networked_Systems_Design_and_Implementation</a>；采集 2026-10-21T04:39:28.274812+00:00。</li>
+<li>ev-b7f990e1：NSDI ’26 Fall；<a href="https://nsdi26fall.usenix.hotcrp.com/" target="_blank" rel="noopener noreferrer" class="citation-ref">https://nsdi26fall.usenix.hotcrp.com/</a>；采集 2026-10-21T04:39:28.274812+00:00。</li>
+<li>ev-904b3946：OGC NSDI Modernization Project | Advancing U.S. Spatial Data；<a href="https://www.ogc.org/initiatives/national-spatial-data-infrastructure-modernization-project/" target="_blank" rel="noopener noreferrer" class="citation-ref">https://www.ogc.org/initiatives/national-spatial-data-infrastructure-modernization-project/</a>；采集 2026-10-21T04:39:28.274812+00:00。</li>
+<li>ev-7fafe161：Microsoft at NSDI 2026: Advances in large-scale networked systems；<a href="https://www.microsoft.com/en-us/research/blog/microsoft-at-nsdi-2026-advances-in-large-scale-networked-systems/" target="_blank" rel="noopener noreferrer" class="citation-ref">https://www.microsoft.com/en-us/research/blog/microsoft-at-nsdi-2026-advances-in-large-scale-networked-systems/</a>；采集 2026-10-21T04:39:28.274812+00:00。</li>
+<li>ev-3fa39308：HARP Login；<a href="https://harp.cms.gov/" target="_blank" rel="noopener noreferrer" class="citation-ref">https://harp.cms.gov/</a>；采集 2026-10-21T04:39:28.270464+00:00。</li>
+<li>ev-89749cdd：Harp - Wikipedia；<a href="https://en.wikipedia.org/wiki/Harp" target="_blank" rel="noopener noreferrer" class="citation-ref">https://en.wikipedia.org/wiki/Harp</a>；采集 2026-10-21T04:39:28.270464+00:00。</li>
+<li>ev-42b7e814：Health and Recovery Plans (HARPs)；<a href="https://omh.ny.gov/omhweb/bho/harp.html" target="_blank" rel="noopener noreferrer" class="citation-ref">https://omh.ny.gov/omhweb/bho/harp.html</a>；采集 2026-10-21T04:39:28.270464+00:00。</li>
+<li>ev-ce948196：Health and Recovery Plan (HARP)/ Behavioral Health；<a href="https://www.health.ny.gov/health_care/medicaid/program/medicaid_health_homes/harp_bh/index.htm" target="_blank" rel="noopener noreferrer" class="citation-ref">https://www.health.ny.gov/health_care/medicaid/program/medicaid_health_homes/harp_bh/index.htm</a>；采集 2026-10-21T04:39:28.270464+00:00。</li>
+<li>ev-01d613d5：12 Different Types of Harps - MusicalHow；<a href="https://www.musicalhow.com/harp-types/" target="_blank" rel="noopener noreferrer" class="citation-ref">https://www.musicalhow.com/harp-types/</a>；采集 2026-10-21T04:39:28.270464+00:00。</li>
+<li>ev-c55a7368：Natalie Harp Bio, Age, Height, Husband, Family, Health &amp; Net Worth；<a href="https://thebiographybytes.com/natalie-harp/" target="_blank" rel="noopener noreferrer" class="citation-ref">https://thebiographybytes.com/natalie-harp/</a>；采集 2026-10-21T04:39:28.270464+00:00。</li>
+<li>ev-30902970：Harp | Description, History, &amp; Facts | Britannica；<a href="https://www.britannica.com/art/harp-musical-instrument" target="_blank" rel="noopener noreferrer" class="citation-ref">https://www.britannica.com/art/harp-musical-instrument</a>；采集 2026-10-21T04:39:28.270464+00:00。</li>
+<li>ev-05bf7aee：Harps | Harp Sheet Music - Harp Parts &amp; Accessories - Harp Strings | Harp；<a href="https://www.harp.com/" target="_blank" rel="noopener noreferrer" class="citation-ref">https://www.harp.com/</a>；采集 2026-10-21T04:39:28.270464+00:00。</li>
+<li>ev-c6491567：Rentals and Sales - The Harp Place；<a href="https://theharpplace.com/harp-rentals/" target="_blank" rel="noopener noreferrer" class="citation-ref">https://theharpplace.com/harp-rentals/</a>；采集 2026-10-21T04:39:28.270464+00:00。</li>
+<li>ev-410ace9d：HARP Definition &amp; Meaning - Merriam-Webster；<a href="https://www.merriam-webster.com/dictionary/harp" target="_blank" rel="noopener noreferrer" class="citation-ref">https://www.merriam-webster.com/dictionary/harp</a>；采集 2026-10-21T04:39:28.270464+00:00。</li>
+<li>ev-a69d0310：Home - Tencent；<a href="https://www.tencent.com/" target="_blank" rel="noopener noreferrer" class="citation-ref">https://www.tencent.com/</a>；采集 2026-10-21T04:39:28.276988+00:00。</li>
+<li>ev-26070100：Tencent - Wikipedia；<a href="https://en.wikipedia.org/wiki/Tencent" target="_blank" rel="noopener noreferrer" class="citation-ref">https://en.wikipedia.org/wiki/Tencent</a>；采集 2026-10-21T04:39:28.276988+00:00。</li>
+<li>ev-35762055：Home - Tencent；<a href="https://www.tencent.com.cn/zh-hk/" target="_blank" rel="noopener noreferrer" class="citation-ref">https://www.tencent.com.cn/zh-hk/</a>；采集 2026-10-21T04:39:28.276988+00:00。</li>
+<li>ev-2c95fa60：下载中心-腾讯会议；<a href="https://meeting.tencent.com/download/" target="_blank" rel="noopener noreferrer" class="citation-ref">https://meeting.tencent.com/download/</a>；采集 2026-10-21T04:39:28.276988+00:00。</li>
+<li>ev-3c3e1bbd：腾讯网；<a href="https://www.qq.com/" target="_blank" rel="noopener noreferrer" class="citation-ref">https://www.qq.com/</a>；采集 2026-10-21T04:39:28.276988+00:00。</li>
+<li>ev-45591054：Tencent | Company, WeChat, Gaming, Controversy, &amp; Facts | Britannica Money；<a href="https://www.britannica.com/money/Tencent" target="_blank" rel="noopener noreferrer" class="citation-ref">https://www.britannica.com/money/Tencent</a>；采集 2026-10-21T04:39:28.276988+00:00。</li>
+<li>ev-b41535ac：腾讯会议官方——腾讯会议 会开会；<a href="https://meeting.tencent.com/" target="_blank" rel="noopener noreferrer" class="citation-ref">https://meeting.tencent.com/</a>；采集 2026-10-21T04:39:28.276988+00:00。</li>
+<li>ev-7de125a0：Home | Tencent Careers；<a href="https://careers.tencent.com/en-us/home.html" target="_blank" rel="noopener noreferrer" class="citation-ref">https://careers.tencent.com/en-us/home.html</a>；采集 2026-10-21T04:39:28.276988+00:00。</li>
+<li>ev-cac3e8b4：Tencent Holdings Limited (TCEHY) Stock Price, News, Quote &amp; History ...；<a href="https://finance.yahoo.com/quote/TCEHY/" target="_blank" rel="noopener noreferrer" class="citation-ref">https://finance.yahoo.com/quote/TCEHY/</a>；采集 2026-10-21T04:39:28.276988+00:00。</li>
+<li>ev-7af1d0b9：Tencent Hy；<a href="https://hy.tencent.ai/" target="_blank" rel="noopener noreferrer" class="citation-ref">https://hy.tencent.ai/</a>；采集 2026-10-21T04:39:28.276988+00:00。</li>
+</ul>
+<h3>缺失与解释边界</h3>
+<ul>
+<li>证据索引不等于机构成果全集或已核实合作关系。</li>
+<li>仅覆盖本次取得的样本；空样本不代表现实中零成果，来源未覆盖年份不补零。</li>
+<li>学科比较组使用请求标签，尚未逐篇核定学科；不输出跨学科或载体的统一质量榜。</li>
+<li>原文位置与引用检查不等于独立语义复核；模型推断、建议和未来情景仍须复核。</li>
+<li>评价目录为冻结的部分样本及授权要求，未自动应用到本次成果；缺失指标不作零分或最低等级。</li>
+<li>funding 关系尚无已纳入的直接依据；不表示该关系不存在。</li>
+<li>citation 关系尚无已纳入的直接依据；不表示该关系不存在。</li>
+</ul>
+<h2>可复核样本与对象比较</h2>
+<p>计数由结构化记录计算，仅覆盖本次取得并通过原文校验的样本；未链接版本暂按单条发表独立计数。</p>
+<table><thead><tr><th>对象</th><th style="text-align: right;">发表记录</th><th style="text-align: right;">研究家族</th></tr></thead><tbody><tr><td>Tencent</td><td style="text-align: right;">1</td><td style="text-align: right;">1</td></tr><tr><td>去重汇总</td><td style="text-align: right;">1</td><td style="text-align: right;">1</td></tr><tr><td>相同成果可分别归属多个对象，合并总量取成果／家族并集，不相加各对象行。</td><td style="text-align: right;"></td><td style="text-align: right;"></td></tr></tbody></table>
+<h3>同口径样本比较</h3>
+<p>2026／conference_paper；学科口径来自请求：computer science。仅比较该组已取得样本，不作科研质量排序。</p>
+<table><thead><tr><th>对象</th><th style="text-align: right;">本组研究家族数</th></tr></thead><tbody><tr><td>Tencent</td><td style="text-align: right;">1</td></tr></tbody></table>
+<h3>已纳入成果与依据</h3>
+<ul>
+<li>Harp: Improving VPC Network Availability via Efficient Failure Detection and Rerouting in Tencent Cloud；日期区间 2026-05-01 至 2026-05-31（month 精度）；<a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a></li>
+</ul>
+<h3>缺口与解释边界</h3>
+<p>待核记录 0 项；未确立的关系：funding、citation。未取得证据不表示关系不存在。
+机构署名按所选名称／别名与发表来源对照；不推出当前任职、正式协议、内部研发投入或科研质量优劣。跨载体／年份不汇成统一质量榜。</p>
+<h3>后续评估建议（模型判断，待复核）</h3>
+<ul>
+<li>建议下一步获取 NSDI '26 全文 PDF 与可能的 artifact evaluation 记录，以核实实验条件、基线对比与独立验证情况。 <a href="https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a></li>
+</ul></div><p>会话 5b56e7b4-b594-4fd5-bc66-bf088b35a2f5 · 完成于 2026-10-21T04:40:34.257908</p></main></body></html>

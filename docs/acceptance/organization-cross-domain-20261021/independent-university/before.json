@@ -1,0 +1,216 @@
+{
+  "snapshot_id": "43480974-b895-49c8-9c70-b6ac5c5d7f54",
+  "evidence_cutoff": "2026-10-21",
+  "evaluation_versions": {},
+  "configuration": {
+    "rule_version": "adrs-weight-rules-v1",
+    "preset_version": "adrs-presets-v1",
+    "config_version": "report-export-e2e-v1:preview:7f8a6b07-2c21-4610-a056-91afdd8c66e6",
+    "raw_config": {
+      "preset": "custom",
+      "weights": {
+        "topic_relevance": {
+          "weight": 6.0,
+          "enabled": true
+        },
+        "research_alignment": {
+          "weight": 0.0,
+          "enabled": true
+        },
+        "output_performance": {
+          "weight": 0.0,
+          "enabled": true
+        },
+        "evidence_completeness": {
+          "weight": 4.0,
+          "enabled": true
+        },
+        "recency": {
+          "weight": 0.0,
+          "enabled": true
+        },
+        "cooperation_complementarity": {
+          "weight": 0.0,
+          "enabled": true
+        }
+      },
+      "performance_groups": {
+        "paper": {
+          "weight": 1.0,
+          "enabled": true
+        },
+        "venue": {
+          "weight": 1.0,
+          "enabled": true
+        }
+      },
+      "metric_weights": {}
+    },
+    "effective_weights": {
+      "topic_relevance": 0.6000000000000001,
+      "research_alignment": 0.0,
+      "output_performance": 0.0,
+      "evidence_completeness": 0.4,
+      "recency": 0.0,
+      "cooperation_complementarity": 0.0
+    },
+    "effective_groups": {
+      "paper": 0.0,
+      "venue": 0.0
+    },
+    "effective_metric_weights": {},
+    "mappings": [
+      {
+        "scheme_id": "ccf",
+        "version": "adrs-preference-map-v1",
+        "scores": {
+          "A": 1.0,
+          "B": 0.6666666666666667,
+          "C": 0.33333333333333337
+        }
+      },
+      {
+        "scheme_id": "icore",
+        "version": "adrs-preference-map-v1",
+        "scores": {
+          "A": 0.75,
+          "B": 0.5,
+          "C": 0.25,
+          "A*": 1.0
+        }
+      },
+      {
+        "scheme_id": "abdc",
+        "version": "adrs-preference-map-v1",
+        "scores": {
+          "A": 0.75,
+          "B": 0.5,
+          "C": 0.25,
+          "A*": 1.0
+        }
+      },
+      {
+        "scheme_id": "ajg",
+        "version": "adrs-preference-map-v1",
+        "scores": {
+          "1": 0.19999999999999996,
+          "2": 0.4,
+          "3": 0.6,
+          "4": 0.8,
+          "4*": 1.0
+        }
+      },
+      {
+        "scheme_id": "jcr_quartile",
+        "version": "adrs-preference-map-v1",
+        "scores": {
+          "Q1": 1.0,
+          "Q2": 0.75,
+          "Q3": 0.5,
+          "Q4": 0.25
+        }
+      },
+      {
+        "scheme_id": "cas_partition",
+        "version": "adrs-preference-map-v1",
+        "scores": {
+          "1": 1.0,
+          "2": 0.75,
+          "3": 0.5,
+          "4": 0.25
+        }
+      }
+    ],
+    "semantics": "preference_configuration_only"
+  },
+  "rule_version": "adrs-matching-v2",
+  "groups": [
+    {
+      "group_id": "group-1",
+      "context": {
+        "group_id": "group-1",
+        "discipline": "computer science",
+        "output_type": "conference_paper",
+        "metric_year": 2026,
+        "category": "requested_scope_no_automatic_metric_assignment",
+        "feature_rules": {
+          "recency": "linear_recency_v1",
+          "topic_relevance": "token_overlap_v1",
+          "research_alignment": "provided_v1",
+          "evidence_completeness": "provided_v1",
+          "cooperation_complementarity": "provided_v1"
+        },
+        "metric_rules": {},
+        "performance_applicable": true
+      },
+      "comparison_status": "comparable",
+      "effective_weights": {
+        "topic_relevance": 0.6000000000000001,
+        "research_alignment": 0.0,
+        "output_performance": 0.0,
+        "evidence_completeness": 0.4,
+        "recency": 0.0,
+        "cooperation_complementarity": 0.0
+      },
+      "effective_metric_weights": {},
+      "not_applicable_dimensions": [],
+      "complete": [],
+      "pending_evidence": [
+        {
+          "entity_id": "pku",
+          "name": "Peking University",
+          "type": "university",
+          "family_count": 1,
+          "family_ids": [
+            "publication:out-distserve-osdi24"
+          ],
+          "coverage": 0.6000000000000001,
+          "lower_bound": 60.00000000000001,
+          "upper_bound": 100.0,
+          "score": null,
+          "contributions": {
+            "topic_relevance": {
+              "weight": 0.6000000000000001,
+              "lower_value": 1.0,
+              "upper_value": 1.0,
+              "lower_contribution": 60.00000000000001,
+              "upper_contribution": 60.00000000000001,
+              "coverage": 1.0,
+              "rule_version": "token_overlap_v1",
+              "evidence_ids": [
+                "ev-66854e32"
+              ],
+              "reasons": [
+                "Fraction of distinct query terms found in title/abstract"
+              ]
+            },
+            "evidence_completeness": {
+              "weight": 0.4,
+              "lower_value": 0.0,
+              "upper_value": 1.0,
+              "lower_contribution": 0.0,
+              "upper_contribution": 40.0,
+              "coverage": 0.0,
+              "rule_version": "provided_v1",
+              "evidence_ids": [],
+              "reasons": [
+                "No observation for this configured feature"
+              ]
+            }
+          },
+          "facts": {},
+          "missing_dimensions": [
+            "evidence_completeness"
+          ]
+        }
+      ],
+      "definitely_better": [],
+      "aggregation": "equal_research_family_weight"
+    }
+  ],
+  "excluded": [],
+  "excluded_observations": [],
+  "cross_group_ranking": false,
+  "external_requests": 0,
+  "verification": "frozen_saved_research_evidence"
+}

@@ -1,0 +1,120 @@
+{
+  "session_id": "c9431779-0a9b-4ef8-a4fd-c8de78702df9",
+  "module_report": {
+    "issues": [
+      "invalid_source_numbers:validation"
+    ],
+    "modules": [
+      {
+        "label": "研究全景",
+        "status": "draft_requires_review",
+        "module_id": "landscape",
+        "paragraphs": [
+          {
+            "kind": "observation",
+            "text": "本次研究仅覆盖一个已选对象 Peking University（selected-1）与一个发表样本：OSDI '24 论文《DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving》。该论文收录于 18th USENIX Symposium on Operating Systems Design and Implementation（OSDI 24），BibTeX 标注 year 为 2024、month 为 jul，页码 193–210，出版方为 USENIX Association。",
+            "citations": [
+              1
+            ]
+          },
+          {
+            "kind": "observation",
+            "text": "仅据该样本，公开研究方向是面向大语言模型（LLM）推理服务系统的性能优化：把 prefill 与 decoding 两阶段解耦到不同 GPU，以消除 prefill-decoding 干扰，并针对首 token 时延（TTFT）与每输出 token 时延（TPOT）分别协同优化资源分配与并行策略，同时依据集群带宽放置两阶段以减少解耦通信开销。",
+            "citations": [
+              1
+            ]
+          },
+          {
+            "kind": "observation",
+            "text": "论文摘要报告，在多种流行 LLM、应用与延迟要求下，相比当时最优系统可服务 7.4 倍更多请求或 12.6 倍更紧的 SLO，同时超过 90% 的请求保持在延迟约束内。这是论文自述的评测结果，不是第三方复现结论。",
+            "citations": [
+              1
+            ]
+          },
+          {
+            "kind": "gap",
+            "text": "这是单一年度（2024）的单篇观测，不能据此确立多年趋势，也不能把该论文数量解释为 Peking University 的研发投入或系统研究产出总量。样本计数只代表本次接受记录，不等于真实世界论文全集。",
+            "citations": []
+          }
+        ]
+      },
+      {
+        "label": "关系分析",
+        "status": "draft_requires_review",
+        "module_id": "relationships",
+        "paragraphs": [
+          {
+            "kind": "observation",
+            "text": "已知署名与共著（仅限该论文层面）：作者列表为 Yinmin Zhong、Shengyu Liu、Junda Chen、Jianbo Hu、Yibo Zhu、Xuanzhe Liu、Xin Jin、Hao Zhang。页面作者单位标注为 Yinmin Zhong 与 Shengyu Liu 属 Peking University；Junda Chen 属 UC San Diego；Jianbo Hu 属 Peking University；Yibo Zhu 属 StepFun；Xuanzhe Liu 与 Xin Jin 属 Peking University；Hao Zhang 属 UC San Diego。即 Peking University 5 位署名作者、UC San Diego 2 位、StepFun 1 位。",
+            "citations": [
+              1
+            ]
+          },
+          {
+            "kind": "interpretation",
+            "text": "由此可确认的仅是 Peking University 与 UC San Diego、StepFun 在该论文上的共著关系。共著不等于正式协议、合作备忘录、产品部署或可联系性；StepFun 作者署名不证明 Peking University 与 StepFun 存在机构级合作或产品落地。",
+            "citations": [
+              1
+            ]
+          },
+          {
+            "kind": "gap",
+            "text": "资助与项目：所提供证据中未出现基金、项目编号或资助声明，保持未知。正式协议、合作备忘录、产品部署：无证据，保持未知。",
+            "citations": []
+          }
+        ]
+      },
+      {
+        "label": "交叉验证",
+        "status": "draft_requires_review",
+        "module_id": "validation",
+        "paragraphs": [
+          {
+            "kind": "observation",
+            "text": "支持：单一来源同时提供 BibTeX 元数据（标题、作者、会议、年份、月份、页码）与页面作者单位标注，二者在标题与作者列表上一致，内部自洽。",
+            "citations": [
+              1
+            ]
+          },
+          {
+            "kind": "gap",
+            "text": "未取得材料：论文全文 PDF、资助声明、Peking University 官方研究页面、作者个人主页、后续版本或项目仓库均未取得，因此无法交叉验证论文内容细节、资助来源或机构层面的合作关系。相关线索（如 StepFun 作者）不得当作部署或协议证明。",
+            "citations": []
+          }
+        ]
+      },
+      {
+        "label": "后续行动",
+        "status": "draft_requires_review",
+        "module_id": "actions",
+        "paragraphs": [
+          {
+            "kind": "gap",
+            "text": "合作目的下缺少明确需求说明，先列待补条件，不擅自联系：待补合作目标（学术共研、技术转化、人才联合培养等）与期望的合作方类型；待补可接受的证据门槛（是否需要正式协议、资助记录或产品部署证明）。",
+            "citations": []
+          },
+          {
+            "kind": "gap",
+            "text": "待补是否允许扩展样本范围（如 Peking University 系统方向的其他发表），以判断是否为持续方向——当前单篇无法确立趋势；待补是否需要核实作者当前任职与联系方式，当前任职不证明历史署名，且本证据不含联系方式。",
+            "citations": []
+          },
+          {
+            "kind": "interpretation",
+            "text": "在补齐上述条件前，仅可确认：Peking University 在 OSDI '24 有 DistServe 这一 LLM 服务系统方向的公开共著成果，合作方署名涉及 UC San Diego 与 StepFun；机构级合作状态未知。",
+            "citations": [
+              1
+            ]
+          }
+        ]
+      }
+    ],
+    "purpose": "cooperation_discovery",
+    "validation": "selected_ids_and_source_numbers_only",
+    "rule_version": "adrs-analysis-modules-v1",
+    "not_requested": [
+      "evolution",
+      "deep_dive"
+    ],
+    "independent_semantic_review": false
+  }
+}

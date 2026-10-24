@@ -1,0 +1,2833 @@
+{
+  "verification": {
+    "session_id": "ca9ae733-92ec-4c44-a29a-bc595a393c99",
+    "status": "completed",
+    "source_count": 10,
+    "counts": {
+      "source_candidates": 21,
+      "pending_candidates": 1,
+      "duplicate_seed_urls": 1,
+      "excluded_candidates": 19,
+      "accepted_publications": 1,
+      "accepted_research_families": 1,
+      "accepted_without_full_text": 1
+    },
+    "executed_queries": [
+      {
+        "status": "success",
+        "started_at": "2026-10-21T07:38:07.013299",
+        "completed_at": "2026-10-21T07:38:10.169838",
+        "executed_query": "DistServe Peking University site:usenix.org (site:usenix.org)",
+        "requested_query": "DistServe Peking University site:usenix.org"
+      },
+      {
+        "status": "success",
+        "started_at": "2026-10-21T07:38:07.035565",
+        "completed_at": "2026-10-21T07:38:10.156304",
+        "executed_query": "Harp 2026 site:usenix.org (site:usenix.org)",
+        "requested_query": "Harp 2026 site:usenix.org"
+      },
+      {
+        "status": "success",
+        "started_at": "2026-10-21T07:38:07.068585",
+        "completed_at": "2026-10-21T07:38:10.135623",
+        "executed_query": "DistServe OSDI 2024 Peking University authors affiliation (site:usenix.org)",
+        "requested_query": "DistServe OSDI 2024 Peking University authors affiliation"
+      }
+    ],
+    "audit": {
+      "needs_review": true,
+      "total_claims": 5,
+      "checked_claims": 2,
+      "supported_claims": 0,
+      "human_review_status": "not_reviewed"
+    },
+    "budget": {
+      "warning": false,
+      "estimated": true,
+      "llm_usage": [
+        {
+          "agent": "analyst",
+          "model": "deepseek-chat",
+          "cost_usd": 0.0,
+          "estimated": true,
+          "total_tokens": 14342,
+          "prompt_tokens": 11230,
+          "completion_tokens": 3112
+        },
+        {
+          "agent": "reflection",
+          "model": "deepseek-chat",
+          "cost_usd": 0.0,
+          "estimated": true,
+          "total_tokens": 12214,
+          "prompt_tokens": 11759,
+          "completion_tokens": 455
+        },
+        {
+          "agent": "report",
+          "model": "deepseek-chat",
+          "cost_usd": 0.0,
+          "estimated": true,
+          "total_tokens": 11756,
+          "prompt_tokens": 11367,
+          "completion_tokens": 389
+        }
+      ],
+      "citation_max": 15,
+      "max_cost_usd": 0.5,
+      "used_cost_usd": 0.0,
+      "budget_profile": "medium",
+      "max_tool_calls": 12,
+      "rag_max_results": 8,
+      "used_tool_calls": 12,
+      "hard_stop_reason": "tool_call_limit",
+      "max_total_tokens": 60000,
+      "report_max_tokens": 6000,
+      "used_total_tokens": 71281,
+      "search_max_queries": 4,
+      "search_max_results": 10,
+      "browser_max_results": 2,
+      "max_retries_per_tool": 2,
+      "max_wall_clock_seconds": 420,
+      "elapsed_wall_clock_seconds": 51
+    },
+    "tool_statuses": [
+      {
+        "tool": "execute_search",
+        "status": "success",
+        "error": null,
+        "reused_task_evidence": false
+      },
+      {
+        "tool": "execute_browse",
+        "status": "success",
+        "error": null,
+        "reused_task_evidence": false
+      },
+      {
+        "tool": "execute_browse",
+        "status": "success",
+        "error": null,
+        "reused_task_evidence": false
+      },
+      {
+        "tool": "execute_search",
+        "status": "success",
+        "error": null,
+        "reused_task_evidence": false
+      },
+      {
+        "tool": "execute_search",
+        "status": "success",
+        "error": null,
+        "reused_task_evidence": false
+      },
+      {
+        "tool": "execute_browse",
+        "status": "success",
+        "error": null,
+        "reused_task_evidence": false
+      },
+      {
+        "tool": "execute_browse",
+        "status": "success",
+        "error": null,
+        "reused_task_evidence": false
+      },
+      {
+        "tool": "execute_browse",
+        "status": "success",
+        "error": null,
+        "reused_task_evidence": false
+      },
+      {
+        "tool": "execute_browse",
+        "status": "success",
+        "error": null,
+        "reused_task_evidence": false
+      }
+    ],
+    "last_error_category": "budget_exceeded"
+  },
+  "configuration": {
+    "scope": {
+      "topic": "DistServe",
+      "end_date": "2024-12-31",
+      "entities": [
+        {
+          "name": "Peking University",
+          "type": "university",
+          "aliases": [],
+          "entity_id": "pku",
+          "unit_kind": "organization",
+          "source_urls": [
+            "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin"
+          ],
+          "resolution_status": "pending"
+        }
+      ],
+      "start_date": "2024-01-01",
+      "disciplines": [
+        "computer science"
+      ],
+      "organization_types": [
+        "university"
+      ]
+    },
+    "corpus": {
+      "exclusion": [
+        "unsupported source",
+        "publication date outside range",
+        "unselected output type",
+        "unverified identity/date/title retained as candidate, not silently accepted"
+      ],
+      "inclusion": {
+        "topic": "DistServe",
+        "end_date": "2024-12-31",
+        "entities": [
+          {
+            "name": "Peking University",
+            "type": "university",
+            "aliases": [],
+            "entity_id": "pku",
+            "unit_kind": "organization",
+            "source_urls": [
+              "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin"
+            ],
+            "resolution_status": "pending"
+          }
+        ],
+        "start_date": "2024-01-01",
+        "disciplines": [
+          "computer science"
+        ],
+        "output_types": [
+          "conference_paper"
+        ],
+        "organization_types": [
+          "university"
+        ],
+        "topic_and_discipline_status": "requested_labels_not_independently_classified"
+      },
+      "seed_urls": [
+        "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin",
+        "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin#abstract",
+        "https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu"
+      ],
+      "output_types": [
+        "conference_paper"
+      ],
+      "rule_version": "adrs-corpus-v1",
+      "search_terms": [
+        "DistServe Peking University",
+        "Harp 2026"
+      ],
+      "source_scope": {
+        "groups": [
+          "publishers"
+        ],
+        "official_domains": [],
+        "publisher_domains": [
+          "usenix.org"
+        ]
+      },
+      "source_policy": {
+        "groups": [
+          "publishers"
+        ],
+        "source_uses": {
+          "publishers": "paper_or_proceedings"
+        },
+        "catalog_version": "2026-10-18.1",
+        "domains_by_group": {
+          "publishers": [
+            "usenix.org"
+          ]
+        }
+      },
+      "collection_mode": "search_and_seeds",
+      "full_text_policy": "read_explicit_sources_only_no_automatic_pdf_following",
+      "duplicate_seed_urls": 1,
+      "effective_seed_urls": [
+        "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin",
+        "https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu"
+      ],
+      "effective_search_terms": [
+        "DistServe Peking University",
+        "Harp 2026"
+      ]
+    },
+    "modules": [
+      "landscape"
+    ],
+    "purpose": "research_development",
+    "weights": {
+      "preset": "research_development",
+      "weights": {},
+      "mappings": [],
+      "config_version": "user-config-v1",
+      "metric_weights": {},
+      "performance_groups": {
+        "paper": 1.0,
+        "venue": 1.0
+      }
+    },
+    "schema_version": "adrs-organization-run-v4",
+    "evidence_cutoff": "2026-10-21T07:37:53.788219+00:00",
+    "selected_preset": null,
+    "catalog_manifest": {
+      "schemes": [
+        {
+          "level": "venue",
+          "family": "directory",
+          "adapter": "exact_catalogue",
+          "editions": [],
+          "scheme_id": "ccf",
+          "source_url": "https://www.ccf.org.cn/Academic_Evaluation/By_category/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "directory",
+          "adapter": "exact_catalogue",
+          "editions": [],
+          "scheme_id": "icore",
+          "source_url": "https://portal.core.edu.au/conf-ranks/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "index",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "wos_scie",
+          "source_url": "https://mjl.clarivate.com/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "index",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "wos_ssci",
+          "source_url": "https://mjl.clarivate.com/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "index",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "wos_ahci",
+          "source_url": "https://mjl.clarivate.com/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "index",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "wos_esci",
+          "source_url": "https://mjl.clarivate.com/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "index",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "scopus",
+          "source_url": "https://www.scopus.com/sources",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "journal_metric",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "jcr_jif",
+          "source_url": "https://jcr.clarivate.com/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "journal_metric",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "jcr_quartile",
+          "source_url": "https://jcr.clarivate.com/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "journal_metric",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "jcr_jci",
+          "source_url": "https://jcr.clarivate.com/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "journal_metric",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "cas_partition",
+          "source_url": "https://www.fenqubiao.com/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "journal_metric",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "citescore",
+          "source_url": "https://www.scopus.com/sources",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "journal_metric",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "citescore_percentile",
+          "source_url": "https://www.scopus.com/sources",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "journal_metric",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "sjr",
+          "source_url": "https://www.scimagojr.com/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "journal_metric",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "snip",
+          "source_url": "https://www.scopus.com/sources",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "directory",
+          "adapter": "exact_catalogue",
+          "editions": [],
+          "scheme_id": "abdc",
+          "source_url": "https://abdc.edu.au/abdc-journal-quality-list/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "directory",
+          "adapter": "exact_catalogue",
+          "editions": [],
+          "scheme_id": "ajg",
+          "source_url": "https://charteredabs.org/academic-journal-guide",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "work",
+          "family": "paper_metric",
+          "adapter": "paper_metric",
+          "editions": [],
+          "scheme_id": "citation_percentile",
+          "source_url": "https://help.openalex.org/data/works/citations/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "work",
+          "family": "paper_metric",
+          "adapter": "paper_metric",
+          "editions": [],
+          "scheme_id": "cnci",
+          "source_url": "https://incites.help.clarivate.com/Content/Indicators-Handbook/ih-normalized-citation-impact.htm",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "work",
+          "family": "paper_metric",
+          "adapter": "paper_metric",
+          "editions": [],
+          "scheme_id": "fwci",
+          "source_url": "https://help.openalex.org/data/works/citations/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        }
+      ],
+      "sources": [
+        {
+          "access": "public",
+          "edition": "2012",
+          "records": [
+            {
+              "track": "main",
+              "status": "available",
+              "category": "Computer networks",
+              "raw_value": "B",
+              "target_id": "dblp:conf/nsdi",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            },
+            {
+              "track": "main",
+              "status": "available",
+              "category": "Computer networks",
+              "raw_value": "A",
+              "target_id": "dblp:conf/sigcomm",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            }
+          ],
+          "coverage": "partial",
+          "provider": "CCF (issued PDF, public mirror)",
+          "scheme_id": "ccf",
+          "source_id": "public-ccf-2012",
+          "authorized": false,
+          "source_url": "https://risame.github.io/sun/ccf.pdf",
+          "metric_year": 2012,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": null
+        },
+        {
+          "access": "public",
+          "edition": "2022",
+          "records": [
+            {
+              "track": "main",
+              "status": "available",
+              "category": "Computer networks",
+              "raw_value": "A",
+              "target_id": "dblp:conf/nsdi",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            },
+            {
+              "track": "main",
+              "status": "available",
+              "category": "Computer networks",
+              "raw_value": "A",
+              "target_id": "dblp:conf/sigcomm",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            }
+          ],
+          "coverage": "partial",
+          "provider": "CCF (issued PDF, public mirror)",
+          "scheme_id": "ccf",
+          "source_id": "public-ccf-2022",
+          "authorized": false,
+          "source_url": "https://scdm-shu.github.io/ccf/2022-CCF-Ranking.pdf",
+          "metric_year": 2022,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": null
+        },
+        {
+          "access": "public",
+          "edition": "CORE2023",
+          "records": [
+            {
+              "track": "main",
+              "status": "available",
+              "category": "4606",
+              "raw_value": "A*",
+              "target_id": "dblp:conf/sigcomm",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            }
+          ],
+          "coverage": "partial",
+          "provider": "ICORE",
+          "scheme_id": "icore",
+          "source_id": "public-icore-2023",
+          "authorized": false,
+          "source_url": "https://portal.core.edu.au/conf-ranks/?search=SIGCOMM&by=all&source=CORE2023&sort=atitle&page=1",
+          "metric_year": 2023,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": null
+        },
+        {
+          "access": "public",
+          "edition": "ICORE2026",
+          "records": [
+            {
+              "track": "main",
+              "status": "available",
+              "category": "4606",
+              "raw_value": "A*",
+              "target_id": "dblp:conf/sigcomm",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            }
+          ],
+          "coverage": "partial",
+          "provider": "ICORE",
+          "scheme_id": "icore",
+          "source_id": "public-icore-2026",
+          "authorized": false,
+          "source_url": "https://portal.core.edu.au/conf-ranks/?search=SIGCOMM&by=all&source=ICORE2026&sort=atitle&page=1",
+          "metric_year": 2026,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": null
+        },
+        {
+          "access": "public",
+          "edition": "2010",
+          "records": [
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "1503",
+              "raw_value": "A*",
+              "target_id": "issn:0047-2506",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            },
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "1503",
+              "raw_value": "A*",
+              "target_id": "issn:1478-6990",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            }
+          ],
+          "coverage": "partial",
+          "provider": "ABDC",
+          "scheme_id": "abdc",
+          "source_id": "public-abdc-2010",
+          "authorized": false,
+          "source_url": "https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx",
+          "metric_year": 2010,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": null
+        },
+        {
+          "access": "public",
+          "edition": "2013",
+          "records": [
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "1503",
+              "raw_value": "A*",
+              "target_id": "issn:0047-2506",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            },
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "1503",
+              "raw_value": "A*",
+              "target_id": "issn:1478-6990",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            }
+          ],
+          "coverage": "partial",
+          "provider": "ABDC",
+          "scheme_id": "abdc",
+          "source_id": "public-abdc-2013",
+          "authorized": false,
+          "source_url": "https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx",
+          "metric_year": 2013,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": null
+        },
+        {
+          "access": "public",
+          "edition": "2016",
+          "records": [
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "1503",
+              "raw_value": "A*",
+              "target_id": "issn:0047-2506",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            },
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "1503",
+              "raw_value": "A*",
+              "target_id": "issn:1478-6990",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            }
+          ],
+          "coverage": "partial",
+          "provider": "ABDC",
+          "scheme_id": "abdc",
+          "source_id": "public-abdc-2016",
+          "authorized": false,
+          "source_url": "https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx",
+          "metric_year": 2016,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": null
+        },
+        {
+          "access": "public",
+          "edition": "2019",
+          "records": [
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "1503",
+              "raw_value": "A*",
+              "target_id": "issn:0047-2506",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            },
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "1503",
+              "raw_value": "A*",
+              "target_id": "issn:1478-6990",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            }
+          ],
+          "coverage": "partial",
+          "provider": "ABDC",
+          "scheme_id": "abdc",
+          "source_id": "public-abdc-2019",
+          "authorized": false,
+          "source_url": "https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx",
+          "metric_year": 2019,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": null
+        },
+        {
+          "access": "public",
+          "edition": "2022",
+          "records": [
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "3507",
+              "raw_value": "A*",
+              "target_id": "issn:0047-2506",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            },
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "3507",
+              "raw_value": "A*",
+              "target_id": "issn:1478-6990",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            }
+          ],
+          "coverage": "partial",
+          "provider": "ABDC",
+          "scheme_id": "abdc",
+          "source_id": "public-abdc-2022",
+          "authorized": false,
+          "source_url": "https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx",
+          "metric_year": 2022,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": null
+        },
+        {
+          "access": "public",
+          "edition": "2025",
+          "records": [
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "3507",
+              "raw_value": "A*",
+              "target_id": "issn:0047-2506",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            },
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "3507",
+              "raw_value": "A*",
+              "target_id": "issn:1478-6990",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            }
+          ],
+          "coverage": "partial",
+          "provider": "ABDC",
+          "scheme_id": "abdc",
+          "source_id": "public-abdc-2025",
+          "authorized": false,
+          "source_url": "https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx",
+          "metric_year": 2025,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": null
+        },
+        {
+          "access": "public",
+          "edition": "OpenAlex snapshot 2026-10-19",
+          "records": [
+            {
+              "track": "work",
+              "status": "available",
+              "category": "https://openalex.org/subfields/2613 | Statistics and Probability",
+              "raw_value": 3266.5958,
+              "target_id": "openalex:W1951724000",
+              "document_type": "article",
+              "citation_cutoff": "2018-12-31",
+              "publication_year": 2015
+            }
+          ],
+          "coverage": "partial",
+          "provider": "OpenAlex",
+          "scheme_id": "fwci",
+          "source_id": "openalex-W1951724000-fwci-2026-10-19",
+          "authorized": false,
+          "source_url": "https://api.openalex.org/works/W1951724000",
+          "metric_year": 2026,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": "2026-10-19T09:35:57.686232"
+        },
+        {
+          "access": "public",
+          "edition": "OpenAlex snapshot 2026-10-19",
+          "records": [
+            {
+              "track": "work",
+              "status": "available",
+              "category": "https://openalex.org/subfields/2613 | Statistics and Probability",
+              "raw_value": 1.0,
+              "target_id": "openalex:W1951724000",
+              "document_type": "article",
+              "citation_cutoff": "2018-12-31",
+              "publication_year": 2015
+            }
+          ],
+          "coverage": "partial",
+          "provider": "OpenAlex",
+          "scheme_id": "citation_percentile",
+          "source_id": "openalex-W1951724000-citation_percentile-2026-10-19",
+          "authorized": false,
+          "source_url": "https://api.openalex.org/works/W1951724000",
+          "metric_year": 2026,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": "2026-10-19T09:35:57.686232"
+        }
+      ],
+      "captured_at": "2026-10-21T07:37:53.788219+00:00",
+      "schema_version": "adrs-evaluation-catalog-v1",
+      "availability_note": "Frozen public samples and import requirements; not a live lookup or verified evaluation of collected evidence.",
+      "applied_to_evidence": false,
+      "adapter_rule_version": "adrs-evaluation-adapters-v1"
+    },
+    "effective_weights": {
+      "mappings": [
+        {
+          "scores": {
+            "A": 1.0,
+            "B": 0.6666666666666667,
+            "C": 0.33333333333333337
+          },
+          "version": "adrs-preference-map-v1",
+          "scheme_id": "ccf"
+        },
+        {
+          "scores": {
+            "A": 0.75,
+            "B": 0.5,
+            "C": 0.25,
+            "A*": 1.0
+          },
+          "version": "adrs-preference-map-v1",
+          "scheme_id": "icore"
+        },
+        {
+          "scores": {
+            "A": 0.75,
+            "B": 0.5,
+            "C": 0.25,
+            "A*": 1.0
+          },
+          "version": "adrs-preference-map-v1",
+          "scheme_id": "abdc"
+        },
+        {
+          "scores": {
+            "1": 0.19999999999999996,
+            "2": 0.4,
+            "3": 0.6,
+            "4": 0.8,
+            "4*": 1.0
+          },
+          "version": "adrs-preference-map-v1",
+          "scheme_id": "ajg"
+        },
+        {
+          "scores": {
+            "Q1": 1.0,
+            "Q2": 0.75,
+            "Q3": 0.5,
+            "Q4": 0.25
+          },
+          "version": "adrs-preference-map-v1",
+          "scheme_id": "jcr_quartile"
+        },
+        {
+          "scores": {
+            "1": 1.0,
+            "2": 0.75,
+            "3": 0.5,
+            "4": 0.25
+          },
+          "version": "adrs-preference-map-v1",
+          "scheme_id": "cas_partition"
+        }
+      ],
+      "semantics": "preference_configuration_only",
+      "raw_config": {
+        "preset": "research_development",
+        "weights": {
+          "recency": {
+            "weight": 10.0,
+            "enabled": true
+          },
+          "topic_relevance": {
+            "weight": 35.0,
+            "enabled": true
+          },
+          "output_performance": {
+            "weight": 20.0,
+            "enabled": true
+          },
+          "research_alignment": {
+            "weight": 20.0,
+            "enabled": true
+          },
+          "evidence_completeness": {
+            "weight": 15.0,
+            "enabled": true
+          },
+          "cooperation_complementarity": {
+            "weight": 0.0,
+            "enabled": true
+          }
+        },
+        "metric_weights": {},
+        "performance_groups": {
+          "paper": {
+            "weight": 1.0,
+            "enabled": true
+          },
+          "venue": {
+            "weight": 1.0,
+            "enabled": true
+          }
+        }
+      },
+      "rule_version": "adrs-weight-rules-v1",
+      "config_version": "user-config-v1",
+      "preset_version": "adrs-presets-v1",
+      "effective_groups": {
+        "paper": 0.5,
+        "venue": 0.5
+      },
+      "effective_weights": {
+        "recency": 0.09999999999999999,
+        "topic_relevance": 0.35,
+        "output_performance": 0.19999999999999998,
+        "research_alignment": 0.19999999999999998,
+        "evidence_completeness": 0.15,
+        "cooperation_complementarity": 0.0
+      },
+      "effective_metric_weights": {}
+    },
+    "scope_rule_version": "adrs-organization-scope-v2",
+    "analysis_policy_version": "adrs-analysis-modules-v1"
+  },
+  "corpus": {
+    "counts": {
+      "source_candidates": 21,
+      "pending_candidates": 1,
+      "duplicate_seed_urls": 1,
+      "excluded_candidates": 19,
+      "accepted_publications": 1,
+      "accepted_research_families": 1,
+      "accepted_without_full_text": 1
+    },
+    "limits": [
+      "检索式和纳入条件属于声明，学科／主题尚未独立分类。",
+      "页面／检索线索不等于发表记录；采纳仅指通过本次原文字面、日期和归属检查。",
+      "未取得全文不等于不可获得；不会自动跳转PDF或扩大来源。"
+    ],
+    "records": [
+      {
+        "title": "DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving",
+        "stages": [
+          {
+            "at": "2026-10-21T07:37:53.788219+00:00",
+            "status": "candidate"
+          },
+          {
+            "at": "2026-10-21T07:38:08.507795+00:00",
+            "status": "source_acquired",
+            "coverage": "metadata_or_page_text"
+          },
+          {
+            "at": "2026-10-21T07:38:08.478435+00:00",
+            "status": "source_acquired",
+            "coverage": "metadata_or_page_text"
+          },
+          {
+            "at": "2026-10-21T07:38:07.073615+00:00",
+            "status": "source_acquired",
+            "coverage": "discovery_only"
+          },
+          {
+            "at": "2026-10-21T07:38:07.079117+00:00",
+            "status": "source_acquired",
+            "coverage": "discovery_only"
+          },
+          {
+            "at": "2026-10-21T07:38:44.595865+00:00",
+            "status": "source_acquired",
+            "coverage": "metadata_or_page_text"
+          },
+          {
+            "at": "2026-10-21T07:38:44.545515+00:00",
+            "status": "source_acquired",
+            "coverage": "metadata_or_page_text"
+          },
+          {
+            "at": "2026-10-21T07:39:06.480204+00:00",
+            "status": "accepted",
+            "reason_code": "source_supported_in_scope"
+          }
+        ],
+        "output_id": "out-distserve-osdi24",
+        "source_url": "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin",
+        "reason_code": "source_supported_in_scope",
+        "record_kind": "publication",
+        "evidence_ids": [
+          "ev-94a19dc2",
+          "ev-7bfb7832",
+          "ev-edb1299e",
+          "ev-e24a998e",
+          "ev-10f0b552",
+          "ev-5d6cec6b"
+        ],
+        "admission_status": "accepted",
+        "full_text_status": "not_acquired",
+        "publisher_metadata": {
+          "basis": "single_primary_bibtex_and_matching_page_title_not_independent_semantic_review",
+          "title": "DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving",
+          "published_on": "2024-07-01",
+          "date_precision": "month",
+          "literal_fields": {
+            "year": {
+              "end": 2693,
+              "quote": "year = {2024}",
+              "start": 2680,
+              "value": "2024"
+            },
+            "month": {
+              "end": 2893,
+              "quote": "month = jul",
+              "start": 2882,
+              "value": "jul"
+            },
+            "title": {
+              "end": 2584,
+              "quote": "title = {{DistServe}: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving}",
+              "start": 2475,
+              "value": "DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving"
+            }
+          },
+          "published_until": "2024-07-31"
+        }
+      },
+      {
+        "title": "Harp: Improving VPC Network Availability via Efficient Failure Detection and Rerouting in Tencent Cloud",
+        "reason": "Publisher date bounds outside declared range",
+        "stages": [
+          {
+            "at": "2026-10-21T07:37:53.788219+00:00",
+            "status": "candidate"
+          },
+          {
+            "at": "2026-10-21T07:38:08.619350+00:00",
+            "status": "source_acquired",
+            "coverage": "metadata_or_page_text"
+          },
+          {
+            "at": "2026-10-21T07:38:44.529850+00:00",
+            "status": "source_acquired",
+            "coverage": "metadata_or_page_text"
+          },
+          {
+            "at": "2026-10-21T07:39:06.480204+00:00",
+            "status": "excluded",
+            "reason_code": "publication_date_out_of_scope"
+          }
+        ],
+        "source_url": "https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu",
+        "reason_code": "publication_date_out_of_scope",
+        "record_kind": "publication_candidate",
+        "evidence_ids": [
+          "ev-e8fb0a0b",
+          "ev-6b946487"
+        ],
+        "admission_status": "excluded",
+        "full_text_status": "not_acquired",
+        "publisher_metadata": {
+          "basis": "single_primary_bibtex_and_matching_page_title_not_independent_semantic_review",
+          "title": "Harp: Improving VPC Network Availability via Efficient Failure Detection and Rerouting in Tencent Cloud",
+          "published_on": "2026-05-01",
+          "date_precision": "month",
+          "literal_fields": {
+            "year": {
+              "end": 1931,
+              "quote": "year = {2026}",
+              "start": 1918,
+              "value": "2026"
+            },
+            "month": {
+              "end": 2124,
+              "quote": "month = may",
+              "start": 2113,
+              "value": "may"
+            },
+            "title": {
+              "end": 1822,
+              "quote": "title = {Harp: Improving {VPC} Network Availability via Efficient Failure Detection and Rerouting in Tencent Cloud}",
+              "start": 1707,
+              "value": "Harp: Improving VPC Network Availability via Efficient Failure Detection and Rerouting in Tencent Cloud"
+            }
+          },
+          "published_until": "2026-05-31"
+        }
+      },
+      {
+        "title": "DistServe: Disaggregating Prefill and Decoding for Goodput ... - USENIX",
+        "stages": [
+          {
+            "at": "2026-10-21T07:38:07.073615+00:00",
+            "status": "candidate"
+          },
+          {
+            "at": "2026-10-21T07:38:07.073615+00:00",
+            "status": "source_acquired",
+            "coverage": "discovery_only"
+          },
+          {
+            "at": "2026-10-21T07:38:07.079117+00:00",
+            "status": "source_acquired",
+            "coverage": "discovery_only"
+          },
+          {
+            "at": "2026-10-21T07:39:06.480204+00:00",
+            "status": "candidate",
+            "reason_code": "not_evaluated"
+          }
+        ],
+        "source_url": "https://www.usenix.org/system/files/osdi24-zhong-yinmin.pdf",
+        "reason_code": "not_evaluated",
+        "record_kind": "source_lead",
+        "evidence_ids": [
+          "ev-cf3a9629",
+          "ev-81fd207d"
+        ],
+        "admission_status": "candidate",
+        "full_text_status": "not_acquired"
+      },
+      {
+        "title": null,
+        "stages": [
+          {
+            "at": "2026-10-21T07:37:53.788219+00:00",
+            "status": "candidate"
+          },
+          {
+            "at": "2026-10-21T07:39:06.480204+00:00",
+            "status": "excluded",
+            "reason_code": "source_out_of_scope"
+          }
+        ],
+        "source_url": "https://arxiv.org/abs/2401.09670",
+        "reason_code": "source_out_of_scope",
+        "record_kind": "source_lead",
+        "evidence_ids": [],
+        "admission_status": "excluded",
+        "full_text_status": "not_acquired"
+      },
+      {
+        "title": null,
+        "stages": [
+          {
+            "at": "2026-10-21T07:37:53.788219+00:00",
+            "status": "candidate"
+          },
+          {
+            "at": "2026-10-21T07:39:06.480204+00:00",
+            "status": "excluded",
+            "reason_code": "source_out_of_scope"
+          }
+        ],
+        "source_url": "https://github.com/LLMServe/DistServe",
+        "reason_code": "source_out_of_scope",
+        "record_kind": "source_lead",
+        "evidence_ids": [],
+        "admission_status": "excluded",
+        "full_text_status": "not_acquired"
+      },
+      {
+        "title": null,
+        "stages": [
+          {
+            "at": "2026-10-21T07:37:53.788219+00:00",
+            "status": "candidate"
+          },
+          {
+            "at": "2026-10-21T07:39:06.480204+00:00",
+            "status": "excluded",
+            "reason_code": "source_out_of_scope"
+          }
+        ],
+        "source_url": "https://zhuanlan.zhihu.com/p/19666783423",
+        "reason_code": "source_out_of_scope",
+        "record_kind": "source_lead",
+        "evidence_ids": [],
+        "admission_status": "excluded",
+        "full_text_status": "not_acquired"
+      },
+      {
+        "title": null,
+        "stages": [
+          {
+            "at": "2026-10-21T07:37:53.788219+00:00",
+            "status": "candidate"
+          },
+          {
+            "at": "2026-10-21T07:39:06.480204+00:00",
+            "status": "excluded",
+            "reason_code": "source_out_of_scope"
+          }
+        ],
+        "source_url": "https://zhuanlan.zhihu.com/p/698341542",
+        "reason_code": "source_out_of_scope",
+        "record_kind": "source_lead",
+        "evidence_ids": [],
+        "admission_status": "excluded",
+        "full_text_status": "not_acquired"
+      },
+      {
+        "title": null,
+        "stages": [
+          {
+            "at": "2026-10-21T07:37:53.788219+00:00",
+            "status": "candidate"
+          },
+          {
+            "at": "2026-10-21T07:39:06.480204+00:00",
+            "status": "excluded",
+            "reason_code": "source_out_of_scope"
+          }
+        ],
+        "source_url": "https://blog.csdn.net/u012679583/article/details/138339797",
+        "reason_code": "source_out_of_scope",
+        "record_kind": "source_lead",
+        "evidence_ids": [],
+        "admission_status": "excluded",
+        "full_text_status": "not_acquired"
+      },
+      {
+        "title": null,
+        "stages": [
+          {
+            "at": "2026-10-21T07:37:53.788219+00:00",
+            "status": "candidate"
+          },
+          {
+            "at": "2026-10-21T07:39:06.480204+00:00",
+            "status": "excluded",
+            "reason_code": "source_out_of_scope"
+          }
+        ],
+        "source_url": "https://dl.acm.org/doi/10.5555/3691938.3691949",
+        "reason_code": "source_out_of_scope",
+        "record_kind": "source_lead",
+        "evidence_ids": [],
+        "admission_status": "excluded",
+        "full_text_status": "not_acquired"
+      },
+      {
+        "title": null,
+        "stages": [
+          {
+            "at": "2026-10-21T07:37:53.788219+00:00",
+            "status": "candidate"
+          },
+          {
+            "at": "2026-10-21T07:39:06.480204+00:00",
+            "status": "excluded",
+            "reason_code": "source_out_of_scope"
+          }
+        ],
+        "source_url": "https://micavro.github.io/cs26July-pages/writing/distserve-2401.09670-zh.html",
+        "reason_code": "source_out_of_scope",
+        "record_kind": "source_lead",
+        "evidence_ids": [],
+        "admission_status": "excluded",
+        "full_text_status": "not_acquired"
+      },
+      {
+        "title": null,
+        "stages": [
+          {
+            "at": "2026-10-21T07:37:53.788219+00:00",
+            "status": "candidate"
+          },
+          {
+            "at": "2026-10-21T07:39:06.480204+00:00",
+            "status": "excluded",
+            "reason_code": "source_out_of_scope"
+          }
+        ],
+        "source_url": "https://pinghaoyang.com.cn/aigc/posts/distserve",
+        "reason_code": "source_out_of_scope",
+        "record_kind": "source_lead",
+        "evidence_ids": [],
+        "admission_status": "excluded",
+        "full_text_status": "not_acquired"
+      },
+      {
+        "title": null,
+        "stages": [
+          {
+            "at": "2026-10-21T07:37:53.788219+00:00",
+            "status": "candidate"
+          },
+          {
+            "at": "2026-10-21T07:39:06.480204+00:00",
+            "status": "excluded",
+            "reason_code": "source_out_of_scope"
+          }
+        ],
+        "source_url": "https://harp.cms.gov",
+        "reason_code": "source_out_of_scope",
+        "record_kind": "source_lead",
+        "evidence_ids": [],
+        "admission_status": "excluded",
+        "full_text_status": "not_acquired"
+      },
+      {
+        "title": null,
+        "stages": [
+          {
+            "at": "2026-10-21T07:37:53.788219+00:00",
+            "status": "candidate"
+          },
+          {
+            "at": "2026-10-21T07:39:06.480204+00:00",
+            "status": "excluded",
+            "reason_code": "source_out_of_scope"
+          }
+        ],
+        "source_url": "https://en.m.wikipedia.org/wiki/Harp",
+        "reason_code": "source_out_of_scope",
+        "record_kind": "source_lead",
+        "evidence_ids": [],
+        "admission_status": "excluded",
+        "full_text_status": "not_acquired"
+      },
+      {
+        "title": null,
+        "stages": [
+          {
+            "at": "2026-10-21T07:37:53.788219+00:00",
+            "status": "candidate"
+          },
+          {
+            "at": "2026-10-21T07:39:06.480204+00:00",
+            "status": "excluded",
+            "reason_code": "source_out_of_scope"
+          }
+        ],
+        "source_url": "https://www.musicalhow.com/harp-types",
+        "reason_code": "source_out_of_scope",
+        "record_kind": "source_lead",
+        "evidence_ids": [],
+        "admission_status": "excluded",
+        "full_text_status": "not_acquired"
+      },
+      {
+        "title": null,
+        "stages": [
+          {
+            "at": "2026-10-21T07:37:53.788219+00:00",
+            "status": "candidate"
+          },
+          {
+            "at": "2026-10-21T07:39:06.480204+00:00",
+            "status": "excluded",
+            "reason_code": "source_out_of_scope"
+          }
+        ],
+        "source_url": "https://planning.lacity.gov/home-sharing-application-and-registration-portal-harp",
+        "reason_code": "source_out_of_scope",
+        "record_kind": "source_lead",
+        "evidence_ids": [],
+        "admission_status": "excluded",
+        "full_text_status": "not_acquired"
+      },
+      {
+        "title": null,
+        "stages": [
+          {
+            "at": "2026-10-21T07:37:53.788219+00:00",
+            "status": "candidate"
+          },
+          {
+            "at": "2026-10-21T07:39:06.480204+00:00",
+            "status": "excluded",
+            "reason_code": "source_out_of_scope"
+          }
+        ],
+        "source_url": "https://www.britannica.com/art/harp-musical-instrument",
+        "reason_code": "source_out_of_scope",
+        "record_kind": "source_lead",
+        "evidence_ids": [],
+        "admission_status": "excluded",
+        "full_text_status": "not_acquired"
+      },
+      {
+        "title": null,
+        "stages": [
+          {
+            "at": "2026-10-21T07:37:53.788219+00:00",
+            "status": "candidate"
+          },
+          {
+            "at": "2026-10-21T07:39:06.480204+00:00",
+            "status": "excluded",
+            "reason_code": "source_out_of_scope"
+          }
+        ],
+        "source_url": "https://harpcenterla.com",
+        "reason_code": "source_out_of_scope",
+        "record_kind": "source_lead",
+        "evidence_ids": [],
+        "admission_status": "excluded",
+        "full_text_status": "not_acquired"
+      },
+      {
+        "title": null,
+        "stages": [
+          {
+            "at": "2026-10-21T07:37:53.788219+00:00",
+            "status": "candidate"
+          },
+          {
+            "at": "2026-10-21T07:39:06.480204+00:00",
+            "status": "excluded",
+            "reason_code": "source_out_of_scope"
+          }
+        ],
+        "source_url": "https://tonalics.com/play/harp",
+        "reason_code": "source_out_of_scope",
+        "record_kind": "source_lead",
+        "evidence_ids": [],
+        "admission_status": "excluded",
+        "full_text_status": "not_acquired"
+      },
+      {
+        "title": null,
+        "stages": [
+          {
+            "at": "2026-10-21T07:37:53.788219+00:00",
+            "status": "candidate"
+          },
+          {
+            "at": "2026-10-21T07:39:06.480204+00:00",
+            "status": "excluded",
+            "reason_code": "source_out_of_scope"
+          }
+        ],
+        "source_url": "https://www.merriam-webster.com/dictionary/harp",
+        "reason_code": "source_out_of_scope",
+        "record_kind": "source_lead",
+        "evidence_ids": [],
+        "admission_status": "excluded",
+        "full_text_status": "not_acquired"
+      },
+      {
+        "title": null,
+        "stages": [
+          {
+            "at": "2026-10-21T07:37:53.788219+00:00",
+            "status": "candidate"
+          },
+          {
+            "at": "2026-10-21T07:39:06.480204+00:00",
+            "status": "excluded",
+            "reason_code": "source_out_of_scope"
+          }
+        ],
+        "source_url": "https://www.harp.com",
+        "reason_code": "source_out_of_scope",
+        "record_kind": "source_lead",
+        "evidence_ids": [],
+        "admission_status": "excluded",
+        "full_text_status": "not_acquired"
+      },
+      {
+        "title": null,
+        "stages": [
+          {
+            "at": "2026-10-21T07:37:53.788219+00:00",
+            "status": "candidate"
+          },
+          {
+            "at": "2026-10-21T07:39:06.480204+00:00",
+            "status": "excluded",
+            "reason_code": "source_out_of_scope"
+          }
+        ],
+        "source_url": "https://en.m.wikipedia.org/wiki/High-frequency_Active_Auroral_Research_Program",
+        "reason_code": "source_out_of_scope",
+        "record_kind": "source_lead",
+        "evidence_ids": [],
+        "admission_status": "excluded",
+        "full_text_status": "not_acquired"
+      }
+    ],
+    "coverage": "declared_retrieved_sample_not_real_world_census",
+    "declaration": {
+      "exclusion": [
+        "unsupported source",
+        "publication date outside range",
+        "unselected output type",
+        "unverified identity/date/title retained as candidate, not silently accepted"
+      ],
+      "inclusion": {
+        "topic": "DistServe",
+        "end_date": "2024-12-31",
+        "entities": [
+          {
+            "name": "Peking University",
+            "type": "university",
+            "aliases": [],
+            "entity_id": "pku",
+            "unit_kind": "organization",
+            "source_urls": [
+              "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin"
+            ],
+            "resolution_status": "pending"
+          }
+        ],
+        "start_date": "2024-01-01",
+        "disciplines": [
+          "computer science"
+        ],
+        "output_types": [
+          "conference_paper"
+        ],
+        "organization_types": [
+          "university"
+        ],
+        "topic_and_discipline_status": "requested_labels_not_independently_classified"
+      },
+      "seed_urls": [
+        "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin",
+        "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin#abstract",
+        "https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu"
+      ],
+      "output_types": [
+        "conference_paper"
+      ],
+      "rule_version": "adrs-corpus-v1",
+      "search_terms": [
+        "DistServe Peking University",
+        "Harp 2026"
+      ],
+      "source_scope": {
+        "groups": [
+          "publishers"
+        ],
+        "official_domains": [],
+        "publisher_domains": [
+          "usenix.org"
+        ]
+      },
+      "source_policy": {
+        "groups": [
+          "publishers"
+        ],
+        "source_uses": {
+          "publishers": "paper_or_proceedings"
+        },
+        "catalog_version": "2026-10-18.1",
+        "domains_by_group": {
+          "publishers": [
+            "usenix.org"
+          ]
+        }
+      },
+      "collection_mode": "search_and_seeds",
+      "full_text_policy": "read_explicit_sources_only_no_automatic_pdf_following",
+      "duplicate_seed_urls": 1,
+      "effective_seed_urls": [
+        "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin",
+        "https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu"
+      ],
+      "effective_search_terms": [
+        "DistServe Peking University",
+        "Harp 2026"
+      ]
+    },
+    "evaluated_at": "2026-10-21T07:39:06.480204+00:00",
+    "counting_unit": "canonical_primary_source_url_for_candidates_and_publications; explicit_family_links_only",
+    "schema_version": "adrs-corpus-v1",
+    "executed_queries": [
+      {
+        "status": "success",
+        "started_at": "2026-10-21T07:38:07.013299",
+        "completed_at": "2026-10-21T07:38:10.169838",
+        "executed_query": "DistServe Peking University site:usenix.org (site:usenix.org)",
+        "requested_query": "DistServe Peking University site:usenix.org"
+      },
+      {
+        "status": "success",
+        "started_at": "2026-10-21T07:38:07.035565",
+        "completed_at": "2026-10-21T07:38:10.156304",
+        "executed_query": "Harp 2026 site:usenix.org (site:usenix.org)",
+        "requested_query": "Harp 2026 site:usenix.org"
+      },
+      {
+        "status": "success",
+        "started_at": "2026-10-21T07:38:07.068585",
+        "completed_at": "2026-10-21T07:38:10.135623",
+        "executed_query": "DistServe OSDI 2024 Peking University authors affiliation (site:usenix.org)",
+        "requested_query": "DistServe OSDI 2024 Peking University authors affiliation"
+      }
+    ],
+    "request_frozen_at": "2026-10-21T07:37:53.788219+00:00"
+  },
+  "report": "# Peking University × DistServe：USENIX 声明样本研究全景（2024）\n\n> 按本次所选研究模块组织；来源摘述和分析仍需阅读审核状态。\n\n## 研究全景\n\n**来源摘述（待审核）**：在声明的 USENIX 来源范围内，两个有效种子（OSDI '24 DistServe 页与其 \\#abstract 锚点变体去重后算一个，NSDI '26 Harp 页为另一个）均已读取。DistServe 页面的作者行将 Yinmin Zhong、Shengyu Liu、Jianbo Hu、Xuanzhe Liu、Xin Jin 标注为 Peking University，Junda Chen 与 Hao Zhang 标注为 UC San Diego，Yibo Zhu 标注为 StepFun；作者与机构在同一出版作者行并列出现，构成该成果归属 Peking University 的页面级证据。BibTeX 给出 year = 2024、month = jul、booktitle 为 18th USENIX OSDI 24、页码 193–210，因此发表时间只能确认到 2024 年 7 月（月精度），落在 2024\\-01\\-01 至 2024\\-12\\-31 区间内，不能把 7 月 1 日当作实际发表日。 [citation:1] [citation:2]\n\n**分析判断（待复核）**：公开研究方向方面，DistServe 摘要自述属于 LLM 服务系统：把 prefill 与 decoding 计算分配到不同 GPU 以消除两阶段干扰，按应用给定的 TTFT 与 TPOT 延迟要求协同优化各阶段的资源分配与并行策略，并依据服务集群带宽放置两个阶段以减少分离带来的通信开销；摘要自述评估结果为相比当时最优系统可服务 7\\.4 倍更多请求或 12\\.6 倍更紧的 SLO，同时 &gt;90% 请求满足延迟约束。这些均为作者在摘要页的自述，不是本研究的独立验证。按已读页面计，符合 Peking University \\+ 2024 \\+ conference\\_paper 的接受记录为 1 篇（DistServe），该计数是声明样本的计数，不是 Peking University 2024 年现实成果全集，也不能解释为研究投入或产出规模。 [citation:1] [citation:2]\n\n**来源摘述（待审核）**：Harp 页明确排除：其 BibTeX 为 year = 2026、month = may、NSDI 26，发表年份在 2024 区间之外，属 publication date outside range；同时该页作者机构为 Tencent 与 Fudan University，未出现 Peking University，即使日期合规也不能计入本实体样本。该记录作为已读但被排除的候选保留在案，未因不满足范围而遗漏。 [citation:3] [citation:10]\n\n**证据缺口**：缺口：仅读取摘要页，未取得 DistServe 全文（full\\_text\\_policy 禁止自动跟进 PDF），摘要中的 7\\.4 倍与 12\\.6 倍数值未经全文核对；学科与主题为请求口径，页面未提供独立学科分类，不能声称计算机科学已独立核实；未检索 USENIX 其他 2024 会议页面，不能断言 Peking University 在 USENIX 2024 仅有此一篇；演进与合作关系属未选模块，未作评估。 \n\n\n## 核验结果\n\n自动来源支持：0/5 项；人工复核：未复核。模型置信度不代表人工确认。\n支持状态来自模型语义判断与原文引语校验，不能保证结论为真。\n\n- claim:1 [missing_citation] 按本次所选研究模块组织；来源摘述和分析仍需阅读审核状态。 — Awaiting source support judgement\n- claim:2 [not_checked] **来源摘述（待审核）**：在声明的 USENIX 来源范围内，两个有效种子（OSDI '24 DistServe 页与其 \\#abstract 锚点变体去重后算一个，NSDI '26 Harp 页为另一个）均已读取。DistServe 页面的作者行将 Yinmin Zhong、Shengyu Liu、Jianbo Hu、Xuanzhe Liu、Xin Jin 标注为 Peking University，Junda Chen 与 Hao Zhang 标注为 UC San Diego，Yibo Zhu 标注为 StepFun；作者与机构在同一出版作者行并列出现，构成该成果归属 Peking University 的页面级证据。BibTeX 给出 year = 2024、month = jul、booktitle 为 18th USENIX OSDI 24、页码 193–210，因此发表时间只能确认到 2024 年 7 月（月精度），落在 2024\\-01\\-01 至 2024\\-12\\-31 区间内，不能把 7 月 1 日当作实际发表日。 [citation:1] [citation:2] — Verification token/time budget exhausted\n- claim:3 [not_checked] **分析判断（待复核）**：公开研究方向方面，DistServe 摘要自述属于 LLM 服务系统：把 prefill 与 decoding 计算分配到不同 GPU 以消除两阶段干扰，按应用给定的 TTFT 与 TPOT 延迟要求协同优化各阶段的资源分配与并行策略，并依据服务集群带宽放置两个阶段以减少分离带来的通信开销；摘要自述评估结果为相比当时最优系统可服务 7\\.4 倍更多请求或 12\\.6 倍更紧的 SLO，同时 &gt;90% 请求满足延迟约束。这些均为作者在摘要页的自述，不是本研究的独立验证。按已读页面计，符合 Peking University \\+ 2024 \\+ conference\\_paper 的接受记录为 1 篇（DistServe），该计数是声明样本的计数，不是 Peking University 2024 年现实成果全集，也不能解释为研究投入或产出规模。 [citation:1] [citation:2] — Verification token/time budget exhausted\n- claim:4 [not_checked] **来源摘述（待审核）**：Harp 页明确排除：其 BibTeX 为 year = 2026、month = may、NSDI 26，发表年份在 2024 区间之外，属 publication date outside range；同时该页作者机构为 Tencent 与 Fudan University，未出现 Peking University，即使日期合规也不能计入本实体样本。该记录作为已读但被排除的候选保留在案，未因不满足范围而遗漏。 [citation:3] [citation:10] — Verification token/time budget exhausted\n- claim:5 [missing_citation] **证据缺口**：缺口：仅读取摘要页，未取得 DistServe 全文（full\\_text\\_policy 禁止自动跟进 PDF），摘要中的 7\\.4 倍与 12\\.6 倍数值未经全文核对；学科与主题为请求口径，页面未提供独立学科分类，不能声称计算机科学已独立核实；未检索 USENIX 其他 2024 会议页面，不能断言 Peking University 在 USENIX 2024 仅有此一篇；演进与合作关系属未选模块，未作评估。 — Awaiting source support judgement\n\n---\n\n## References\n\n[1] **DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving | USENIX** - https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin\n[2] **DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving | USENIX** - https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin#abstract\n[3] **Harp: Improving VPC Network Availability via Efficient Failure Detection and Rerouting in Tencent Cloud | USENIX** - https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu\n[4] **DistServe: Disaggregating Prefill and Decoding for Goodput ... - USENIX** - https://www.usenix.org/system/files/osdi24-zhong-yinmin.pdf\n[5] **DistServe: Disaggregating Prefill and Decoding for Goodput ... - USENIX** - https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin\n[6] **DistServe: Disaggregating Prefill and Decoding for Goodput ... - USENIX** - https://www.usenix.org/system/files/osdi24-zhong-yinmin.pdf\n[7] **DistServe: Disaggregating Prefill and Decoding for Goodput ... - USENIX** - https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin\n[8] **DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving | USENIX** - https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin\n[9] **DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving | USENIX** - https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin#abstract\n[10] **Harp: Improving VPC Network Availability via Efficient Failure Detection and Rerouting in Tencent Cloud | USENIX** - https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu\n\n## 研究对象、口径与冻结配置\n主题：DistServe；学科：computer science；时间：2024-01-01 至 2024-12-31。\n对象类型：university；请求冻结时间：2026-10-21T07:37:53.788219+00:00。实际采集时间逐来源保留。\n范围规则：adrs-organization-scope-v2；配置版本：user-config-v1；权重规则：adrs-weight-rules-v1；预设版本：adrs-presets-v1。\n分别保留发表记录与研究家族；同成果可归属多个对象，汇总取并集，未关联版本按独立发表计数。\n偏好配置不等于已完成评分；结果页只读重排不改写本报告的配置、事实或证据。\n研究目的：布局与演进；研究模块：研究全景；模块规则：adrs-analysis-modules-v1。目的、模块与权重分别保存。\n### 对象与来源\n- Peking University（university；pending）：<https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin>\n### 原始与生效权重\n| 维度 | 原始权重 | 开启 | 生效权重 |\n| --- | ---: | --- | ---: |\n| 主题相关性 | 35.0 | 是 | 35.00% |\n| 研究路线契合 | 20.0 | 是 | 20.00% |\n| 成果表现 | 20.0 | 是 | 20.00% |\n| 证据完整度 | 15.0 | 是 | 15.00% |\n| 时效性 | 10.0 | 是 | 10.00% |\n| 合作互补性 | 0.0 | 是 | 0.00% |\n### 成果表现组内权重\n| 项目 | 原始权重 | 开启 | 组内生效权重 |\n| --- | ---: | --- | ---: |\n| venue | 1.0 | 是 | 50.00% |\n| paper | 1.0 | 是 | 50.00% |\n### 指标组内权重\n| 项目 | 原始权重 | 开启 | 组内生效权重 |\n| --- | ---: | --- | ---: |\n| 未显式配置 | — | — | — |\n### 有序偏好映射（产品偏好，非官方等价）\n- ccf／adrs-preference-map-v1：A=1.0；B=0.6666666666666667；C=0.33333333333333337\n- icore／adrs-preference-map-v1：A*=1.0；A=0.75；B=0.5；C=0.25\n- abdc／adrs-preference-map-v1：A*=1.0；A=0.75；B=0.5；C=0.25\n- ajg／adrs-preference-map-v1：4*=1.0；4=0.8；3=0.6；2=0.4；1=0.19999999999999996\n- jcr_quartile／adrs-preference-map-v1：Q1=1.0；Q2=0.75；Q3=0.5；Q4=0.25\n- cas_partition／adrs-preference-map-v1：1=1.0；2=0.75；3=0.5；4=0.25\n### 评价口径及可用性\n目录版本：adrs-evaluation-catalog-v1；适配规则：adrs-evaluation-adapters-v1。目录样本不代表本次成果已核定评价。\n- ccf：部分公开样本；<https://www.ccf.org.cn/Academic_Evaluation/By_category/>；尚未核定本次成果。\n- icore：部分公开样本；<https://portal.core.edu.au/conf-ranks/>；尚未核定本次成果。\n- wos_scie：需授权导入／尚无公开样本；<https://mjl.clarivate.com/>；尚未核定本次成果。\n- wos_ssci：需授权导入／尚无公开样本；<https://mjl.clarivate.com/>；尚未核定本次成果。\n- wos_ahci：需授权导入／尚无公开样本；<https://mjl.clarivate.com/>；尚未核定本次成果。\n- wos_esci：需授权导入／尚无公开样本；<https://mjl.clarivate.com/>；尚未核定本次成果。\n- scopus：需授权导入／尚无公开样本；<https://www.scopus.com/sources>；尚未核定本次成果。\n- jcr_jif：需授权导入／尚无公开样本；<https://jcr.clarivate.com/>；尚未核定本次成果。\n- jcr_quartile：需授权导入／尚无公开样本；<https://jcr.clarivate.com/>；尚未核定本次成果。\n- jcr_jci：需授权导入／尚无公开样本；<https://jcr.clarivate.com/>；尚未核定本次成果。\n- cas_partition：需授权导入／尚无公开样本；<https://www.fenqubiao.com/>；尚未核定本次成果。\n- citescore：需授权导入／尚无公开样本；<https://www.scopus.com/sources>；尚未核定本次成果。\n- citescore_percentile：需授权导入／尚无公开样本；<https://www.scopus.com/sources>；尚未核定本次成果。\n- sjr：需授权导入／尚无公开样本；<https://www.scimagojr.com/>；尚未核定本次成果。\n- snip：需授权导入／尚无公开样本；<https://www.scopus.com/sources>；尚未核定本次成果。\n- abdc：部分公开样本；<https://abdc.edu.au/abdc-journal-quality-list/>；尚未核定本次成果。\n- ajg：需授权导入／尚无公开样本；<https://charteredabs.org/academic-journal-guide>；尚未核定本次成果。\n- citation_percentile：部分公开样本；<https://help.openalex.org/data/works/citations/>；尚未核定本次成果。\n- cnci：需授权导入／尚无公开样本；<https://incites.help.clarivate.com/Content/Indicators-Handbook/ih-normalized-citation-impact.htm>；尚未核定本次成果。\n- fwci：部分公开样本；<https://help.openalex.org/data/works/citations/>；尚未核定本次成果。\n- ccf／2012／指标年 2012：public，partial；<https://risame.github.io/sun/ccf.pdf>\n- ccf／2022／指标年 2022：public，partial；<https://scdm-shu.github.io/ccf/2022-CCF-Ranking.pdf>\n- icore／CORE2023／指标年 2023：public，partial；<https://portal.core.edu.au/conf-ranks/?search=SIGCOMM&by=all&source=CORE2023&sort=atitle&page=1>\n- icore／ICORE2026／指标年 2026：public，partial；<https://portal.core.edu.au/conf-ranks/?search=SIGCOMM&by=all&source=ICORE2026&sort=atitle&page=1>\n- abdc／2010／指标年 2010：public，partial；<https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx>\n- abdc／2013／指标年 2013：public，partial；<https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx>\n- abdc／2016／指标年 2016：public，partial；<https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx>\n- abdc／2019／指标年 2019：public，partial；<https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx>\n- abdc／2022／指标年 2022：public，partial；<https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx>\n- abdc／2025／指标年 2025：public，partial；<https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx>\n- fwci／OpenAlex snapshot 2026-10-19／指标年 2026：public，partial；<https://api.openalex.org/works/W1951724000>\n- citation_percentile／OpenAlex snapshot 2026-10-19／指标年 2026：public，partial；<https://api.openalex.org/works/W1951724000>\n### 实际取证来源\n- ev-94a19dc2：DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving \\| USENIX；<https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin>；采集 2026-10-21T07:38:08.507795+00:00。\n- ev-7bfb7832：DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving \\| USENIX；<https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin#abstract>；采集 2026-10-21T07:38:08.478435+00:00。\n- ev-e8fb0a0b：Harp: Improving VPC Network Availability via Efficient Failure Detection and Rerouting in Tencent Cloud \\| USENIX；<https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu>；采集 2026-10-21T07:38:08.619350+00:00。\n- ev-cf3a9629：DistServe: Disaggregating Prefill and Decoding for Goodput ... - USENIX；<https://www.usenix.org/system/files/osdi24-zhong-yinmin.pdf>；采集 2026-10-21T07:38:07.073615+00:00。\n- ev-edb1299e：DistServe: Disaggregating Prefill and Decoding for Goodput ... - USENIX；<https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin>；采集 2026-10-21T07:38:07.073615+00:00。\n- ev-81fd207d：DistServe: Disaggregating Prefill and Decoding for Goodput ... - USENIX；<https://www.usenix.org/system/files/osdi24-zhong-yinmin.pdf>；采集 2026-10-21T07:38:07.079117+00:00。\n- ev-e24a998e：DistServe: Disaggregating Prefill and Decoding for Goodput ... - USENIX；<https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin>；采集 2026-10-21T07:38:07.079117+00:00。\n- ev-10f0b552：DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving \\| USENIX；<https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin>；采集 2026-10-21T07:38:44.595865+00:00。\n- ev-5d6cec6b：DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving \\| USENIX；<https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin#abstract>；采集 2026-10-21T07:38:44.545515+00:00。\n- ev-6b946487：Harp: Improving VPC Network Availability via Efficient Failure Detection and Rerouting in Tencent Cloud \\| USENIX；<https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu>；采集 2026-10-21T07:38:44.529850+00:00。\n### 缺失与解释边界\n- 证据索引不等于机构成果全集或已核实合作关系。\n- 仅覆盖本次取得的样本；空样本不代表现实中零成果，来源未覆盖年份不补零。\n- 学科比较组使用请求标签，尚未逐篇核定学科；不输出跨学科或载体的统一质量榜。\n- 原文位置与引用检查不等于独立语义复核；模型推断、建议和未来情景仍须复核。\n- 评价目录为冻结的部分样本及授权要求，未自动应用到本次成果；缺失指标不作零分或最低等级。\n- coauthorship 关系尚无已纳入的直接依据；不表示该关系不存在。\n- funding 关系尚无已纳入的直接依据；不表示该关系不存在。\n- citation 关系尚无已纳入的直接依据；不表示该关系不存在。\n- 待核 Harp: Improving VPC Network Availability via Efficient Failure Detection and Rerouting in Tencent Cloud：publication date interval is outside scope\n\n\n## 样本基线与流转\n仅相对于声明和实际取得材料描述覆盖，不是现实成果全集。\n请求冻结：2026-10-21T07:37:53.788219+00:00；评估：2026-10-21T07:39:06.480204+00:00；计数：canonical_primary_source_url_for_candidates_and_publications; explicit_family_links_only。\n| 来源候选 | 状态 | 全文 | 原因 |\n| --- | --- | --- | --- |\n| DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving | 已采纳 | 未取得全文 | source_supported_in_scope |\n| Harp: Improving VPC Network Availability via Efficient Failure Detection and Rerouting in Tencent Cloud | 已排除 | 未取得全文 | publication_date_out_of_scope |\n| DistServe: Disaggregating Prefill and Decoding for Goodput ... - USENIX | 候选待核 | 未取得全文 | not_evaluated |\n| https://arxiv.org/abs/2401.09670 | 已排除 | 未取得全文 | source_out_of_scope |\n| https://github.com/LLMServe/DistServe | 已排除 | 未取得全文 | source_out_of_scope |\n| https://zhuanlan.zhihu.com/p/19666783423 | 已排除 | 未取得全文 | source_out_of_scope |\n| https://zhuanlan.zhihu.com/p/698341542 | 已排除 | 未取得全文 | source_out_of_scope |\n| https://blog.csdn.net/u012679583/article/details/138339797 | 已排除 | 未取得全文 | source_out_of_scope |\n| https://dl.acm.org/doi/10.5555/3691938.3691949 | 已排除 | 未取得全文 | source_out_of_scope |\n| https://micavro.github.io/cs26July-pages/writing/distserve-2401.09670-zh.html | 已排除 | 未取得全文 | source_out_of_scope |\n| https://pinghaoyang.com.cn/aigc/posts/distserve | 已排除 | 未取得全文 | source_out_of_scope |\n| https://harp.cms.gov | 已排除 | 未取得全文 | source_out_of_scope |\n| https://en.m.wikipedia.org/wiki/Harp | 已排除 | 未取得全文 | source_out_of_scope |\n| https://www.musicalhow.com/harp-types | 已排除 | 未取得全文 | source_out_of_scope |\n| https://planning.lacity.gov/home-sharing-application-and-registration-portal-harp | 已排除 | 未取得全文 | source_out_of_scope |\n| https://www.britannica.com/art/harp-musical-instrument | 已排除 | 未取得全文 | source_out_of_scope |\n| https://harpcenterla.com | 已排除 | 未取得全文 | source_out_of_scope |\n| https://tonalics.com/play/harp | 已排除 | 未取得全文 | source_out_of_scope |\n| https://www.merriam-webster.com/dictionary/harp | 已排除 | 未取得全文 | source_out_of_scope |\n| https://www.harp.com | 已排除 | 未取得全文 | source_out_of_scope |\n| https://en.m.wikipedia.org/wiki/High-frequency_Active_Auroral_Research_Program | 已排除 | 未取得全文 | source_out_of_scope |\n- 检索式和纳入条件属于声明，学科／主题尚未独立分类。\n- 页面／检索线索不等于发表记录；采纳仅指通过本次原文字面、日期和归属检查。\n- 未取得全文不等于不可获得；不会自动跳转PDF或扩大来源。\n\n\n## 可复核样本与对象比较\n计数由结构化记录计算，仅覆盖本次取得并通过原文校验的样本；未链接版本暂按单条发表独立计数。\n| 对象 | 发表记录 | 研究家族 |\n| --- | ---: | ---: |\n| Peking University | 1 | 1 |\n| 去重汇总 | 1 | 1 |\n相同成果可分别归属多个对象，合并总量取成果／家族并集，不相加各对象行。\n### 同口径样本比较\n2024／conference_paper；学科口径来自请求：computer science。仅比较该组已取得样本，不作科研质量排序。\n| 对象 | 本组研究家族数 |\n| --- | ---: |\n| Peking University | 1 |\n### 已纳入成果与依据\n- DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving；日期区间 2024-07-01 至 2024-07-31（month 精度）；[citation:1]\n### 缺口与解释边界\n待核记录 1 项；未确立的关系：coauthorship、funding、citation。未取得证据不表示关系不存在。\n机构署名按所选名称／别名与发表来源对照；不推出当前任职、正式协议、内部研发投入或科研质量优劣。跨载体／年份不汇成统一质量榜。\n- 待核：Harp: Improving VPC Network Availability via Efficient Failure Detection and Rerouting in Tencent Cloud：publication date interval is outside scope\n",
+  "citations": [
+    {
+      "citation_id": "citation:1",
+      "source_url": "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin",
+      "source_title": "DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving | USENIX",
+      "source_type": "web",
+      "extracted_evidence": "DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving\nYinmin Zhong and Shengyu Liu, Peking University; Junda Chen, UC San Diego; Jianbo Hu, Peking University; Yibo Zhu, StepFun; Xuanzhe Liu and Xin Jin, Peking University; Hao Zhang, UC San Diego\nDistServe ",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T07:39:12.666148"
+    },
+    {
+      "citation_id": "citation:2",
+      "source_url": "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin#abstract",
+      "source_title": "DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving | USENIX",
+      "source_type": "web",
+      "extracted_evidence": "DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving\nYinmin Zhong and Shengyu Liu, Peking University; Junda Chen, UC San Diego; Jianbo Hu, Peking University; Yibo Zhu, StepFun; Xuanzhe Liu and Xin Jin, Peking University; Hao Zhang, UC San Diego\nDistServe ",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T07:39:12.666148"
+    },
+    {
+      "citation_id": "citation:3",
+      "source_url": "https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu",
+      "source_title": "Harp: Improving VPC Network Availability via Efficient Failure Detection and Rerouting in Tencent Cloud | USENIX",
+      "source_type": "web",
+      "extracted_evidence": "Harp: Improving VPC Network Availability via Efficient Failure Detection and Rerouting in Tencent Cloud\nJiayu Hu, Feng Jin, and Xianping Zhou, Tencent; Kai Zhang, Fudan University; Zhen Shen and Yongkang Luo, Tencent\nWe present Harp, a mechanism for efficient and robust failure detection and recover",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T07:39:12.666148"
+    },
+    {
+      "citation_id": "citation:4",
+      "source_url": "https://www.usenix.org/system/files/osdi24-zhong-yinmin.pdf",
+      "source_title": "DistServe: Disaggregating Prefill and Decoding for Goodput ... - USENIX",
+      "source_type": "web",
+      "extracted_evidence": "DistServe: Disaggregating Prefill and Decoding for Goodput ... - USENIX: We implement DistServe as an orchestration layer on top of the LLM inference engine. We evaluate DistServe on various LLMs, varying the workloads based on three important real-world LLM applications: chatbots, programming assis",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T07:39:12.666148"
+    },
+    {
+      "citation_id": "citation:5",
+      "source_url": "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin",
+      "source_title": "DistServe: Disaggregating Prefill and Decoding for Goodput ... - USENIX",
+      "source_type": "web",
+      "extracted_evidence": "DistServe: Disaggregating Prefill and Decoding for Goodput ... - USENIX: DistServe improves the performance of large language models (LLMs) serving by disaggregating the prefill and decoding computation. Existing LLM serving systems colocate the two phases and batch the computation of prefill and de",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T07:39:12.666148"
+    },
+    {
+      "citation_id": "citation:6",
+      "source_url": "https://www.usenix.org/system/files/osdi24-zhong-yinmin.pdf",
+      "source_title": "DistServe: Disaggregating Prefill and Decoding for Goodput ... - USENIX",
+      "source_type": "web",
+      "extracted_evidence": "DistServe: Disaggregating Prefill and Decoding for Goodput ... - USENIX: We implement DistServe as an orchestration layer on top of the LLM inference engine. We evaluate DistServe on various LLMs, varying the workloads based on three important real-world LLM applications: chatbots, programming assis",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T07:39:12.666148"
+    },
+    {
+      "citation_id": "citation:7",
+      "source_url": "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin",
+      "source_title": "DistServe: Disaggregating Prefill and Decoding for Goodput ... - USENIX",
+      "source_type": "web",
+      "extracted_evidence": "DistServe: Disaggregating Prefill and Decoding for Goodput ... - USENIX: DistServe improves the performance of large language models (LLMs) serving by disaggregating the prefill and decoding computation. Existing LLM serving systems colocate the two phases and batch the computation of prefill and de",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T07:39:12.666148"
+    },
+    {
+      "citation_id": "citation:8",
+      "source_url": "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin",
+      "source_title": "DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving | USENIX",
+      "source_type": "web",
+      "extracted_evidence": "DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving\nYinmin Zhong and Shengyu Liu, Peking University; Junda Chen, UC San Diego; Jianbo Hu, Peking University; Yibo Zhu, StepFun; Xuanzhe Liu and Xin Jin, Peking University; Hao Zhang, UC San Diego\nDistServe ",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T07:39:12.666148"
+    },
+    {
+      "citation_id": "citation:9",
+      "source_url": "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin#abstract",
+      "source_title": "DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving | USENIX",
+      "source_type": "web",
+      "extracted_evidence": "DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving\nYinmin Zhong and Shengyu Liu, Peking University; Junda Chen, UC San Diego; Jianbo Hu, Peking University; Yibo Zhu, StepFun; Xuanzhe Liu and Xin Jin, Peking University; Hao Zhang, UC San Diego\nDistServe ",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T07:39:12.666148"
+    },
+    {
+      "citation_id": "citation:10",
+      "source_url": "https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu",
+      "source_title": "Harp: Improving VPC Network Availability via Efficient Failure Detection and Rerouting in Tencent Cloud | USENIX",
+      "source_type": "web",
+      "extracted_evidence": "Harp: Improving VPC Network Availability via Efficient Failure Detection and Rerouting in Tencent Cloud\nJiayu Hu, Feng Jin, and Xianping Zhou, Tencent; Kai Zhang, Fudan University; Zhen Shen and Yongkang Luo, Tencent\nWe present Harp, a mechanism for efficient and robust failure detection and recover",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T07:39:12.666148"
+    }
+  ],
+  "tool_calls": [
+    {
+      "call_id": "call-00103087",
+      "session_id": "ca9ae733-92ec-4c44-a29a-bc595a393c99",
+      "node_id": "n5",
+      "agent_type": "search",
+      "tool_name": "execute_search",
+      "args_json": {
+        "query": "Harp 2026 site:usenix.org",
+        "task_id": "ca9ae733-92ec-4c44-a29a-bc595a393c99"
+      },
+      "args_hash": "f4f58f669e8c80c410530ee6894f34e70a14f346fe2393045290325cd5aa4016",
+      "status": "success",
+      "error_category": null,
+      "error_message": null,
+      "retry_count": 0,
+      "result_summary": "0 search results",
+      "result_hash": "95f435ac6d4b6c2c6b961b0fea3b68ba784ce03973d7de9e58535875b4101984",
+      "tokens_used": 0,
+      "cost_usd": 0.0,
+      "decision_id": null,
+      "approved_by": null,
+      "server_fingerprint": null,
+      "safety_json": {
+        "source": "harness_tool_layer",
+        "audited": true,
+        "source_query": "Harp 2026 site:usenix.org (site:usenix.org)",
+        "empty_discovery": true,
+        "channel_attempts": [
+          {
+            "status": "failed",
+            "backend": "duckduckgo",
+            "channel": "web",
+            "call_count": 1,
+            "duration_ms": 1687,
+            "result_count": 0,
+            "error_category": "access_denied"
+          },
+          {
+            "status": "success",
+            "backend": "bing-rss",
+            "channel": "web",
+            "call_count": 1,
+            "duration_ms": 1375,
+            "result_count": 10,
+            "error_category": null
+          }
+        ],
+        "discovery_status": "provider_empty_or_no_in_scope_leads",
+        "rejected_sources": [
+          {
+            "url": "https://harp.cms.gov/",
+            "reason": "source_out_of_scope"
+          },
+          {
+            "url": "https://en.m.wikipedia.org/wiki/Harp",
+            "reason": "source_out_of_scope"
+          },
+          {
+            "url": "https://www.musicalhow.com/harp-types/",
+            "reason": "source_out_of_scope"
+          },
+          {
+            "url": "https://planning.lacity.gov/home-sharing-application-and-registration-portal-harp",
+            "reason": "source_out_of_scope"
+          },
+          {
+            "url": "https://www.britannica.com/art/harp-musical-instrument",
+            "reason": "source_out_of_scope"
+          },
+          {
+            "url": "https://harpcenterla.com/",
+            "reason": "source_out_of_scope"
+          },
+          {
+            "url": "https://tonalics.com/play/harp",
+            "reason": "source_out_of_scope"
+          },
+          {
+            "url": "https://www.merriam-webster.com/dictionary/harp",
+            "reason": "source_out_of_scope"
+          },
+          {
+            "url": "https://www.harp.com/",
+            "reason": "source_out_of_scope"
+          },
+          {
+            "url": "https://en.m.wikipedia.org/wiki/High-frequency_Active_Auroral_Research_Program",
+            "reason": "source_out_of_scope"
+          }
+        ],
+        "schema_validated": true,
+        "in_scope_lead_count": 0
+      },
+      "usage_source": "provider",
+      "estimated": false,
+      "started_at": "2026-10-21T07:38:07.035565",
+      "completed_at": "2026-10-21T07:38:10.156304",
+      "created_at": "2026-10-21T07:38:10.180018"
+    },
+    {
+      "call_id": "call-05a69386",
+      "session_id": "ca9ae733-92ec-4c44-a29a-bc595a393c99",
+      "node_id": "n1",
+      "agent_type": "browser",
+      "tool_name": "execute_browse",
+      "args_json": {
+        "query": "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin",
+        "task_id": "ca9ae733-92ec-4c44-a29a-bc595a393c99"
+      },
+      "args_hash": "4a2a16cc391502971bf6847c9a80c80044038b89d8b40d40b5e8efebf700b06c",
+      "status": "success",
+      "error_category": null,
+      "error_message": null,
+      "retry_count": 0,
+      "result_summary": "1 browser pages",
+      "result_hash": "2ce59d0cd6e6de9fe8635ac9b93146aa2c531f6ae6a7cd08b7d0babb0de31bdb",
+      "tokens_used": 0,
+      "cost_usd": 0.0,
+      "decision_id": null,
+      "approved_by": null,
+      "server_fingerprint": null,
+      "safety_json": {
+        "source": "harness_tool_layer",
+        "audited": true,
+        "schema_validated": true
+      },
+      "usage_source": "provider",
+      "estimated": false,
+      "started_at": "2026-10-21T07:38:06.993521",
+      "completed_at": "2026-10-21T07:38:08.507795",
+      "created_at": "2026-10-21T07:38:10.180018"
+    },
+    {
+      "call_id": "call-12fae44b",
+      "session_id": "ca9ae733-92ec-4c44-a29a-bc595a393c99",
+      "node_id": "n2",
+      "agent_type": "browser",
+      "tool_name": "execute_browse",
+      "args_json": {
+        "query": "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin#abstract",
+        "task_id": "ca9ae733-92ec-4c44-a29a-bc595a393c99"
+      },
+      "args_hash": "40d20e8b5de1f39bfbed84a336201cea29e49061457783ce7191e91ebe572f5a",
+      "status": "success",
+      "error_category": null,
+      "error_message": null,
+      "retry_count": 0,
+      "result_summary": "1 browser pages",
+      "result_hash": "2ce59d0cd6e6de9fe8635ac9b93146aa2c531f6ae6a7cd08b7d0babb0de31bdb",
+      "tokens_used": 0,
+      "cost_usd": 0.0,
+      "decision_id": null,
+      "approved_by": null,
+      "server_fingerprint": null,
+      "safety_json": {
+        "source": "harness_tool_layer",
+        "audited": true,
+        "schema_validated": true
+      },
+      "usage_source": "provider",
+      "estimated": false,
+      "started_at": "2026-10-21T07:38:06.997785",
+      "completed_at": "2026-10-21T07:38:08.478435",
+      "created_at": "2026-10-21T07:38:10.180018"
+    },
+    {
+      "call_id": "call-42c66a0f",
+      "session_id": "ca9ae733-92ec-4c44-a29a-bc595a393c99",
+      "node_id": "n4",
+      "agent_type": "search",
+      "tool_name": "execute_search",
+      "args_json": {
+        "query": "DistServe Peking University site:usenix.org",
+        "task_id": "ca9ae733-92ec-4c44-a29a-bc595a393c99"
+      },
+      "args_hash": "150e6c436bbf431de9fa8aded9879c9f57011b25b145401061d1f64ad8a5639e",
+      "status": "success",
+      "error_category": null,
+      "error_message": null,
+      "retry_count": 0,
+      "result_summary": "2 search results",
+      "result_hash": "2236c26e6ce59162ac0f6629b33036cb39e1dd37cff7c6719f0daa3deb4a17d2",
+      "tokens_used": 0,
+      "cost_usd": 0.0,
+      "decision_id": null,
+      "approved_by": null,
+      "server_fingerprint": null,
+      "safety_json": {
+        "source": "harness_tool_layer",
+        "audited": true,
+        "source_query": "DistServe Peking University site:usenix.org (site:usenix.org)",
+        "channel_attempts": [
+          {
+            "status": "failed",
+            "backend": "duckduckgo",
+            "channel": "web",
+            "call_count": 1,
+            "duration_ms": 1625,
+            "result_count": 0,
+            "error_category": "access_denied"
+          },
+          {
+            "status": "success",
+            "backend": "bing-rss",
+            "channel": "web",
+            "call_count": 1,
+            "duration_ms": 1453,
+            "result_count": 10,
+            "error_category": null
+          }
+        ],
+        "rejected_sources": [
+          {
+            "url": "https://arxiv.org/abs/2401.09670",
+            "reason": "source_out_of_scope"
+          },
+          {
+            "url": "https://github.com/LLMServe/DistServe",
+            "reason": "source_out_of_scope"
+          },
+          {
+            "url": "https://zhuanlan.zhihu.com/p/19666783423",
+            "reason": "source_out_of_scope"
+          },
+          {
+            "url": "https://zhuanlan.zhihu.com/p/698341542",
+            "reason": "source_out_of_scope"
+          },
+          {
+            "url": "https://blog.csdn.net/u012679583/article/details/138339797",
+            "reason": "source_out_of_scope"
+          },
+          {
+            "url": "https://dl.acm.org/doi/10.5555/3691938.3691949",
+            "reason": "source_out_of_scope"
+          },
+          {
+            "url": "https://micavro.github.io/cs26July-pages/writing/distserve-2401.09670-zh.html",
+            "reason": "source_out_of_scope"
+          },
+          {
+            "url": "https://pinghaoyang.com.cn/aigc/posts/distserve/",
+            "reason": "source_out_of_scope"
+          }
+        ],
+        "schema_validated": true
+      },
+      "usage_source": "provider",
+      "estimated": false,
+      "started_at": "2026-10-21T07:38:07.013299",
+      "completed_at": "2026-10-21T07:38:10.169838",
+      "created_at": "2026-10-21T07:38:10.180018"
+    },
+    {
+      "call_id": "call-43e4203d",
+      "session_id": "ca9ae733-92ec-4c44-a29a-bc595a393c99",
+      "node_id": "n6",
+      "agent_type": "search",
+      "tool_name": "execute_search",
+      "args_json": {
+        "query": "DistServe OSDI 2024 Peking University authors affiliation",
+        "task_id": "ca9ae733-92ec-4c44-a29a-bc595a393c99"
+      },
+      "args_hash": "d0166714c038f8feae4c69c7db04be7060d70ab43c5d0c5c5e1e7038938955d3",
+      "status": "success",
+      "error_category": null,
+      "error_message": null,
+      "retry_count": 0,
+      "result_summary": "2 search results",
+      "result_hash": "2236c26e6ce59162ac0f6629b33036cb39e1dd37cff7c6719f0daa3deb4a17d2",
+      "tokens_used": 0,
+      "cost_usd": 0.0,
+      "decision_id": null,
+      "approved_by": null,
+      "server_fingerprint": null,
+      "safety_json": {
+        "source": "harness_tool_layer",
+        "audited": true,
+        "source_query": "DistServe OSDI 2024 Peking University authors affiliation (site:usenix.org)",
+        "channel_attempts": [
+          {
+            "status": "failed",
+            "backend": "duckduckgo",
+            "channel": "web",
+            "call_count": 1,
+            "duration_ms": 1625,
+            "result_count": 0,
+            "error_category": "access_denied"
+          },
+          {
+            "status": "success",
+            "backend": "bing-rss",
+            "channel": "web",
+            "call_count": 1,
+            "duration_ms": 1422,
+            "result_count": 10,
+            "error_category": null
+          }
+        ],
+        "rejected_sources": [
+          {
+            "url": "https://arxiv.org/abs/2401.09670",
+            "reason": "source_out_of_scope"
+          },
+          {
+            "url": "https://github.com/LLMServe/DistServe",
+            "reason": "source_out_of_scope"
+          },
+          {
+            "url": "https://zhuanlan.zhihu.com/p/19666783423",
+            "reason": "source_out_of_scope"
+          },
+          {
+            "url": "https://zhuanlan.zhihu.com/p/698341542",
+            "reason": "source_out_of_scope"
+          },
+          {
+            "url": "https://blog.csdn.net/u012679583/article/details/138339797",
+            "reason": "source_out_of_scope"
+          },
+          {
+            "url": "https://dl.acm.org/doi/10.5555/3691938.3691949",
+            "reason": "source_out_of_scope"
+          },
+          {
+            "url": "https://micavro.github.io/cs26July-pages/writing/distserve-2401.09670-zh.html",
+            "reason": "source_out_of_scope"
+          },
+          {
+            "url": "https://pinghaoyang.com.cn/aigc/posts/distserve/",
+            "reason": "source_out_of_scope"
+          }
+        ],
+        "schema_validated": true
+      },
+      "usage_source": "provider",
+      "estimated": false,
+      "started_at": "2026-10-21T07:38:07.068585",
+      "completed_at": "2026-10-21T07:38:10.135623",
+      "created_at": "2026-10-21T07:38:10.180018"
+    },
+    {
+      "call_id": "call-5f6524d7",
+      "session_id": "ca9ae733-92ec-4c44-a29a-bc595a393c99",
+      "node_id": "n3",
+      "agent_type": "browser",
+      "tool_name": "execute_browse",
+      "args_json": {
+        "query": "https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu",
+        "task_id": "ca9ae733-92ec-4c44-a29a-bc595a393c99"
+      },
+      "args_hash": "494af95c607b4d6a93d0fe9f882b45ba0a7c550a5ae3c0bbd4271554a2389cc3",
+      "status": "success",
+      "error_category": null,
+      "error_message": null,
+      "retry_count": 0,
+      "result_summary": "1 browser pages",
+      "result_hash": "2ce59d0cd6e6de9fe8635ac9b93146aa2c531f6ae6a7cd08b7d0babb0de31bdb",
+      "tokens_used": 0,
+      "cost_usd": 0.0,
+      "decision_id": null,
+      "approved_by": null,
+      "server_fingerprint": null,
+      "safety_json": {
+        "source": "harness_tool_layer",
+        "audited": true,
+        "schema_validated": true
+      },
+      "usage_source": "provider",
+      "estimated": false,
+      "started_at": "2026-10-21T07:38:06.997785",
+      "completed_at": "2026-10-21T07:38:08.619350",
+      "created_at": "2026-10-21T07:38:10.180018"
+    },
+    {
+      "call_id": "call-8910001c",
+      "session_id": "ca9ae733-92ec-4c44-a29a-bc595a393c99",
+      "node_id": "n1",
+      "agent_type": "browser",
+      "tool_name": "execute_browse",
+      "args_json": {
+        "query": "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin",
+        "task_id": "ca9ae733-92ec-4c44-a29a-bc595a393c99"
+      },
+      "args_hash": "4a2a16cc391502971bf6847c9a80c80044038b89d8b40d40b5e8efebf700b06c",
+      "status": "success",
+      "error_category": null,
+      "error_message": null,
+      "retry_count": 0,
+      "result_summary": "1 browser pages",
+      "result_hash": "2ce59d0cd6e6de9fe8635ac9b93146aa2c531f6ae6a7cd08b7d0babb0de31bdb",
+      "tokens_used": 0,
+      "cost_usd": 0.0,
+      "decision_id": null,
+      "approved_by": null,
+      "server_fingerprint": null,
+      "safety_json": {
+        "source": "harness_tool_layer",
+        "audited": true,
+        "schema_validated": true
+      },
+      "usage_source": "provider",
+      "estimated": false,
+      "started_at": "2026-10-21T07:38:43.016877",
+      "completed_at": "2026-10-21T07:38:44.595865",
+      "created_at": "2026-10-21T07:38:44.605019"
+    },
+    {
+      "call_id": "call-dad64047",
+      "session_id": "ca9ae733-92ec-4c44-a29a-bc595a393c99",
+      "node_id": "n2",
+      "agent_type": "browser",
+      "tool_name": "execute_browse",
+      "args_json": {
+        "query": "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin#abstract",
+        "task_id": "ca9ae733-92ec-4c44-a29a-bc595a393c99"
+      },
+      "args_hash": "40d20e8b5de1f39bfbed84a336201cea29e49061457783ce7191e91ebe572f5a",
+      "status": "success",
+      "error_category": null,
+      "error_message": null,
+      "retry_count": 0,
+      "result_summary": "1 browser pages",
+      "result_hash": "2ce59d0cd6e6de9fe8635ac9b93146aa2c531f6ae6a7cd08b7d0babb0de31bdb",
+      "tokens_used": 0,
+      "cost_usd": 0.0,
+      "decision_id": null,
+      "approved_by": null,
+      "server_fingerprint": null,
+      "safety_json": {
+        "source": "harness_tool_layer",
+        "audited": true,
+        "schema_validated": true
+      },
+      "usage_source": "provider",
+      "estimated": false,
+      "started_at": "2026-10-21T07:38:43.017874",
+      "completed_at": "2026-10-21T07:38:44.545515",
+      "created_at": "2026-10-21T07:38:44.605019"
+    },
+    {
+      "call_id": "call-ecced127",
+      "session_id": "ca9ae733-92ec-4c44-a29a-bc595a393c99",
+      "node_id": "n3",
+      "agent_type": "browser",
+      "tool_name": "execute_browse",
+      "args_json": {
+        "query": "https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu",
+        "task_id": "ca9ae733-92ec-4c44-a29a-bc595a393c99"
+      },
+      "args_hash": "494af95c607b4d6a93d0fe9f882b45ba0a7c550a5ae3c0bbd4271554a2389cc3",
+      "status": "success",
+      "error_category": null,
+      "error_message": null,
+      "retry_count": 0,
+      "result_summary": "1 browser pages",
+      "result_hash": "2ce59d0cd6e6de9fe8635ac9b93146aa2c531f6ae6a7cd08b7d0babb0de31bdb",
+      "tokens_used": 0,
+      "cost_usd": 0.0,
+      "decision_id": null,
+      "approved_by": null,
+      "server_fingerprint": null,
+      "safety_json": {
+        "source": "harness_tool_layer",
+        "audited": true,
+        "schema_validated": true
+      },
+      "usage_source": "provider",
+      "estimated": false,
+      "started_at": "2026-10-21T07:38:43.017874",
+      "completed_at": "2026-10-21T07:38:44.529850",
+      "created_at": "2026-10-21T07:38:44.605019"
+    }
+  ],
+  "node_outcomes": [
+    {
+      "status": "success",
+      "node_id": "n1",
+      "cost_usd": 0.0,
+      "tool_name": "browse_webpage",
+      "retry_count": 0,
+      "tokens_used": 0,
+      "result_count": 1,
+      "tool_call_id": "call-05a69386",
+      "error_message": null,
+      "error_category": null,
+      "approval_request_id": null
+    },
+    {
+      "status": "success",
+      "node_id": "n2",
+      "cost_usd": 0.0,
+      "tool_name": "browse_webpage",
+      "retry_count": 0,
+      "tokens_used": 0,
+      "result_count": 1,
+      "tool_call_id": "call-12fae44b",
+      "error_message": null,
+      "error_category": null,
+      "approval_request_id": null
+    },
+    {
+      "status": "success",
+      "node_id": "n3",
+      "cost_usd": 0.0,
+      "tool_name": "browse_webpage",
+      "retry_count": 0,
+      "tokens_used": 0,
+      "result_count": 1,
+      "tool_call_id": "call-5f6524d7",
+      "error_message": null,
+      "error_category": null,
+      "approval_request_id": null
+    },
+    {
+      "status": "success",
+      "node_id": "n4",
+      "cost_usd": 0.0,
+      "tool_name": "duckduckgo_search",
+      "retry_count": 0,
+      "tokens_used": 0,
+      "result_count": 2,
+      "tool_call_id": "call-42c66a0f",
+      "error_message": null,
+      "error_category": null,
+      "approval_request_id": null
+    },
+    {
+      "status": "success",
+      "node_id": "n5",
+      "cost_usd": 0.0,
+      "tool_name": "duckduckgo_search",
+      "retry_count": 0,
+      "tokens_used": 0,
+      "result_count": 0,
+      "tool_call_id": "call-00103087",
+      "error_message": null,
+      "error_category": null,
+      "approval_request_id": null
+    },
+    {
+      "status": "success",
+      "node_id": "n6",
+      "cost_usd": 0.0,
+      "tool_name": "duckduckgo_search",
+      "retry_count": 0,
+      "tokens_used": 0,
+      "result_count": 2,
+      "tool_call_id": "call-43e4203d",
+      "error_message": null,
+      "error_category": null,
+      "approval_request_id": null
+    },
+    {
+      "status": "success",
+      "node_id": "n1",
+      "cost_usd": 0.0,
+      "tool_name": "browse_webpage",
+      "retry_count": 0,
+      "tokens_used": 0,
+      "result_count": 1,
+      "tool_call_id": "call-8910001c",
+      "error_message": null,
+      "error_category": null,
+      "approval_request_id": null
+    },
+    {
+      "status": "success",
+      "node_id": "n2",
+      "cost_usd": 0.0,
+      "tool_name": "browse_webpage",
+      "retry_count": 0,
+      "tokens_used": 0,
+      "result_count": 1,
+      "tool_call_id": "call-dad64047",
+      "error_message": null,
+      "error_category": null,
+      "approval_request_id": null
+    },
+    {
+      "status": "success",
+      "node_id": "n3",
+      "cost_usd": 0.0,
+      "tool_name": "browse_webpage",
+      "retry_count": 0,
+      "tokens_used": 0,
+      "result_count": 1,
+      "tool_call_id": "call-ecced127",
+      "error_message": null,
+      "error_category": null,
+      "approval_request_id": null
+    },
+    {
+      "status": "skipped",
+      "node_id": "n4",
+      "cost_usd": 0.0,
+      "tool_name": "execute_search",
+      "retry_count": 0,
+      "tokens_used": 0,
+      "result_count": 0,
+      "tool_call_id": null,
+      "error_message": null,
+      "error_category": "budget_exceeded",
+      "approval_request_id": null
+    },
+    {
+      "status": "skipped",
+      "node_id": "n5",
+      "cost_usd": 0.0,
+      "tool_name": "execute_search",
+      "retry_count": 0,
+      "tokens_used": 0,
+      "result_count": 0,
+      "tool_call_id": null,
+      "error_message": null,
+      "error_category": "budget_exceeded",
+      "approval_request_id": null
+    }
+  ],
+  "final_report_audit": {
+    "usage": [],
+    "claims": [
+      {
+        "text": "按本次所选研究模块组织；来源摘述和分析仍需阅读审核状态。",
+        "reason": "Awaiting source support judgement",
+        "status": "missing_citation",
+        "claim_id": "claim:1",
+        "excerpts": [
+          {
+            "end": 1400,
+            "quote": "DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving\nYinmin Zhong and Shengyu Liu, Peking University; Junda Chen, UC San Diego; Jianbo Hu, Peking University; Yibo Zhu, StepFun; Xuanzhe Liu and Xin Jin, Peking University; Hao Zhang, UC San Diego\nDistServe improves the performance of large language models (LLMs) serving by disaggregating the prefill and decoding computation. Existing LLM serving systems colocate the two phases and batch the computation of prefill and decoding across all users and requests. We find that this strategy not only leads to strong prefill-decoding interferences but also couples the resource allocation and parallelism plans for both phases. LLM applications often emphasize individual latency for each phase: time to first token (TTFT) for the prefill phase and time per output token (TPOT) of each request for the decoding phase. In the presence of stringent latency requirements, existing systems have to prioritize one latency over the other, or over-provision compute resources to meet both.\nDistServe assigns prefill and decoding computation to different GPUs, hence eliminating prefill-decoding interferences. Given the application's TTFT and TPOT requirements, DistServe co-optimizes the resource allocation and parallelism strategy tailored for each phase. DistServe also places the two phases according to the serv",
+            "start": 0,
+            "excerpt_id": "ev-94a19dc2:0:1400",
+            "source_url": "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin",
+            "citation_id": 1,
+            "evidence_id": "ev-94a19dc2",
+            "source_title": "DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving | USENIX"
+          },
+          {
+            "end": 2200,
+            "quote": "token (TTFT) for the prefill phase and time per output token (TPOT) of each request for the decoding phase. In the presence of stringent latency requirements, existing systems have to prioritize one latency over the other, or over-provision compute resources to meet both.\nDistServe assigns prefill and decoding computation to different GPUs, hence eliminating prefill-decoding interferences. Given the application's TTFT and TPOT requirements, DistServe co-optimizes the resource allocation and parallelism strategy tailored for each phase. DistServe also places the two phases according to the serving cluster's bandwidth to minimize the communication caused by disaggregation. As a result, DistServe significantly improves LLM serving performance in terms of the maximum rate that can be served within both TTFT and TPOT constraints on each GPU. Our evaluations show that on various popular LLMs, applications, and latency requirements, DistServe can serve 7.4× more requests or 12.6× tighter SLO, compared to state-of-the-art systems, while staying within latency constraints for > 90% of requests.\nOSDI '24 Open Access Sponsored by\nKing Abdullah University of Science and Technology (KAUST)\nOpen Access Media\nUSENIX is committed to Open Access to the research presented at our events. Papers and proceedings are freely available to everyone once the event begins. Any video, audio, and/or slides",
+            "start": 800,
+            "excerpt_id": "ev-94a19dc2:800:2200",
+            "source_url": "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin",
+            "citation_id": 1,
+            "evidence_id": "ev-94a19dc2",
+            "source_title": "DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving | USENIX"
+          },
+          {
+            "end": 2949,
+            "quote": "thin both TTFT and TPOT constraints on each GPU. Our evaluations show that on various popular LLMs, applications, and latency requirements, DistServe can serve 7.4× more requests or 12.6× tighter SLO, compared to state-of-the-art systems, while staying within latency constraints for > 90% of requests.\nOSDI '24 Open Access Sponsored by\nKing Abdullah University of Science and Technology (KAUST)\nOpen Access Media\nUSENIX is committed to Open Access to the research presented at our events. Papers and proceedings are freely available to everyone once the event begins. Any video, audio, and/or slides that are posted after the event are also free and open to everyone. Support USENIX and our commitment to Open Access.\nBibTeX\n@inproceedings {298687,\nauthor = {Yinmin Zhong and Shengyu Liu and Junda Chen and Jianbo Hu and Yibo Zhu and Xuanzhe Liu and Xin Jin and Hao Zhang},\ntitle = {{DistServe}: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving},\nbooktitle = {18th USENIX Symposium on Operating Systems Design and Implementation (OSDI 24)},\nyear = {2024},\nisbn = {978-1-939133-40-3},\naddress = {Santa Clara, CA},\npages = {193--210},\nurl = {https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin},\npublisher = {USENIX Association},\nmonth = jul\n}\nDownload\nZhong PDF\nView the slides\nPresentation Video",
+            "start": 1600,
+            "excerpt_id": "ev-94a19dc2:1600:2949",
+            "source_url": "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin",
+            "citation_id": 1,
+            "evidence_id": "ev-94a19dc2",
+            "source_title": "DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving | USENIX"
+          },
+          {
+            "end": 1400,
+            "quote": "DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving\nYinmin Zhong and Shengyu Liu, Peking University; Junda Chen, UC San Diego; Jianbo Hu, Peking University; Yibo Zhu, StepFun; Xuanzhe Liu and Xin Jin, Peking University; Hao Zhang, UC San Diego\nDistServe improves the performance of large language models (LLMs) serving by disaggregating the prefill and decoding computation. Existing LLM serving systems colocate the two phases and batch the computation of prefill and decoding across all users and requests. We find that this strategy not only leads to strong prefill-decoding interferences but also couples the resource allocation and parallelism plans for both phases. LLM applications often emphasize individual latency for each phase: time to first token (TTFT) for the prefill phase and time per output token (TPOT) of each request for the decoding phase. In the presence of stringent latency requirements, existing systems have to prioritize one latency over the other, or over-provision compute resources to meet both.\nDistServe assigns prefill and decoding computation to different GPUs, hence eliminating prefill-decoding interferences. Given the application's TTFT and TPOT requirements, DistServe co-optimizes the resource allocation and parallelism strategy tailored for each phase. DistServe also places the two phases according to the serv",
+            "start": 0,
+            "excerpt_id": "ev-7bfb7832:0:1400",
+            "source_url": "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin#abstract",
+            "citation_id": 2,
+            "evidence_id": "ev-7bfb7832",
+            "source_title": "DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving | USENIX"
+          },
+          {
+            "end": 2200,
+            "quote": "token (TTFT) for the prefill phase and time per output token (TPOT) of each request for the decoding phase. In the presence of stringent latency requirements, existing systems have to prioritize one latency over the other, or over-provision compute resources to meet both.\nDistServe assigns prefill and decoding computation to different GPUs, hence eliminating prefill-decoding interferences. Given the application's TTFT and TPOT requirements, DistServe co-optimizes the resource allocation and parallelism strategy tailored for each phase. DistServe also places the two phases according to the serving cluster's bandwidth to minimize the communication caused by disaggregation. As a result, DistServe significantly improves LLM serving performance in terms of the maximum rate that can be served within both TTFT and TPOT constraints on each GPU. Our evaluations show that on various popular LLMs, applications, and latency requirements, DistServe can serve 7.4× more requests or 12.6× tighter SLO, compared to state-of-the-art systems, while staying within latency constraints for > 90% of requests.\nOSDI '24 Open Access Sponsored by\nKing Abdullah University of Science and Technology (KAUST)\nOpen Access Media\nUSENIX is committed to Open Access to the research presented at our events. Papers and proceedings are freely available to everyone once the event begins. Any video, audio, and/or slides",
+            "start": 800,
+            "excerpt_id": "ev-7bfb7832:800:2200",
+            "source_url": "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin#abstract",
+            "citation_id": 2,
+            "evidence_id": "ev-7bfb7832",
+            "source_title": "DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving | USENIX"
+          },
+          {
+            "end": 2949,
+            "quote": "thin both TTFT and TPOT constraints on each GPU. Our evaluations show that on various popular LLMs, applications, and latency requirements, DistServe can serve 7.4× more requests or 12.6× tighter SLO, compared to state-of-the-art systems, while staying within latency constraints for > 90% of requests.\nOSDI '24 Open Access Sponsored by\nKing Abdullah University of Science and Technology (KAUST)\nOpen Access Media\nUSENIX is committed to Open Access to the research presented at our events. Papers and proceedings are freely available to everyone once the event begins. Any video, audio, and/or slides that are posted after the event are also free and open to everyone. Support USENIX and our commitment to Open Access.\nBibTeX\n@inproceedings {298687,\nauthor = {Yinmin Zhong and Shengyu Liu and Junda Chen and Jianbo Hu and Yibo Zhu and Xuanzhe Liu and Xin Jin and Hao Zhang},\ntitle = {{DistServe}: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving},\nbooktitle = {18th USENIX Symposium on Operating Systems Design and Implementation (OSDI 24)},\nyear = {2024},\nisbn = {978-1-939133-40-3},\naddress = {Santa Clara, CA},\npages = {193--210},\nurl = {https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin},\npublisher = {USENIX Association},\nmonth = jul\n}\nDownload\nZhong PDF\nView the slides\nPresentation Video",
+            "start": 1600,
+            "excerpt_id": "ev-7bfb7832:1600:2949",
+            "source_url": "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin#abstract",
+            "citation_id": 2,
+            "evidence_id": "ev-7bfb7832",
+            "source_title": "DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving | USENIX"
+          },
+          {
+            "end": 1400,
+            "quote": "Harp: Improving VPC Network Availability via Efficient Failure Detection and Rerouting in Tencent Cloud\nJiayu Hu, Feng Jin, and Xianping Zhou, Tencent; Kai Zhang, Fudan University; Zhen Shen and Yongkang Luo, Tencent\nWe present Harp, a mechanism for efficient and robust failure detection and recovery for VPC networks. Unlike previous approaches, Harp does not rely on specific hardware features or transport protocols. Instead, Harp is a lightweight software implementation that identifies feasible physical paths between each pair of communicating hosts and monitors their health states. When network failures occur, Harp can swiftly switch influenced flows from a failed path to a healthy path within a short interval. Harp has been deployed in Tencent Cloud for more than two years and has proven its effectiveness in handling network failures. According to the results from production systems, Harp can significantly reduce the VPC network's outage time by 78.71%-99.97% and essentially bypass failed paths on a sub-second timescale. We also share our experiences of how Harp efficiently detects and handles network failures when deployed in Tencent Cloud.\nNSDI '26 Open Access Sponsored by\nKing Abdullah University of Science and Technology (KAUST)\nOpen Access Media\nUSENIX is committed to Open Access to the research presented at our events. Papers and proceedings are freely available to eve",
+            "start": 0,
+            "excerpt_id": "ev-e8fb0a0b:0:1400",
+            "source_url": "https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu",
+            "citation_id": 3,
+            "evidence_id": "ev-e8fb0a0b",
+            "source_title": "Harp: Improving VPC Network Availability via Efficient Failure Detection and Rerouting in Tencent Cloud | USENIX"
+          },
+          {
+            "end": 2177,
+            "quote": "n its effectiveness in handling network failures. According to the results from production systems, Harp can significantly reduce the VPC network's outage time by 78.71%-99.97% and essentially bypass failed paths on a sub-second timescale. We also share our experiences of how Harp efficiently detects and handles network failures when deployed in Tencent Cloud.\nNSDI '26 Open Access Sponsored by\nKing Abdullah University of Science and Technology (KAUST)\nOpen Access Media\nUSENIX is committed to Open Access to the research presented at our events. Papers and proceedings are freely available to everyone once the event begins. Any video, audio, and/or slides that are posted after the event are also free and open to everyone. Support USENIX and our commitment to Open Access.\nBibTeX\n@inproceedings {316634,\nauthor = {Jiayu Hu and Feng Jin and Xianping Zhou and Kai Zhang and Zhen Shen and Yongkang Luo},\ntitle = {Harp: Improving {VPC} Network Availability via Efficient Failure Detection and Rerouting in Tencent Cloud},\nbooktitle = {23rd USENIX Symposium on Networked Systems Design and Implementation (NSDI 26)},\nyear = {2026},\nisbn = {978-1-939133-54-0},\naddress = {Renton, WA},\npages = {1669--1684},\nurl = {https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu},\npublisher = {USENIX Association},\nmonth = may\n}\nDownload\nHu PDF\nView the slides\nPresentation Video",
+            "start": 800,
+            "excerpt_id": "ev-e8fb0a0b:800:2177",
+            "source_url": "https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu",
+            "citation_id": 3,
+            "evidence_id": "ev-e8fb0a0b",
+            "source_title": "Harp: Improving VPC Network Availability via Efficient Failure Detection and Rerouting in Tencent Cloud | USENIX"
+          },
+          {
+            "end": 2177,
+            "quote": " {316634,\nauthor = {Jiayu Hu and Feng Jin and Xianping Zhou and Kai Zhang and Zhen Shen and Yongkang Luo},\ntitle = {Harp: Improving {VPC} Network Availability via Efficient Failure Detection and Rerouting in Tencent Cloud},\nbooktitle = {23rd USENIX Symposium on Networked Systems Design and Implementation (NSDI 26)},\nyear = {2026},\nisbn = {978-1-939133-54-0},\naddress = {Renton, WA},\npages = {1669--1684},\nurl = {https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu},\npublisher = {USENIX Association},\nmonth = may\n}\nDownload\nHu PDF\nView the slides\nPresentation Video",
+            "start": 1600,
+            "excerpt_id": "ev-e8fb0a0b:1600:2177",
+            "source_url": "https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu",
+            "citation_id": 3,
+            "evidence_id": "ev-e8fb0a0b",
+            "source_title": "Harp: Improving VPC Network Availability via Efficient Failure Detection and Rerouting in Tencent Cloud | USENIX"
+          }
+        ],
+        "citation_ids": [],
+        "model_verdict": null,
+        "source_checks": [],
+        "retrieval_query": "",
+        "model_confidence": null,
+        "human_review_status": "not_reviewed"
+      },
+      {
+        "text": "**来源摘述（待审核）**：在声明的 USENIX 来源范围内，两个有效种子（OSDI '24 DistServe 页与其 \\#abstract 锚点变体去重后算一个，NSDI '26 Harp 页为另一个）均已读取。DistServe 页面的作者行将 Yinmin Zhong、Shengyu Liu、Jianbo Hu、Xuanzhe Liu、Xin Jin 标注为 Peking University，Junda Chen 与 Hao Zhang 标注为 UC San Diego，Yibo Zhu 标注为 StepFun；作者与机构在同一出版作者行并列出现，构成该成果归属 Peking University 的页面级证据。BibTeX 给出 year = 2024、month = jul、booktitle 为 18th USENIX OSDI 24、页码 193–210，因此发表时间只能确认到 2024 年 7 月（月精度），落在 2024\\-01\\-01 至 2024\\-12\\-31 区间内，不能把 7 月 1 日当作实际发表日。 [citation:1] [citation:2]",
+        "reason": "Verification token/time budget exhausted",
+        "status": "not_checked",
+        "claim_id": "claim:2",
+        "excerpts": [
+          {
+            "end": 2949,
+            "quote": "thin both TTFT and TPOT constraints on each GPU. Our evaluations show that on various popular LLMs, applications, and latency requirements, DistServe can serve 7.4× more requests or 12.6× tighter SLO, compared to state-of-the-art systems, while staying within latency constraints for > 90% of requests.\nOSDI '24 Open Access Sponsored by\nKing Abdullah University of Science and Technology (KAUST)\nOpen Access Media\nUSENIX is committed to Open Access to the research presented at our events. Papers and proceedings are freely available to everyone once the event begins. Any video, audio, and/or slides that are posted after the event are also free and open to everyone. Support USENIX and our commitment to Open Access.\nBibTeX\n@inproceedings {298687,\nauthor = {Yinmin Zhong and Shengyu Liu and Junda Chen and Jianbo Hu and Yibo Zhu and Xuanzhe Liu and Xin Jin and Hao Zhang},\ntitle = {{DistServe}: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving},\nbooktitle = {18th USENIX Symposium on Operating Systems Design and Implementation (OSDI 24)},\nyear = {2024},\nisbn = {978-1-939133-40-3},\naddress = {Santa Clara, CA},\npages = {193--210},\nurl = {https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin},\npublisher = {USENIX Association},\nmonth = jul\n}\nDownload\nZhong PDF\nView the slides\nPresentation Video",
+            "start": 1600,
+            "excerpt_id": "ev-94a19dc2:1600:2949",
+            "source_url": "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin",
+            "citation_id": 1,
+            "evidence_id": "ev-94a19dc2",
+            "source_title": "DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving | USENIX"
+          },
+          {
+            "end": 1400,
+            "quote": "DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving\nYinmin Zhong and Shengyu Liu, Peking University; Junda Chen, UC San Diego; Jianbo Hu, Peking University; Yibo Zhu, StepFun; Xuanzhe Liu and Xin Jin, Peking University; Hao Zhang, UC San Diego\nDistServe improves the performance of large language models (LLMs) serving by disaggregating the prefill and decoding computation. Existing LLM serving systems colocate the two phases and batch the computation of prefill and decoding across all users and requests. We find that this strategy not only leads to strong prefill-decoding interferences but also couples the resource allocation and parallelism plans for both phases. LLM applications often emphasize individual latency for each phase: time to first token (TTFT) for the prefill phase and time per output token (TPOT) of each request for the decoding phase. In the presence of stringent latency requirements, existing systems have to prioritize one latency over the other, or over-provision compute resources to meet both.\nDistServe assigns prefill and decoding computation to different GPUs, hence eliminating prefill-decoding interferences. Given the application's TTFT and TPOT requirements, DistServe co-optimizes the resource allocation and parallelism strategy tailored for each phase. DistServe also places the two phases according to the serv",
+            "start": 0,
+            "excerpt_id": "ev-94a19dc2:0:1400",
+            "source_url": "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin",
+            "citation_id": 1,
+            "evidence_id": "ev-94a19dc2",
+            "source_title": "DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving | USENIX"
+          },
+          {
+            "end": 2949,
+            "quote": "hen and Jianbo Hu and Yibo Zhu and Xuanzhe Liu and Xin Jin and Hao Zhang},\ntitle = {{DistServe}: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving},\nbooktitle = {18th USENIX Symposium on Operating Systems Design and Implementation (OSDI 24)},\nyear = {2024},\nisbn = {978-1-939133-40-3},\naddress = {Santa Clara, CA},\npages = {193--210},\nurl = {https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin},\npublisher = {USENIX Association},\nmonth = jul\n}\nDownload\nZhong PDF\nView the slides\nPresentation Video",
+            "start": 2400,
+            "excerpt_id": "ev-94a19dc2:2400:2949",
+            "source_url": "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin",
+            "citation_id": 1,
+            "evidence_id": "ev-94a19dc2",
+            "source_title": "DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving | USENIX"
+          },
+          {
+            "end": 2949,
+            "quote": "thin both TTFT and TPOT constraints on each GPU. Our evaluations show that on various popular LLMs, applications, and latency requirements, DistServe can serve 7.4× more requests or 12.6× tighter SLO, compared to state-of-the-art systems, while staying within latency constraints for > 90% of requests.\nOSDI '24 Open Access Sponsored by\nKing Abdullah University of Science and Technology (KAUST)\nOpen Access Media\nUSENIX is committed to Open Access to the research presented at our events. Papers and proceedings are freely available to everyone once the event begins. Any video, audio, and/or slides that are posted after the event are also free and open to everyone. Support USENIX and our commitment to Open Access.\nBibTeX\n@inproceedings {298687,\nauthor = {Yinmin Zhong and Shengyu Liu and Junda Chen and Jianbo Hu and Yibo Zhu and Xuanzhe Liu and Xin Jin and Hao Zhang},\ntitle = {{DistServe}: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving},\nbooktitle = {18th USENIX Symposium on Operating Systems Design and Implementation (OSDI 24)},\nyear = {2024},\nisbn = {978-1-939133-40-3},\naddress = {Santa Clara, CA},\npages = {193--210},\nurl = {https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin},\npublisher = {USENIX Association},\nmonth = jul\n}\nDownload\nZhong PDF\nView the slides\nPresentation Video",
+            "start": 1600,
+            "excerpt_id": "ev-7bfb7832:1600:2949",
+            "source_url": "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin#abstract",
+            "citation_id": 2,
+            "evidence_id": "ev-7bfb7832",
+            "source_title": "DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving | USENIX"
+          },
+          {
+            "end": 1400,
+            "quote": "DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving\nYinmin Zhong and Shengyu Liu, Peking University; Junda Chen, UC San Diego; Jianbo Hu, Peking University; Yibo Zhu, StepFun; Xuanzhe Liu and Xin Jin, Peking University; Hao Zhang, UC San Diego\nDistServe improves the performance of large language models (LLMs) serving by disaggregating the prefill and decoding computation. Existing LLM serving systems colocate the two phases and batch the computation of prefill and decoding across all users and requests. We find that this strategy not only leads to strong prefill-decoding interferences but also couples the resource allocation and parallelism plans for both phases. LLM applications often emphasize individual latency for each phase: time to first token (TTFT) for the prefill phase and time per output token (TPOT) of each request for the decoding phase. In the presence of stringent latency requirements, existing systems have to prioritize one latency over the other, or over-provision compute resources to meet both.\nDistServe assigns prefill and decoding computation to different GPUs, hence eliminating prefill-decoding interferences. Given the application's TTFT and TPOT requirements, DistServe co-optimizes the resource allocation and parallelism strategy tailored for each phase. DistServe also places the two phases according to the serv",
+            "start": 0,
+            "excerpt_id": "ev-7bfb7832:0:1400",
+            "source_url": "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin#abstract",
+            "citation_id": 2,
+            "evidence_id": "ev-7bfb7832",
+            "source_title": "DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving | USENIX"
+          },
+          {
+            "end": 2949,
+            "quote": "hen and Jianbo Hu and Yibo Zhu and Xuanzhe Liu and Xin Jin and Hao Zhang},\ntitle = {{DistServe}: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving},\nbooktitle = {18th USENIX Symposium on Operating Systems Design and Implementation (OSDI 24)},\nyear = {2024},\nisbn = {978-1-939133-40-3},\naddress = {Santa Clara, CA},\npages = {193--210},\nurl = {https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin},\npublisher = {USENIX Association},\nmonth = jul\n}\nDownload\nZhong PDF\nView the slides\nPresentation Video",
+            "start": 2400,
+            "excerpt_id": "ev-7bfb7832:2400:2949",
+            "source_url": "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin#abstract",
+            "citation_id": 2,
+            "evidence_id": "ev-7bfb7832",
+            "source_title": "DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving | USENIX"
+          }
+        ],
+        "citation_ids": [
+          1,
+          2
+        ],
+        "model_verdict": null,
+        "source_checks": [],
+        "retrieval_query": "",
+        "model_confidence": null,
+        "human_review_status": "not_reviewed"
+      },
+      {
+        "text": "**分析判断（待复核）**：公开研究方向方面，DistServe 摘要自述属于 LLM 服务系统：把 prefill 与 decoding 计算分配到不同 GPU 以消除两阶段干扰，按应用给定的 TTFT 与 TPOT 延迟要求协同优化各阶段的资源分配与并行策略，并依据服务集群带宽放置两个阶段以减少分离带来的通信开销；摘要自述评估结果为相比当时最优系统可服务 7\\.4 倍更多请求或 12\\.6 倍更紧的 SLO，同时 &gt;90% 请求满足延迟约束。这些均为作者在摘要页的自述，不是本研究的独立验证。按已读页面计，符合 Peking University \\+ 2024 \\+ conference\\_paper 的接受记录为 1 篇（DistServe），该计数是声明样本的计数，不是 Peking University 2024 年现实成果全集，也不能解释为研究投入或产出规模。 [citation:1] [citation:2]",
+        "reason": "Verification token/time budget exhausted",
+        "status": "not_checked",
+        "claim_id": "claim:3",
+        "excerpts": [
+          {
+            "end": 2949,
+            "quote": "thin both TTFT and TPOT constraints on each GPU. Our evaluations show that on various popular LLMs, applications, and latency requirements, DistServe can serve 7.4× more requests or 12.6× tighter SLO, compared to state-of-the-art systems, while staying within latency constraints for > 90% of requests.\nOSDI '24 Open Access Sponsored by\nKing Abdullah University of Science and Technology (KAUST)\nOpen Access Media\nUSENIX is committed to Open Access to the research presented at our events. Papers and proceedings are freely available to everyone once the event begins. Any video, audio, and/or slides that are posted after the event are also free and open to everyone. Support USENIX and our commitment to Open Access.\nBibTeX\n@inproceedings {298687,\nauthor = {Yinmin Zhong and Shengyu Liu and Junda Chen and Jianbo Hu and Yibo Zhu and Xuanzhe Liu and Xin Jin and Hao Zhang},\ntitle = {{DistServe}: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving},\nbooktitle = {18th USENIX Symposium on Operating Systems Design and Implementation (OSDI 24)},\nyear = {2024},\nisbn = {978-1-939133-40-3},\naddress = {Santa Clara, CA},\npages = {193--210},\nurl = {https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin},\npublisher = {USENIX Association},\nmonth = jul\n}\nDownload\nZhong PDF\nView the slides\nPresentation Video",
+            "start": 1600,
+            "excerpt_id": "ev-94a19dc2:1600:2949",
+            "source_url": "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin",
+            "citation_id": 1,
+            "evidence_id": "ev-94a19dc2",
+            "source_title": "DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving | USENIX"
+          },
+          {
+            "end": 1400,
+            "quote": "DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving\nYinmin Zhong and Shengyu Liu, Peking University; Junda Chen, UC San Diego; Jianbo Hu, Peking University; Yibo Zhu, StepFun; Xuanzhe Liu and Xin Jin, Peking University; Hao Zhang, UC San Diego\nDistServe improves the performance of large language models (LLMs) serving by disaggregating the prefill and decoding computation. Existing LLM serving systems colocate the two phases and batch the computation of prefill and decoding across all users and requests. We find that this strategy not only leads to strong prefill-decoding interferences but also couples the resource allocation and parallelism plans for both phases. LLM applications often emphasize individual latency for each phase: time to first token (TTFT) for the prefill phase and time per output token (TPOT) of each request for the decoding phase. In the presence of stringent latency requirements, existing systems have to prioritize one latency over the other, or over-provision compute resources to meet both.\nDistServe assigns prefill and decoding computation to different GPUs, hence eliminating prefill-decoding interferences. Given the application's TTFT and TPOT requirements, DistServe co-optimizes the resource allocation and parallelism strategy tailored for each phase. DistServe also places the two phases according to the serv",
+            "start": 0,
+            "excerpt_id": "ev-94a19dc2:0:1400",
+            "source_url": "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin",
+            "citation_id": 1,
+            "evidence_id": "ev-94a19dc2",
+            "source_title": "DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving | USENIX"
+          },
+          {
+            "end": 2200,
+            "quote": "token (TTFT) for the prefill phase and time per output token (TPOT) of each request for the decoding phase. In the presence of stringent latency requirements, existing systems have to prioritize one latency over the other, or over-provision compute resources to meet both.\nDistServe assigns prefill and decoding computation to different GPUs, hence eliminating prefill-decoding interferences. Given the application's TTFT and TPOT requirements, DistServe co-optimizes the resource allocation and parallelism strategy tailored for each phase. DistServe also places the two phases according to the serving cluster's bandwidth to minimize the communication caused by disaggregation. As a result, DistServe significantly improves LLM serving performance in terms of the maximum rate that can be served within both TTFT and TPOT constraints on each GPU. Our evaluations show that on various popular LLMs, applications, and latency requirements, DistServe can serve 7.4× more requests or 12.6× tighter SLO, compared to state-of-the-art systems, while staying within latency constraints for > 90% of requests.\nOSDI '24 Open Access Sponsored by\nKing Abdullah University of Science and Technology (KAUST)\nOpen Access Media\nUSENIX is committed to Open Access to the research presented at our events. Papers and proceedings are freely available to everyone once the event begins. Any video, audio, and/or slides",
+            "start": 800,
+            "excerpt_id": "ev-94a19dc2:800:2200",
+            "source_url": "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin",
+            "citation_id": 1,
+            "evidence_id": "ev-94a19dc2",
+            "source_title": "DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving | USENIX"
+          },
+          {
+            "end": 2949,
+            "quote": "thin both TTFT and TPOT constraints on each GPU. Our evaluations show that on various popular LLMs, applications, and latency requirements, DistServe can serve 7.4× more requests or 12.6× tighter SLO, compared to state-of-the-art systems, while staying within latency constraints for > 90% of requests.\nOSDI '24 Open Access Sponsored by\nKing Abdullah University of Science and Technology (KAUST)\nOpen Access Media\nUSENIX is committed to Open Access to the research presented at our events. Papers and proceedings are freely available to everyone once the event begins. Any video, audio, and/or slides that are posted after the event are also free and open to everyone. Support USENIX and our commitment to Open Access.\nBibTeX\n@inproceedings {298687,\nauthor = {Yinmin Zhong and Shengyu Liu and Junda Chen and Jianbo Hu and Yibo Zhu and Xuanzhe Liu and Xin Jin and Hao Zhang},\ntitle = {{DistServe}: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving},\nbooktitle = {18th USENIX Symposium on Operating Systems Design and Implementation (OSDI 24)},\nyear = {2024},\nisbn = {978-1-939133-40-3},\naddress = {Santa Clara, CA},\npages = {193--210},\nurl = {https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin},\npublisher = {USENIX Association},\nmonth = jul\n}\nDownload\nZhong PDF\nView the slides\nPresentation Video",
+            "start": 1600,
+            "excerpt_id": "ev-7bfb7832:1600:2949",
+            "source_url": "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin#abstract",
+            "citation_id": 2,
+            "evidence_id": "ev-7bfb7832",
+            "source_title": "DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving | USENIX"
+          },
+          {
+            "end": 1400,
+            "quote": "DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving\nYinmin Zhong and Shengyu Liu, Peking University; Junda Chen, UC San Diego; Jianbo Hu, Peking University; Yibo Zhu, StepFun; Xuanzhe Liu and Xin Jin, Peking University; Hao Zhang, UC San Diego\nDistServe improves the performance of large language models (LLMs) serving by disaggregating the prefill and decoding computation. Existing LLM serving systems colocate the two phases and batch the computation of prefill and decoding across all users and requests. We find that this strategy not only leads to strong prefill-decoding interferences but also couples the resource allocation and parallelism plans for both phases. LLM applications often emphasize individual latency for each phase: time to first token (TTFT) for the prefill phase and time per output token (TPOT) of each request for the decoding phase. In the presence of stringent latency requirements, existing systems have to prioritize one latency over the other, or over-provision compute resources to meet both.\nDistServe assigns prefill and decoding computation to different GPUs, hence eliminating prefill-decoding interferences. Given the application's TTFT and TPOT requirements, DistServe co-optimizes the resource allocation and parallelism strategy tailored for each phase. DistServe also places the two phases according to the serv",
+            "start": 0,
+            "excerpt_id": "ev-7bfb7832:0:1400",
+            "source_url": "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin#abstract",
+            "citation_id": 2,
+            "evidence_id": "ev-7bfb7832",
+            "source_title": "DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving | USENIX"
+          },
+          {
+            "end": 2200,
+            "quote": "token (TTFT) for the prefill phase and time per output token (TPOT) of each request for the decoding phase. In the presence of stringent latency requirements, existing systems have to prioritize one latency over the other, or over-provision compute resources to meet both.\nDistServe assigns prefill and decoding computation to different GPUs, hence eliminating prefill-decoding interferences. Given the application's TTFT and TPOT requirements, DistServe co-optimizes the resource allocation and parallelism strategy tailored for each phase. DistServe also places the two phases according to the serving cluster's bandwidth to minimize the communication caused by disaggregation. As a result, DistServe significantly improves LLM serving performance in terms of the maximum rate that can be served within both TTFT and TPOT constraints on each GPU. Our evaluations show that on various popular LLMs, applications, and latency requirements, DistServe can serve 7.4× more requests or 12.6× tighter SLO, compared to state-of-the-art systems, while staying within latency constraints for > 90% of requests.\nOSDI '24 Open Access Sponsored by\nKing Abdullah University of Science and Technology (KAUST)\nOpen Access Media\nUSENIX is committed to Open Access to the research presented at our events. Papers and proceedings are freely available to everyone once the event begins. Any video, audio, and/or slides",
+            "start": 800,
+            "excerpt_id": "ev-7bfb7832:800:2200",
+            "source_url": "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin#abstract",
+            "citation_id": 2,
+            "evidence_id": "ev-7bfb7832",
+            "source_title": "DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving | USENIX"
+          }
+        ],
+        "citation_ids": [
+          1,
+          2
+        ],
+        "model_verdict": null,
+        "source_checks": [],
+        "retrieval_query": "",
+        "model_confidence": null,
+        "human_review_status": "not_reviewed"
+      },
+      {
+        "text": "**来源摘述（待审核）**：Harp 页明确排除：其 BibTeX 为 year = 2026、month = may、NSDI 26，发表年份在 2024 区间之外，属 publication date outside range；同时该页作者机构为 Tencent 与 Fudan University，未出现 Peking University，即使日期合规也不能计入本实体样本。该记录作为已读但被排除的候选保留在案，未因不满足范围而遗漏。 [citation:3] [citation:10]",
+        "reason": "Verification token/time budget exhausted",
+        "status": "not_checked",
+        "claim_id": "claim:4",
+        "excerpts": [
+          {
+            "end": 2177,
+            "quote": "n its effectiveness in handling network failures. According to the results from production systems, Harp can significantly reduce the VPC network's outage time by 78.71%-99.97% and essentially bypass failed paths on a sub-second timescale. We also share our experiences of how Harp efficiently detects and handles network failures when deployed in Tencent Cloud.\nNSDI '26 Open Access Sponsored by\nKing Abdullah University of Science and Technology (KAUST)\nOpen Access Media\nUSENIX is committed to Open Access to the research presented at our events. Papers and proceedings are freely available to everyone once the event begins. Any video, audio, and/or slides that are posted after the event are also free and open to everyone. Support USENIX and our commitment to Open Access.\nBibTeX\n@inproceedings {316634,\nauthor = {Jiayu Hu and Feng Jin and Xianping Zhou and Kai Zhang and Zhen Shen and Yongkang Luo},\ntitle = {Harp: Improving {VPC} Network Availability via Efficient Failure Detection and Rerouting in Tencent Cloud},\nbooktitle = {23rd USENIX Symposium on Networked Systems Design and Implementation (NSDI 26)},\nyear = {2026},\nisbn = {978-1-939133-54-0},\naddress = {Renton, WA},\npages = {1669--1684},\nurl = {https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu},\npublisher = {USENIX Association},\nmonth = may\n}\nDownload\nHu PDF\nView the slides\nPresentation Video",
+            "start": 800,
+            "excerpt_id": "ev-e8fb0a0b:800:2177",
+            "source_url": "https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu",
+            "citation_id": 3,
+            "evidence_id": "ev-e8fb0a0b",
+            "source_title": "Harp: Improving VPC Network Availability via Efficient Failure Detection and Rerouting in Tencent Cloud | USENIX"
+          },
+          {
+            "end": 1400,
+            "quote": "Harp: Improving VPC Network Availability via Efficient Failure Detection and Rerouting in Tencent Cloud\nJiayu Hu, Feng Jin, and Xianping Zhou, Tencent; Kai Zhang, Fudan University; Zhen Shen and Yongkang Luo, Tencent\nWe present Harp, a mechanism for efficient and robust failure detection and recovery for VPC networks. Unlike previous approaches, Harp does not rely on specific hardware features or transport protocols. Instead, Harp is a lightweight software implementation that identifies feasible physical paths between each pair of communicating hosts and monitors their health states. When network failures occur, Harp can swiftly switch influenced flows from a failed path to a healthy path within a short interval. Harp has been deployed in Tencent Cloud for more than two years and has proven its effectiveness in handling network failures. According to the results from production systems, Harp can significantly reduce the VPC network's outage time by 78.71%-99.97% and essentially bypass failed paths on a sub-second timescale. We also share our experiences of how Harp efficiently detects and handles network failures when deployed in Tencent Cloud.\nNSDI '26 Open Access Sponsored by\nKing Abdullah University of Science and Technology (KAUST)\nOpen Access Media\nUSENIX is committed to Open Access to the research presented at our events. Papers and proceedings are freely available to eve",
+            "start": 0,
+            "excerpt_id": "ev-e8fb0a0b:0:1400",
+            "source_url": "https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu",
+            "citation_id": 3,
+            "evidence_id": "ev-e8fb0a0b",
+            "source_title": "Harp: Improving VPC Network Availability via Efficient Failure Detection and Rerouting in Tencent Cloud | USENIX"
+          },
+          {
+            "end": 2177,
+            "quote": " {316634,\nauthor = {Jiayu Hu and Feng Jin and Xianping Zhou and Kai Zhang and Zhen Shen and Yongkang Luo},\ntitle = {Harp: Improving {VPC} Network Availability via Efficient Failure Detection and Rerouting in Tencent Cloud},\nbooktitle = {23rd USENIX Symposium on Networked Systems Design and Implementation (NSDI 26)},\nyear = {2026},\nisbn = {978-1-939133-54-0},\naddress = {Renton, WA},\npages = {1669--1684},\nurl = {https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu},\npublisher = {USENIX Association},\nmonth = may\n}\nDownload\nHu PDF\nView the slides\nPresentation Video",
+            "start": 1600,
+            "excerpt_id": "ev-e8fb0a0b:1600:2177",
+            "source_url": "https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu",
+            "citation_id": 3,
+            "evidence_id": "ev-e8fb0a0b",
+            "source_title": "Harp: Improving VPC Network Availability via Efficient Failure Detection and Rerouting in Tencent Cloud | USENIX"
+          },
+          {
+            "end": 2177,
+            "quote": "n its effectiveness in handling network failures. According to the results from production systems, Harp can significantly reduce the VPC network's outage time by 78.71%-99.97% and essentially bypass failed paths on a sub-second timescale. We also share our experiences of how Harp efficiently detects and handles network failures when deployed in Tencent Cloud.\nNSDI '26 Open Access Sponsored by\nKing Abdullah University of Science and Technology (KAUST)\nOpen Access Media\nUSENIX is committed to Open Access to the research presented at our events. Papers and proceedings are freely available to everyone once the event begins. Any video, audio, and/or slides that are posted after the event are also free and open to everyone. Support USENIX and our commitment to Open Access.\nBibTeX\n@inproceedings {316634,\nauthor = {Jiayu Hu and Feng Jin and Xianping Zhou and Kai Zhang and Zhen Shen and Yongkang Luo},\ntitle = {Harp: Improving {VPC} Network Availability via Efficient Failure Detection and Rerouting in Tencent Cloud},\nbooktitle = {23rd USENIX Symposium on Networked Systems Design and Implementation (NSDI 26)},\nyear = {2026},\nisbn = {978-1-939133-54-0},\naddress = {Renton, WA},\npages = {1669--1684},\nurl = {https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu},\npublisher = {USENIX Association},\nmonth = may\n}\nDownload\nHu PDF\nView the slides\nPresentation Video",
+            "start": 800,
+            "excerpt_id": "ev-6b946487:800:2177",
+            "source_url": "https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu",
+            "citation_id": 10,
+            "evidence_id": "ev-6b946487",
+            "source_title": "Harp: Improving VPC Network Availability via Efficient Failure Detection and Rerouting in Tencent Cloud | USENIX"
+          },
+          {
+            "end": 1400,
+            "quote": "Harp: Improving VPC Network Availability via Efficient Failure Detection and Rerouting in Tencent Cloud\nJiayu Hu, Feng Jin, and Xianping Zhou, Tencent; Kai Zhang, Fudan University; Zhen Shen and Yongkang Luo, Tencent\nWe present Harp, a mechanism for efficient and robust failure detection and recovery for VPC networks. Unlike previous approaches, Harp does not rely on specific hardware features or transport protocols. Instead, Harp is a lightweight software implementation that identifies feasible physical paths between each pair of communicating hosts and monitors their health states. When network failures occur, Harp can swiftly switch influenced flows from a failed path to a healthy path within a short interval. Harp has been deployed in Tencent Cloud for more than two years and has proven its effectiveness in handling network failures. According to the results from production systems, Harp can significantly reduce the VPC network's outage time by 78.71%-99.97% and essentially bypass failed paths on a sub-second timescale. We also share our experiences of how Harp efficiently detects and handles network failures when deployed in Tencent Cloud.\nNSDI '26 Open Access Sponsored by\nKing Abdullah University of Science and Technology (KAUST)\nOpen Access Media\nUSENIX is committed to Open Access to the research presented at our events. Papers and proceedings are freely available to eve",
+            "start": 0,
+            "excerpt_id": "ev-6b946487:0:1400",
+            "source_url": "https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu",
+            "citation_id": 10,
+            "evidence_id": "ev-6b946487",
+            "source_title": "Harp: Improving VPC Network Availability via Efficient Failure Detection and Rerouting in Tencent Cloud | USENIX"
+          },
+          {
+            "end": 2177,
+            "quote": " {316634,\nauthor = {Jiayu Hu and Feng Jin and Xianping Zhou and Kai Zhang and Zhen Shen and Yongkang Luo},\ntitle = {Harp: Improving {VPC} Network Availability via Efficient Failure Detection and Rerouting in Tencent Cloud},\nbooktitle = {23rd USENIX Symposium on Networked Systems Design and Implementation (NSDI 26)},\nyear = {2026},\nisbn = {978-1-939133-54-0},\naddress = {Renton, WA},\npages = {1669--1684},\nurl = {https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu},\npublisher = {USENIX Association},\nmonth = may\n}\nDownload\nHu PDF\nView the slides\nPresentation Video",
+            "start": 1600,
+            "excerpt_id": "ev-6b946487:1600:2177",
+            "source_url": "https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu",
+            "citation_id": 10,
+            "evidence_id": "ev-6b946487",
+            "source_title": "Harp: Improving VPC Network Availability via Efficient Failure Detection and Rerouting in Tencent Cloud | USENIX"
+          }
+        ],
+        "citation_ids": [
+          3,
+          10
+        ],
+        "model_verdict": null,
+        "source_checks": [],
+        "retrieval_query": "",
+        "model_confidence": null,
+        "human_review_status": "not_reviewed"
+      },
+      {
+        "text": "**证据缺口**：缺口：仅读取摘要页，未取得 DistServe 全文（full\\_text\\_policy 禁止自动跟进 PDF），摘要中的 7\\.4 倍与 12\\.6 倍数值未经全文核对；学科与主题为请求口径，页面未提供独立学科分类，不能声称计算机科学已独立核实；未检索 USENIX 其他 2024 会议页面，不能断言 Peking University 在 USENIX 2024 仅有此一篇；演进与合作关系属未选模块，未作评估。",
+        "reason": "Awaiting source support judgement",
+        "status": "missing_citation",
+        "claim_id": "claim:5",
+        "excerpts": [
+          {
+            "end": 2949,
+            "quote": "thin both TTFT and TPOT constraints on each GPU. Our evaluations show that on various popular LLMs, applications, and latency requirements, DistServe can serve 7.4× more requests or 12.6× tighter SLO, compared to state-of-the-art systems, while staying within latency constraints for > 90% of requests.\nOSDI '24 Open Access Sponsored by\nKing Abdullah University of Science and Technology (KAUST)\nOpen Access Media\nUSENIX is committed to Open Access to the research presented at our events. Papers and proceedings are freely available to everyone once the event begins. Any video, audio, and/or slides that are posted after the event are also free and open to everyone. Support USENIX and our commitment to Open Access.\nBibTeX\n@inproceedings {298687,\nauthor = {Yinmin Zhong and Shengyu Liu and Junda Chen and Jianbo Hu and Yibo Zhu and Xuanzhe Liu and Xin Jin and Hao Zhang},\ntitle = {{DistServe}: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving},\nbooktitle = {18th USENIX Symposium on Operating Systems Design and Implementation (OSDI 24)},\nyear = {2024},\nisbn = {978-1-939133-40-3},\naddress = {Santa Clara, CA},\npages = {193--210},\nurl = {https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin},\npublisher = {USENIX Association},\nmonth = jul\n}\nDownload\nZhong PDF\nView the slides\nPresentation Video",
+            "start": 1600,
+            "excerpt_id": "ev-94a19dc2:1600:2949",
+            "source_url": "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin",
+            "citation_id": 1,
+            "evidence_id": "ev-94a19dc2",
+            "source_title": "DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving | USENIX"
+          },
+          {
+            "end": 1400,
+            "quote": "DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving\nYinmin Zhong and Shengyu Liu, Peking University; Junda Chen, UC San Diego; Jianbo Hu, Peking University; Yibo Zhu, StepFun; Xuanzhe Liu and Xin Jin, Peking University; Hao Zhang, UC San Diego\nDistServe improves the performance of large language models (LLMs) serving by disaggregating the prefill and decoding computation. Existing LLM serving systems colocate the two phases and batch the computation of prefill and decoding across all users and requests. We find that this strategy not only leads to strong prefill-decoding interferences but also couples the resource allocation and parallelism plans for both phases. LLM applications often emphasize individual latency for each phase: time to first token (TTFT) for the prefill phase and time per output token (TPOT) of each request for the decoding phase. In the presence of stringent latency requirements, existing systems have to prioritize one latency over the other, or over-provision compute resources to meet both.\nDistServe assigns prefill and decoding computation to different GPUs, hence eliminating prefill-decoding interferences. Given the application's TTFT and TPOT requirements, DistServe co-optimizes the resource allocation and parallelism strategy tailored for each phase. DistServe also places the two phases according to the serv",
+            "start": 0,
+            "excerpt_id": "ev-94a19dc2:0:1400",
+            "source_url": "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin",
+            "citation_id": 1,
+            "evidence_id": "ev-94a19dc2",
+            "source_title": "DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving | USENIX"
+          },
+          {
+            "end": 2200,
+            "quote": "token (TTFT) for the prefill phase and time per output token (TPOT) of each request for the decoding phase. In the presence of stringent latency requirements, existing systems have to prioritize one latency over the other, or over-provision compute resources to meet both.\nDistServe assigns prefill and decoding computation to different GPUs, hence eliminating prefill-decoding interferences. Given the application's TTFT and TPOT requirements, DistServe co-optimizes the resource allocation and parallelism strategy tailored for each phase. DistServe also places the two phases according to the serving cluster's bandwidth to minimize the communication caused by disaggregation. As a result, DistServe significantly improves LLM serving performance in terms of the maximum rate that can be served within both TTFT and TPOT constraints on each GPU. Our evaluations show that on various popular LLMs, applications, and latency requirements, DistServe can serve 7.4× more requests or 12.6× tighter SLO, compared to state-of-the-art systems, while staying within latency constraints for > 90% of requests.\nOSDI '24 Open Access Sponsored by\nKing Abdullah University of Science and Technology (KAUST)\nOpen Access Media\nUSENIX is committed to Open Access to the research presented at our events. Papers and proceedings are freely available to everyone once the event begins. Any video, audio, and/or slides",
+            "start": 800,
+            "excerpt_id": "ev-94a19dc2:800:2200",
+            "source_url": "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin",
+            "citation_id": 1,
+            "evidence_id": "ev-94a19dc2",
+            "source_title": "DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving | USENIX"
+          },
+          {
+            "end": 2949,
+            "quote": "thin both TTFT and TPOT constraints on each GPU. Our evaluations show that on various popular LLMs, applications, and latency requirements, DistServe can serve 7.4× more requests or 12.6× tighter SLO, compared to state-of-the-art systems, while staying within latency constraints for > 90% of requests.\nOSDI '24 Open Access Sponsored by\nKing Abdullah University of Science and Technology (KAUST)\nOpen Access Media\nUSENIX is committed to Open Access to the research presented at our events. Papers and proceedings are freely available to everyone once the event begins. Any video, audio, and/or slides that are posted after the event are also free and open to everyone. Support USENIX and our commitment to Open Access.\nBibTeX\n@inproceedings {298687,\nauthor = {Yinmin Zhong and Shengyu Liu and Junda Chen and Jianbo Hu and Yibo Zhu and Xuanzhe Liu and Xin Jin and Hao Zhang},\ntitle = {{DistServe}: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving},\nbooktitle = {18th USENIX Symposium on Operating Systems Design and Implementation (OSDI 24)},\nyear = {2024},\nisbn = {978-1-939133-40-3},\naddress = {Santa Clara, CA},\npages = {193--210},\nurl = {https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin},\npublisher = {USENIX Association},\nmonth = jul\n}\nDownload\nZhong PDF\nView the slides\nPresentation Video",
+            "start": 1600,
+            "excerpt_id": "ev-7bfb7832:1600:2949",
+            "source_url": "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin#abstract",
+            "citation_id": 2,
+            "evidence_id": "ev-7bfb7832",
+            "source_title": "DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving | USENIX"
+          },
+          {
+            "end": 1400,
+            "quote": "DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving\nYinmin Zhong and Shengyu Liu, Peking University; Junda Chen, UC San Diego; Jianbo Hu, Peking University; Yibo Zhu, StepFun; Xuanzhe Liu and Xin Jin, Peking University; Hao Zhang, UC San Diego\nDistServe improves the performance of large language models (LLMs) serving by disaggregating the prefill and decoding computation. Existing LLM serving systems colocate the two phases and batch the computation of prefill and decoding across all users and requests. We find that this strategy not only leads to strong prefill-decoding interferences but also couples the resource allocation and parallelism plans for both phases. LLM applications often emphasize individual latency for each phase: time to first token (TTFT) for the prefill phase and time per output token (TPOT) of each request for the decoding phase. In the presence of stringent latency requirements, existing systems have to prioritize one latency over the other, or over-provision compute resources to meet both.\nDistServe assigns prefill and decoding computation to different GPUs, hence eliminating prefill-decoding interferences. Given the application's TTFT and TPOT requirements, DistServe co-optimizes the resource allocation and parallelism strategy tailored for each phase. DistServe also places the two phases according to the serv",
+            "start": 0,
+            "excerpt_id": "ev-7bfb7832:0:1400",
+            "source_url": "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin#abstract",
+            "citation_id": 2,
+            "evidence_id": "ev-7bfb7832",
+            "source_title": "DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving | USENIX"
+          },
+          {
+            "end": 2200,
+            "quote": "token (TTFT) for the prefill phase and time per output token (TPOT) of each request for the decoding phase. In the presence of stringent latency requirements, existing systems have to prioritize one latency over the other, or over-provision compute resources to meet both.\nDistServe assigns prefill and decoding computation to different GPUs, hence eliminating prefill-decoding interferences. Given the application's TTFT and TPOT requirements, DistServe co-optimizes the resource allocation and parallelism strategy tailored for each phase. DistServe also places the two phases according to the serving cluster's bandwidth to minimize the communication caused by disaggregation. As a result, DistServe significantly improves LLM serving performance in terms of the maximum rate that can be served within both TTFT and TPOT constraints on each GPU. Our evaluations show that on various popular LLMs, applications, and latency requirements, DistServe can serve 7.4× more requests or 12.6× tighter SLO, compared to state-of-the-art systems, while staying within latency constraints for > 90% of requests.\nOSDI '24 Open Access Sponsored by\nKing Abdullah University of Science and Technology (KAUST)\nOpen Access Media\nUSENIX is committed to Open Access to the research presented at our events. Papers and proceedings are freely available to everyone once the event begins. Any video, audio, and/or slides",
+            "start": 800,
+            "excerpt_id": "ev-7bfb7832:800:2200",
+            "source_url": "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin#abstract",
+            "citation_id": 2,
+            "evidence_id": "ev-7bfb7832",
+            "source_title": "DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving | USENIX"
+          },
+          {
+            "end": 2949,
+            "quote": "thin both TTFT and TPOT constraints on each GPU. Our evaluations show that on various popular LLMs, applications, and latency requirements, DistServe can serve 7.4× more requests or 12.6× tighter SLO, compared to state-of-the-art systems, while staying within latency constraints for > 90% of requests.\nOSDI '24 Open Access Sponsored by\nKing Abdullah University of Science and Technology (KAUST)\nOpen Access Media\nUSENIX is committed to Open Access to the research presented at our events. Papers and proceedings are freely available to everyone once the event begins. Any video, audio, and/or slides that are posted after the event are also free and open to everyone. Support USENIX and our commitment to Open Access.\nBibTeX\n@inproceedings {298687,\nauthor = {Yinmin Zhong and Shengyu Liu and Junda Chen and Jianbo Hu and Yibo Zhu and Xuanzhe Liu and Xin Jin and Hao Zhang},\ntitle = {{DistServe}: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving},\nbooktitle = {18th USENIX Symposium on Operating Systems Design and Implementation (OSDI 24)},\nyear = {2024},\nisbn = {978-1-939133-40-3},\naddress = {Santa Clara, CA},\npages = {193--210},\nurl = {https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin},\npublisher = {USENIX Association},\nmonth = jul\n}\nDownload\nZhong PDF\nView the slides\nPresentation Video",
+            "start": 1600,
+            "excerpt_id": "ev-10f0b552:1600:2949",
+            "source_url": "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin",
+            "citation_id": 8,
+            "evidence_id": "ev-10f0b552",
+            "source_title": "DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving | USENIX"
+          },
+          {
+            "end": 1400,
+            "quote": "DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving\nYinmin Zhong and Shengyu Liu, Peking University; Junda Chen, UC San Diego; Jianbo Hu, Peking University; Yibo Zhu, StepFun; Xuanzhe Liu and Xin Jin, Peking University; Hao Zhang, UC San Diego\nDistServe improves the performance of large language models (LLMs) serving by disaggregating the prefill and decoding computation. Existing LLM serving systems colocate the two phases and batch the computation of prefill and decoding across all users and requests. We find that this strategy not only leads to strong prefill-decoding interferences but also couples the resource allocation and parallelism plans for both phases. LLM applications often emphasize individual latency for each phase: time to first token (TTFT) for the prefill phase and time per output token (TPOT) of each request for the decoding phase. In the presence of stringent latency requirements, existing systems have to prioritize one latency over the other, or over-provision compute resources to meet both.\nDistServe assigns prefill and decoding computation to different GPUs, hence eliminating prefill-decoding interferences. Given the application's TTFT and TPOT requirements, DistServe co-optimizes the resource allocation and parallelism strategy tailored for each phase. DistServe also places the two phases according to the serv",
+            "start": 0,
+            "excerpt_id": "ev-10f0b552:0:1400",
+            "source_url": "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin",
+            "citation_id": 8,
+            "evidence_id": "ev-10f0b552",
+            "source_title": "DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving | USENIX"
+          },
+          {
+            "end": 2200,
+            "quote": "token (TTFT) for the prefill phase and time per output token (TPOT) of each request for the decoding phase. In the presence of stringent latency requirements, existing systems have to prioritize one latency over the other, or over-provision compute resources to meet both.\nDistServe assigns prefill and decoding computation to different GPUs, hence eliminating prefill-decoding interferences. Given the application's TTFT and TPOT requirements, DistServe co-optimizes the resource allocation and parallelism strategy tailored for each phase. DistServe also places the two phases according to the serving cluster's bandwidth to minimize the communication caused by disaggregation. As a result, DistServe significantly improves LLM serving performance in terms of the maximum rate that can be served within both TTFT and TPOT constraints on each GPU. Our evaluations show that on various popular LLMs, applications, and latency requirements, DistServe can serve 7.4× more requests or 12.6× tighter SLO, compared to state-of-the-art systems, while staying within latency constraints for > 90% of requests.\nOSDI '24 Open Access Sponsored by\nKing Abdullah University of Science and Technology (KAUST)\nOpen Access Media\nUSENIX is committed to Open Access to the research presented at our events. Papers and proceedings are freely available to everyone once the event begins. Any video, audio, and/or slides",
+            "start": 800,
+            "excerpt_id": "ev-10f0b552:800:2200",
+            "source_url": "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin",
+            "citation_id": 8,
+            "evidence_id": "ev-10f0b552",
+            "source_title": "DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving | USENIX"
+          }
+        ],
+        "citation_ids": [],
+        "model_verdict": null,
+        "source_checks": [],
+        "retrieval_query": "",
+        "model_confidence": null,
+        "human_review_status": "not_reviewed"
+      }
+    ],
+    "errors": [],
+    "needs_review": true,
+    "total_claims": 5,
+    "checked_claims": 2,
+    "schema_version": "1",
+    "supported_claims": 0,
+    "verification_kind": "model_judgement_with_selected_passage_or_source_quote_check",
+    "human_review_status": "not_reviewed",
+    "source_support_rate": 0.0,
+    "structured_appendix": {
+      "validation": "deterministic_counts_and_literal_source_offsets",
+      "independent_semantic_review": false
+    },
+    "citation_presence_rate": 0.6
+  }
+}

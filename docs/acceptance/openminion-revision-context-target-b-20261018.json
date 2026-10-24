@@ -1,0 +1,162 @@
+{
+  "source_result": "docs/acceptance/openminion-msr-r14-20261018T151552Z/result/result.json",
+  "scope": "current_context_failure_only_not_new_collection",
+  "input_chars": 14422,
+  "output": {
+    "findings": [
+      {
+        "organization": "Microsoft Research",
+        "work": "Reverie",
+        "facet": "affiliation",
+        "statement": "Reverie 发表于 NSDI 2024，共同作者 Wei Bai 在论文发表时的单位标注为 Microsoft Research，其余作者分别来自 TU Berlin 与 Princeton University。",
+        "citation_ids": [
+          1,
+          2,
+          4
+        ]
+      },
+      {
+        "organization": "Microsoft Research",
+        "work": "Reverie",
+        "facet": "problem",
+        "statement": "Reverie 研究数据中心交换机缓冲区在 RDMA 无损流量与 TCP/DCTCP 有损流量混合场景下的共享问题，指出现有做法难以同时做到业务隔离与最大化突发吸收。",
+        "citation_ids": [
+          1,
+          2,
+          4
+        ]
+      },
+      {
+        "organization": "Microsoft Research",
+        "work": "Reverie",
+        "facet": "method",
+        "statement": "Reverie 的核心是统一入口与出口视角的准入控制，按低通滤波方式分配缓冲区，以在缓冲上限内吸收瞬态拥塞造成的突发队列长度。",
+        "citation_ids": [
+          1,
+          2,
+          4
+        ]
+      },
+      {
+        "organization": "Microsoft Research",
+        "work": "Reverie",
+        "facet": "result",
+        "statement": "Reverie 的评估显示，按流完成时间计，RDMA 与 TCP 的性能最高可提升 33%。",
+        "citation_ids": [
+          1,
+          4
+        ]
+      },
+      {
+        "organization": "Microsoft Research",
+        "work": "Reverie",
+        "facet": "result",
+        "statement": "在 NS-3 仿真的 incast 场景下，Reverie 相较 DT 使 TCP incast 性能最高提升 46.8%。",
+        "citation_ids": [
+          2
+        ]
+      },
+      {
+        "organization": "Microsoft Research",
+        "work": "Reverie",
+        "facet": "result",
+        "statement": "在 20%–80% 背景负载、leaf-spine 256 主机拓扑的仿真中，Reverie 相较 DT 平均降低短流 TCP 的 99 分位流完成时间 42.7%。",
+        "citation_ids": [
+          2
+        ]
+      },
+      {
+        "organization": "Microsoft Research",
+        "work": "Reverie",
+        "facet": "limitation",
+        "statement": "Reverie 的评估基于 NS-3 仿真；摘要与结论显示作者计划与交换机 ASIC 厂商合作，将方案纳入可编程准入控制，但原文未报告真实硬件部署结果。",
+        "citation_ids": [
+          2
+        ]
+      },
+      {
+        "organization": "Microsoft Research",
+        "work": "Reverie",
+        "facet": "limitation",
+        "statement": "论文结论指出，参数 γ 的最优取值仍是开放问题，尚待进一步研究。",
+        "citation_ids": [
+          2
+        ]
+      },
+      {
+        "organization": "Microsoft Research",
+        "work": "InvisiFlow",
+        "facet": "affiliation",
+        "statement": "InvisiFlow 发表于 NSDI 2025，共同作者 Liangcheng Yu 在论文发表时的单位标注为 University of Pennsylvania 与 Microsoft Research 双聘。",
+        "citation_ids": [
+          3,
+          5
+        ]
+      },
+      {
+        "organization": "Microsoft Research",
+        "work": "InvisiFlow",
+        "facet": "problem",
+        "statement": "InvisiFlow 指出既有遥测数据传输方法在网络高负载时会给用户流量带来显著开销，或导致遥测数据丢失。",
+        "citation_ids": [
+          3,
+          5
+        ]
+      },
+      {
+        "organization": "Microsoft Research",
+        "work": "InvisiFlow",
+        "facet": "method",
+        "statement": "InvisiFlow 通过机会式发送与拥塞梯度动态寻找网络空闲容量，而非沿最短路径固定推送遥测包。",
+        "citation_ids": [
+          3,
+          5
+        ]
+      },
+      {
+        "organization": "Microsoft Research",
+        "work": "InvisiFlow",
+        "facet": "result",
+        "statement": "在 FatTree 拓扑的高负载场景下，InvisiFlow 的遥测丢包率相对 Everflow、Planck 等方法降低约 33.8 倍。",
+        "citation_ids": [
+          3,
+          5
+        ]
+      },
+      {
+        "organization": "Microsoft Research",
+        "work": "InvisiFlow",
+        "facet": "limitation",
+        "statement": "InvisiFlow 属于面向遥测传输的相邻工作，并非直接拥塞控制机制；其公开摘要仅给出 FatTree 仿真条件下的评估结果。",
+        "citation_ids": [
+          3,
+          5
+        ]
+      }
+    ],
+    "questions": [
+      "Reverie 的参数 γ 在不同 RDMA/TCP 混合比例与缓冲区规模下的最优取值如何确定，是否有后续工作给出解析或实证结论？",
+      "Reverie 在真实交换机 ASIC 或可编程准入控制硬件上的可部署性与性能损失如何，是否有公开的硬件原型或试运行证据？",
+      "InvisiFlow 的机会式遥测传输在真实数据中心拓扑与真实背景流量下，遥测时延与丢包表现是否与 FatTree 仿真结论一致？",
+      "2024 至 2025 年间 Microsoft Research 是否另有直接面向数据中心拥塞控制的公开论文，可与 Reverie 的技术路线做对照？"
+    ],
+    "gaps": [
+      "采集来源集中于 USENIX 会议页、论文 PDF 与 Microsoft Research 官方出版物页，未覆盖 DBLP、arXiv、Google Scholar 等索引中的其他相关条目。",
+      "未取得 Microsoft Research 网络研究组 2024–2025 年完整论文清单，因此无法确认是否遗漏其他数据中心拥塞控制相关公开工作。",
+      "未获取 Reverie 与 InvisiFlow 的完整正文评估章节，部分实验条件（如拓扑规模、负载参数）仅依据摘要与片段。",
+      "来源 6、7 为出版物列表页与相关 PDF，未在本次核对中明确定位到可作为独立事实的条目内容。"
+    ],
+    "missing_requirements": []
+  },
+  "coverage_missing": [],
+  "run_id": "0f11a95743bc406cab48f4f384eeb8b3",
+  "stats": {
+    "input_tokens": 5957,
+    "output_tokens": 1117,
+    "cache_read_tokens": 0,
+    "llm_calls": 1,
+    "tool_calls": 0,
+    "tool_errors": 0,
+    "duration_ms": 20474
+  }
+}

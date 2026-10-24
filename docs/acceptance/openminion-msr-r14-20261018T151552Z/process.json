@@ -1,0 +1,16 @@
+{
+  "pid": 126608,
+  "executable": "D:\\Agentic-Deep-Research-System\\.venv\\Scripts\\python.exe",
+  "arguments": [
+    "-X",
+    "utf8",
+    "scripts/openminion_research.py",
+    "--request",
+    "examples/organization-research.json",
+    "--output",
+    "D:\\Agentic-Deep-Research-System\\docs\\acceptance\\openminion-msr-r14-20261018T151552Z\\result"
+  ],
+  "root": "D:\\Agentic-Deep-Research-System\\docs\\acceptance\\openminion-msr-r14-20261018T151552Z",
+  "result": "D:\\Agentic-Deep-Research-System\\docs\\acceptance\\openminion-msr-r14-20261018T151552Z\\result",
+  "started": "2026-10-18T23:15:52.1019407+08:00"
+}

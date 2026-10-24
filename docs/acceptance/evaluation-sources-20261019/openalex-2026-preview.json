@@ -1,0 +1,381 @@
+{
+  "schema_version": "1",
+  "request": {
+    "disciplines": [
+      "mathematics"
+    ],
+    "output_type": "journal_article",
+    "target_id": "openalex:W1951724000",
+    "work_id": null,
+    "publication_year": 2015,
+    "metric_year": 2026,
+    "track": "main",
+    "editions": {},
+    "sources": [],
+    "use_public_snapshots": true
+  },
+  "evaluations": [
+    {
+      "scheme_id": "ccf",
+      "applicable": false,
+      "availability": "not_applicable",
+      "reason": "Computing catalogue does not automatically apply to this discipline",
+      "records": []
+    },
+    {
+      "scheme_id": "icore",
+      "applicable": false,
+      "availability": "not_applicable",
+      "reason": "Computing catalogue does not automatically apply to this discipline",
+      "records": []
+    },
+    {
+      "scheme_id": "wos_scie",
+      "applicable": true,
+      "availability": "source_unavailable",
+      "reason": "No source data connected; import authorized provider records",
+      "records": []
+    },
+    {
+      "scheme_id": "wos_ssci",
+      "applicable": true,
+      "availability": "source_unavailable",
+      "reason": "No source data connected; import authorized provider records",
+      "records": []
+    },
+    {
+      "scheme_id": "wos_ahci",
+      "applicable": true,
+      "availability": "source_unavailable",
+      "reason": "No source data connected; import authorized provider records",
+      "records": []
+    },
+    {
+      "scheme_id": "wos_esci",
+      "applicable": true,
+      "availability": "source_unavailable",
+      "reason": "No source data connected; import authorized provider records",
+      "records": []
+    },
+    {
+      "scheme_id": "scopus",
+      "applicable": true,
+      "availability": "source_unavailable",
+      "reason": "No source data connected; import authorized provider records",
+      "records": []
+    },
+    {
+      "scheme_id": "jcr_jif",
+      "applicable": true,
+      "availability": "source_unavailable",
+      "reason": "No source data connected; import authorized provider records",
+      "records": []
+    },
+    {
+      "scheme_id": "jcr_quartile",
+      "applicable": true,
+      "availability": "source_unavailable",
+      "reason": "No source data connected; import authorized provider records",
+      "records": []
+    },
+    {
+      "scheme_id": "jcr_jci",
+      "applicable": true,
+      "availability": "source_unavailable",
+      "reason": "No source data connected; import authorized provider records",
+      "records": []
+    },
+    {
+      "scheme_id": "cas_partition",
+      "applicable": true,
+      "availability": "source_unavailable",
+      "reason": "No source data connected; import authorized provider records",
+      "records": []
+    },
+    {
+      "scheme_id": "citescore",
+      "applicable": true,
+      "availability": "source_unavailable",
+      "reason": "No source data connected; import authorized provider records",
+      "records": []
+    },
+    {
+      "scheme_id": "citescore_percentile",
+      "applicable": true,
+      "availability": "source_unavailable",
+      "reason": "No source data connected; import authorized provider records",
+      "records": []
+    },
+    {
+      "scheme_id": "sjr",
+      "applicable": true,
+      "availability": "source_unavailable",
+      "reason": "No source data connected; import authorized provider records",
+      "records": []
+    },
+    {
+      "scheme_id": "snip",
+      "applicable": true,
+      "availability": "source_unavailable",
+      "reason": "No source data connected; import authorized provider records",
+      "records": []
+    },
+    {
+      "scheme_id": "abdc",
+      "applicable": false,
+      "availability": "not_applicable",
+      "reason": "Business catalogue applicability requires a business-related discipline",
+      "records": []
+    },
+    {
+      "scheme_id": "ajg",
+      "applicable": false,
+      "availability": "not_applicable",
+      "reason": "Business catalogue applicability requires a business-related discipline",
+      "records": []
+    },
+    {
+      "scheme_id": "citation_percentile",
+      "applicable": true,
+      "availability": "available",
+      "reason": "All matching categories retained; no highest-grade selection",
+      "records": [
+        {
+          "target_id": "openalex:W1951724000",
+          "track": "work",
+          "category": "https://openalex.org/subfields/2613 | Statistics and Probability",
+          "raw_value": 1.0,
+          "status": "available",
+          "publication_year": 2015,
+          "document_type": "article",
+          "citation_cutoff": "2018-12-31",
+          "scheme_id": "citation_percentile",
+          "edition": "OpenAlex snapshot 2026-10-19",
+          "metric_year": 2026,
+          "provider": "OpenAlex",
+          "source_id": "openalex-W1951724000-citation_percentile-2026-10-19",
+          "source_url": "https://api.openalex.org/works/W1951724000",
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": "2026-10-19T09:35:57.686232",
+          "match_basis": "exact_identifier_and_track",
+          "evidence_status": "public_source_snapshot"
+        }
+      ]
+    },
+    {
+      "scheme_id": "cnci",
+      "applicable": true,
+      "availability": "source_unavailable",
+      "reason": "No source data connected; import authorized provider records",
+      "records": []
+    },
+    {
+      "scheme_id": "fwci",
+      "applicable": true,
+      "availability": "available",
+      "reason": "All matching categories retained; no highest-grade selection",
+      "records": [
+        {
+          "target_id": "openalex:W1951724000",
+          "track": "work",
+          "category": "https://openalex.org/subfields/2613 | Statistics and Probability",
+          "raw_value": 3266.5958,
+          "status": "available",
+          "publication_year": 2015,
+          "document_type": "article",
+          "citation_cutoff": "2018-12-31",
+          "scheme_id": "fwci",
+          "edition": "OpenAlex snapshot 2026-10-19",
+          "metric_year": 2026,
+          "provider": "OpenAlex",
+          "source_id": "openalex-W1951724000-fwci-2026-10-19",
+          "source_url": "https://api.openalex.org/works/W1951724000",
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": "2026-10-19T09:35:57.686232",
+          "match_basis": "exact_identifier_and_track",
+          "evidence_status": "public_source_snapshot"
+        }
+      ]
+    }
+  ],
+  "source_status": [
+    {
+      "scheme_id": "ccf",
+      "access": "public_sample",
+      "editions": [
+        "2012",
+        "2022"
+      ],
+      "source_url": "https://www.ccf.org.cn/Academic_Evaluation/By_category/",
+      "coverage": "partial_or_caller_declared",
+      "live_fetch": false
+    },
+    {
+      "scheme_id": "icore",
+      "access": "public_sample",
+      "editions": [
+        "CORE2023",
+        "ICORE2026"
+      ],
+      "source_url": "https://portal.core.edu.au/conf-ranks/",
+      "coverage": "partial_or_caller_declared",
+      "live_fetch": false
+    },
+    {
+      "scheme_id": "wos_scie",
+      "access": "import_only",
+      "editions": [],
+      "source_url": "https://mjl.clarivate.com/",
+      "coverage": "partial_or_caller_declared",
+      "live_fetch": false
+    },
+    {
+      "scheme_id": "wos_ssci",
+      "access": "import_only",
+      "editions": [],
+      "source_url": "https://mjl.clarivate.com/",
+      "coverage": "partial_or_caller_declared",
+      "live_fetch": false
+    },
+    {
+      "scheme_id": "wos_ahci",
+      "access": "import_only",
+      "editions": [],
+      "source_url": "https://mjl.clarivate.com/",
+      "coverage": "partial_or_caller_declared",
+      "live_fetch": false
+    },
+    {
+      "scheme_id": "wos_esci",
+      "access": "import_only",
+      "editions": [],
+      "source_url": "https://mjl.clarivate.com/",
+      "coverage": "partial_or_caller_declared",
+      "live_fetch": false
+    },
+    {
+      "scheme_id": "scopus",
+      "access": "import_only",
+      "editions": [],
+      "source_url": "https://www.scopus.com/sources",
+      "coverage": "partial_or_caller_declared",
+      "live_fetch": false
+    },
+    {
+      "scheme_id": "jcr_jif",
+      "access": "import_only",
+      "editions": [],
+      "source_url": "https://jcr.clarivate.com/",
+      "coverage": "partial_or_caller_declared",
+      "live_fetch": false
+    },
+    {
+      "scheme_id": "jcr_quartile",
+      "access": "import_only",
+      "editions": [],
+      "source_url": "https://jcr.clarivate.com/",
+      "coverage": "partial_or_caller_declared",
+      "live_fetch": false
+    },
+    {
+      "scheme_id": "jcr_jci",
+      "access": "import_only",
+      "editions": [],
+      "source_url": "https://jcr.clarivate.com/",
+      "coverage": "partial_or_caller_declared",
+      "live_fetch": false
+    },
+    {
+      "scheme_id": "cas_partition",
+      "access": "import_only",
+      "editions": [],
+      "source_url": "https://www.fenqubiao.com/",
+      "coverage": "partial_or_caller_declared",
+      "live_fetch": false
+    },
+    {
+      "scheme_id": "citescore",
+      "access": "import_only",
+      "editions": [],
+      "source_url": "https://www.scopus.com/sources",
+      "coverage": "partial_or_caller_declared",
+      "live_fetch": false
+    },
+    {
+      "scheme_id": "citescore_percentile",
+      "access": "import_only",
+      "editions": [],
+      "source_url": "https://www.scopus.com/sources",
+      "coverage": "partial_or_caller_declared",
+      "live_fetch": false
+    },
+    {
+      "scheme_id": "sjr",
+      "access": "import_only",
+      "editions": [],
+      "source_url": "https://www.scimagojr.com/",
+      "coverage": "partial_or_caller_declared",
+      "live_fetch": false
+    },
+    {
+      "scheme_id": "snip",
+      "access": "import_only",
+      "editions": [],
+      "source_url": "https://www.scopus.com/sources",
+      "coverage": "partial_or_caller_declared",
+      "live_fetch": false
+    },
+    {
+      "scheme_id": "abdc",
+      "access": "public_sample",
+      "editions": [
+        "2010",
+        "2013",
+        "2016",
+        "2019",
+        "2022",
+        "2025"
+      ],
+      "source_url": "https://abdc.edu.au/abdc-journal-quality-list/",
+      "coverage": "partial_or_caller_declared",
+      "live_fetch": false
+    },
+    {
+      "scheme_id": "ajg",
+      "access": "import_only",
+      "editions": [],
+      "source_url": "https://charteredabs.org/academic-journal-guide",
+      "coverage": "partial_or_caller_declared",
+      "live_fetch": false
+    },
+    {
+      "scheme_id": "citation_percentile",
+      "access": "public_sample",
+      "editions": [
+        "OpenAlex snapshot 2026-10-19"
+      ],
+      "source_url": "https://help.openalex.org/data/works/citations/",
+      "coverage": "partial_or_caller_declared",
+      "live_fetch": false
+    },
+    {
+      "scheme_id": "cnci",
+      "access": "import_only",
+      "editions": [],
+      "source_url": "https://incites.help.clarivate.com/Content/Indicators-Handbook/ih-normalized-citation-impact.htm",
+      "coverage": "partial_or_caller_declared",
+      "live_fetch": false
+    },
+    {
+      "scheme_id": "fwci",
+      "access": "public_sample",
+      "editions": [
+        "OpenAlex snapshot 2026-10-19"
+      ],
+      "source_url": "https://help.openalex.org/data/works/citations/",
+      "coverage": "partial_or_caller_declared",
+      "live_fetch": false
+    }
+  ],
+  "external_sources_checked": false
+}

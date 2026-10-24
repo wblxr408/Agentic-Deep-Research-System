@@ -1,0 +1,201 @@
+{
+  "source_result": "docs\\acceptance\\openminion-msr-r13-20261018T150637Z\\result\\result.json",
+  "original_claim_ids": [
+    "claim:7",
+    "claim:8",
+    "claim:14"
+  ],
+  "scope": "three_current_failures_only_not_full_workflow",
+  "audit": {
+    "schema_version": "1",
+    "verification_kind": "model_judgement_with_source_quote_and_whitespace_check",
+    "human_review_status": "not_reviewed",
+    "total_claims": 3,
+    "checked_claims": 3,
+    "supported_claims": 3,
+    "citation_presence_rate": 1.0,
+    "source_support_rate": 1.0,
+    "needs_review": false,
+    "errors": [],
+    "usage": [
+      {
+        "prompt_tokens": 391,
+        "completion_tokens": 128,
+        "total_tokens": 519,
+        "cost_usd": 0.0,
+        "estimated": true,
+        "model": "deepseek-chat",
+        "purpose": "cross_language_retrieval"
+      },
+      {
+        "prompt_tokens": 3746,
+        "completion_tokens": 378,
+        "total_tokens": 4124,
+        "cost_usd": 0.0,
+        "estimated": true,
+        "model": "deepseek-chat"
+      }
+    ],
+    "claims": [
+      {
+        "claim_id": "claim:1",
+        "text": "**成果及条件** Reverie: Low Pass Filter-Based Switch Buffer Sharing for Datacenters with RDMA and TCP Traffic：论文定理给出稳态空闲缓冲区量下限为 b*/(1+α_lossless+α_lossy)，其中b*为共享缓冲池大小。 [citation:3]",
+        "citation_ids": [
+          3
+        ],
+        "status": "supported",
+        "model_verdict": "supported",
+        "model_confidence": 0.95,
+        "human_review_status": "not_reviewed",
+        "source_checks": [
+          {
+            "evidence_id": "source:3",
+            "quote": "Theorem 2 (Buffer waste). REVERIE keeps idle a certain\namount of buffer in the steady-state denoted bybw given by,",
+            "quote_start": 84840,
+            "quote_end": 84954,
+            "quote_match": "exact",
+            "source_quote": "Theorem 2 (Buffer waste). REVERIE keeps idle a certain\namount of buffer in the steady-state denoted bybw given by,",
+            "quote_valid": true
+          }
+        ],
+        "excerpts": [
+          {
+            "citation_id": 3,
+            "evidence_id": "source:3",
+            "source_url": "https://www.usenix.org/system/files/nsdi24-addanki-reverie.pdf",
+            "source_title": "https://www.usenix.org/conference/nsdi24/presentation/addanki-reverie (PDF)",
+            "start": 0,
+            "end": 1000,
+            "quote": "\n[PDF page 1]\nThis paper is included in the \nProceedings of the 21st USENIX Symposium on \nNetworked Systems Design and Implementation.\nApril 16–18, 2024 • Santa Clara, CA, USA\n978-1-939133-39-7\nOpen access to the Proceedings of the \n21st USENIX Symposium on Networked \nSystems Design and Implementation \nis sponsored by\nReverie: Low Pass Filter-Based Switch Buffer \nSharing for Datacenters with RDMA and TCP Traffic\nVamsi Addanki, TU Berlin; Wei Bai, Microsoft Research; Stefan Schmid, TU Berlin; \nMaria Apostolaki, Princeton University\nhttps://www.usenix.org/conference/nsdi24/presentation/addanki-reverie\n[PDF page 2]\nReverie: Low Pass Filter-Based Switch Buffer Sharing for\nDatacenters with RDMA and TCP Traffic\nVamsi Addanki\nTU Berlin\nWei Bai\nMicrosoft Research\nStefan Schmid\nTU Berlin\nMaria Apostolaki\nPrinceton University\nAbstract\nThe switch buffers in datacenters today are dynamically shared\nby traffic classes with different loss tolerance and reaction to\ncongestion signals. In particular, "
+          },
+          {
+            "citation_id": 3,
+            "evidence_id": "source:3",
+            "source_url": "https://www.usenix.org/system/files/nsdi24-addanki-reverie.pdf",
+            "source_title": "https://www.usenix.org/conference/nsdi24/presentation/addanki-reverie (PDF)",
+            "start": 84800,
+            "end": 85800,
+            "quote": " easy to see that the ratio•q◦q =\n•α◦α.\nTheorem 2 (Buffer waste). REVERIE keeps idle a certain\namount of buffer in the steady-state denoted bybw given by,\n∗\nb\n1+ •α+ ◦α ≤bw ≤\n∗\nb\n1+min( •α, ◦α)\nwhere\n∗\nb is the shared buffer pool size;•α and ◦α are the parameter\nvalues for lossless and lossy queues correspondingly.\nProof. Our proof follows from the proof of Theorem 2. Specif-\nically, for •n lossless queues and ◦n lossy queues, REVERIE\nallocates ∗q in aggregate given by Equation 13. The remaining\nbuffer\n∗\nb−∗q which is wasted in the steady state is then given by,\nbw ≥\n∗\nb−∗q =\n∗\nb\n1+( •α+ ◦α)\nHowever, if a traffic class eg., lossless does not use the buffer,\nwe can derive the remaining shared pool buffer similar to\nabove. Depending on the smallest α value across all traffic\nUSENIX Association 21st USENIX Symposium on Networked Systems Design and Implementation    667\n[PDF page 19]\nclasses, when such a class uses the buffer alone, then in this\ncase the buffer waste is given by,\nbw ≤\n∗\nb−"
+          },
+          {
+            "citation_id": 3,
+            "evidence_id": "source:3",
+            "source_url": "https://www.usenix.org/system/files/nsdi24-addanki-reverie.pdf",
+            "source_title": "https://www.usenix.org/conference/nsdi24/presentation/addanki-reverie (PDF)",
+            "start": 42400,
+            "end": 43400,
+            "quote": "sed to the static pool sizes in the current practices.\nHowever, REVERIE keeps some buffer idle.\nTheorem 2 (Buffer waste). REVERIE keeps idle a certain\namount of buffer in the steady-state denoted bybw given by,\n∗\nb\n1+ •α+ ◦α ≤bw ≤\n∗\nb\n1+min( •α, ◦α)\nwhere\n∗\nb is the shared buffer pool size;•α and ◦α are the parameter\nvalues for lossless and lossy queues correspondingly.\nAlthough REVERIE keeps a tiny buffer portion idle in the\nsteady state, this helps in absorbing transient bursts.REVERIE\neffectively absorbs transient bursts even for lossless traffic\nsince it comparesaverage queue lengths against the threshold.\nIndeed, upon burst arrival, the average queue length hits\nthe threshold slower than the instantaneous queue length,\nessentially absorbing transient bursts even for lossless queues.\nAs a result, REVERIE finally solves issue 3.\n3.5 Implementation Feasibility\nA prototype implementation ofREVERIE is beyond the scope\nof this paper and is part of our future work. Our discussions\nwith N"
+          }
+        ],
+        "retrieval_query": "Reverie Low Pass Filter-Based Switch Buffer Sharing RDMA TCP theorem steady-state idle buffer lower bound b*/(1+α_lossless+α_lossy) shared buffer pool size",
+        "reason": "Theorem 2 states the steady-state idle buffer bw satisfies b*/(1+α•+α◦) ≤ bw ≤ b*/(1+min(α•,α◦)), where b* is the shared buffer pool size. The claim's lower bound b*/(1+α_lossless+α_lossy) matches the theorem's lower bound, and b* is correctly identified as the shared buffer pool size."
+      },
+      {
+        "claim_id": "claim:2",
+        "text": "**论文中的限制** Reverie: Low Pass Filter-Based Switch Buffer Sharing for Datacenters with RDMA and TCP Traffic：论文明确说明Reverie的原型实现超出本文范围，属于未来工作，评估基于分析与仿真而非原型。 [citation:3]",
+        "citation_ids": [
+          3
+        ],
+        "status": "supported",
+        "model_verdict": "supported",
+        "model_confidence": 0.9,
+        "human_review_status": "not_reviewed",
+        "source_checks": [
+          {
+            "evidence_id": "source:3",
+            "quote": "A prototype implementation ofREVERIE is beyond the scope\nof this paper and is part of our future work.",
+            "quote_start": 43275,
+            "quote_end": 43377,
+            "quote_match": "exact",
+            "source_quote": "A prototype implementation ofREVERIE is beyond the scope\nof this paper and is part of our future work.",
+            "quote_valid": true
+          }
+        ],
+        "excerpts": [
+          {
+            "citation_id": 3,
+            "evidence_id": "source:3",
+            "source_url": "https://www.usenix.org/system/files/nsdi24-addanki-reverie.pdf",
+            "source_title": "https://www.usenix.org/conference/nsdi24/presentation/addanki-reverie (PDF)",
+            "start": 0,
+            "end": 1000,
+            "quote": "\n[PDF page 1]\nThis paper is included in the \nProceedings of the 21st USENIX Symposium on \nNetworked Systems Design and Implementation.\nApril 16–18, 2024 • Santa Clara, CA, USA\n978-1-939133-39-7\nOpen access to the Proceedings of the \n21st USENIX Symposium on Networked \nSystems Design and Implementation \nis sponsored by\nReverie: Low Pass Filter-Based Switch Buffer \nSharing for Datacenters with RDMA and TCP Traffic\nVamsi Addanki, TU Berlin; Wei Bai, Microsoft Research; Stefan Schmid, TU Berlin; \nMaria Apostolaki, Princeton University\nhttps://www.usenix.org/conference/nsdi24/presentation/addanki-reverie\n[PDF page 2]\nReverie: Low Pass Filter-Based Switch Buffer Sharing for\nDatacenters with RDMA and TCP Traffic\nVamsi Addanki\nTU Berlin\nWei Bai\nMicrosoft Research\nStefan Schmid\nTU Berlin\nMaria Apostolaki\nPrinceton University\nAbstract\nThe switch buffers in datacenters today are dynamically shared\nby traffic classes with different loss tolerance and reaction to\ncongestion signals. In particular, "
+          },
+          {
+            "citation_id": 3,
+            "evidence_id": "source:3",
+            "source_url": "https://www.usenix.org/system/files/nsdi24-addanki-reverie.pdf",
+            "source_title": "https://www.usenix.org/conference/nsdi24/presentation/addanki-reverie (PDF)",
+            "start": 43200,
+            "end": 44200,
+            "quote": "s a result, REVERIE finally solves issue 3.\n3.5 Implementation Feasibility\nA prototype implementation ofREVERIE is beyond the scope\nof this paper and is part of our future work. Our discussions\nwith NVIDIA already confirm that an approximation of the\nshared buffer pool model ofREVERIE is feasible in hardware.\nIn fact, we are currently discussing with a major Ethernet\nswitch vendor on implementing REVERIE using their latest\nASIC with programmable admission control features.\nREVERIE is within reach of today’s hardware because\nit does not significantly depart from commodity ASICs’\nbuffer-sharing architecture and admission control mechanisms.\n658    21st USENIX Symposium on Networked Systems Design and Implementation USENIX Association\n[PDF page 10]\nABM ReverieDT\n20 40 60 80\nTCP load (%)\n0\n5\n10\n15\n20\n25# PFC pauses (x1000)\n(a) PFC Pauses\n20 40 60 80\nTCP load (%)\n10\n15\n20\n25Avg. FCT slowdown\n (b) RDMA incast flows\n20 40 60 80\nTCP load (%)\n10\n20\n30\n40\n5099-pct FCT slowdown\n (c) TCP short flo"
+          },
+          {
+            "citation_id": 3,
+            "evidence_id": "source:3",
+            "source_url": "https://www.usenix.org/system/files/nsdi24-addanki-reverie.pdf",
+            "source_title": "https://www.usenix.org/conference/nsdi24/presentation/addanki-reverie (PDF)",
+            "start": 44800,
+            "end": 45800,
+            "quote": "is architecture is\nsupported by existing NVIDIA Ethernet switch ASICs 4.\nSecond, REVERIE uses a first-order low pass filter to obtain the\nmoving averaged queue lengths. We believe this is practical\nas moving averages are used by common AQM like RED [20].\nAs previous works (e.g., ABM [1], [42] ) have noted, various\nqueue-length statistics are available and already used by the na-\ntive buffer management of the MMU (although switch vendors\ndo not open up the API for operators to do so on their own).\n4 Evaluation\nWe evaluate the performance of REVERIE and compare it\nagainst the state-of-the-art approaches in the datacenter. Our\nevaluation aims to answer four main questions:\n(Q1) Can REVERIE protect RDMA from TCP?\nWe find that REVERIE shields the performance of RDMA\nfrom TCP under various loads. At increased loads,REVERIE\nreduces the number of PFC pauses by 60% on average\ncompared to DT and by 71.2% compared to ABM, with\nDCQCN as the transport protocol. When using advanced\ncongestion contro"
+          }
+        ],
+        "retrieval_query": "Reverie Low Pass Filter-Based Switch Buffer Sharing prototype implementation out of scope future work evaluation analysis simulation not prototype",
+        "reason": "The excerpt explicitly states the prototype implementation is beyond the paper's scope and is future work. The evaluation section describes simulation-based evaluation, consistent with the claim that evaluation is analysis/simulation rather than prototype."
+      },
+      {
+        "claim_id": "claim:3",
+        "text": "**论文中的限制** Enabling Silent Telemetry Data Transmission with InvisiFlow：InvisiFlow的精度与鲁棒性评估主要基于FatTree拓扑下ns-3大规模仿真与测试床实验，结果依赖于所设缓冲与工作负载配置。 [citation:6]",
+        "citation_ids": [
+          6
+        ],
+        "status": "supported",
+        "model_verdict": "supported",
+        "model_confidence": 0.85,
+        "human_review_status": "not_reviewed",
+        "source_checks": [
+          {
+            "evidence_id": "source:6",
+            "quote": "We evaluate InvisiFlow using a combination of testbed exper-\niments and large-scale ns-3 simulations [56].",
+            "quote_start": 38083,
+            "quote_end": 38189,
+            "quote_match": "exact",
+            "source_quote": "We evaluate InvisiFlow using a combination of testbed exper-\niments and large-scale ns-3 simulations [56].",
+            "quote_valid": true
+          }
+        ],
+        "excerpts": [
+          {
+            "citation_id": 6,
+            "evidence_id": "source:6",
+            "source_url": "https://www.usenix.org/system/files/nsdi25-zhang-yinda.pdf",
+            "source_title": "https://www.usenix.org/conference/nsdi25/presentation/zhang-yinda (PDF)",
+            "start": 37600,
+            "end": 38600,
+            "quote": " in the egress pipeline register.\nHardware resource usage: Table 2 summarizes the key\nresources required by our prototype. Compared with low-\npriority UDP, which uses OrbWeaver [21] to generate low-\npriority telemetry packets, the additional resource used by\nInvisiFlow is small: 2.08% additional gateways and 0.78%\nadditional VLIW actions to process the telemetry packets.\nThe ALU and SRAM are mainly used to store and read/write\ntelemetry data in the egress pipeline.\n6 Evaluation\nWe evaluate InvisiFlow using a combination of testbed exper-\niments and large-scale ns-3 simulations [56]. Our evaluation\nfocuses on the following three key questions.\n• Can InvisiFlow minimize the accuracy degradation on the\ntelemetry application (R1)?\n• Can InvisiFlow simultaneously minimize the overhead of\ntransmitting telemetry data (R2)?\n• Is InvisiFlow robust to different settings and workloads?\n6.1 Simulation Methodology\nTopology and workload. We simulate a FatTree [45] topol-\nogy with 9 core switches and"
+          },
+          {
+            "citation_id": 6,
+            "evidence_id": "source:6",
+            "source_url": "https://www.usenix.org/system/files/nsdi25-zhang-yinda.pdf",
+            "source_title": "https://www.usenix.org/conference/nsdi25/presentation/zhang-yinda (PDF)",
+            "start": 0,
+            "end": 1000,
+            "quote": "\n[PDF page 1]\nThis paper is included in the \nProceedings of the 22nd USENIX Symposium on \nNetworked Systems Design and Implementation.\nApril 28–30, 2025 • Philadelphia, PA, USA\n978-1-9391 33-46-5\nOpen access to the Proceedings of the \n22nd USENIX Symposium on Networked \nSystems Design and Implementation \nis sponsored by\nEnabling Silent Telemetry Data Transmission  \nwith InvisiFlow\nYinda Zhang, University of Pennsylvania; Liangcheng Yu, University of Pennsylvania \nand Microsoft Research; Gianni Antichi, Politecnico di Milano and Queen Mary \nUniversity of London; Ran Ben Basat, University College London;  \nVincent Liu, University of Pennsylvania\nhttps://www.usenix.org/conference/nsdi25/presentation/zhang-yinda\n[PDF page 2]\nEnabling Silent Telemetry Data Transmission with InvisiFlow\nYinda Zhang†, Liangcheng Yu†≀, Gianni Antichi§⋆, Ran Ben Basat‡, Vincent Liu†\n†University of Pennsylvania, ≀Microsoft Research, ⋆Queen Mary University of London,\n§Politecnico di Milano, ‡University College Lon"
+          },
+          {
+            "citation_id": 6,
+            "evidence_id": "source:6",
+            "source_url": "https://www.usenix.org/system/files/nsdi25-zhang-yinda.pdf",
+            "source_title": "https://www.usenix.org/conference/nsdi25/presentation/zhang-yinda (PDF)",
+            "start": 39200,
+            "end": 40200,
+            "quote": " shared by all ports on the same switch and\nare fully isolated to prevent any impact on user traffic. For\nDCTCP, we set K = 65 based on [59, 61]. User traffic is\nload-balanced using ECMP over the 5-tuple.\nExperiments are performed with one of two workloads:\na Hadoop workload (FB_Hadoop) and a machine-learning\n(ML) workload. Details of the workloads can be found in\nAppendix B. Unless otherwise specwified, FB_Hadoop is the\ndefault setting.\n2In experiments, the total telemetry data generated is generally<30 Gbps.\nUSENIX Association 22nd USENIX Symposium on Networked Systems Design and Implementation    77\n[PDF page 9]\nStressed scenarios. In addition to the default setting, we intro-\nduce two other scenarios to test InvisiFlow’s robustness.\n• Load imbalance: We simulate a load imbalance scenario\ncaused by a faulty configuration, where ECMP is config-\nured to hash based only on the destination IP, which causes\npackets to a single destination to use only one path, leading\nto high load imbala"
+          }
+        ],
+        "retrieval_query": "InvisiFlow silent telemetry data transmission accuracy robustness evaluation FatTree ns-3 large-scale simulation testbed experiments buffer workload configuration",
+        "reason": "The excerpt confirms evaluation uses testbed experiments plus large-scale ns-3 simulations, and the methodology section describes a FatTree topology with 9 core switches and specific workload/buffer configurations (e.g., DCTCP K=65, FB_Hadoop and ML workloads), supporting the claim about FatTree ns-3 simulations, testbed experiments, and dependence on buffer/workload settings."
+      }
+    ]
+  }
+}

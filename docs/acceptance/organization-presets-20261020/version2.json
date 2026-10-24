@@ -1,0 +1,121 @@
+{
+  "preset_id": "b53d0569-579d-4400-9ec0-429194a97590",
+  "version": 2,
+  "name": "个人科研偏好 v2",
+  "configuration": {
+    "preset": "custom",
+    "weights": {
+      "topic_relevance": 1.0,
+      "evidence_completeness": 9.0
+    },
+    "mappings": [],
+    "config_version": "user-config-v1",
+    "metric_weights": {},
+    "performance_groups": {
+      "paper": 1.0,
+      "venue": 1.0
+    }
+  },
+  "effective_configuration": {
+    "mappings": [
+      {
+        "scores": {
+          "A": 1.0,
+          "B": 0.6666666666666667,
+          "C": 0.33333333333333337
+        },
+        "version": "adrs-preference-map-v1",
+        "scheme_id": "ccf"
+      },
+      {
+        "scores": {
+          "A": 0.75,
+          "B": 0.5,
+          "C": 0.25,
+          "A*": 1.0
+        },
+        "version": "adrs-preference-map-v1",
+        "scheme_id": "icore"
+      },
+      {
+        "scores": {
+          "A": 0.75,
+          "B": 0.5,
+          "C": 0.25,
+          "A*": 1.0
+        },
+        "version": "adrs-preference-map-v1",
+        "scheme_id": "abdc"
+      },
+      {
+        "scores": {
+          "1": 0.19999999999999996,
+          "2": 0.4,
+          "3": 0.6,
+          "4": 0.8,
+          "4*": 1.0
+        },
+        "version": "adrs-preference-map-v1",
+        "scheme_id": "ajg"
+      },
+      {
+        "scores": {
+          "Q1": 1.0,
+          "Q2": 0.75,
+          "Q3": 0.5,
+          "Q4": 0.25
+        },
+        "version": "adrs-preference-map-v1",
+        "scheme_id": "jcr_quartile"
+      },
+      {
+        "scores": {
+          "1": 1.0,
+          "2": 0.75,
+          "3": 0.5,
+          "4": 0.25
+        },
+        "version": "adrs-preference-map-v1",
+        "scheme_id": "cas_partition"
+      }
+    ],
+    "semantics": "preference_configuration_only",
+    "raw_config": {
+      "preset": "custom",
+      "weights": {
+        "topic_relevance": {
+          "weight": 1.0,
+          "enabled": true
+        },
+        "evidence_completeness": {
+          "weight": 9.0,
+          "enabled": true
+        }
+      },
+      "metric_weights": {},
+      "performance_groups": {
+        "paper": {
+          "weight": 1.0,
+          "enabled": true
+        },
+        "venue": {
+          "weight": 1.0,
+          "enabled": true
+        }
+      }
+    },
+    "rule_version": "adrs-weight-rules-v1",
+    "config_version": "user-config-v1",
+    "preset_version": "adrs-presets-v1",
+    "effective_groups": {
+      "paper": 0.0,
+      "venue": 0.0
+    },
+    "effective_weights": {
+      "topic_relevance": 0.09999999999999999,
+      "evidence_completeness": 0.8999999999999999
+    },
+    "effective_metric_weights": {}
+  },
+  "created_at": "2026-10-20T14:29:11.160725"
+}

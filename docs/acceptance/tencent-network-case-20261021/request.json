@@ -1,0 +1,37 @@
+{
+  "query": "交付腾讯网络研究的一个有界、可分享案例：仅以 Harp 出版商页面 https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu 为种子，核实2026年腾讯在VPC网络故障检测与恢复方面的公开研究。识别论文题名、发表月份、Tencent署名及外部高校共著线索，解释摘要可支持的问题、软件路径监测与故障绕行机制。区分作者自述部署／生产结果与独立验证；无法取得全文时不补造实验条件和图表。仅一项公开成果，不代表腾讯2020—2026全集，不以数量推断投入，不把共著称为正式协议。BibTeX year=2026及month=may是发表时间来源，应保留月精度而非具体某日。没有直接依据的指标、资助、内部战略与未来方向保留缺口，最后给出待验证问题。",
+  "max_revision": 1,
+  "output_length": "medium",
+  "organization_research": {
+    "scope": {
+      "organization_types": [
+        "company"
+      ],
+      "entities": [
+        {
+          "entity_id": "tencent",
+          "name": "Tencent",
+          "type": "company",
+          "aliases": [
+            "Tencent Cloud",
+            "腾讯",
+            "腾讯云"
+          ],
+          "source_urls": [
+            "https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu"
+          ]
+        }
+      ],
+      "disciplines": [
+        "computer science"
+      ],
+      "topic": "VPC network failure detection and recovery",
+      "start_date": "2026-01-01",
+      "end_date": "2026-10-21"
+    },
+    "weights": {
+      "preset": "research_development",
+      "config_version": "tencent-network-case-20261021-v1"
+    }
+  }
+}

@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><title>基于出版商页面 https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin，研究 DistServe 论文的发表日期、Peking University 署名、研究问题和方法。只分析这一项有界公开样本，保留原文依据；没有直接证据的资助、协议、评价指标和当前任职明确未知，不外推全集或部署。</title><meta name="viewport" content="width=device-width,initial-scale=1"><style>
+body{margin:0;background:#fafafa;color:#252525;font:16px/1.8 system-ui,sans-serif}
+main{max-width:1000px;margin:32px auto;padding:36px;background:white;border:1px solid #e5e5e5;border-radius:16px}
+h1,h2,h3{line-height:1.4;margin:1.6em 0 .6em}h1{font-size:2em}h2{font-size:1.45em}h3{font-size:1.15em}
+a{color:#b44c00;overflow-wrap:anywhere}p,li{overflow-wrap:anywhere}table{border-collapse:collapse;width:100%;margin:1em 0}
+th,td{border:1px solid #ddd;text-align:left;padding:8px}th{background:#f6f6f6}details{padding:12px;border:1px solid #ddd;border-radius:10px;margin:12px 0}
+summary{cursor:pointer;font-weight:600}pre{white-space:pre-wrap;overflow-wrap:anywhere;padding:14px;background:#f6f6f6;overflow:auto}
+blockquote{margin-left:0;padding-left:16px;border-left:3px solid #e87924}section[aria-label="报告口径与冻结配置"]{padding:20px;background:#fff9f4;border:1px solid #e6d7cb;border-radius:12px}
+@media(max-width:600px){main{margin:0;padding:18px}table{display:block;overflow:auto}}
+@media print{body{background:white}main{border:0;margin:0;padding:0}details{break-inside:avoid}a{color:inherit}}
+</style></head><body><main><div class="report-content"><section aria-label="报告口径与冻结配置" class="mb-6 rounded-xl border border-xmgray-200 bg-xmgray-50 p-4 text-sm"><h2 class="font-semibold text-xmgray-800">研究对象、口径与权重</h2><p class="mt-2">Peking University · computer science</p><p class="mt-1 text-xs text-xmgray-600">2024-01-01 至 2024-12-31 · 配置 report-export-e2e-v1</p><details class="mt-3"><summary role="button" class="cursor-pointer text-xm-700">展开研究口径</summary><div class="mt-3 space-y-4"><section><h3>研究范围</h3><p>DistServe · 高校</p><p>请求冻结：2026-10-21T04:30:23.437044+00:00；采集时间在实际来源中逐项保留。</p><ul><li><a href="https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin" target="_blank" rel="noopener noreferrer">Peking University</a> · 高校 · pending</li></ul></section><section><h3>统计口径</h3><p>分别保留发表记录与研究家族；同成果可归属多个对象，汇总取并集，未关联版本按独立发表计数。</p><table aria-label="报告对象样本"><thead><tr><th>对象</th><th>发表记录</th><th>研究家族</th></tr></thead><tbody><tr><th scope="row">Peking University</th><td>1</td><td>1</td></tr><tr><th scope="row">去重汇总</th><td>1</td><td>1</td></tr></tbody></table><p>偏好配置不等于已完成评分；结果页只读重排不改写本报告的配置、事实或证据。</p></section><section><h3>有效权重</h3><table aria-label="报告有效权重"><thead><tr><th>维度</th><th>生效比例</th></tr></thead><tbody><tr><th scope="row">时效性</th><td>0.00%</td></tr><tr><th scope="row">主题相关性</th><td>60.00%</td></tr><tr><th scope="row">成果表现</th><td>0.00%</td></tr><tr><th scope="row">研究路线契合</th><td>0.00%</td></tr><tr><th scope="row">证据完整度</th><td>40.00%</td></tr><tr><th scope="row">合作互补性</th><td>0.00%</td></tr></tbody></table><p>规则 adrs-weight-rules-v1 · 预设 adrs-presets-v1 · adrs-organization-scope-v2</p><details><summary>原始权重、组内比例及有序映射</summary><pre class="max-h-96 overflow-auto whitespace-pre-wrap break-words text-xs">{
+  "mappings": [
+    {
+      "scores": {
+        "A": 1,
+        "B": 0.6666666666666667,
+        "C": 0.33333333333333337
+      },
+      "version": "adrs-preference-map-v1",
+      "scheme_id": "ccf"
+    },
+    {
+      "scores": {
+        "A": 0.75,
+        "B": 0.5,
+        "C": 0.25,
+        "A*": 1
+      },
+      "version": "adrs-preference-map-v1",
+      "scheme_id": "icore"
+    },
+    {
+      "scores": {
+        "A": 0.75,
+        "B": 0.5,
+        "C": 0.25,
+        "A*": 1
+      },
+      "version": "adrs-preference-map-v1",
+      "scheme_id": "abdc"
+    },
+    {
+      "scores": {
+        "1": 0.19999999999999996,
+        "2": 0.4,
+        "3": 0.6,
+        "4": 0.8,
+        "4*": 1
+      },
+      "version": "adrs-preference-map-v1",
+      "scheme_id": "ajg"
+    },
+    {
+      "scores": {
+        "Q1": 1,
+        "Q2": 0.75,
+        "Q3": 0.5,
+        "Q4": 0.25
+      },
+      "version": "adrs-preference-map-v1",
+      "scheme_id": "jcr_quartile"
+    },
+    {
+      "scores": {
+        "1": 1,
+        "2": 0.75,
+        "3": 0.5,
+        "4": 0.25
+      },
+      "version": "adrs-preference-map-v1",
+      "scheme_id": "cas_partition"
+    }
+  ],
+  "semantics": "preference_configuration_only",
+  "raw_config": {
+    "preset": "custom",
+    "weights": {
+      "recency": {
+        "weight": 0,
+        "enabled": true
+      },
+      "topic_relevance": {
+        "weight": 6,
+        "enabled": true
+      },
+      "output_performance": {
+        "weight": 0,
+        "enabled": true
+      },
+      "research_alignment": {
+        "weight": 0,
+        "enabled": true
+      },
+      "evidence_completeness": {
+        "weight": 4,
+        "enabled": true
+      },
+      "cooperation_complementarity": {
+        "weight": 0,
+        "enabled": true
+      }
+    },
+    "metric_weights": {},
+    "performance_groups": {
+      "paper": {
+        "weight": 1,
+        "enabled": true
+      },
+      "venue": {
+        "weight": 1,
+        "enabled": true
+      }
+    }
+  },
+  "rule_version": "adrs-weight-rules-v1",
+  "config_version": "report-export-e2e-v1",
+  "preset_version": "adrs-presets-v1",
+  "effective_groups": {
+    "paper": 0,
+    "venue": 0
+  },
+  "effective_weights": {
+    "recency": 0,
+    "topic_relevance": 0.6000000000000001,
+    "output_performance": 0,
+    "research_alignment": 0,
+    "evidence_completeness": 0.4,
+    "cooperation_complementarity": 0
+  },
+  "effective_metric_weights": {}
+}</pre></details></section><section><h3>评价口径与来源可用性</h3><p>目录样本未自动应用到本次成果；缺少指标不作零分或最低等级。</p><p>adrs-evaluation-catalog-v1 · adrs-evaluation-adapters-v1</p><ul><li><a href="https://www.ccf.org.cn/Academic_Evaluation/By_category/" target="_blank" rel="noopener noreferrer">ccf</a> · 部分公开样本</li><li><a href="https://portal.core.edu.au/conf-ranks/" target="_blank" rel="noopener noreferrer">icore</a> · 部分公开样本</li><li><a href="https://mjl.clarivate.com/" target="_blank" rel="noopener noreferrer">wos_scie</a> · 需授权导入／尚无公开样本</li><li><a href="https://mjl.clarivate.com/" target="_blank" rel="noopener noreferrer">wos_ssci</a> · 需授权导入／尚无公开样本</li><li><a href="https://mjl.clarivate.com/" target="_blank" rel="noopener noreferrer">wos_ahci</a> · 需授权导入／尚无公开样本</li><li><a href="https://mjl.clarivate.com/" target="_blank" rel="noopener noreferrer">wos_esci</a> · 需授权导入／尚无公开样本</li><li><a href="https://www.scopus.com/sources" target="_blank" rel="noopener noreferrer">scopus</a> · 需授权导入／尚无公开样本</li><li><a href="https://jcr.clarivate.com/" target="_blank" rel="noopener noreferrer">jcr_jif</a> · 需授权导入／尚无公开样本</li><li><a href="https://jcr.clarivate.com/" target="_blank" rel="noopener noreferrer">jcr_quartile</a> · 需授权导入／尚无公开样本</li><li><a href="https://jcr.clarivate.com/" target="_blank" rel="noopener noreferrer">jcr_jci</a> · 需授权导入／尚无公开样本</li><li><a href="https://www.fenqubiao.com/" target="_blank" rel="noopener noreferrer">cas_partition</a> · 需授权导入／尚无公开样本</li><li><a href="https://www.scopus.com/sources" target="_blank" rel="noopener noreferrer">citescore</a> · 需授权导入／尚无公开样本</li><li><a href="https://www.scopus.com/sources" target="_blank" rel="noopener noreferrer">citescore_percentile</a> · 需授权导入／尚无公开样本</li><li><a href="https://www.scimagojr.com/" target="_blank" rel="noopener noreferrer">sjr</a> · 需授权导入／尚无公开样本</li><li><a href="https://www.scopus.com/sources" target="_blank" rel="noopener noreferrer">snip</a> · 需授权导入／尚无公开样本</li><li><a href="https://abdc.edu.au/abdc-journal-quality-list/" target="_blank" rel="noopener noreferrer">abdc</a> · 部分公开样本</li><li><a href="https://charteredabs.org/academic-journal-guide" target="_blank" rel="noopener noreferrer">ajg</a> · 需授权导入／尚无公开样本</li><li><a href="https://help.openalex.org/data/works/citations/" target="_blank" rel="noopener noreferrer">citation_percentile</a> · 部分公开样本</li><li><a href="https://incites.help.clarivate.com/Content/Indicators-Handbook/ih-normalized-citation-impact.htm" target="_blank" rel="noopener noreferrer">cnci</a> · 需授权导入／尚无公开样本</li><li><a href="https://help.openalex.org/data/works/citations/" target="_blank" rel="noopener noreferrer">fwci</a> · 部分公开样本</li></ul><details><summary>目录来源版本与覆盖</summary><ul><li><a href="https://risame.github.io/sun/ccf.pdf" target="_blank" rel="noopener noreferrer">ccf · 2012 · 2012</a> · public · partial</li><li><a href="https://scdm-shu.github.io/ccf/2022-CCF-Ranking.pdf" target="_blank" rel="noopener noreferrer">ccf · 2022 · 2022</a> · public · partial</li><li><a href="https://portal.core.edu.au/conf-ranks/?search=SIGCOMM&amp;by=all&amp;source=CORE2023&amp;sort=atitle&amp;page=1" target="_blank" rel="noopener noreferrer">icore · CORE2023 · 2023</a> · public · partial</li><li><a href="https://portal.core.edu.au/conf-ranks/?search=SIGCOMM&amp;by=all&amp;source=ICORE2026&amp;sort=atitle&amp;page=1" target="_blank" rel="noopener noreferrer">icore · ICORE2026 · 2026</a> · public · partial</li><li><a href="https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx" target="_blank" rel="noopener noreferrer">abdc · 2010 · 2010</a> · public · partial</li><li><a href="https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx" target="_blank" rel="noopener noreferrer">abdc · 2013 · 2013</a> · public · partial</li><li><a href="https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx" target="_blank" rel="noopener noreferrer">abdc · 2016 · 2016</a> · public · partial</li><li><a href="https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx" target="_blank" rel="noopener noreferrer">abdc · 2019 · 2019</a> · public · partial</li><li><a href="https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx" target="_blank" rel="noopener noreferrer">abdc · 2022 · 2022</a> · public · partial</li><li><a href="https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx" target="_blank" rel="noopener noreferrer">abdc · 2025 · 2025</a> · public · partial</li><li><a href="https://api.openalex.org/works/W1951724000" target="_blank" rel="noopener noreferrer">fwci · OpenAlex snapshot 2026-10-19 · 2026</a> · public · partial</li><li><a href="https://api.openalex.org/works/W1951724000" target="_blank" rel="noopener noreferrer">citation_percentile · OpenAlex snapshot 2026-10-19 · 2026</a> · public · partial</li></ul></details></section><section><h3>实际取证来源</h3><ol><li><a href="https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin" target="_blank" rel="noopener noreferrer">DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving | USENIX</a><span> · ev-66854e32 · 2026-10-21T04:30:54.155918</span></li><li><a href="https://www.usenix.org/conference/osdi24/technical-sessions" target="_blank" rel="noopener noreferrer">OSDI '24 Technical Sessions | USENIX</a><span> · ev-b317edea · 2026-10-21T04:30:52.502654</span></li></ol></section><section><h3>缺口与解释边界</h3><ul><li>证据索引不等于机构成果全集或已核实合作关系。</li><li>仅覆盖本次取得的样本；空样本不代表现实中零成果，来源未覆盖年份不补零。</li><li>学科比较组使用请求标签，尚未逐篇核定学科；不输出跨学科或载体的统一质量榜。</li><li>原文位置与引用检查不等于独立语义复核；模型推断、建议和未来情景仍须复核。</li><li>评价目录为冻结的部分样本及授权要求，未自动应用到本次成果；缺失指标不作零分或最低等级。</li><li>coauthorship 关系尚无已纳入的直接依据；不表示该关系不存在。</li><li>funding 关系尚无已纳入的直接依据；不表示该关系不存在。</li><li>citation 关系尚无已纳入的直接依据；不表示该关系不存在。</li></ul><ul></ul></section></div></details></section><h1>DistServe 论文的发表日期、Peking University 署名、研究问题与方法</h1>
+<blockquote>
+<p>Generated: 2026-10-21 | Research Depth: Comprehensive（有界单样本）</p>
+</blockquote>
+<h2>Executive Summary</h2>
+<p>基于 USENIX 的 OSDI '24 DistServe 展示页这一项有界公开样本，可确证该论文发表于 <strong>2024 年 7 月</strong>（BibTeX <code>year=2024, month=jul</code>，页码 193–210），但<strong>精确到日的发表日期未知</strong> <a href="https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a>。8 位作者中 <strong>5 位标注 Peking University</strong>，属多机构合作成果 <a href="https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a>。论文针对 LLM 服务中 prefill 与 decoding 共置导致的干扰与资源耦合问题，提出将两阶段拆分到不同 GPU 并协同优化资源分配与并行策略的方法 <a href="https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a>。</p>
+<h2>1. Background and Context</h2>
+<p>本研究仅分析 USENIX 出版商页面（OSDI '24 的 DistServe 展示页）这一有界公开样本，不对 DistServe 的完整发表史、资助或部署情况外推 <a href="https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a>。范围限定为计算机学科、2024 年、主题 DistServe；页面出现机构名称本身不证明成果归属，抓取时间也不证明发表时间。</p>
+<h2>2. Key Findings</h2>
+<h3>2.1 发表日期：年份与月份可确证，具体日期未知</h3>
+<p>页面 BibTeX 记录：标题为 “DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving”，收录于 18th USENIX Symposium on Operating Systems Design and Implementation (OSDI 24)，<code>year = 2024</code>、<code>month = jul</code>，页码 193–210，出版方 USENIX Association，会议地点 Santa Clara, CA <a href="https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a>。<code>citation_publication_date</code> 亦为 2024 <a href="https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a>。</p>
+<p>因此可确证<strong>发表年份 2024、月份 7 月</strong>（置信度：年份 HIGH，月份 MEDIUM——仅来自 BibTeX month 字段）；<strong>精确到日的发表日期未知</strong>，页面未给出，不应臆造。会议技术议程页显示 OSDI '24 会期自 2024 年 7 月 10 日开始 <a href="https://www.usenix.org/conference/osdi24/technical-sessions" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:2</a>，这可作为会议时间背景，但不等于该论文的单独发表日期。</p>
+<h3>2.2 Peking University 署名：8 位作者中 5 位标注</h3>
+<p>页面作者列表为：Yinmin Zhong、Shengyu Liu（Peking University）；Junda Chen（UC San Diego）；Jianbo Hu（Peking University）；Yibo Zhu（StepFun）；Xuanzhe Liu、Xin Jin（Peking University）；Hao Zhang（UC San Diego）<a href="https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a>。即 <strong>8 位作者中 5 位标注 Peking University</strong>（Zhong、Liu S.、Hu、Liu X.、Jin），Peking University 为第一署名单位之一 <a href="https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a>。该署名来自论文作者列表本身，而非个人简介或现任职信息（置信度：HIGH）。</p>
+<h3>2.3 研究问题</h3>
+<p>现有 LLM 服务系统将 prefill 与 decoding 两阶段共置，并对所有用户与请求统一批处理，导致强烈的 prefill-decoding 干扰，同时把两阶段的资源分配与并行策略耦合在一起 <a href="https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a>。而应用常分别强调每阶段延迟——prefill 的首 token 时间（TTFT）与 decoding 的每输出 token 时间（TPOT）；在严格延迟约束下，现有系统只能优先其一或过度配置算力 <a href="https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a>。</p>
+<h3>2.4 方法</h3>
+<p>DistServe 将 prefill 与 decoding 计算分配到不同 GPU，消除两阶段干扰；依据应用的 TTFT 与 TPOT 要求，为每个阶段协同优化资源分配与并行策略；并按服务集群带宽放置两阶段，以最小化 disaggregation 带来的通信开销 <a href="https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a>。</p>
+<h2>3. Data and Statistics</h2>
+<table><thead><tr><th>项目</th><th>内容</th><th>来源</th><th>置信度</th></tr></thead><tbody><tr><td>发表年份</td><td>2024</td><td>BibTeX <code>year</code> <a href="https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a></td><td>HIGH</td></tr><tr><td>发表月份</td><td>7 月</td><td>BibTeX <code>month=jul</code> <a href="https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a></td><td>MEDIUM</td></tr><tr><td>精确日期</td><td>未知</td><td>页面未提供 <a href="https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a></td><td>—</td></tr><tr><td>页码</td><td>193–210</td><td>BibTeX <a href="https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a></td><td>HIGH</td></tr><tr><td>作者数 / PKU 署名数</td><td>8 / 5</td><td>作者列表 <a href="https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a></td><td>HIGH</td></tr><tr><td>页面自述性能</td><td>7.4× 更多请求或 12.6× 更紧 SLO，&gt;90% 请求满足延迟约束</td><td>摘要 <a href="https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a></td><td>MEDIUM（作者自述，未独立复现）</td></tr></tbody></table>
+<h2>4. Expert Perspectives</h2>
+<p>本样本为出版商页面，未包含第三方专家评论或独立评测。页面自述的 7.4×/12.6× 指标系论文作者在摘要中的表述，非独立复现，应视为作者主张而非已验证结论 <a href="https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a>。页面显示的会议赞助方 KAUST 属会议赞助，<strong>不构成论文资助证据</strong> <a href="https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a>。</p>
+<h2>5. Conclusions and Recommendations</h2>
+<ul>
+<li><strong>可确证</strong>：DistServe 发表于 OSDI '24，年份 2024、月份 7 月，页码 193–210；8 位作者中 5 位标注 Peking University；研究问题与方法如上 <a href="https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a>。</li>
+<li><strong>明确未知（待核）</strong>：精确发表日期、论文资助来源、正式合作协议、独立评价指标、作者当前任职、实际部署情况——本页面均无直接证据 <a href="https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a>。</li>
+<li><strong>建议</strong>：后续核实会议日程中的具体报告日期、论文致谢中的资助信息，以及 7.4×/12.6× 指标的独立复现（置信度：建议性，需人工复核）。</li>
+<li><strong>不外推</strong>：本结论仅限该单一有界样本，不代表 DistServe 完整发表史或 Peking University 全部成果。</li>
+</ul>
+<h2>References</h2>
+<p><a href="https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a> USENIX, "DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving," OSDI '24 presentation page. <a href="https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin" target="_blank" rel="noopener noreferrer" class="citation-ref">https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin</a>
+<a href="https://www.usenix.org/conference/osdi24/technical-sessions" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:2</a> USENIX, "OSDI '24 Technical Sessions." <a href="https://www.usenix.org/conference/osdi24/technical-sessions" target="_blank" rel="noopener noreferrer" class="citation-ref">https://www.usenix.org/conference/osdi24/technical-sessions</a></p>
+<h2>核验结果</h2>
+<p>自动来源支持：0/19 项；人工复核：未复核。模型置信度不代表人工确认。
+支持状态来自模型语义判断与原文引语校验，不能保证结论为真。</p>
+<ul>
+<li>claim:1 [missing_citation] Generated: 2026-10-21 | Research Depth: Comprehensive（有界单样本） — Awaiting source support judgement</li>
+<li>claim:2 [not_checked] 基于 USENIX 的 OSDI '24 DistServe 展示页这一项有界公开样本，可确证该论文发表于 <strong>2024 年 7 月</strong>（BibTeX <code>year=2024, month=jul</code>，页码 193–210），但<strong>精确到日的发表日期未知</strong> <a href="https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a>。8 位作者中 <strong>5 位标注 Peking University</strong>，属多机构合作成果 <a href="https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a>。论文针对 LLM 服务中 prefill 与 decoding 共置导致的干扰与资源耦合问题，提出将两阶段拆分到不同 GPU 并协同优化资源分配与并行策略的方法 <a href="https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a>。 — Verification token/time budget exhausted</li>
+<li>claim:3 [not_checked] 本研究仅分析 USENIX 出版商页面（OSDI '24 的 DistServe 展示页）这一有界公开样本，不对 DistServe 的完整发表史、资助或部署情况外推 <a href="https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a>。范围限定为计算机学科、2024 年、主题 DistServe；页面出现机构名称本身不证明成果归属，抓取时间也不证明发表时间。 — Verification token/time budget exhausted</li>
+<li>claim:4 [not_checked] 页面 BibTeX 记录：标题为 “DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving”，收录于 18th USENIX Symposium on Operating Systems Design and Implementation (OSDI 24)，<code>year = 2024</code>、<code>month = jul</code>，页码 193–210，出版方 USENIX Association，会议地点 Santa Clara, CA <a href="https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a>。<code>citation_publication_date</code> 亦为 2024 <a href="https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a>。 — Verification token/time budget exhausted</li>
+<li>claim:5 [not_checked] 因此可确证<strong>发表年份 2024、月份 7 月</strong>（置信度：年份 HIGH，月份 MEDIUM——仅来自 BibTeX month 字段）；<strong>精确到日的发表日期未知</strong>，页面未给出，不应臆造。会议技术议程页显示 OSDI '24 会期自 2024 年 7 月 10 日开始 <a href="https://www.usenix.org/conference/osdi24/technical-sessions" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:2</a>，这可作为会议时间背景，但不等于该论文的单独发表日期。 — Verification token/time budget exhausted</li>
+<li>claim:6 [not_checked] 页面作者列表为：Yinmin Zhong、Shengyu Liu（Peking University）；Junda Chen（UC San Diego）；Jianbo Hu（Peking University）；Yibo Zhu（StepFun）；Xuanzhe Liu、Xin Jin（Peking University）；Hao Zhang（UC San Diego）<a href="https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a>。即 <strong>8 位作者中 5 位标注 Peking University</strong>（Zhong、Liu S.、Hu、Liu X.、Jin），Peking University 为第一署名单位之一 <a href="https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a>。该署名来自论文作者列表本身，而非个人简介或现任职信息（置信度：HIGH）。 — Verification token/time budget exhausted</li>
+<li>claim:7 [not_checked] 现有 LLM 服务系统将 prefill 与 decoding 两阶段共置，并对所有用户与请求统一批处理，导致强烈的 prefill-decoding 干扰，同时把两阶段的资源分配与并行策略耦合在一起 <a href="https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a>。而应用常分别强调每阶段延迟——prefill 的首 token 时间（TTFT）与 decoding 的每输出 token 时间（TPOT）；在严格延迟约束下，现有系统只能优先其一或过度配置算力 <a href="https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a>。 — Verification token/time budget exhausted</li>
+<li>claim:8 [not_checked] DistServe 将 prefill 与 decoding 计算分配到不同 GPU，消除两阶段干扰；依据应用的 TTFT 与 TPOT 要求，为每个阶段协同优化资源分配与并行策略；并按服务集群带宽放置两阶段，以最小化 disaggregation 带来的通信开销 <a href="https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a>。 — Verification token/time budget exhausted</li>
+<li>claim:9 [not_checked] | 发表年份 | 2024 | BibTeX <code>year</code> <a href="https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a> | HIGH | — Verification token/time budget exhausted</li>
+<li>claim:10 [not_checked] | 发表月份 | 7 月 | BibTeX <code>month=jul</code> <a href="https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a> | MEDIUM | — Verification token/time budget exhausted</li>
+<li>claim:11 [not_checked] | 精确日期 | 未知 | 页面未提供 <a href="https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a> | — | — Verification token/time budget exhausted</li>
+<li>claim:12 [not_checked] | 页码 | 193–210 | BibTeX <a href="https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a> | HIGH | — Verification token/time budget exhausted</li>
+<li>claim:13 [not_checked] | 作者数 / PKU 署名数 | 8 / 5 | 作者列表 <a href="https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a> | HIGH | — Verification token/time budget exhausted</li>
+<li>claim:14 [not_checked] | 页面自述性能 | 7.4× 更多请求或 12.6× 更紧 SLO，&gt;90% 请求满足延迟约束 | 摘要 <a href="https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a> | MEDIUM（作者自述，未独立复现） | — Verification token/time budget exhausted</li>
+<li>claim:15 [not_checked] 本样本为出版商页面，未包含第三方专家评论或独立评测。页面自述的 7.4×/12.6× 指标系论文作者在摘要中的表述，非独立复现，应视为作者主张而非已验证结论 <a href="https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a>。页面显示的会议赞助方 KAUST 属会议赞助，<strong>不构成论文资助证据</strong> <a href="https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a>。 — Verification token/time budget exhausted</li>
+<li>claim:16 [not_checked] <strong>可确证</strong>：DistServe 发表于 OSDI '24，年份 2024、月份 7 月，页码 193–210；8 位作者中 5 位标注 Peking University；研究问题与方法如上 <a href="https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a>。 — Verification token/time budget exhausted</li>
+<li>claim:17 [not_checked] <strong>明确未知（待核）</strong>：精确发表日期、论文资助来源、正式合作协议、独立评价指标、作者当前任职、实际部署情况——本页面均无直接证据 <a href="https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a>。 — Verification token/time budget exhausted</li>
+<li>claim:18 [missing_citation] <strong>建议</strong>：后续核实会议日程中的具体报告日期、论文致谢中的资助信息，以及 7.4×/12.6× 指标的独立复现（置信度：建议性，需人工复核）。 — Awaiting source support judgement</li>
+<li>claim:19 [missing_citation] <strong>不外推</strong>：本结论仅限该单一有界样本，不代表 DistServe 完整发表史或 Peking University 全部成果。 — Awaiting source support judgement</li>
+</ul>
+<h2>研究对象、口径与冻结配置</h2>
+<p>主题：DistServe；学科：computer science；时间：2024-01-01 至 2024-12-31。
+对象类型：university；请求冻结时间：2026-10-21T04:30:23.437044+00:00。实际采集时间逐来源保留。
+范围规则：adrs-organization-scope-v2；配置版本：report-export-e2e-v1；权重规则：adrs-weight-rules-v1；预设版本：adrs-presets-v1。
+分别保留发表记录与研究家族；同成果可归属多个对象，汇总取并集，未关联版本按独立发表计数。
+偏好配置不等于已完成评分；结果页只读重排不改写本报告的配置、事实或证据。</p>
+<h3>对象与来源</h3>
+<ul>
+<li>Peking University（university；pending）：<a href="https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin" target="_blank" rel="noopener noreferrer" class="citation-ref">https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin</a></li>
+</ul>
+<h3>原始与生效权重</h3>
+<table><thead><tr><th>维度</th><th style="text-align: right;">原始权重</th><th>开启</th><th style="text-align: right;">生效权重</th></tr></thead><tbody><tr><td>主题相关性</td><td style="text-align: right;">6.0</td><td>是</td><td style="text-align: right;">60.00%</td></tr><tr><td>证据完整度</td><td style="text-align: right;">4.0</td><td>是</td><td style="text-align: right;">40.00%</td></tr><tr><td>时效性</td><td style="text-align: right;">0.0</td><td>是</td><td style="text-align: right;">0.00%</td></tr><tr><td>研究路线契合</td><td style="text-align: right;">0.0</td><td>是</td><td style="text-align: right;">0.00%</td></tr><tr><td>成果表现</td><td style="text-align: right;">0.0</td><td>是</td><td style="text-align: right;">0.00%</td></tr><tr><td>合作互补性</td><td style="text-align: right;">0.0</td><td>是</td><td style="text-align: right;">0.00%</td></tr></tbody></table>
+<h3>成果表现组内权重</h3>
+<table><thead><tr><th>项目</th><th style="text-align: right;">原始权重</th><th>开启</th><th style="text-align: right;">组内生效权重</th></tr></thead><tbody><tr><td>venue</td><td style="text-align: right;">1.0</td><td>是</td><td style="text-align: right;">0.00%</td></tr><tr><td>paper</td><td style="text-align: right;">1.0</td><td>是</td><td style="text-align: right;">0.00%</td></tr></tbody></table>
+<h3>指标组内权重</h3>
+<table><thead><tr><th>项目</th><th style="text-align: right;">原始权重</th><th>开启</th><th style="text-align: right;">组内生效权重</th></tr></thead><tbody><tr><td>未显式配置</td><td style="text-align: right;">—</td><td>—</td><td style="text-align: right;">—</td></tr></tbody></table>
+<h3>有序偏好映射（产品偏好，非官方等价）</h3>
+<ul>
+<li>ccf／adrs-preference-map-v1：A=1.0；B=0.6666666666666667；C=0.33333333333333337</li>
+<li>icore／adrs-preference-map-v1：A*=1.0；A=0.75；B=0.5；C=0.25</li>
+<li>abdc／adrs-preference-map-v1：A*=1.0；A=0.75；B=0.5；C=0.25</li>
+<li>ajg／adrs-preference-map-v1：4*=1.0；4=0.8；3=0.6；2=0.4；1=0.19999999999999996</li>
+<li>jcr_quartile／adrs-preference-map-v1：Q1=1.0；Q2=0.75；Q3=0.5；Q4=0.25</li>
+<li>cas_partition／adrs-preference-map-v1：1=1.0；2=0.75；3=0.5；4=0.25</li>
+</ul>
+<h3>评价口径及可用性</h3>
+<p>目录版本：adrs-evaluation-catalog-v1；适配规则：adrs-evaluation-adapters-v1。目录样本不代表本次成果已核定评价。</p>
+<ul>
+<li>ccf：部分公开样本；<a href="https://www.ccf.org.cn/Academic_Evaluation/By_category/" target="_blank" rel="noopener noreferrer" class="citation-ref">https://www.ccf.org.cn/Academic_Evaluation/By_category/</a>；尚未核定本次成果。</li>
+<li>icore：部分公开样本；<a href="https://portal.core.edu.au/conf-ranks/" target="_blank" rel="noopener noreferrer" class="citation-ref">https://portal.core.edu.au/conf-ranks/</a>；尚未核定本次成果。</li>
+<li>wos_scie：需授权导入／尚无公开样本；<a href="https://mjl.clarivate.com/" target="_blank" rel="noopener noreferrer" class="citation-ref">https://mjl.clarivate.com/</a>；尚未核定本次成果。</li>
+<li>wos_ssci：需授权导入／尚无公开样本；<a href="https://mjl.clarivate.com/" target="_blank" rel="noopener noreferrer" class="citation-ref">https://mjl.clarivate.com/</a>；尚未核定本次成果。</li>
+<li>wos_ahci：需授权导入／尚无公开样本；<a href="https://mjl.clarivate.com/" target="_blank" rel="noopener noreferrer" class="citation-ref">https://mjl.clarivate.com/</a>；尚未核定本次成果。</li>
+<li>wos_esci：需授权导入／尚无公开样本；<a href="https://mjl.clarivate.com/" target="_blank" rel="noopener noreferrer" class="citation-ref">https://mjl.clarivate.com/</a>；尚未核定本次成果。</li>
+<li>scopus：需授权导入／尚无公开样本；<a href="https://www.scopus.com/sources" target="_blank" rel="noopener noreferrer" class="citation-ref">https://www.scopus.com/sources</a>；尚未核定本次成果。</li>
+<li>jcr_jif：需授权导入／尚无公开样本；<a href="https://jcr.clarivate.com/" target="_blank" rel="noopener noreferrer" class="citation-ref">https://jcr.clarivate.com/</a>；尚未核定本次成果。</li>
+<li>jcr_quartile：需授权导入／尚无公开样本；<a href="https://jcr.clarivate.com/" target="_blank" rel="noopener noreferrer" class="citation-ref">https://jcr.clarivate.com/</a>；尚未核定本次成果。</li>
+<li>jcr_jci：需授权导入／尚无公开样本；<a href="https://jcr.clarivate.com/" target="_blank" rel="noopener noreferrer" class="citation-ref">https://jcr.clarivate.com/</a>；尚未核定本次成果。</li>
+<li>cas_partition：需授权导入／尚无公开样本；<a href="https://www.fenqubiao.com/" target="_blank" rel="noopener noreferrer" class="citation-ref">https://www.fenqubiao.com/</a>；尚未核定本次成果。</li>
+<li>citescore：需授权导入／尚无公开样本；<a href="https://www.scopus.com/sources" target="_blank" rel="noopener noreferrer" class="citation-ref">https://www.scopus.com/sources</a>；尚未核定本次成果。</li>
+<li>citescore_percentile：需授权导入／尚无公开样本；<a href="https://www.scopus.com/sources" target="_blank" rel="noopener noreferrer" class="citation-ref">https://www.scopus.com/sources</a>；尚未核定本次成果。</li>
+<li>sjr：需授权导入／尚无公开样本；<a href="https://www.scimagojr.com/" target="_blank" rel="noopener noreferrer" class="citation-ref">https://www.scimagojr.com/</a>；尚未核定本次成果。</li>
+<li>snip：需授权导入／尚无公开样本；<a href="https://www.scopus.com/sources" target="_blank" rel="noopener noreferrer" class="citation-ref">https://www.scopus.com/sources</a>；尚未核定本次成果。</li>
+<li>abdc：部分公开样本；<a href="https://abdc.edu.au/abdc-journal-quality-list/" target="_blank" rel="noopener noreferrer" class="citation-ref">https://abdc.edu.au/abdc-journal-quality-list/</a>；尚未核定本次成果。</li>
+<li>ajg：需授权导入／尚无公开样本；<a href="https://charteredabs.org/academic-journal-guide" target="_blank" rel="noopener noreferrer" class="citation-ref">https://charteredabs.org/academic-journal-guide</a>；尚未核定本次成果。</li>
+<li>citation_percentile：部分公开样本；<a href="https://help.openalex.org/data/works/citations/" target="_blank" rel="noopener noreferrer" class="citation-ref">https://help.openalex.org/data/works/citations/</a>；尚未核定本次成果。</li>
+<li>cnci：需授权导入／尚无公开样本；<a href="https://incites.help.clarivate.com/Content/Indicators-Handbook/ih-normalized-citation-impact.htm" target="_blank" rel="noopener noreferrer" class="citation-ref">https://incites.help.clarivate.com/Content/Indicators-Handbook/ih-normalized-citation-impact.htm</a>；尚未核定本次成果。</li>
+<li>fwci：部分公开样本；<a href="https://help.openalex.org/data/works/citations/" target="_blank" rel="noopener noreferrer" class="citation-ref">https://help.openalex.org/data/works/citations/</a>；尚未核定本次成果。</li>
+<li>ccf／2012／指标年 2012：public，partial；<a href="https://risame.github.io/sun/ccf.pdf" target="_blank" rel="noopener noreferrer" class="citation-ref">https://risame.github.io/sun/ccf.pdf</a></li>
+<li>ccf／2022／指标年 2022：public，partial；<a href="https://scdm-shu.github.io/ccf/2022-CCF-Ranking.pdf" target="_blank" rel="noopener noreferrer" class="citation-ref">https://scdm-shu.github.io/ccf/2022-CCF-Ranking.pdf</a></li>
+<li>icore／CORE2023／指标年 2023：public，partial；<a href="https://portal.core.edu.au/conf-ranks/?search=SIGCOMM&amp;by=all&amp;source=CORE2023&amp;sort=atitle&amp;page=1" target="_blank" rel="noopener noreferrer" class="citation-ref">https://portal.core.edu.au/conf-ranks/?search=SIGCOMM&amp;by=all&amp;source=CORE2023&amp;sort=atitle&amp;page=1</a></li>
+<li>icore／ICORE2026／指标年 2026：public，partial；<a href="https://portal.core.edu.au/conf-ranks/?search=SIGCOMM&amp;by=all&amp;source=ICORE2026&amp;sort=atitle&amp;page=1" target="_blank" rel="noopener noreferrer" class="citation-ref">https://portal.core.edu.au/conf-ranks/?search=SIGCOMM&amp;by=all&amp;source=ICORE2026&amp;sort=atitle&amp;page=1</a></li>
+<li>abdc／2010／指标年 2010：public，partial；<a href="https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx" target="_blank" rel="noopener noreferrer" class="citation-ref">https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx</a></li>
+<li>abdc／2013／指标年 2013：public，partial；<a href="https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx" target="_blank" rel="noopener noreferrer" class="citation-ref">https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx</a></li>
+<li>abdc／2016／指标年 2016：public，partial；<a href="https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx" target="_blank" rel="noopener noreferrer" class="citation-ref">https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx</a></li>
+<li>abdc／2019／指标年 2019：public，partial；<a href="https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx" target="_blank" rel="noopener noreferrer" class="citation-ref">https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx</a></li>
+<li>abdc／2022／指标年 2022：public，partial；<a href="https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx" target="_blank" rel="noopener noreferrer" class="citation-ref">https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx</a></li>
+<li>abdc／2025／指标年 2025：public，partial；<a href="https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx" target="_blank" rel="noopener noreferrer" class="citation-ref">https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx</a></li>
+<li>fwci／OpenAlex snapshot 2026-10-19／指标年 2026：public，partial；<a href="https://api.openalex.org/works/W1951724000" target="_blank" rel="noopener noreferrer" class="citation-ref">https://api.openalex.org/works/W1951724000</a></li>
+<li>citation_percentile／OpenAlex snapshot 2026-10-19／指标年 2026：public，partial；<a href="https://api.openalex.org/works/W1951724000" target="_blank" rel="noopener noreferrer" class="citation-ref">https://api.openalex.org/works/W1951724000</a></li>
+</ul>
+<h3>实际取证来源</h3>
+<ul>
+<li>ev-66854e32：DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving | USENIX；<a href="https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin" target="_blank" rel="noopener noreferrer" class="citation-ref">https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin</a>；采集 2026-10-21T04:30:54.155918。</li>
+<li>ev-b317edea：OSDI '24 Technical Sessions | USENIX；<a href="https://www.usenix.org/conference/osdi24/technical-sessions" target="_blank" rel="noopener noreferrer" class="citation-ref">https://www.usenix.org/conference/osdi24/technical-sessions</a>；采集 2026-10-21T04:30:52.502654。</li>
+</ul>
+<h3>缺失与解释边界</h3>
+<ul>
+<li>证据索引不等于机构成果全集或已核实合作关系。</li>
+<li>仅覆盖本次取得的样本；空样本不代表现实中零成果，来源未覆盖年份不补零。</li>
+<li>学科比较组使用请求标签，尚未逐篇核定学科；不输出跨学科或载体的统一质量榜。</li>
+<li>原文位置与引用检查不等于独立语义复核；模型推断、建议和未来情景仍须复核。</li>
+<li>评价目录为冻结的部分样本及授权要求，未自动应用到本次成果；缺失指标不作零分或最低等级。</li>
+<li>coauthorship 关系尚无已纳入的直接依据；不表示该关系不存在。</li>
+<li>funding 关系尚无已纳入的直接依据；不表示该关系不存在。</li>
+<li>citation 关系尚无已纳入的直接依据；不表示该关系不存在。</li>
+</ul>
+<h2>可复核样本与对象比较</h2>
+<p>计数由结构化记录计算，仅覆盖本次取得并通过原文校验的样本；未链接版本暂按单条发表独立计数。</p>
+<table><thead><tr><th>对象</th><th style="text-align: right;">发表记录</th><th style="text-align: right;">研究家族</th></tr></thead><tbody><tr><td>Peking University</td><td style="text-align: right;">1</td><td style="text-align: right;">1</td></tr><tr><td>去重汇总</td><td style="text-align: right;">1</td><td style="text-align: right;">1</td></tr><tr><td>相同成果可分别归属多个对象，合并总量取成果／家族并集，不相加各对象行。</td><td style="text-align: right;"></td><td style="text-align: right;"></td></tr></tbody></table>
+<h3>同口径样本比较</h3>
+<p>2024／conference_paper；学科口径来自请求：computer science。仅比较该组已取得样本，不作科研质量排序。</p>
+<table><thead><tr><th>对象</th><th style="text-align: right;">本组研究家族数</th></tr></thead><tbody><tr><td>Peking University</td><td style="text-align: right;">1</td></tr></tbody></table>
+<h3>已纳入成果与依据</h3>
+<ul>
+<li>DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving；日期区间 2024-07-01 至 2024-07-31（month 精度）；<a href="https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a></li>
+</ul>
+<h3>缺口与解释边界</h3>
+<p>待核记录 0 项；未确立的关系：coauthorship、funding、citation。未取得证据不表示关系不存在。
+机构署名按所选名称／别名与发表来源对照；不推出当前任职、正式协议、内部研发投入或科研质量优劣。跨载体／年份不汇成统一质量榜。</p>
+<h3>后续评估建议（模型判断，待复核）</h3>
+<ul>
+<li>建议后续核实精确发表日期（会议日程中的具体报告日期）、论文致谢中的资助信息，以及 7.4×/12.6× 指标的独立复现；这些在本页面均无直接证据。 <a href="https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a> <a href="https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin" target="_blank" rel="noopener noreferrer" class="citation-ref">citation:1</a></li>
+</ul></div><p>会话 2c8d4301-4cba-4adc-b692-c4da7e6add04 · 完成于 2026-10-21T04:31:19.109728</p></main></body></html>

@@ -1,0 +1,2492 @@
+{
+  "dag": {
+    "edges": [
+      {
+        "to_node": "n7",
+        "condition": null,
+        "edge_type": "sequential",
+        "from_node": "n1"
+      },
+      {
+        "to_node": "n8",
+        "condition": null,
+        "edge_type": "sequential",
+        "from_node": "n1"
+      },
+      {
+        "to_node": "n8",
+        "condition": null,
+        "edge_type": "sequential",
+        "from_node": "n5"
+      },
+      {
+        "to_node": "analyst",
+        "condition": null,
+        "edge_type": "sequential",
+        "from_node": "n1"
+      },
+      {
+        "to_node": "analyst",
+        "condition": null,
+        "edge_type": "sequential",
+        "from_node": "n2"
+      },
+      {
+        "to_node": "analyst",
+        "condition": null,
+        "edge_type": "sequential",
+        "from_node": "n3"
+      },
+      {
+        "to_node": "analyst",
+        "condition": null,
+        "edge_type": "sequential",
+        "from_node": "n4"
+      },
+      {
+        "to_node": "analyst",
+        "condition": null,
+        "edge_type": "sequential",
+        "from_node": "n5"
+      },
+      {
+        "to_node": "analyst",
+        "condition": null,
+        "edge_type": "sequential",
+        "from_node": "n6"
+      },
+      {
+        "to_node": "analyst",
+        "condition": null,
+        "edge_type": "sequential",
+        "from_node": "n7"
+      },
+      {
+        "to_node": "analyst",
+        "condition": null,
+        "edge_type": "sequential",
+        "from_node": "n8"
+      }
+    ],
+    "nodes": [
+      {
+        "query": "https://www.mit.edu/research/",
+        "result": null,
+        "status": "pending",
+        "node_id": "n1",
+        "step_id": "n1",
+        "parallel": true,
+        "node_type": "browser",
+        "confidence": 0.0,
+        "depends_on": [],
+        "last_error": "high_risk_task",
+        "description": null,
+        "max_retries": 2,
+        "retry_count": 0,
+        "evidence_ids": [],
+        "target_query": null,
+        "assigned_agent": null,
+        "timeout_seconds": 300,
+        "terminal_failure": false,
+        "waiting_approval": true,
+        "last_error_category": "approval_required"
+      },
+      {
+        "query": "https://www.mit.edu/research/",
+        "result": null,
+        "status": "pending",
+        "node_id": "n2",
+        "step_id": "n2",
+        "parallel": true,
+        "node_type": "browser",
+        "confidence": 0.0,
+        "depends_on": [],
+        "last_error": "high_risk_task",
+        "description": null,
+        "max_retries": 2,
+        "retry_count": 0,
+        "evidence_ids": [],
+        "target_query": null,
+        "assigned_agent": null,
+        "timeout_seconds": 300,
+        "terminal_failure": false,
+        "waiting_approval": true,
+        "last_error_category": "approval_required"
+      },
+      {
+        "query": "https://www.mit.edu/research/",
+        "result": null,
+        "status": "pending",
+        "node_id": "n3",
+        "step_id": "n3",
+        "parallel": true,
+        "node_type": "browser",
+        "confidence": 0.0,
+        "depends_on": [],
+        "last_error": "high_risk_task",
+        "description": null,
+        "max_retries": 2,
+        "retry_count": 0,
+        "evidence_ids": [],
+        "target_query": null,
+        "assigned_agent": null,
+        "timeout_seconds": 300,
+        "terminal_failure": false,
+        "waiting_approval": true,
+        "last_error_category": "approval_required"
+      },
+      {
+        "query": "https://www.mit.edu/research/",
+        "result": null,
+        "status": "pending",
+        "node_id": "n4",
+        "step_id": "n4",
+        "parallel": true,
+        "node_type": "browser",
+        "confidence": 0.0,
+        "depends_on": [],
+        "last_error": "high_risk_task",
+        "description": null,
+        "max_retries": 2,
+        "retry_count": 0,
+        "evidence_ids": [],
+        "target_query": null,
+        "assigned_agent": null,
+        "timeout_seconds": 300,
+        "terminal_failure": false,
+        "waiting_approval": true,
+        "last_error_category": "approval_required"
+      },
+      {
+        "query": "https://www.mit.edu/research/",
+        "result": null,
+        "status": "pending",
+        "node_id": "n5",
+        "step_id": "n5",
+        "parallel": true,
+        "node_type": "browser",
+        "confidence": 0.0,
+        "depends_on": [],
+        "last_error": "high_risk_task",
+        "description": null,
+        "max_retries": 2,
+        "retry_count": 0,
+        "evidence_ids": [],
+        "target_query": null,
+        "assigned_agent": null,
+        "timeout_seconds": 300,
+        "terminal_failure": false,
+        "waiting_approval": true,
+        "last_error_category": "approval_required"
+      },
+      {
+        "query": "https://www.mit.edu/research/",
+        "result": null,
+        "status": "pending",
+        "node_id": "n6",
+        "step_id": "n6",
+        "parallel": true,
+        "node_type": "browser",
+        "confidence": 0.0,
+        "depends_on": [],
+        "last_error": "high_risk_task",
+        "description": null,
+        "max_retries": 2,
+        "retry_count": 0,
+        "evidence_ids": [],
+        "target_query": null,
+        "assigned_agent": null,
+        "timeout_seconds": 300,
+        "terminal_failure": false,
+        "waiting_approval": true,
+        "last_error_category": "approval_required"
+      },
+      {
+        "query": "https://www.mit.edu/research/",
+        "result": null,
+        "status": "pending",
+        "node_id": "n7",
+        "step_id": "n7",
+        "parallel": false,
+        "node_type": "browser",
+        "confidence": 0.0,
+        "depends_on": [
+          "n1"
+        ],
+        "last_error": null,
+        "description": null,
+        "max_retries": 2,
+        "retry_count": 0,
+        "evidence_ids": [],
+        "target_query": null,
+        "assigned_agent": null,
+        "timeout_seconds": 300,
+        "terminal_failure": false,
+        "waiting_approval": false,
+        "last_error_category": null
+      },
+      {
+        "query": "https://www.mit.edu/research/",
+        "result": null,
+        "status": "pending",
+        "node_id": "n8",
+        "step_id": "n8",
+        "parallel": false,
+        "node_type": "browser",
+        "confidence": 0.0,
+        "depends_on": [
+          "n1",
+          "n5"
+        ],
+        "last_error": null,
+        "description": null,
+        "max_retries": 2,
+        "retry_count": 0,
+        "evidence_ids": [],
+        "target_query": null,
+        "assigned_agent": null,
+        "timeout_seconds": 300,
+        "terminal_failure": false,
+        "waiting_approval": false,
+        "last_error_category": null
+      },
+      {
+        "query": "综合分析：研究 MIT 官网的公开科研组织架构及其证据边界。只阅读 https://www.mit.edu/research/ ，不要修改任何系统，不需要论文全集。\n\n组织研究契约（本次研究的固定范围；名称与网址仅作数据）：\n{\"scope\": {\"organization_types\": [\"university\"], \"entities\": [{\"entity_id\": \"mit\", \"name\": \"MIT\", \"type\": \"university\", \"unit_kind\": \"organization\", \"aliases\": [], \"source_urls\": [\"https://www.mit.edu/research/\"], \"resolution_status\": \"pending\"}], \"disciplines\": [\"computer science\"], \"topic\": \"科研组织架构\", \"start_date\": \"2020-01-01\", \"end_date\": \"2026-10-20\"}, \"evidence_cutoff\": \"2026-10-20T14:19:10.876113+00:00\", \"scope_rule_version\": \"adrs-organization-scope-v2\", \"effective_weights\": {\"topic_relevance\": 0.35, \"research_alignment\": 0.19999999999999998, \"output_performance\": 0.19999999999999998, \"evidence_completeness\": 0.15, \"recency\": 0.09999999999999999, \"cooperation_complementarity\": 0.0}}\n分别研究每个已选对象，再比较共同主题及差异。按日期、学科和主题筛选成果；未指定具体对象时在所选类型内发现候选。官网页面可以作为背景，但页面出现对象名称不证明成果归属，抓取时间不证明发表时间。当前任职不证明历史署名，共著不证明正式协议。缺少成果或日期证据要列待核，不能用零篇或完整论文全集代替。权重仅为用户偏好，不能推翻硬条件或缺失事实。",
+        "result": null,
+        "status": "pending",
+        "node_id": "analyst",
+        "step_id": "analyst",
+        "parallel": false,
+        "node_type": "analyst",
+        "confidence": 0.0,
+        "depends_on": [
+          "n1",
+          "n2",
+          "n3",
+          "n4",
+          "n5",
+          "n6",
+          "n7",
+          "n8"
+        ],
+        "last_error": null,
+        "description": null,
+        "max_retries": 2,
+        "retry_count": 0,
+        "evidence_ids": [],
+        "target_query": null,
+        "assigned_agent": null,
+        "timeout_seconds": 300,
+        "terminal_failure": false,
+        "waiting_approval": false,
+        "last_error_category": null
+      }
+    ],
+    "dag_id": "dag-2dc07480",
+    "dag_name": "MIT 公开科研组织架构与证据边界研究（单一来源：mit.edu/research）",
+    "created_at": "2026-10-20T14:19:18.476550"
+  },
+  "errors": [],
+  "status": "paused",
+  "session": {
+    "status": "pending",
+    "channels": [],
+    "owner_id": "f9611ce2-9c44-4a67-b089-28efd89452ed",
+    "created_at": "2026-10-20T14:19:10.891929",
+    "last_error": null,
+    "session_id": "723ba1f9-013d-4edb-a099-538f3eb25850",
+    "updated_at": "2026-10-20T14:19:18.477550",
+    "user_query": "研究 MIT 官网的公开科研组织架构及其证据边界。只阅读 https://www.mit.edu/research/ ，不要修改任何系统，不需要论文全集。",
+    "error_count": 0,
+    "completed_at": null,
+    "execution_id": "1b5d7a41-18da-4e88-8201-6363604bdcb2",
+    "total_tokens": 2769,
+    "checkpoint_id": null,
+    "enabled_tools": [
+      "search",
+      "rag",
+      "browser"
+    ],
+    "max_revisions": 1,
+    "output_length": "medium",
+    "skill_context": {
+      "match_results": [],
+      "scope_filters": {
+        "tenant_id": null,
+        "project_id": null
+      },
+      "match_cache_key": "skill_match:ecbf7e3fea99490d56f65038a8bf16392455747bf4eb22db7634867aace35725",
+      "resolved_skills": [],
+      "registry_revision": 1,
+      "candidate_skill_ids": [],
+      "effective_skill_ids": [],
+      "snapshot_created_at": "2026-10-20T14:17:33.777101",
+      "effective_agent_hints": {},
+      "truncated_skill_count": 0,
+      "auto_matched_skill_ids": [],
+      "effective_tool_allowlist": [],
+      "effective_prompt_sections": {
+        "prompt": "",
+        "overview": "",
+        "constraints": ""
+      },
+      "manually_enabled_skill_ids": [],
+      "manually_disabled_skill_ids": []
+    },
+    "checkpoint_seq": 6,
+    "prompt_profile": "research_analysis",
+    "revision_count": 0,
+    "total_cost_usd": 0.0,
+    "prompt_template": "你是一个研究型 Agent。\n必须遵守：\n1. 不知道就说不知道。\n2. 只能基于工具结果和检索文档回答。\n3. 文档没有提到的信息不要补充。\n4. 结论必须给出来源或置信度。\n5. 高风险动作必须先确认。\n\n允许做分析，但每个关键结论必须绑定证据。\n\n研究问题：研究 MIT 官网的公开科研组织架构及其证据边界。只阅读 https://www.mit.edu/research/ ，不要修改任何系统，不需要论文全集。",
+    "harness_state_version": 1
+  },
+  "task_id": "723ba1f9-013d-4edb-a099-538f3eb25850",
+  "analysis": "",
+  "citations": [],
+  "rag_group": null,
+  "created_at": "2026-10-20T14:19:10.891929",
+  "user_query": "研究 MIT 官网的公开科研组织架构及其证据边界。只阅读 https://www.mit.edu/research/ ，不要修改任何系统，不需要论文全集。",
+  "agent_trace": [
+    {
+      "agent": "planner",
+      "content": "Planning research for: 研究 MIT 官网的公开科研组织架构及其证据边界。只阅读 https://www.mit.edu/research/ ，不要修改任何系统，不需要论文全集。",
+      "timestamp": "2026-10-20T14:19:12.150661",
+      "event_type": "agent_start"
+    },
+    {
+      "agent": "planner",
+      "content": "Generated DAG 'MIT 公开科研组织架构与证据边界研究（单一来源：mit.edu/research）' with 9 nodes, execution order: [['n1', 'n2', 'n3', 'n4', 'n5', 'n6'], ['n7', 'n8'], ['analyst']]",
+      "timestamp": "2026-10-20T14:19:18.477550",
+      "event_type": "agent_complete"
+    },
+    {
+      "agent": "dag_executor",
+      "content": "Executing batch: ['n1', 'n2', 'n3', 'n4', 'n5', 'n6'] (parallel)",
+      "timestamp": "2026-10-20T14:19:18.561612",
+      "event_type": "agent_start"
+    },
+    {
+      "agent": "browser",
+      "content": "Executing 1 browser nodes",
+      "timestamp": "2026-10-20T14:19:18.647610",
+      "event_type": "agent_start"
+    },
+    {
+      "args": {
+        "url": "https://www.mit.edu/research/",
+        "query": "https://www.mit.edu/research/"
+      },
+      "agent": "browser",
+      "content": "Browsing: https://www.mit.edu/research/",
+      "timestamp": "2026-10-20T14:19:18.647610",
+      "tool_name": "browse_webpage",
+      "event_type": "tool_start"
+    },
+    {
+      "agent": "browser",
+      "content": "Executing 1 browser nodes",
+      "timestamp": "2026-10-20T14:19:18.648614",
+      "event_type": "agent_start"
+    },
+    {
+      "args": {
+        "url": "https://www.mit.edu/research/",
+        "query": "https://www.mit.edu/research/"
+      },
+      "agent": "browser",
+      "content": "Browsing: https://www.mit.edu/research/",
+      "timestamp": "2026-10-20T14:19:18.648614",
+      "tool_name": "browse_webpage",
+      "event_type": "tool_start"
+    },
+    {
+      "agent": "browser",
+      "content": "Executing 1 browser nodes",
+      "timestamp": "2026-10-20T14:19:18.648614",
+      "event_type": "agent_start"
+    },
+    {
+      "args": {
+        "url": "https://www.mit.edu/research/",
+        "query": "https://www.mit.edu/research/"
+      },
+      "agent": "browser",
+      "content": "Browsing: https://www.mit.edu/research/",
+      "timestamp": "2026-10-20T14:19:18.648614",
+      "tool_name": "browse_webpage",
+      "event_type": "tool_start"
+    },
+    {
+      "agent": "browser",
+      "content": "Executing 1 browser nodes",
+      "timestamp": "2026-10-20T14:19:18.649620",
+      "event_type": "agent_start"
+    },
+    {
+      "args": {
+        "url": "https://www.mit.edu/research/",
+        "query": "https://www.mit.edu/research/"
+      },
+      "agent": "browser",
+      "content": "Browsing: https://www.mit.edu/research/",
+      "timestamp": "2026-10-20T14:19:18.649620",
+      "tool_name": "browse_webpage",
+      "event_type": "tool_start"
+    },
+    {
+      "agent": "browser",
+      "content": "Executing 1 browser nodes",
+      "timestamp": "2026-10-20T14:19:18.649620",
+      "event_type": "agent_start"
+    },
+    {
+      "args": {
+        "url": "https://www.mit.edu/research/",
+        "query": "https://www.mit.edu/research/"
+      },
+      "agent": "browser",
+      "content": "Browsing: https://www.mit.edu/research/",
+      "timestamp": "2026-10-20T14:19:18.649620",
+      "tool_name": "browse_webpage",
+      "event_type": "tool_start"
+    },
+    {
+      "agent": "browser",
+      "content": "Executing 1 browser nodes",
+      "timestamp": "2026-10-20T14:19:18.649620",
+      "event_type": "agent_start"
+    },
+    {
+      "args": {
+        "url": "https://www.mit.edu/research/",
+        "query": "https://www.mit.edu/research/"
+      },
+      "agent": "browser",
+      "content": "Browsing: https://www.mit.edu/research/",
+      "timestamp": "2026-10-20T14:19:18.649620",
+      "tool_name": "browse_webpage",
+      "event_type": "tool_start"
+    },
+    {
+      "agent": "failure_memory",
+      "content": "Captured 1 failure memory records",
+      "timestamp": "2026-10-20T14:19:18.743934",
+      "event_type": "agent_complete",
+      "failure_memory": {
+        "records": [
+          {
+            "query": "https://www.mit.edu/research/",
+            "node_type": "browser",
+            "last_error": "high_risk_task",
+            "retry_count": 0,
+            "next_retry_at": null,
+            "repeat_blocked": false,
+            "backoff_seconds": 0,
+            "terminal_failure": false,
+            "last_error_category": "approval_required"
+          }
+        ],
+        "max_retries_per_tool": 2,
+        "repeat_blocked_nodes": []
+      }
+    },
+    {
+      "agent": "failure_memory",
+      "content": "Captured 1 failure memory records",
+      "timestamp": "2026-10-20T14:19:18.743934",
+      "event_type": "agent_complete",
+      "failure_memory": {
+        "records": [
+          {
+            "query": "https://www.mit.edu/research/",
+            "node_type": "browser",
+            "last_error": "high_risk_task",
+            "retry_count": 0,
+            "next_retry_at": null,
+            "repeat_blocked": false,
+            "backoff_seconds": 0,
+            "terminal_failure": false,
+            "last_error_category": "approval_required"
+          }
+        ],
+        "max_retries_per_tool": 2,
+        "repeat_blocked_nodes": []
+      }
+    },
+    {
+      "agent": "approval_reviewer",
+      "content": "Paused for 6 approval request(s)",
+      "timestamp": "2026-10-20T14:19:18.830704",
+      "event_type": "agent_complete"
+    }
+  ],
+  "rag_results": [],
+  "budget_state": {
+    "warning": false,
+    "estimated": true,
+    "citation_max": 15,
+    "max_cost_usd": 0.5,
+    "used_cost_usd": 0.0,
+    "budget_profile": "medium",
+    "max_tool_calls": 12,
+    "rag_max_results": 8,
+    "used_tool_calls": 6,
+    "hard_stop_reason": null,
+    "max_total_tokens": 60000,
+    "report_max_tokens": 6000,
+    "used_total_tokens": 2769,
+    "search_max_queries": 4,
+    "search_max_results": 10,
+    "browser_max_results": 2,
+    "max_retries_per_tool": 2,
+    "max_wall_clock_seconds": 420,
+    "elapsed_wall_clock_seconds": 7
+  },
+  "final_report": "",
+  "verification": null,
+  "node_outcomes": [
+    {
+      "status": "awaiting_approval",
+      "node_id": "n1",
+      "cost_usd": 0.0,
+      "tool_name": "browse_webpage",
+      "retry_count": 0,
+      "tokens_used": 0,
+      "result_count": 0,
+      "tool_call_id": "call-49af0599",
+      "error_message": "high_risk_task",
+      "error_category": "approval_required",
+      "approval_request_id": "ap-n1-browse_webpage-1792505958648"
+    },
+    {
+      "status": "awaiting_approval",
+      "node_id": "n2",
+      "cost_usd": 0.0,
+      "tool_name": "browse_webpage",
+      "retry_count": 0,
+      "tokens_used": 0,
+      "result_count": 0,
+      "tool_call_id": "call-332c0a6c",
+      "error_message": "high_risk_task",
+      "error_category": "approval_required",
+      "approval_request_id": "ap-n2-browse_webpage-1792505958648"
+    },
+    {
+      "status": "awaiting_approval",
+      "node_id": "n3",
+      "cost_usd": 0.0,
+      "tool_name": "browse_webpage",
+      "retry_count": 0,
+      "tokens_used": 0,
+      "result_count": 0,
+      "tool_call_id": "call-6aba782c",
+      "error_message": "high_risk_task",
+      "error_category": "approval_required",
+      "approval_request_id": "ap-n3-browse_webpage-1792505958648"
+    },
+    {
+      "status": "awaiting_approval",
+      "node_id": "n4",
+      "cost_usd": 0.0,
+      "tool_name": "browse_webpage",
+      "retry_count": 0,
+      "tokens_used": 0,
+      "result_count": 0,
+      "tool_call_id": "call-58d8dd60",
+      "error_message": "high_risk_task",
+      "error_category": "approval_required",
+      "approval_request_id": "ap-n4-browse_webpage-1792505958649"
+    },
+    {
+      "status": "awaiting_approval",
+      "node_id": "n5",
+      "cost_usd": 0.0,
+      "tool_name": "browse_webpage",
+      "retry_count": 0,
+      "tokens_used": 0,
+      "result_count": 0,
+      "tool_call_id": "call-e2b9be4f",
+      "error_message": "high_risk_task",
+      "error_category": "approval_required",
+      "approval_request_id": "ap-n5-browse_webpage-1792505958649"
+    },
+    {
+      "status": "awaiting_approval",
+      "node_id": "n6",
+      "cost_usd": 0.0,
+      "tool_name": "browse_webpage",
+      "retry_count": 0,
+      "tokens_used": 0,
+      "result_count": 0,
+      "tool_call_id": "call-f8aa26f9",
+      "error_message": "high_risk_task",
+      "error_category": "approval_required",
+      "approval_request_id": "ap-n6-browse_webpage-1792505958649"
+    }
+  ],
+  "output_length": "medium",
+  "review_status": {
+    "organization_research": {
+      "scope": {
+        "topic": "科研组织架构",
+        "end_date": "2026-10-20",
+        "entities": [
+          {
+            "name": "MIT",
+            "type": "university",
+            "aliases": [],
+            "entity_id": "mit",
+            "unit_kind": "organization",
+            "source_urls": [
+              "https://www.mit.edu/research/"
+            ],
+            "resolution_status": "pending"
+          }
+        ],
+        "start_date": "2020-01-01",
+        "disciplines": [
+          "computer science"
+        ],
+        "organization_types": [
+          "university"
+        ]
+      },
+      "weights": {
+        "preset": "research_development",
+        "weights": {},
+        "mappings": [],
+        "config_version": "user-config-v1",
+        "metric_weights": {},
+        "performance_groups": {
+          "paper": 1.0,
+          "venue": 1.0
+        }
+      },
+      "schema_version": "adrs-organization-run-v2",
+      "evidence_cutoff": "2026-10-20T14:19:10.876113+00:00",
+      "catalog_manifest": {
+        "schemes": [
+          {
+            "level": "venue",
+            "family": "directory",
+            "adapter": "exact_catalogue",
+            "editions": [],
+            "scheme_id": "ccf",
+            "source_url": "https://www.ccf.org.cn/Academic_Evaluation/By_category/",
+            "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+            "availability": "import_only"
+          },
+          {
+            "level": "venue",
+            "family": "directory",
+            "adapter": "exact_catalogue",
+            "editions": [],
+            "scheme_id": "icore",
+            "source_url": "https://portal.core.edu.au/conf-ranks/",
+            "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+            "availability": "import_only"
+          },
+          {
+            "level": "venue",
+            "family": "index",
+            "adapter": "authorized_metric",
+            "editions": [],
+            "scheme_id": "wos_scie",
+            "source_url": "https://mjl.clarivate.com/",
+            "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+            "availability": "import_only"
+          },
+          {
+            "level": "venue",
+            "family": "index",
+            "adapter": "authorized_metric",
+            "editions": [],
+            "scheme_id": "wos_ssci",
+            "source_url": "https://mjl.clarivate.com/",
+            "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+            "availability": "import_only"
+          },
+          {
+            "level": "venue",
+            "family": "index",
+            "adapter": "authorized_metric",
+            "editions": [],
+            "scheme_id": "wos_ahci",
+            "source_url": "https://mjl.clarivate.com/",
+            "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+            "availability": "import_only"
+          },
+          {
+            "level": "venue",
+            "family": "index",
+            "adapter": "authorized_metric",
+            "editions": [],
+            "scheme_id": "wos_esci",
+            "source_url": "https://mjl.clarivate.com/",
+            "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+            "availability": "import_only"
+          },
+          {
+            "level": "venue",
+            "family": "index",
+            "adapter": "authorized_metric",
+            "editions": [],
+            "scheme_id": "scopus",
+            "source_url": "https://www.scopus.com/sources",
+            "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+            "availability": "import_only"
+          },
+          {
+            "level": "venue",
+            "family": "journal_metric",
+            "adapter": "authorized_metric",
+            "editions": [],
+            "scheme_id": "jcr_jif",
+            "source_url": "https://jcr.clarivate.com/",
+            "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+            "availability": "import_only"
+          },
+          {
+            "level": "venue",
+            "family": "journal_metric",
+            "adapter": "authorized_metric",
+            "editions": [],
+            "scheme_id": "jcr_quartile",
+            "source_url": "https://jcr.clarivate.com/",
+            "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+            "availability": "import_only"
+          },
+          {
+            "level": "venue",
+            "family": "journal_metric",
+            "adapter": "authorized_metric",
+            "editions": [],
+            "scheme_id": "jcr_jci",
+            "source_url": "https://jcr.clarivate.com/",
+            "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+            "availability": "import_only"
+          },
+          {
+            "level": "venue",
+            "family": "journal_metric",
+            "adapter": "authorized_metric",
+            "editions": [],
+            "scheme_id": "cas_partition",
+            "source_url": "https://www.fenqubiao.com/",
+            "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+            "availability": "import_only"
+          },
+          {
+            "level": "venue",
+            "family": "journal_metric",
+            "adapter": "authorized_metric",
+            "editions": [],
+            "scheme_id": "citescore",
+            "source_url": "https://www.scopus.com/sources",
+            "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+            "availability": "import_only"
+          },
+          {
+            "level": "venue",
+            "family": "journal_metric",
+            "adapter": "authorized_metric",
+            "editions": [],
+            "scheme_id": "citescore_percentile",
+            "source_url": "https://www.scopus.com/sources",
+            "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+            "availability": "import_only"
+          },
+          {
+            "level": "venue",
+            "family": "journal_metric",
+            "adapter": "authorized_metric",
+            "editions": [],
+            "scheme_id": "sjr",
+            "source_url": "https://www.scimagojr.com/",
+            "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+            "availability": "import_only"
+          },
+          {
+            "level": "venue",
+            "family": "journal_metric",
+            "adapter": "authorized_metric",
+            "editions": [],
+            "scheme_id": "snip",
+            "source_url": "https://www.scopus.com/sources",
+            "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+            "availability": "import_only"
+          },
+          {
+            "level": "venue",
+            "family": "directory",
+            "adapter": "exact_catalogue",
+            "editions": [],
+            "scheme_id": "abdc",
+            "source_url": "https://abdc.edu.au/abdc-journal-quality-list/",
+            "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+            "availability": "import_only"
+          },
+          {
+            "level": "venue",
+            "family": "directory",
+            "adapter": "exact_catalogue",
+            "editions": [],
+            "scheme_id": "ajg",
+            "source_url": "https://charteredabs.org/academic-journal-guide",
+            "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+            "availability": "import_only"
+          },
+          {
+            "level": "work",
+            "family": "paper_metric",
+            "adapter": "paper_metric",
+            "editions": [],
+            "scheme_id": "citation_percentile",
+            "source_url": "https://help.openalex.org/data/works/citations/",
+            "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+            "availability": "import_only"
+          },
+          {
+            "level": "work",
+            "family": "paper_metric",
+            "adapter": "paper_metric",
+            "editions": [],
+            "scheme_id": "cnci",
+            "source_url": "https://incites.help.clarivate.com/Content/Indicators-Handbook/ih-normalized-citation-impact.htm",
+            "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+            "availability": "import_only"
+          },
+          {
+            "level": "work",
+            "family": "paper_metric",
+            "adapter": "paper_metric",
+            "editions": [],
+            "scheme_id": "fwci",
+            "source_url": "https://help.openalex.org/data/works/citations/",
+            "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+            "availability": "import_only"
+          }
+        ],
+        "sources": [
+          {
+            "access": "public",
+            "edition": "2012",
+            "records": [
+              {
+                "track": "main",
+                "status": "available",
+                "category": "Computer networks",
+                "raw_value": "B",
+                "target_id": "dblp:conf/nsdi",
+                "document_type": null,
+                "citation_cutoff": null,
+                "publication_year": null
+              },
+              {
+                "track": "main",
+                "status": "available",
+                "category": "Computer networks",
+                "raw_value": "A",
+                "target_id": "dblp:conf/sigcomm",
+                "document_type": null,
+                "citation_cutoff": null,
+                "publication_year": null
+              }
+            ],
+            "coverage": "partial",
+            "provider": "CCF (issued PDF, public mirror)",
+            "scheme_id": "ccf",
+            "source_id": "public-ccf-2012",
+            "authorized": false,
+            "source_url": "https://risame.github.io/sun/ccf.pdf",
+            "metric_year": 2012,
+            "retrieved_on": "2026-10-19",
+            "provider_updated_at": null
+          },
+          {
+            "access": "public",
+            "edition": "2022",
+            "records": [
+              {
+                "track": "main",
+                "status": "available",
+                "category": "Computer networks",
+                "raw_value": "A",
+                "target_id": "dblp:conf/nsdi",
+                "document_type": null,
+                "citation_cutoff": null,
+                "publication_year": null
+              },
+              {
+                "track": "main",
+                "status": "available",
+                "category": "Computer networks",
+                "raw_value": "A",
+                "target_id": "dblp:conf/sigcomm",
+                "document_type": null,
+                "citation_cutoff": null,
+                "publication_year": null
+              }
+            ],
+            "coverage": "partial",
+            "provider": "CCF (issued PDF, public mirror)",
+            "scheme_id": "ccf",
+            "source_id": "public-ccf-2022",
+            "authorized": false,
+            "source_url": "https://scdm-shu.github.io/ccf/2022-CCF-Ranking.pdf",
+            "metric_year": 2022,
+            "retrieved_on": "2026-10-19",
+            "provider_updated_at": null
+          },
+          {
+            "access": "public",
+            "edition": "CORE2023",
+            "records": [
+              {
+                "track": "main",
+                "status": "available",
+                "category": "4606",
+                "raw_value": "A*",
+                "target_id": "dblp:conf/sigcomm",
+                "document_type": null,
+                "citation_cutoff": null,
+                "publication_year": null
+              }
+            ],
+            "coverage": "partial",
+            "provider": "ICORE",
+            "scheme_id": "icore",
+            "source_id": "public-icore-2023",
+            "authorized": false,
+            "source_url": "https://portal.core.edu.au/conf-ranks/?search=SIGCOMM&by=all&source=CORE2023&sort=atitle&page=1",
+            "metric_year": 2023,
+            "retrieved_on": "2026-10-19",
+            "provider_updated_at": null
+          },
+          {
+            "access": "public",
+            "edition": "ICORE2026",
+            "records": [
+              {
+                "track": "main",
+                "status": "available",
+                "category": "4606",
+                "raw_value": "A*",
+                "target_id": "dblp:conf/sigcomm",
+                "document_type": null,
+                "citation_cutoff": null,
+                "publication_year": null
+              }
+            ],
+            "coverage": "partial",
+            "provider": "ICORE",
+            "scheme_id": "icore",
+            "source_id": "public-icore-2026",
+            "authorized": false,
+            "source_url": "https://portal.core.edu.au/conf-ranks/?search=SIGCOMM&by=all&source=ICORE2026&sort=atitle&page=1",
+            "metric_year": 2026,
+            "retrieved_on": "2026-10-19",
+            "provider_updated_at": null
+          },
+          {
+            "access": "public",
+            "edition": "2010",
+            "records": [
+              {
+                "track": "journal",
+                "status": "available",
+                "category": "1503",
+                "raw_value": "A*",
+                "target_id": "issn:0047-2506",
+                "document_type": null,
+                "citation_cutoff": null,
+                "publication_year": null
+              },
+              {
+                "track": "journal",
+                "status": "available",
+                "category": "1503",
+                "raw_value": "A*",
+                "target_id": "issn:1478-6990",
+                "document_type": null,
+                "citation_cutoff": null,
+                "publication_year": null
+              }
+            ],
+            "coverage": "partial",
+            "provider": "ABDC",
+            "scheme_id": "abdc",
+            "source_id": "public-abdc-2010",
+            "authorized": false,
+            "source_url": "https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx",
+            "metric_year": 2010,
+            "retrieved_on": "2026-10-19",
+            "provider_updated_at": null
+          },
+          {
+            "access": "public",
+            "edition": "2013",
+            "records": [
+              {
+                "track": "journal",
+                "status": "available",
+                "category": "1503",
+                "raw_value": "A*",
+                "target_id": "issn:0047-2506",
+                "document_type": null,
+                "citation_cutoff": null,
+                "publication_year": null
+              },
+              {
+                "track": "journal",
+                "status": "available",
+                "category": "1503",
+                "raw_value": "A*",
+                "target_id": "issn:1478-6990",
+                "document_type": null,
+                "citation_cutoff": null,
+                "publication_year": null
+              }
+            ],
+            "coverage": "partial",
+            "provider": "ABDC",
+            "scheme_id": "abdc",
+            "source_id": "public-abdc-2013",
+            "authorized": false,
+            "source_url": "https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx",
+            "metric_year": 2013,
+            "retrieved_on": "2026-10-19",
+            "provider_updated_at": null
+          },
+          {
+            "access": "public",
+            "edition": "2016",
+            "records": [
+              {
+                "track": "journal",
+                "status": "available",
+                "category": "1503",
+                "raw_value": "A*",
+                "target_id": "issn:0047-2506",
+                "document_type": null,
+                "citation_cutoff": null,
+                "publication_year": null
+              },
+              {
+                "track": "journal",
+                "status": "available",
+                "category": "1503",
+                "raw_value": "A*",
+                "target_id": "issn:1478-6990",
+                "document_type": null,
+                "citation_cutoff": null,
+                "publication_year": null
+              }
+            ],
+            "coverage": "partial",
+            "provider": "ABDC",
+            "scheme_id": "abdc",
+            "source_id": "public-abdc-2016",
+            "authorized": false,
+            "source_url": "https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx",
+            "metric_year": 2016,
+            "retrieved_on": "2026-10-19",
+            "provider_updated_at": null
+          },
+          {
+            "access": "public",
+            "edition": "2019",
+            "records": [
+              {
+                "track": "journal",
+                "status": "available",
+                "category": "1503",
+                "raw_value": "A*",
+                "target_id": "issn:0047-2506",
+                "document_type": null,
+                "citation_cutoff": null,
+                "publication_year": null
+              },
+              {
+                "track": "journal",
+                "status": "available",
+                "category": "1503",
+                "raw_value": "A*",
+                "target_id": "issn:1478-6990",
+                "document_type": null,
+                "citation_cutoff": null,
+                "publication_year": null
+              }
+            ],
+            "coverage": "partial",
+            "provider": "ABDC",
+            "scheme_id": "abdc",
+            "source_id": "public-abdc-2019",
+            "authorized": false,
+            "source_url": "https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx",
+            "metric_year": 2019,
+            "retrieved_on": "2026-10-19",
+            "provider_updated_at": null
+          },
+          {
+            "access": "public",
+            "edition": "2022",
+            "records": [
+              {
+                "track": "journal",
+                "status": "available",
+                "category": "3507",
+                "raw_value": "A*",
+                "target_id": "issn:0047-2506",
+                "document_type": null,
+                "citation_cutoff": null,
+                "publication_year": null
+              },
+              {
+                "track": "journal",
+                "status": "available",
+                "category": "3507",
+                "raw_value": "A*",
+                "target_id": "issn:1478-6990",
+                "document_type": null,
+                "citation_cutoff": null,
+                "publication_year": null
+              }
+            ],
+            "coverage": "partial",
+            "provider": "ABDC",
+            "scheme_id": "abdc",
+            "source_id": "public-abdc-2022",
+            "authorized": false,
+            "source_url": "https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx",
+            "metric_year": 2022,
+            "retrieved_on": "2026-10-19",
+            "provider_updated_at": null
+          },
+          {
+            "access": "public",
+            "edition": "2025",
+            "records": [
+              {
+                "track": "journal",
+                "status": "available",
+                "category": "3507",
+                "raw_value": "A*",
+                "target_id": "issn:0047-2506",
+                "document_type": null,
+                "citation_cutoff": null,
+                "publication_year": null
+              },
+              {
+                "track": "journal",
+                "status": "available",
+                "category": "3507",
+                "raw_value": "A*",
+                "target_id": "issn:1478-6990",
+                "document_type": null,
+                "citation_cutoff": null,
+                "publication_year": null
+              }
+            ],
+            "coverage": "partial",
+            "provider": "ABDC",
+            "scheme_id": "abdc",
+            "source_id": "public-abdc-2025",
+            "authorized": false,
+            "source_url": "https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx",
+            "metric_year": 2025,
+            "retrieved_on": "2026-10-19",
+            "provider_updated_at": null
+          },
+          {
+            "access": "public",
+            "edition": "OpenAlex snapshot 2026-10-19",
+            "records": [
+              {
+                "track": "work",
+                "status": "available",
+                "category": "https://openalex.org/subfields/2613 | Statistics and Probability",
+                "raw_value": 3266.5958,
+                "target_id": "openalex:W1951724000",
+                "document_type": "article",
+                "citation_cutoff": "2018-12-31",
+                "publication_year": 2015
+              }
+            ],
+            "coverage": "partial",
+            "provider": "OpenAlex",
+            "scheme_id": "fwci",
+            "source_id": "openalex-W1951724000-fwci-2026-10-19",
+            "authorized": false,
+            "source_url": "https://api.openalex.org/works/W1951724000",
+            "metric_year": 2026,
+            "retrieved_on": "2026-10-19",
+            "provider_updated_at": "2026-10-19T09:35:57.686232"
+          },
+          {
+            "access": "public",
+            "edition": "OpenAlex snapshot 2026-10-19",
+            "records": [
+              {
+                "track": "work",
+                "status": "available",
+                "category": "https://openalex.org/subfields/2613 | Statistics and Probability",
+                "raw_value": 1.0,
+                "target_id": "openalex:W1951724000",
+                "document_type": "article",
+                "citation_cutoff": "2018-12-31",
+                "publication_year": 2015
+              }
+            ],
+            "coverage": "partial",
+            "provider": "OpenAlex",
+            "scheme_id": "citation_percentile",
+            "source_id": "openalex-W1951724000-citation_percentile-2026-10-19",
+            "authorized": false,
+            "source_url": "https://api.openalex.org/works/W1951724000",
+            "metric_year": 2026,
+            "retrieved_on": "2026-10-19",
+            "provider_updated_at": "2026-10-19T09:35:57.686232"
+          }
+        ],
+        "captured_at": "2026-10-20T14:19:10.876113+00:00",
+        "schema_version": "adrs-evaluation-catalog-v1",
+        "availability_note": "Frozen public samples and import requirements; not a live lookup or verified evaluation of collected evidence.",
+        "applied_to_evidence": false,
+        "adapter_rule_version": "adrs-evaluation-adapters-v1"
+      },
+      "effective_weights": {
+        "mappings": [
+          {
+            "scores": {
+              "A": 1.0,
+              "B": 0.6666666666666667,
+              "C": 0.33333333333333337
+            },
+            "version": "adrs-preference-map-v1",
+            "scheme_id": "ccf"
+          },
+          {
+            "scores": {
+              "A": 0.75,
+              "B": 0.5,
+              "C": 0.25,
+              "A*": 1.0
+            },
+            "version": "adrs-preference-map-v1",
+            "scheme_id": "icore"
+          },
+          {
+            "scores": {
+              "A": 0.75,
+              "B": 0.5,
+              "C": 0.25,
+              "A*": 1.0
+            },
+            "version": "adrs-preference-map-v1",
+            "scheme_id": "abdc"
+          },
+          {
+            "scores": {
+              "1": 0.19999999999999996,
+              "2": 0.4,
+              "3": 0.6,
+              "4": 0.8,
+              "4*": 1.0
+            },
+            "version": "adrs-preference-map-v1",
+            "scheme_id": "ajg"
+          },
+          {
+            "scores": {
+              "Q1": 1.0,
+              "Q2": 0.75,
+              "Q3": 0.5,
+              "Q4": 0.25
+            },
+            "version": "adrs-preference-map-v1",
+            "scheme_id": "jcr_quartile"
+          },
+          {
+            "scores": {
+              "1": 1.0,
+              "2": 0.75,
+              "3": 0.5,
+              "4": 0.25
+            },
+            "version": "adrs-preference-map-v1",
+            "scheme_id": "cas_partition"
+          }
+        ],
+        "semantics": "preference_configuration_only",
+        "raw_config": {
+          "preset": "research_development",
+          "weights": {
+            "recency": {
+              "weight": 10.0,
+              "enabled": true
+            },
+            "topic_relevance": {
+              "weight": 35.0,
+              "enabled": true
+            },
+            "output_performance": {
+              "weight": 20.0,
+              "enabled": true
+            },
+            "research_alignment": {
+              "weight": 20.0,
+              "enabled": true
+            },
+            "evidence_completeness": {
+              "weight": 15.0,
+              "enabled": true
+            },
+            "cooperation_complementarity": {
+              "weight": 0.0,
+              "enabled": true
+            }
+          },
+          "metric_weights": {},
+          "performance_groups": {
+            "paper": {
+              "weight": 1.0,
+              "enabled": true
+            },
+            "venue": {
+              "weight": 1.0,
+              "enabled": true
+            }
+          }
+        },
+        "rule_version": "adrs-weight-rules-v1",
+        "config_version": "user-config-v1",
+        "preset_version": "adrs-presets-v1",
+        "effective_groups": {
+          "paper": 0.5,
+          "venue": 0.5
+        },
+        "effective_weights": {
+          "recency": 0.09999999999999999,
+          "topic_relevance": 0.35,
+          "output_performance": 0.19999999999999998,
+          "research_alignment": 0.19999999999999998,
+          "evidence_completeness": 0.15,
+          "cooperation_complementarity": 0.0
+        },
+        "effective_metric_weights": {}
+      },
+      "scope_rule_version": "adrs-organization-scope-v2"
+    }
+  },
+  "skill_context": {
+    "match_results": [],
+    "scope_filters": {
+      "tenant_id": null,
+      "project_id": null
+    },
+    "match_cache_key": "skill_match:ecbf7e3fea99490d56f65038a8bf16392455747bf4eb22db7634867aace35725",
+    "resolved_skills": [],
+    "registry_revision": 1,
+    "candidate_skill_ids": [],
+    "effective_skill_ids": [],
+    "snapshot_created_at": "2026-10-20T14:17:33.777101",
+    "effective_agent_hints": {},
+    "truncated_skill_count": 0,
+    "auto_matched_skill_ids": [],
+    "effective_tool_allowlist": [],
+    "effective_prompt_sections": {
+      "prompt": "",
+      "overview": "",
+      "constraints": ""
+    },
+    "manually_enabled_skill_ids": [],
+    "manually_disabled_skill_ids": []
+  },
+  "failure_memory": {
+    "records": [
+      {
+        "query": "https://www.mit.edu/research/",
+        "node_type": "browser",
+        "last_error": "high_risk_task",
+        "retry_count": 0,
+        "next_retry_at": null,
+        "repeat_blocked": false,
+        "backoff_seconds": 0,
+        "terminal_failure": false,
+        "last_error_category": "approval_required"
+      }
+    ],
+    "max_retries_per_tool": 2,
+    "repeat_blocked_nodes": []
+  },
+  "revision_count": 0,
+  "runtime_status": "awaiting_approval",
+  "search_results": [],
+  "tool_histories": [
+    {
+      "agent_type": "browser",
+      "tool_calls": [
+        {
+          "args": {
+            "query": "https://www.mit.edu/research/",
+            "task_id": "723ba1f9-013d-4edb-a099-538f3eb25850"
+          },
+          "error": "high_risk_task",
+          "status": "error",
+          "call_id": "call-49af0599",
+          "cost_usd": 0.0,
+          "tool_name": "execute_browse",
+          "agent_type": "browser",
+          "started_at": "2026-10-20T14:19:18.647610",
+          "duration_ms": 1,
+          "safety_json": {
+            "source": "harness_tool_layer",
+            "audited": true,
+            "sanitized_error": true,
+            "schema_validated": true,
+            "approval_required": true
+          },
+          "tokens_used": 0,
+          "completed_at": "2026-10-20T14:19:18.648614",
+          "result_summary": null
+        }
+      ]
+    },
+    {
+      "agent_type": "browser",
+      "tool_calls": [
+        {
+          "args": {
+            "query": "https://www.mit.edu/research/",
+            "task_id": "723ba1f9-013d-4edb-a099-538f3eb25850"
+          },
+          "error": "high_risk_task",
+          "status": "error",
+          "call_id": "call-332c0a6c",
+          "cost_usd": 0.0,
+          "tool_name": "execute_browse",
+          "agent_type": "browser",
+          "started_at": "2026-10-20T14:19:18.648614",
+          "duration_ms": 0,
+          "safety_json": {
+            "source": "harness_tool_layer",
+            "audited": true,
+            "sanitized_error": true,
+            "schema_validated": true,
+            "approval_required": true
+          },
+          "tokens_used": 0,
+          "completed_at": "2026-10-20T14:19:18.648614",
+          "result_summary": null
+        }
+      ]
+    },
+    {
+      "agent_type": "browser",
+      "tool_calls": [
+        {
+          "args": {
+            "query": "https://www.mit.edu/research/",
+            "task_id": "723ba1f9-013d-4edb-a099-538f3eb25850"
+          },
+          "error": "high_risk_task",
+          "status": "error",
+          "call_id": "call-6aba782c",
+          "cost_usd": 0.0,
+          "tool_name": "execute_browse",
+          "agent_type": "browser",
+          "started_at": "2026-10-20T14:19:18.648614",
+          "duration_ms": 0,
+          "safety_json": {
+            "source": "harness_tool_layer",
+            "audited": true,
+            "sanitized_error": true,
+            "schema_validated": true,
+            "approval_required": true
+          },
+          "tokens_used": 0,
+          "completed_at": "2026-10-20T14:19:18.648614",
+          "result_summary": null
+        }
+      ]
+    },
+    {
+      "agent_type": "browser",
+      "tool_calls": [
+        {
+          "args": {
+            "query": "https://www.mit.edu/research/",
+            "task_id": "723ba1f9-013d-4edb-a099-538f3eb25850"
+          },
+          "error": "high_risk_task",
+          "status": "error",
+          "call_id": "call-58d8dd60",
+          "cost_usd": 0.0,
+          "tool_name": "execute_browse",
+          "agent_type": "browser",
+          "started_at": "2026-10-20T14:19:18.649620",
+          "duration_ms": 0,
+          "safety_json": {
+            "source": "harness_tool_layer",
+            "audited": true,
+            "sanitized_error": true,
+            "schema_validated": true,
+            "approval_required": true
+          },
+          "tokens_used": 0,
+          "completed_at": "2026-10-20T14:19:18.649620",
+          "result_summary": null
+        }
+      ]
+    },
+    {
+      "agent_type": "browser",
+      "tool_calls": [
+        {
+          "args": {
+            "query": "https://www.mit.edu/research/",
+            "task_id": "723ba1f9-013d-4edb-a099-538f3eb25850"
+          },
+          "error": "high_risk_task",
+          "status": "error",
+          "call_id": "call-e2b9be4f",
+          "cost_usd": 0.0,
+          "tool_name": "execute_browse",
+          "agent_type": "browser",
+          "started_at": "2026-10-20T14:19:18.649620",
+          "duration_ms": 0,
+          "safety_json": {
+            "source": "harness_tool_layer",
+            "audited": true,
+            "sanitized_error": true,
+            "schema_validated": true,
+            "approval_required": true
+          },
+          "tokens_used": 0,
+          "completed_at": "2026-10-20T14:19:18.649620",
+          "result_summary": null
+        }
+      ]
+    },
+    {
+      "agent_type": "browser",
+      "tool_calls": [
+        {
+          "args": {
+            "query": "https://www.mit.edu/research/",
+            "task_id": "723ba1f9-013d-4edb-a099-538f3eb25850"
+          },
+          "error": "high_risk_task",
+          "status": "error",
+          "call_id": "call-f8aa26f9",
+          "cost_usd": 0.0,
+          "tool_name": "execute_browse",
+          "agent_type": "browser",
+          "started_at": "2026-10-20T14:19:18.649620",
+          "duration_ms": 0,
+          "safety_json": {
+            "source": "harness_tool_layer",
+            "audited": true,
+            "sanitized_error": true,
+            "schema_validated": true,
+            "approval_required": true
+          },
+          "tokens_used": 0,
+          "completed_at": "2026-10-20T14:19:18.649620",
+          "result_summary": null
+        }
+      ]
+    }
+  ],
+  "user_confirmed": true,
+  "browser_results": [],
+  "completed_nodes": [],
+  "evidence_status": null,
+  "guardrail_trace": [
+    {
+      "agent": "planner",
+      "content": "planner routed",
+      "metadata": {
+        "intent": "search_compare",
+        "risk_level": "high",
+        "must_confirm": false,
+        "enabled_tools": [
+          "search",
+          "rag",
+          "browser"
+        ],
+        "prompt_profile": "research_analysis",
+        "answer_gate_required": true,
+        "reject_if_no_evidence": true
+      },
+      "timestamp": "2026-10-20T14:19:18.477550",
+      "event_type": "guardrail_decision"
+    }
+  ],
+  "revision_needed": false,
+  "retrieval_policy": {
+    "mode": "public_web",
+    "rag_group": null,
+    "rag_hit_count": 0,
+    "use_internal_docs": false
+  },
+  "pending_approvals": [
+    {
+      "reason": "high_risk_task",
+      "status": "pending",
+      "node_id": "n1",
+      "tool_name": "browse_webpage",
+      "risk_level": "high",
+      "approval_id": "ap-n1-browse_webpage-1792505958648",
+      "requested_at": "2026-10-20T14:19:18.648614",
+      "request_payload": {
+        "url": "https://www.mit.edu/research/",
+        "max_chars": 2000
+      }
+    },
+    {
+      "reason": "high_risk_task",
+      "status": "pending",
+      "node_id": "n2",
+      "tool_name": "browse_webpage",
+      "risk_level": "high",
+      "approval_id": "ap-n2-browse_webpage-1792505958648",
+      "requested_at": "2026-10-20T14:19:18.648614",
+      "request_payload": {
+        "url": "https://www.mit.edu/research/",
+        "max_chars": 2000
+      }
+    },
+    {
+      "reason": "high_risk_task",
+      "status": "pending",
+      "node_id": "n3",
+      "tool_name": "browse_webpage",
+      "risk_level": "high",
+      "approval_id": "ap-n3-browse_webpage-1792505958648",
+      "requested_at": "2026-10-20T14:19:18.648614",
+      "request_payload": {
+        "url": "https://www.mit.edu/research/",
+        "max_chars": 2000
+      }
+    },
+    {
+      "reason": "high_risk_task",
+      "status": "pending",
+      "node_id": "n4",
+      "tool_name": "browse_webpage",
+      "risk_level": "high",
+      "approval_id": "ap-n4-browse_webpage-1792505958649",
+      "requested_at": "2026-10-20T14:19:18.649620",
+      "request_payload": {
+        "url": "https://www.mit.edu/research/",
+        "max_chars": 2000
+      }
+    },
+    {
+      "reason": "high_risk_task",
+      "status": "pending",
+      "node_id": "n5",
+      "tool_name": "browse_webpage",
+      "risk_level": "high",
+      "approval_id": "ap-n5-browse_webpage-1792505958649",
+      "requested_at": "2026-10-20T14:19:18.649620",
+      "request_payload": {
+        "url": "https://www.mit.edu/research/",
+        "max_chars": 2000
+      }
+    },
+    {
+      "reason": "high_risk_task",
+      "status": "pending",
+      "node_id": "n6",
+      "tool_name": "browse_webpage",
+      "risk_level": "high",
+      "approval_id": "ap-n6-browse_webpage-1792505958649",
+      "requested_at": "2026-10-20T14:19:18.649620",
+      "request_payload": {
+        "url": "https://www.mit.edu/research/",
+        "max_chars": 2000
+      }
+    }
+  ],
+  "use_internal_docs": false,
+  "approval_decisions": [],
+  "collected_evidence": [],
+  "guardrail_decision": {
+    "intent": "search_compare",
+    "risk_level": "high",
+    "must_confirm": false,
+    "enabled_tools": [
+      "search",
+      "rag",
+      "browser"
+    ],
+    "prompt_profile": "research_analysis",
+    "answer_gate_required": true,
+    "reject_if_no_evidence": true
+  },
+  "aggregated_evidence": [],
+  "organization_result": null,
+  "organization_research": {
+    "scope": {
+      "topic": "科研组织架构",
+      "end_date": "2026-10-20",
+      "entities": [
+        {
+          "name": "MIT",
+          "type": "university",
+          "aliases": [],
+          "entity_id": "mit",
+          "unit_kind": "organization",
+          "source_urls": [
+            "https://www.mit.edu/research/"
+          ],
+          "resolution_status": "pending"
+        }
+      ],
+      "start_date": "2020-01-01",
+      "disciplines": [
+        "computer science"
+      ],
+      "organization_types": [
+        "university"
+      ]
+    },
+    "weights": {
+      "preset": "research_development",
+      "weights": {},
+      "mappings": [],
+      "config_version": "user-config-v1",
+      "metric_weights": {},
+      "performance_groups": {
+        "paper": 1.0,
+        "venue": 1.0
+      }
+    },
+    "schema_version": "adrs-organization-run-v2",
+    "evidence_cutoff": "2026-10-20T14:19:10.876113+00:00",
+    "catalog_manifest": {
+      "schemes": [
+        {
+          "level": "venue",
+          "family": "directory",
+          "adapter": "exact_catalogue",
+          "editions": [],
+          "scheme_id": "ccf",
+          "source_url": "https://www.ccf.org.cn/Academic_Evaluation/By_category/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "directory",
+          "adapter": "exact_catalogue",
+          "editions": [],
+          "scheme_id": "icore",
+          "source_url": "https://portal.core.edu.au/conf-ranks/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "index",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "wos_scie",
+          "source_url": "https://mjl.clarivate.com/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "index",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "wos_ssci",
+          "source_url": "https://mjl.clarivate.com/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "index",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "wos_ahci",
+          "source_url": "https://mjl.clarivate.com/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "index",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "wos_esci",
+          "source_url": "https://mjl.clarivate.com/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "index",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "scopus",
+          "source_url": "https://www.scopus.com/sources",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "journal_metric",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "jcr_jif",
+          "source_url": "https://jcr.clarivate.com/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "journal_metric",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "jcr_quartile",
+          "source_url": "https://jcr.clarivate.com/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "journal_metric",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "jcr_jci",
+          "source_url": "https://jcr.clarivate.com/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "journal_metric",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "cas_partition",
+          "source_url": "https://www.fenqubiao.com/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "journal_metric",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "citescore",
+          "source_url": "https://www.scopus.com/sources",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "journal_metric",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "citescore_percentile",
+          "source_url": "https://www.scopus.com/sources",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "journal_metric",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "sjr",
+          "source_url": "https://www.scimagojr.com/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "journal_metric",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "snip",
+          "source_url": "https://www.scopus.com/sources",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "directory",
+          "adapter": "exact_catalogue",
+          "editions": [],
+          "scheme_id": "abdc",
+          "source_url": "https://abdc.edu.au/abdc-journal-quality-list/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "directory",
+          "adapter": "exact_catalogue",
+          "editions": [],
+          "scheme_id": "ajg",
+          "source_url": "https://charteredabs.org/academic-journal-guide",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "work",
+          "family": "paper_metric",
+          "adapter": "paper_metric",
+          "editions": [],
+          "scheme_id": "citation_percentile",
+          "source_url": "https://help.openalex.org/data/works/citations/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "work",
+          "family": "paper_metric",
+          "adapter": "paper_metric",
+          "editions": [],
+          "scheme_id": "cnci",
+          "source_url": "https://incites.help.clarivate.com/Content/Indicators-Handbook/ih-normalized-citation-impact.htm",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "work",
+          "family": "paper_metric",
+          "adapter": "paper_metric",
+          "editions": [],
+          "scheme_id": "fwci",
+          "source_url": "https://help.openalex.org/data/works/citations/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        }
+      ],
+      "sources": [
+        {
+          "access": "public",
+          "edition": "2012",
+          "records": [
+            {
+              "track": "main",
+              "status": "available",
+              "category": "Computer networks",
+              "raw_value": "B",
+              "target_id": "dblp:conf/nsdi",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            },
+            {
+              "track": "main",
+              "status": "available",
+              "category": "Computer networks",
+              "raw_value": "A",
+              "target_id": "dblp:conf/sigcomm",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            }
+          ],
+          "coverage": "partial",
+          "provider": "CCF (issued PDF, public mirror)",
+          "scheme_id": "ccf",
+          "source_id": "public-ccf-2012",
+          "authorized": false,
+          "source_url": "https://risame.github.io/sun/ccf.pdf",
+          "metric_year": 2012,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": null
+        },
+        {
+          "access": "public",
+          "edition": "2022",
+          "records": [
+            {
+              "track": "main",
+              "status": "available",
+              "category": "Computer networks",
+              "raw_value": "A",
+              "target_id": "dblp:conf/nsdi",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            },
+            {
+              "track": "main",
+              "status": "available",
+              "category": "Computer networks",
+              "raw_value": "A",
+              "target_id": "dblp:conf/sigcomm",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            }
+          ],
+          "coverage": "partial",
+          "provider": "CCF (issued PDF, public mirror)",
+          "scheme_id": "ccf",
+          "source_id": "public-ccf-2022",
+          "authorized": false,
+          "source_url": "https://scdm-shu.github.io/ccf/2022-CCF-Ranking.pdf",
+          "metric_year": 2022,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": null
+        },
+        {
+          "access": "public",
+          "edition": "CORE2023",
+          "records": [
+            {
+              "track": "main",
+              "status": "available",
+              "category": "4606",
+              "raw_value": "A*",
+              "target_id": "dblp:conf/sigcomm",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            }
+          ],
+          "coverage": "partial",
+          "provider": "ICORE",
+          "scheme_id": "icore",
+          "source_id": "public-icore-2023",
+          "authorized": false,
+          "source_url": "https://portal.core.edu.au/conf-ranks/?search=SIGCOMM&by=all&source=CORE2023&sort=atitle&page=1",
+          "metric_year": 2023,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": null
+        },
+        {
+          "access": "public",
+          "edition": "ICORE2026",
+          "records": [
+            {
+              "track": "main",
+              "status": "available",
+              "category": "4606",
+              "raw_value": "A*",
+              "target_id": "dblp:conf/sigcomm",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            }
+          ],
+          "coverage": "partial",
+          "provider": "ICORE",
+          "scheme_id": "icore",
+          "source_id": "public-icore-2026",
+          "authorized": false,
+          "source_url": "https://portal.core.edu.au/conf-ranks/?search=SIGCOMM&by=all&source=ICORE2026&sort=atitle&page=1",
+          "metric_year": 2026,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": null
+        },
+        {
+          "access": "public",
+          "edition": "2010",
+          "records": [
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "1503",
+              "raw_value": "A*",
+              "target_id": "issn:0047-2506",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            },
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "1503",
+              "raw_value": "A*",
+              "target_id": "issn:1478-6990",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            }
+          ],
+          "coverage": "partial",
+          "provider": "ABDC",
+          "scheme_id": "abdc",
+          "source_id": "public-abdc-2010",
+          "authorized": false,
+          "source_url": "https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx",
+          "metric_year": 2010,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": null
+        },
+        {
+          "access": "public",
+          "edition": "2013",
+          "records": [
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "1503",
+              "raw_value": "A*",
+              "target_id": "issn:0047-2506",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            },
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "1503",
+              "raw_value": "A*",
+              "target_id": "issn:1478-6990",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            }
+          ],
+          "coverage": "partial",
+          "provider": "ABDC",
+          "scheme_id": "abdc",
+          "source_id": "public-abdc-2013",
+          "authorized": false,
+          "source_url": "https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx",
+          "metric_year": 2013,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": null
+        },
+        {
+          "access": "public",
+          "edition": "2016",
+          "records": [
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "1503",
+              "raw_value": "A*",
+              "target_id": "issn:0047-2506",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            },
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "1503",
+              "raw_value": "A*",
+              "target_id": "issn:1478-6990",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            }
+          ],
+          "coverage": "partial",
+          "provider": "ABDC",
+          "scheme_id": "abdc",
+          "source_id": "public-abdc-2016",
+          "authorized": false,
+          "source_url": "https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx",
+          "metric_year": 2016,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": null
+        },
+        {
+          "access": "public",
+          "edition": "2019",
+          "records": [
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "1503",
+              "raw_value": "A*",
+              "target_id": "issn:0047-2506",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            },
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "1503",
+              "raw_value": "A*",
+              "target_id": "issn:1478-6990",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            }
+          ],
+          "coverage": "partial",
+          "provider": "ABDC",
+          "scheme_id": "abdc",
+          "source_id": "public-abdc-2019",
+          "authorized": false,
+          "source_url": "https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx",
+          "metric_year": 2019,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": null
+        },
+        {
+          "access": "public",
+          "edition": "2022",
+          "records": [
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "3507",
+              "raw_value": "A*",
+              "target_id": "issn:0047-2506",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            },
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "3507",
+              "raw_value": "A*",
+              "target_id": "issn:1478-6990",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            }
+          ],
+          "coverage": "partial",
+          "provider": "ABDC",
+          "scheme_id": "abdc",
+          "source_id": "public-abdc-2022",
+          "authorized": false,
+          "source_url": "https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx",
+          "metric_year": 2022,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": null
+        },
+        {
+          "access": "public",
+          "edition": "2025",
+          "records": [
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "3507",
+              "raw_value": "A*",
+              "target_id": "issn:0047-2506",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            },
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "3507",
+              "raw_value": "A*",
+              "target_id": "issn:1478-6990",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            }
+          ],
+          "coverage": "partial",
+          "provider": "ABDC",
+          "scheme_id": "abdc",
+          "source_id": "public-abdc-2025",
+          "authorized": false,
+          "source_url": "https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx",
+          "metric_year": 2025,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": null
+        },
+        {
+          "access": "public",
+          "edition": "OpenAlex snapshot 2026-10-19",
+          "records": [
+            {
+              "track": "work",
+              "status": "available",
+              "category": "https://openalex.org/subfields/2613 | Statistics and Probability",
+              "raw_value": 3266.5958,
+              "target_id": "openalex:W1951724000",
+              "document_type": "article",
+              "citation_cutoff": "2018-12-31",
+              "publication_year": 2015
+            }
+          ],
+          "coverage": "partial",
+          "provider": "OpenAlex",
+          "scheme_id": "fwci",
+          "source_id": "openalex-W1951724000-fwci-2026-10-19",
+          "authorized": false,
+          "source_url": "https://api.openalex.org/works/W1951724000",
+          "metric_year": 2026,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": "2026-10-19T09:35:57.686232"
+        },
+        {
+          "access": "public",
+          "edition": "OpenAlex snapshot 2026-10-19",
+          "records": [
+            {
+              "track": "work",
+              "status": "available",
+              "category": "https://openalex.org/subfields/2613 | Statistics and Probability",
+              "raw_value": 1.0,
+              "target_id": "openalex:W1951724000",
+              "document_type": "article",
+              "citation_cutoff": "2018-12-31",
+              "publication_year": 2015
+            }
+          ],
+          "coverage": "partial",
+          "provider": "OpenAlex",
+          "scheme_id": "citation_percentile",
+          "source_id": "openalex-W1951724000-citation_percentile-2026-10-19",
+          "authorized": false,
+          "source_url": "https://api.openalex.org/works/W1951724000",
+          "metric_year": 2026,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": "2026-10-19T09:35:57.686232"
+        }
+      ],
+      "captured_at": "2026-10-20T14:19:10.876113+00:00",
+      "schema_version": "adrs-evaluation-catalog-v1",
+      "availability_note": "Frozen public samples and import requirements; not a live lookup or verified evaluation of collected evidence.",
+      "applied_to_evidence": false,
+      "adapter_rule_version": "adrs-evaluation-adapters-v1"
+    },
+    "effective_weights": {
+      "mappings": [
+        {
+          "scores": {
+            "A": 1.0,
+            "B": 0.6666666666666667,
+            "C": 0.33333333333333337
+          },
+          "version": "adrs-preference-map-v1",
+          "scheme_id": "ccf"
+        },
+        {
+          "scores": {
+            "A": 0.75,
+            "B": 0.5,
+            "C": 0.25,
+            "A*": 1.0
+          },
+          "version": "adrs-preference-map-v1",
+          "scheme_id": "icore"
+        },
+        {
+          "scores": {
+            "A": 0.75,
+            "B": 0.5,
+            "C": 0.25,
+            "A*": 1.0
+          },
+          "version": "adrs-preference-map-v1",
+          "scheme_id": "abdc"
+        },
+        {
+          "scores": {
+            "1": 0.19999999999999996,
+            "2": 0.4,
+            "3": 0.6,
+            "4": 0.8,
+            "4*": 1.0
+          },
+          "version": "adrs-preference-map-v1",
+          "scheme_id": "ajg"
+        },
+        {
+          "scores": {
+            "Q1": 1.0,
+            "Q2": 0.75,
+            "Q3": 0.5,
+            "Q4": 0.25
+          },
+          "version": "adrs-preference-map-v1",
+          "scheme_id": "jcr_quartile"
+        },
+        {
+          "scores": {
+            "1": 1.0,
+            "2": 0.75,
+            "3": 0.5,
+            "4": 0.25
+          },
+          "version": "adrs-preference-map-v1",
+          "scheme_id": "cas_partition"
+        }
+      ],
+      "semantics": "preference_configuration_only",
+      "raw_config": {
+        "preset": "research_development",
+        "weights": {
+          "recency": {
+            "weight": 10.0,
+            "enabled": true
+          },
+          "topic_relevance": {
+            "weight": 35.0,
+            "enabled": true
+          },
+          "output_performance": {
+            "weight": 20.0,
+            "enabled": true
+          },
+          "research_alignment": {
+            "weight": 20.0,
+            "enabled": true
+          },
+          "evidence_completeness": {
+            "weight": 15.0,
+            "enabled": true
+          },
+          "cooperation_complementarity": {
+            "weight": 0.0,
+            "enabled": true
+          }
+        },
+        "metric_weights": {},
+        "performance_groups": {
+          "paper": {
+            "weight": 1.0,
+            "enabled": true
+          },
+          "venue": {
+            "weight": 1.0,
+            "enabled": true
+          }
+        }
+      },
+      "rule_version": "adrs-weight-rules-v1",
+      "config_version": "user-config-v1",
+      "preset_version": "adrs-presets-v1",
+      "effective_groups": {
+        "paper": 0.5,
+        "venue": 0.5
+      },
+      "effective_weights": {
+        "recency": 0.09999999999999999,
+        "topic_relevance": 0.35,
+        "output_performance": 0.19999999999999998,
+        "research_alignment": 0.19999999999999998,
+        "evidence_completeness": 0.15,
+        "cooperation_complementarity": 0.0
+      },
+      "effective_metric_weights": {}
+    },
+    "scope_rule_version": "adrs-organization-scope-v2"
+  },
+  "current_executing_nodes": [
+    "n1",
+    "n2",
+    "n3",
+    "n4",
+    "n5",
+    "n6"
+  ]
+}

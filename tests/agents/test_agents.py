@@ -26,13 +26,13 @@ class TestPlannerAgent:
 
         with patch("app.agents.planner.create_fallback_llm_client", return_value=None):
             steps = agent.create_plan("中国新能源车市场分析")
-        assert len(steps) == 4
+        assert len(steps) == 3
         assert all(s["status"] == StepStatus.PENDING for s in steps)
         # Should have one of each agent type
         agent_types = {s.get("assigned_agent") or s.get("node_type") for s in steps}
         assert "search" in agent_types
         assert "browser" in agent_types
-        assert "rag" in agent_types
+        assert "rag" not in agent_types
         assert "analyst" in agent_types
 
     def test_fact_lookup_uses_minimal_dag(self):
@@ -40,8 +40,8 @@ class TestPlannerAgent:
 
         dag = PlannerAgent().create_dag("量子计算是什么")
 
-        assert len(dag.nodes) == 3
-        assert [node.node_type for node in dag.nodes] == ["rag", "search", "analyst"]
+        assert len(dag.nodes) == 2
+        assert [node.node_type for node in dag.nodes] == ["search", "analyst"]
 
 
 class TestSearchAgent:

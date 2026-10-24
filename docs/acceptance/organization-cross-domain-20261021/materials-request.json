@@ -1,0 +1,36 @@
+{
+  "query": "研究 King Faisal University 的一项材料科学公开成果：https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0351439。仅以这项钙钛矿太阳能电池期刊论文为有界样本，核实完整题名、作者 Shrouq H. Aleithan 的发表署名、发表日期及期刊类型。学科为 materials science，不能套计算机会议 CCF 等级。优先读这一出版商原文，日期 Published July 10, 2026 不等于接受日期。页面有 Correction：记录更正线索，未核清时保留缺口，不将更正通知或参考文献另计为独立研究。只交付来源可支持的研究问题和方法概览，不摘用未经核清的效率数值，不宣称掌握该校成果全集、独立复现或正式合作关系。",
+  "max_revision": 1,
+  "output_length": "short",
+  "organization_research": {
+    "scope": {
+      "organization_types": [
+        "university"
+      ],
+      "entities": [
+        {
+          "entity_id": "kfu",
+          "name": "King Faisal University",
+          "type": "university",
+          "source_urls": [
+            "https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0351439"
+          ]
+        }
+      ],
+      "disciplines": [
+        "materials science"
+      ],
+      "topic": "perovskite",
+      "start_date": "2026-01-01",
+      "end_date": "2026-10-21"
+    },
+    "weights": {
+      "preset": "custom",
+      "config_version": "materials-case-20261021-v1",
+      "weights": {
+        "topic_relevance": 6,
+        "evidence_completeness": 4
+      }
+    }
+  }
+}

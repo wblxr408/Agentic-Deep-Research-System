@@ -1,0 +1,3372 @@
+{
+  "schema_version": "adrs-report-export-v1",
+  "session_id": "5b56e7b4-b594-4fd5-bc66-bf088b35a2f5",
+  "query": "交付腾讯网络研究的一个有界、可分享案例：仅以 Harp 出版商页面 https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu 为种子，核实2026年腾讯在VPC网络故障检测与恢复方面的公开研究。识别论文题名、发表月份、Tencent署名及外部高校共著线索，解释摘要可支持的问题、软件路径监测与故障绕行机制。区分作者自述部署／生产结果与独立验证；无法取得全文时不补造实验条件和图表。仅一项公开成果，不代表腾讯2020—2026全集，不以数量推断投入，不把共著称为正式协议。BibTeX year=2026及month=may是发表时间来源，应保留月精度而非具体某日。没有直接依据的指标、资助、内部战略与未来方向保留缺口，最后给出待验证问题。",
+  "created_at": "2026-10-21T04:39:19.745127",
+  "completed_at": "2026-10-21T04:40:34.257908",
+  "status": "completed",
+  "report": "# 腾讯云 VPC 网络故障检测与恢复：Harp（NSDI '26）有界案例研究\n\n> Generated: 2026-10-21 | Research Depth: Comprehensive\n\n## Executive Summary\n\n以 USENIX NSDI '26 的 Harp 展示页为唯一种子，可核实腾讯在 2026 年有一项关于 VPC 网络故障检测与恢复的公开会议论文：*Harp: Improving VPC Network Availability via Efficient Failure Detection and Rerouting in Tencent Cloud*，BibTeX 标注 `year = {2026}`、`month = may`，故发表时间应保留为 **2026 年 5 月（月精度）** [citation:1]。论文由 **5 位腾讯作者与 1 位复旦大学作者**共著，摘要描述了不依赖特定硬件或传输协议的软件路径监测与故障绕行机制，并自述已在腾讯云部署两年多、生产环境中断时间降低 **78.71%–99.97%** [citation:1]。上述生产指标属**作者自述**，种子页面未提供独立验证；本案例仅覆盖一项成果，不代表腾讯 2020–2026 年网络研究全集，也不能以数量推断研发投入 [citation:1]。\n\n## 1. 背景与研究范围\n\n### 1.1 范围契约\n\n本研究按组织研究契约锁定单一实体 **Tencent**（别名 Tencent Cloud、腾讯、腾讯云），学科限定为计算机科学，主题为 VPC 网络故障检测与恢复，时间窗为 2026-01-01 至 2026-10-21，证据截止 2026-10-21T04:39:19Z。实体解析状态为 `pending`，唯一来源 URL 为 Harp 展示页 [citation:1]。\n\n### 1.2 方法边界\n\n- **单一种子**：仅以出版商展示页为起点，未扩展检索腾讯其他网络论文，因此本案例是**有界样本**而非全集 [citation:1]。\n- **页面出现名称不等于归属**：展示页同时出现 USENIX、KAUST 赞助方等名称，只有作者单位行与 BibTeX 作者字段被用于归属判定 [citation:1]。\n- **抓取时间不等于发表时间**：发表时间以 BibTeX 的 `year`/`month` 字段为准，而非页面抓取时刻 [citation:1]。\n- **共著不等于正式协议**：企业与高校同列作者仅构成学术合作线索，不构成机构级协议证据 [citation:1]。\n\n## 2. 关键发现\n\n### 2.1 论文题名、发表月份与出版信息\n\n| 字段 | 内容 | 来源 |\n|---|---|---|\n| 题名 | Harp: Improving VPC Network Availability via Efficient Failure Detection and Rerouting in Tencent Cloud | [citation:1] |\n| 会议 | 23rd USENIX Symposium on Networked Systems Design and Implementation (NSDI 26) | [citation:1] |\n| 年份 | 2026 | [citation:1] |\n| 月份 | may（5 月，月精度） | [citation:1] |\n| 页码 | 1669–1684 | [citation:1] |\n| 出版方 | USENIX Association | [citation:1] |\n| 地点 | Renton, WA | [citation:1] |\n| ISBN | 978-1-939133-54-0 | [citation:1] |\n\nBibTeX 条目同时给出 `citation_publication_date: 2026` 与 `citation_conference_title`，与上述字段一致 [citation:1]。技术日程页显示会议自 **2026 年 5 月 4 日（周一）** 开始，与 5 月发表一致；但该页未直接列出 Harp 的具体场次，因此**不能据此确定论文的精确报告日**，发表时间应保持月精度 [citation:2]。\n\n### 2.2 Tencent 署名与外部高校共著线索\n\n作者单位行原文为：“Jiayu Hu, Feng Jin, and Xianping Zhou, Tencent; Kai Zhang, Fudan University; Zhen Shen and Yongkang Luo, Tencent” [citation:1]。据此：\n\n| 作者 | 单位 | 归属 |\n|---|---|---|\n| Jiayu Hu | Tencent | 腾讯 |\n| Feng Jin | Tencent | 腾讯 |\n| Xianping Zhou | Tencent | 腾讯 |\n| Kai Zhang | Fudan University | 外部高校 |\n| Zhen Shen | Tencent | 腾讯 |\n| Yongkang Luo | Tencent | 腾讯 |\n\n即 **6 位作者中 5 位腾讯、1 位复旦**，构成企业与高校共著线索 [citation:1]。需强调：该线索仅证明学术层面的共同署名，**不构成腾讯与复旦大学之间的正式协议或机构级合作关系证明**；复旦作者的具体角色与贡献在种子页面未披露 [citation:1]。\n\n### 2.3 摘要可支持的问题域与机制\n\n摘要声明 Harp 是面向 VPC 网络的“高效且鲁棒”的故障检测与恢复机制 [citation:1]。可核实的机制要点有三：\n\n1. **不依赖特定硬件特性或传输协议**——与既有方法形成对照，降低部署前提 [citation:1]。\n2. **软件路径监测**——Harp 是轻量级软件实现，为每一对通信主机识别可行的物理路径并监测其健康状态 [citation:1]。\n3. **故障绕行**——发生网络故障时，将受影响流从故障路径快速切换到健康路径 [citation:1]。\n\n摘要未披露具体算法、探测频率、控制面架构、路径计算方式等细节，这些均属**全文缺口**，不应补造 [citation:1]。\n\n### 2.4 作者自述部署／生产结果 vs. 独立验证\n\n摘要自述：Harp 已在腾讯云部署**两年多**，并在处理网络故障方面“证明有效”；生产系统结果显示 VPC 网络中断时间降低 **78.71%–99.97%**，可在**亚秒级**绕过故障路径；作者还分享了部署中高效检测与处理故障的经验 [citation:1]。\n\n| 结论类型 | 内容 | 证据性质 | 置信度 |\n|---|---|---|---|\n| 部署时长 | 两年多 | 作者自述 | 中 |\n| 中断时间降幅 | 78.71%–99.97% | 作者自述生产结果 | 中 |\n| 绕行时延 | 亚秒级 | 作者自述 | 中 |\n| 独立复现/第三方评测 | 未提供 | — | 未知 |\n\n种子页面未提供任何第三方独立复现、工件评估或外部评测证据，因此上述指标应标注为“**作者报告**”，而非独立验证 [citation:1]。全文 PDF 未取得，故不补造实验条件、对照组、统计方法与图表 [citation:1]。\n\n## 3. 数据与统计\n\n| 数据点 | 数值 | 来源 | 说明 |\n|---|---|---|---|\n| 样本内公开成果数 | 1 | [citation:1] | 单一种子，非全集 |\n| 作者总数 | 6 | [citation:1] | — |\n| 腾讯作者数 | 5 | [citation:1] | — |\n| 外部高校作者数 | 1（复旦） | [citation:1] | — |\n| 论文页数 | 16（1669–1684） | [citation:1] | 依页码推算 |\n| 中断时间降幅 | 78.71%–99.97% | [citation:1] | 作者自述 |\n| 部署时长 | >2 年 | [citation:1] | 作者自述 |\n\n**计数口径说明**：上述“1 项成果”为确定性样本计数，采用 full 计数法，仅反映本次有界检索结果，**不是现实全集，也不是科研质量排名**，不得用于推断腾讯在该主题上的投入规模 [citation:1]。\n\n## 4. 专家视角与证据分级\n\n本案例无外部专家评论可引用，以下为基于证据的分级判断（分析师解读，非文档事实）：\n\n- **高置信**：题名、作者与单位、发表年月（2026-05）、摘要机制描述——均直接引自出版商页面 [citation:1]。\n- **中置信**：78.71%–99.97%、亚秒级、两年多部署——原文明确，但属作者自述、无独立验证 [citation:1]。\n- **低/未知**：会议具体报告日、实验条件、基线对比、资助信息、内部战略与未来方向——种子页面无依据 [citation:1][citation:2]。\n\n> 摘要原文：“Harp has been deployed in Tencent Cloud for more than two years and has proven its effectiveness in handling network failures.” [citation:1]\n\n该引述本身即为作者自述，引用它不构成对其结论的独立背书。\n\n## 5. 结论与建议\n\n### 5.1 可分享的结论\n\n1. 腾讯在 2026 年 5 月于 NSDI '26 发表了一项 VPC 网络故障检测与恢复研究，题名与出版信息如上表 [citation:1]。\n2. 该成果为腾讯主导、复旦大学参与的企业—高校共著，5:1 的作者构成清晰 [citation:1]。\n3. 技术路径为**软件化路径监测 + 快速绕行**，明确回避对特定硬件与传输协议的依赖 [citation:1]。\n4. 生产指标为作者自述，尚缺独立验证，引用时应保留“作者报告”限定语 [citation:1]。\n\n### 5.2 明确不成立的推断\n\n- 不能以 1 项成果推断腾讯 2020–2026 年网络研究全集或研发投入 [citation:1]。\n- 不能将腾讯—复旦共著表述为正式合作协议 [citation:1]。\n- 不能将 BibTeX 的 `month = may` 细化为具体某日 [citation:1]。\n- 不能补造实验条件、图表、资助信息或未来方向 [citation:1]。\n\n### 5.3 待验证问题\n\n1. 78.71%–99.97% 的**测量口径、样本期与故障类型**分别是什么？[citation:1]\n2. “两年多”部署的**起始时间与覆盖区域**为何？[citation:1]\n3. Harp 在 NSDI '26 是否有独立于作者的**工件评估（artifact evaluation）**记录？[citation:2]\n4. 是否存在**后续版本或期刊扩展**？[citation:1]\n5. 复旦作者（Kai Zhang）的**具体角色与贡献**为何？[citation:1]\n6. 论文的**资助信息、内部战略与未来方向**——种子页面无依据，保留为缺口 [citation:1]。\n\n**建议下一步**：获取 NSDI '26 全文 PDF 与可能的 artifact evaluation 记录，以核实实验条件、基线对比与独立验证情况 [citation:2]。\n\n## References\n\n[citation:1] Jiayu Hu, Feng Jin, Xianping Zhou, Kai Zhang, Zhen Shen, Yongkang Luo. \"Harp: Improving VPC Network Availability via Efficient Failure Detection and Rerouting in Tencent Cloud.\" 23rd USENIX Symposium on Networked Systems Design and Implementation (NSDI 26), pp. 1669–1684, Renton, WA, USENIX Association, 2026 (month = may). https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu\n\n[citation:2] USENIX. \"NSDI '26 Technical Sessions.\" https://www.usenix.org/conference/nsdi26/technical-sessions\n\n## 核验结果\n\n自动来源支持：8/64 项；人工复核：未复核。模型置信度不代表人工确认。\n支持状态来自模型语义判断与原文引语校验，不能保证结论为真。\n\n- claim:1 [missing_citation] Generated: 2026-10-21 | Research Depth: Comprehensive — Awaiting source support judgement\n- claim:3 [unverifiable] 本研究按组织研究契约锁定单一实体 **Tencent**（别名 Tencent Cloud、腾讯、腾讯云），学科限定为计算机科学，主题为 VPC 网络故障检测与恢复，时间窗为 2026-01-01 至 2026-10-21，证据截止 2026-10-21T04:39:19Z。实体解析状态为 `pending`，唯一来源 URL 为 Harp 展示页 [citation:1]。 — The excerpts confirm the single source URL, the Tencent/腾讯云 entity, the VPC failure detection/recovery topic, and 2026 publication. However, the research-contract details (entity resolution status 'pending', discipline 'computer science', time window 2026-01-01 to 2026-10-21, evidence cutoff timestamp) are not stated in the supplied passages and cannot be verified from them.\n- claim:4 [unverifiable] **单一种子**：仅以出版商展示页为起点，未扩展检索腾讯其他网络论文，因此本案例是**有界样本**而非全集 [citation:1]。 — The excerpts show a single publisher presentation page, but the claim about the research methodology (using only this seed, not expanding to other Tencent network papers, treating it as a bounded sample) is a process assertion not entailed by the source content itself.\n- claim:9 [not_checked] | 会议 | 23rd USENIX Symposium on Networked Systems Design and Implementation (NSDI 26) | [citation:1] | — Verification token/time budget exhausted\n- claim:10 [not_checked] | 年份 | 2026 | [citation:1] | — Verification token/time budget exhausted\n- claim:11 [not_checked] | 月份 | may（5 月，月精度） | [citation:1] | — Verification token/time budget exhausted\n- claim:12 [not_checked] | 页码 | 1669–1684 | [citation:1] | — Verification token/time budget exhausted\n- claim:16 [not_checked] BibTeX 条目同时给出 `citation_publication_date: 2026` 与 `citation_conference_title`，与上述字段一致 [citation:1]。技术日程页显示会议自 **2026 年 5 月 4 日（周一）** 开始，与 5 月发表一致；但该页未直接列出 Harp 的具体场次，因此**不能据此确定论文的精确报告日**，发表时间应保持月精度 [citation:2]。 — Verification token/time budget exhausted\n- claim:17 [not_checked] 作者单位行原文为：“Jiayu Hu, Feng Jin, and Xianping Zhou, Tencent; Kai Zhang, Fudan University; Zhen Shen and Yongkang Luo, Tencent” [citation:1]。据此： — Verification token/time budget exhausted\n- claim:18 [missing_citation] | Jiayu Hu | Tencent | 腾讯 | — Awaiting source support judgement\n- claim:19 [missing_citation] | Feng Jin | Tencent | 腾讯 | — Awaiting source support judgement\n- claim:20 [missing_citation] | Xianping Zhou | Tencent | 腾讯 | — Awaiting source support judgement\n- claim:21 [missing_citation] | Kai Zhang | Fudan University | 外部高校 | — Awaiting source support judgement\n- claim:22 [missing_citation] | Zhen Shen | Tencent | 腾讯 | — Awaiting source support judgement\n- claim:23 [missing_citation] | Yongkang Luo | Tencent | 腾讯 | — Awaiting source support judgement\n- claim:24 [not_checked] 即 **6 位作者中 5 位腾讯、1 位复旦**，构成企业与高校共著线索 [citation:1]。需强调：该线索仅证明学术层面的共同署名，**不构成腾讯与复旦大学之间的正式协议或机构级合作关系证明**；复旦作者的具体角色与贡献在种子页面未披露 [citation:1]。 — Verification token/time budget exhausted\n- claim:25 [not_checked] 摘要声明 Harp 是面向 VPC 网络的“高效且鲁棒”的故障检测与恢复机制 [citation:1]。可核实的机制要点有三： — Verification token/time budget exhausted\n- claim:26 [not_checked] **不依赖特定硬件特性或传输协议**——与既有方法形成对照，降低部署前提 [citation:1]。 — Verification token/time budget exhausted\n- claim:27 [not_checked] **软件路径监测**——Harp 是轻量级软件实现，为每一对通信主机识别可行的物理路径并监测其健康状态 [citation:1]。 — Verification token/time budget exhausted\n- claim:28 [not_checked] **故障绕行**——发生网络故障时，将受影响流从故障路径快速切换到健康路径 [citation:1]。 — Verification token/time budget exhausted\n- claim:29 [not_checked] 摘要未披露具体算法、探测频率、控制面架构、路径计算方式等细节，这些均属**全文缺口**，不应补造 [citation:1]。 — Verification token/time budget exhausted\n- claim:30 [not_checked] 摘要自述：Harp 已在腾讯云部署**两年多**，并在处理网络故障方面“证明有效”；生产系统结果显示 VPC 网络中断时间降低 **78.71%–99.97%**，可在**亚秒级**绕过故障路径；作者还分享了部署中高效检测与处理故障的经验 [citation:1]。 — Verification token/time budget exhausted\n- claim:31 [missing_citation] | 部署时长 | 两年多 | 作者自述 | 中 | — Awaiting source support judgement\n- claim:32 [missing_citation] | 中断时间降幅 | 78.71%–99.97% | 作者自述生产结果 | 中 | — Awaiting source support judgement\n- claim:33 [missing_citation] | 绕行时延 | 亚秒级 | 作者自述 | 中 | — Awaiting source support judgement\n- claim:34 [missing_citation] | 独立复现/第三方评测 | 未提供 | — | 未知 | — Awaiting source support judgement\n- claim:35 [not_checked] 种子页面未提供任何第三方独立复现、工件评估或外部评测证据，因此上述指标应标注为“**作者报告**”，而非独立验证 [citation:1]。全文 PDF 未取得，故不补造实验条件、对照组、统计方法与图表 [citation:1]。 — Verification token/time budget exhausted\n- claim:36 [not_checked] | 样本内公开成果数 | 1 | [citation:1] | 单一种子，非全集 | — Verification token/time budget exhausted\n- claim:37 [not_checked] | 作者总数 | 6 | [citation:1] | — | — Verification token/time budget exhausted\n- claim:38 [not_checked] | 腾讯作者数 | 5 | [citation:1] | — | — Verification token/time budget exhausted\n- claim:39 [not_checked] | 外部高校作者数 | 1（复旦） | [citation:1] | — | — Verification token/time budget exhausted\n- claim:40 [not_checked] | 论文页数 | 16（1669–1684） | [citation:1] | 依页码推算 | — Verification token/time budget exhausted\n- claim:41 [not_checked] | 中断时间降幅 | 78.71%–99.97% | [citation:1] | 作者自述 | — Not checked\n- claim:42 [not_checked] | 部署时长 | >2 年 | [citation:1] | 作者自述 | — Not checked\n- claim:43 [not_checked] **计数口径说明**：上述“1 项成果”为确定性样本计数，采用 full 计数法，仅反映本次有界检索结果，**不是现实全集，也不是科研质量排名**，不得用于推断腾讯在该主题上的投入规模 [citation:1]。 — Not checked\n- claim:44 [not_checked] 本案例无外部专家评论可引用，以下为基于证据的分级判断（分析师解读，非文档事实）： — Not checked\n- claim:45 [not_checked] **高置信**：题名、作者与单位、发表年月（2026-05）、摘要机制描述——均直接引自出版商页面 [citation:1]。 — Not checked\n- claim:46 [not_checked] **中置信**：78.71%–99.97%、亚秒级、两年多部署——原文明确，但属作者自述、无独立验证 [citation:1]。 — Not checked\n- claim:47 [not_checked] **低/未知**：会议具体报告日、实验条件、基线对比、资助信息、内部战略与未来方向——种子页面无依据 [citation:1][citation:2]。 — Not checked\n- claim:48 [not_checked] 摘要原文：“Harp has been deployed in Tencent Cloud for more than two years and has proven its effectiveness in handling network failures.” [citation:1] — Not checked\n- claim:49 [not_checked] 该引述本身即为作者自述，引用它不构成对其结论的独立背书。 — Not checked\n- claim:50 [not_checked] 腾讯在 2026 年 5 月于 NSDI '26 发表了一项 VPC 网络故障检测与恢复研究，题名与出版信息如上表 [citation:1]。 — Not checked\n- claim:51 [not_checked] 该成果为腾讯主导、复旦大学参与的企业—高校共著，5:1 的作者构成清晰 [citation:1]。 — Not checked\n- claim:52 [not_checked] 技术路径为**软件化路径监测 + 快速绕行**，明确回避对特定硬件与传输协议的依赖 [citation:1]。 — Not checked\n- claim:53 [not_checked] 生产指标为作者自述，尚缺独立验证，引用时应保留“作者报告”限定语 [citation:1]。 — Not checked\n- claim:54 [not_checked] 不能以 1 项成果推断腾讯 2020–2026 年网络研究全集或研发投入 [citation:1]。 — Not checked\n- claim:55 [not_checked] 不能将腾讯—复旦共著表述为正式合作协议 [citation:1]。 — Not checked\n- claim:56 [not_checked] 不能将 BibTeX 的 `month = may` 细化为具体某日 [citation:1]。 — Not checked\n- claim:57 [not_checked] 不能补造实验条件、图表、资助信息或未来方向 [citation:1]。 — Not checked\n- claim:58 [not_checked] 78.71%–99.97% 的**测量口径、样本期与故障类型**分别是什么？[citation:1] — Not checked\n- claim:59 [not_checked] “两年多”部署的**起始时间与覆盖区域**为何？[citation:1] — Not checked\n- claim:60 [not_checked] Harp 在 NSDI '26 是否有独立于作者的**工件评估（artifact evaluation）**记录？[citation:2] — Not checked\n- claim:61 [not_checked] 是否存在**后续版本或期刊扩展**？[citation:1] — Not checked\n- claim:62 [not_checked] 复旦作者（Kai Zhang）的**具体角色与贡献**为何？[citation:1] — Not checked\n- claim:63 [not_checked] 论文的**资助信息、内部战略与未来方向**——种子页面无依据，保留为缺口 [citation:1]。 — Not checked\n- claim:64 [not_checked] **建议下一步**：获取 NSDI '26 全文 PDF 与可能的 artifact evaluation 记录，以核实实验条件、基线对比与独立验证情况 [citation:2]。 — Not checked\n\n## 研究对象、口径与冻结配置\n主题：VPC network failure detection and recovery；学科：computer science；时间：2026-01-01 至 2026-10-21。\n对象类型：company；请求冻结时间：2026-10-21T04:39:19.742424+00:00。实际采集时间逐来源保留。\n范围规则：adrs-organization-scope-v2；配置版本：tencent-network-case-20261021-v1；权重规则：adrs-weight-rules-v1；预设版本：adrs-presets-v1。\n分别保留发表记录与研究家族；同成果可归属多个对象，汇总取并集，未关联版本按独立发表计数。\n偏好配置不等于已完成评分；结果页只读重排不改写本报告的配置、事实或证据。\n### 对象与来源\n- Tencent（company；pending）：<https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu>\n### 原始与生效权重\n| 维度 | 原始权重 | 开启 | 生效权重 |\n| --- | ---: | --- | ---: |\n| 主题相关性 | 35.0 | 是 | 35.00% |\n| 研究路线契合 | 20.0 | 是 | 20.00% |\n| 成果表现 | 20.0 | 是 | 20.00% |\n| 证据完整度 | 15.0 | 是 | 15.00% |\n| 时效性 | 10.0 | 是 | 10.00% |\n| 合作互补性 | 0.0 | 是 | 0.00% |\n### 成果表现组内权重\n| 项目 | 原始权重 | 开启 | 组内生效权重 |\n| --- | ---: | --- | ---: |\n| venue | 1.0 | 是 | 50.00% |\n| paper | 1.0 | 是 | 50.00% |\n### 指标组内权重\n| 项目 | 原始权重 | 开启 | 组内生效权重 |\n| --- | ---: | --- | ---: |\n| 未显式配置 | — | — | — |\n### 有序偏好映射（产品偏好，非官方等价）\n- ccf／adrs-preference-map-v1：A=1.0；B=0.6666666666666667；C=0.33333333333333337\n- icore／adrs-preference-map-v1：A*=1.0；A=0.75；B=0.5；C=0.25\n- abdc／adrs-preference-map-v1：A*=1.0；A=0.75；B=0.5；C=0.25\n- ajg／adrs-preference-map-v1：4*=1.0；4=0.8；3=0.6；2=0.4；1=0.19999999999999996\n- jcr_quartile／adrs-preference-map-v1：Q1=1.0；Q2=0.75；Q3=0.5；Q4=0.25\n- cas_partition／adrs-preference-map-v1：1=1.0；2=0.75；3=0.5；4=0.25\n### 评价口径及可用性\n目录版本：adrs-evaluation-catalog-v1；适配规则：adrs-evaluation-adapters-v1。目录样本不代表本次成果已核定评价。\n- ccf：部分公开样本；<https://www.ccf.org.cn/Academic_Evaluation/By_category/>；尚未核定本次成果。\n- icore：部分公开样本；<https://portal.core.edu.au/conf-ranks/>；尚未核定本次成果。\n- wos_scie：需授权导入／尚无公开样本；<https://mjl.clarivate.com/>；尚未核定本次成果。\n- wos_ssci：需授权导入／尚无公开样本；<https://mjl.clarivate.com/>；尚未核定本次成果。\n- wos_ahci：需授权导入／尚无公开样本；<https://mjl.clarivate.com/>；尚未核定本次成果。\n- wos_esci：需授权导入／尚无公开样本；<https://mjl.clarivate.com/>；尚未核定本次成果。\n- scopus：需授权导入／尚无公开样本；<https://www.scopus.com/sources>；尚未核定本次成果。\n- jcr_jif：需授权导入／尚无公开样本；<https://jcr.clarivate.com/>；尚未核定本次成果。\n- jcr_quartile：需授权导入／尚无公开样本；<https://jcr.clarivate.com/>；尚未核定本次成果。\n- jcr_jci：需授权导入／尚无公开样本；<https://jcr.clarivate.com/>；尚未核定本次成果。\n- cas_partition：需授权导入／尚无公开样本；<https://www.fenqubiao.com/>；尚未核定本次成果。\n- citescore：需授权导入／尚无公开样本；<https://www.scopus.com/sources>；尚未核定本次成果。\n- citescore_percentile：需授权导入／尚无公开样本；<https://www.scopus.com/sources>；尚未核定本次成果。\n- sjr：需授权导入／尚无公开样本；<https://www.scimagojr.com/>；尚未核定本次成果。\n- snip：需授权导入／尚无公开样本；<https://www.scopus.com/sources>；尚未核定本次成果。\n- abdc：部分公开样本；<https://abdc.edu.au/abdc-journal-quality-list/>；尚未核定本次成果。\n- ajg：需授权导入／尚无公开样本；<https://charteredabs.org/academic-journal-guide>；尚未核定本次成果。\n- citation_percentile：部分公开样本；<https://help.openalex.org/data/works/citations/>；尚未核定本次成果。\n- cnci：需授权导入／尚无公开样本；<https://incites.help.clarivate.com/Content/Indicators-Handbook/ih-normalized-citation-impact.htm>；尚未核定本次成果。\n- fwci：部分公开样本；<https://help.openalex.org/data/works/citations/>；尚未核定本次成果。\n- ccf／2012／指标年 2012：public，partial；<https://risame.github.io/sun/ccf.pdf>\n- ccf／2022／指标年 2022：public，partial；<https://scdm-shu.github.io/ccf/2022-CCF-Ranking.pdf>\n- icore／CORE2023／指标年 2023：public，partial；<https://portal.core.edu.au/conf-ranks/?search=SIGCOMM&by=all&source=CORE2023&sort=atitle&page=1>\n- icore／ICORE2026／指标年 2026：public，partial；<https://portal.core.edu.au/conf-ranks/?search=SIGCOMM&by=all&source=ICORE2026&sort=atitle&page=1>\n- abdc／2010／指标年 2010：public，partial；<https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx>\n- abdc／2013／指标年 2013：public，partial；<https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx>\n- abdc／2016／指标年 2016：public，partial；<https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx>\n- abdc／2019／指标年 2019：public，partial；<https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx>\n- abdc／2022／指标年 2022：public，partial；<https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx>\n- abdc／2025／指标年 2025：public，partial；<https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx>\n- fwci／OpenAlex snapshot 2026-10-19／指标年 2026：public，partial；<https://api.openalex.org/works/W1951724000>\n- citation_percentile／OpenAlex snapshot 2026-10-19／指标年 2026：public，partial；<https://api.openalex.org/works/W1951724000>\n### 实际取证来源\n- ev-249a9032：Harp: Improving VPC Network Availability via Efficient Failure Detection and Rerouting in Tencent Cloud \\| USENIX；<https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu>；采集 2026-10-21T04:39:46.906993。\n- ev-7375e4f1：NSDI '26 Technical Sessions \\| USENIX；<https://www.usenix.org/conference/nsdi26/technical-sessions>；采集 2026-10-21T04:39:49.686679。\n- ev-f6b1631f：NSDI \\| Overview — Federal Geographic Data Committee - FGDC；<https://www.fgdc.gov/nsdi/nsdi.html>；采集 2026-10-21T04:39:28.274812+00:00。\n- ev-cbd057ff：NSDI '26 \\| USENIX；<https://www.usenix.org/conference/nsdi26>；采集 2026-10-21T04:39:28.274812+00:00。\n- ev-6863bbe3：NSDI '24 \\| USENIX；<https://www.usenix.org/conference/nsdi24>；采集 2026-10-21T04:39:28.274812+00:00。\n- ev-9fe5722d：NSDI \\| Strategic Plan — Federal Geographic Data Committee；<https://www.fgdc.gov/nsdi-plan>；采集 2026-10-21T04:39:28.274812+00:00。\n- ev-a937dff0：NSDI Conference - Home；<https://dl.acm.org/conference/nsdi>；采集 2026-10-21T04:39:28.274812+00:00。\n- ev-85c8a45f：NSDI；<https://dl.acm.org/doi/proceedings/10.5555/3691825>；采集 2026-10-21T04:39:28.274812+00:00。\n- ev-5f9577a5：Symposium on Networked Systems Design and Implementation；<https://en.wikipedia.org/wiki/Symposium_on_Networked_Systems_Design_and_Implementation>；采集 2026-10-21T04:39:28.274812+00:00。\n- ev-b7f990e1：NSDI ’26 Fall；<https://nsdi26fall.usenix.hotcrp.com/>；采集 2026-10-21T04:39:28.274812+00:00。\n- ev-904b3946：OGC NSDI Modernization Project \\| Advancing U.S. Spatial Data；<https://www.ogc.org/initiatives/national-spatial-data-infrastructure-modernization-project/>；采集 2026-10-21T04:39:28.274812+00:00。\n- ev-7fafe161：Microsoft at NSDI 2026: Advances in large-scale networked systems；<https://www.microsoft.com/en-us/research/blog/microsoft-at-nsdi-2026-advances-in-large-scale-networked-systems/>；采集 2026-10-21T04:39:28.274812+00:00。\n- ev-3fa39308：HARP Login；<https://harp.cms.gov/>；采集 2026-10-21T04:39:28.270464+00:00。\n- ev-89749cdd：Harp - Wikipedia；<https://en.wikipedia.org/wiki/Harp>；采集 2026-10-21T04:39:28.270464+00:00。\n- ev-42b7e814：Health and Recovery Plans (HARPs)；<https://omh.ny.gov/omhweb/bho/harp.html>；采集 2026-10-21T04:39:28.270464+00:00。\n- ev-ce948196：Health and Recovery Plan (HARP)/ Behavioral Health；<https://www.health.ny.gov/health_care/medicaid/program/medicaid_health_homes/harp_bh/index.htm>；采集 2026-10-21T04:39:28.270464+00:00。\n- ev-01d613d5：12 Different Types of Harps - MusicalHow；<https://www.musicalhow.com/harp-types/>；采集 2026-10-21T04:39:28.270464+00:00。\n- ev-c55a7368：Natalie Harp Bio, Age, Height, Husband, Family, Health & Net Worth；<https://thebiographybytes.com/natalie-harp/>；采集 2026-10-21T04:39:28.270464+00:00。\n- ev-30902970：Harp \\| Description, History, & Facts \\| Britannica；<https://www.britannica.com/art/harp-musical-instrument>；采集 2026-10-21T04:39:28.270464+00:00。\n- ev-05bf7aee：Harps \\| Harp Sheet Music - Harp Parts & Accessories - Harp Strings \\| Harp；<https://www.harp.com/>；采集 2026-10-21T04:39:28.270464+00:00。\n- ev-c6491567：Rentals and Sales - The Harp Place；<https://theharpplace.com/harp-rentals/>；采集 2026-10-21T04:39:28.270464+00:00。\n- ev-410ace9d：HARP Definition & Meaning - Merriam-Webster；<https://www.merriam-webster.com/dictionary/harp>；采集 2026-10-21T04:39:28.270464+00:00。\n- ev-a69d0310：Home - Tencent；<https://www.tencent.com/>；采集 2026-10-21T04:39:28.276988+00:00。\n- ev-26070100：Tencent - Wikipedia；<https://en.wikipedia.org/wiki/Tencent>；采集 2026-10-21T04:39:28.276988+00:00。\n- ev-35762055：Home - Tencent；<https://www.tencent.com.cn/zh-hk/>；采集 2026-10-21T04:39:28.276988+00:00。\n- ev-2c95fa60：下载中心-腾讯会议；<https://meeting.tencent.com/download/>；采集 2026-10-21T04:39:28.276988+00:00。\n- ev-3c3e1bbd：腾讯网；<https://www.qq.com/>；采集 2026-10-21T04:39:28.276988+00:00。\n- ev-45591054：Tencent \\| Company, WeChat, Gaming, Controversy, & Facts \\| Britannica Money；<https://www.britannica.com/money/Tencent>；采集 2026-10-21T04:39:28.276988+00:00。\n- ev-b41535ac：腾讯会议官方——腾讯会议 会开会；<https://meeting.tencent.com/>；采集 2026-10-21T04:39:28.276988+00:00。\n- ev-7de125a0：Home \\| Tencent Careers；<https://careers.tencent.com/en-us/home.html>；采集 2026-10-21T04:39:28.276988+00:00。\n- ev-cac3e8b4：Tencent Holdings Limited (TCEHY) Stock Price, News, Quote & History ...；<https://finance.yahoo.com/quote/TCEHY/>；采集 2026-10-21T04:39:28.276988+00:00。\n- ev-7af1d0b9：Tencent Hy；<https://hy.tencent.ai/>；采集 2026-10-21T04:39:28.276988+00:00。\n### 缺失与解释边界\n- 证据索引不等于机构成果全集或已核实合作关系。\n- 仅覆盖本次取得的样本；空样本不代表现实中零成果，来源未覆盖年份不补零。\n- 学科比较组使用请求标签，尚未逐篇核定学科；不输出跨学科或载体的统一质量榜。\n- 原文位置与引用检查不等于独立语义复核；模型推断、建议和未来情景仍须复核。\n- 评价目录为冻结的部分样本及授权要求，未自动应用到本次成果；缺失指标不作零分或最低等级。\n- funding 关系尚无已纳入的直接依据；不表示该关系不存在。\n- citation 关系尚无已纳入的直接依据；不表示该关系不存在。\n\n\n## 可复核样本与对象比较\n计数由结构化记录计算，仅覆盖本次取得并通过原文校验的样本；未链接版本暂按单条发表独立计数。\n| 对象 | 发表记录 | 研究家族 |\n| --- | ---: | ---: |\n| Tencent | 1 | 1 |\n| 去重汇总 | 1 | 1 |\n相同成果可分别归属多个对象，合并总量取成果／家族并集，不相加各对象行。\n### 同口径样本比较\n2026／conference_paper；学科口径来自请求：computer science。仅比较该组已取得样本，不作科研质量排序。\n| 对象 | 本组研究家族数 |\n| --- | ---: |\n| Tencent | 1 |\n### 已纳入成果与依据\n- Harp: Improving VPC Network Availability via Efficient Failure Detection and Rerouting in Tencent Cloud；日期区间 2026-05-01 至 2026-05-31（month 精度）；[citation:1]\n### 缺口与解释边界\n待核记录 0 项；未确立的关系：funding、citation。未取得证据不表示关系不存在。\n机构署名按所选名称／别名与发表来源对照；不推出当前任职、正式协议、内部研发投入或科研质量优劣。跨载体／年份不汇成统一质量榜。\n### 后续评估建议（模型判断，待复核）\n- 建议下一步获取 NSDI '26 全文 PDF 与可能的 artifact evaluation 记录，以核实实验条件、基线对比与独立验证情况。 [citation:1]\n",
+  "citations": [
+    {
+      "citation_id": "citation:1",
+      "source_url": "https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu",
+      "source_title": "Harp: Improving VPC Network Availability via Efficient Failure Detection and Rerouting in Tencent Cloud | USENIX",
+      "source_type": "web",
+      "extracted_evidence": "@inproceedings {316634,\n\tauthor = {Jiayu Hu and Feng Jin and Xianping Zhou and Kai Zhang and Zhen Shen and Yongkang Luo},\n\ttitle = {Harp: Improving {VPC} Network Availability via Efficient Failure Detection and Rerouting in Tencent Cloud},\n\tbooktitle = {23rd USENIX Symposium on Networked Systems Des",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T04:40:34.257908"
+    },
+    {
+      "citation_id": "citation:2",
+      "source_url": "https://www.usenix.org/conference/nsdi26/technical-sessions",
+      "source_title": "NSDI '26 Technical Sessions | USENIX",
+      "source_type": "web",
+      "extracted_evidence": "article:published_time: 2026-01-26T14:58:33-08:00\n\n# NSDI '26 Technical Sessions\n\n### Papers and Proceedings\n\n## Monday, May 4\n\n### 7:30 am–8:45 am\n\n## Continental Breakfast\n\n### 8:45 am–9:00 am\n\n## Opening Remarks and Awards\n\n### 9:00 am–10:00 am\n\n## Keynote Address\n\n## The Physics of Thought and t",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T04:40:34.257908"
+    },
+    {
+      "citation_id": "citation:3",
+      "source_url": "https://www.fgdc.gov/nsdi/nsdi.html",
+      "source_title": "NSDI | Overview — Federal Geographic Data Committee - FGDC",
+      "source_type": "web",
+      "extracted_evidence": "NSDI | Overview — Federal Geographic Data Committee - FGDC: The NSDI provides a place-based framework for connecting public and private data for understanding and decision-making.",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T04:40:34.257908"
+    },
+    {
+      "citation_id": "citation:4",
+      "source_url": "https://www.usenix.org/conference/nsdi26",
+      "source_title": "NSDI '26 | USENIX",
+      "source_type": "web",
+      "extracted_evidence": "NSDI '26 | USENIX: NSDI focuses on the design principles, implementation, and practical evaluation of networked and distributed systems. Our goal is to bring together researchers from across the networking and systems community to foster a broad approach to addressing overlapping research challenges",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T04:40:34.257908"
+    },
+    {
+      "citation_id": "citation:5",
+      "source_url": "https://www.usenix.org/conference/nsdi24",
+      "source_title": "NSDI '24 | USENIX",
+      "source_type": "web",
+      "extracted_evidence": "NSDI '24 | USENIX: NSDI focuses on the design principles, implementation, and practical evaluation of networked and distributed systems. Our goal is to bring together researchers from across the networking and systems community to foster a broad approach to addressing overlapping research challenges",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T04:40:34.257908"
+    },
+    {
+      "citation_id": "citation:6",
+      "source_url": "https://www.fgdc.gov/nsdi-plan",
+      "source_title": "NSDI | Strategic Plan — Federal Geographic Data Committee",
+      "source_type": "web",
+      "extracted_evidence": "NSDI | Strategic Plan — Federal Geographic Data Committee: The current NSDI plan, which covers the years 2021-2024, was approved by the FGDC Steering Committee in November 2020. The plan was developed with inputs from a variety of sources, including FGDC agencies, the NGAC, and geospatial partner or",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T04:40:34.257908"
+    },
+    {
+      "citation_id": "citation:7",
+      "source_url": "https://dl.acm.org/conference/nsdi",
+      "source_title": "NSDI Conference - Home",
+      "source_type": "web",
+      "extracted_evidence": "NSDI Conference - Home: There are no results at this time.",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T04:40:34.257908"
+    },
+    {
+      "citation_id": "citation:8",
+      "source_url": "https://dl.acm.org/doi/proceedings/10.5555/3691825",
+      "source_title": "NSDI",
+      "source_type": "web",
+      "extracted_evidence": "NSDI: NSDI'24: Proceedings of the 21st USENIX Symposium on Networked Systems … No abstract available. Index terms have been assigned to the content through auto-classification.",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T04:40:34.257908"
+    },
+    {
+      "citation_id": "citation:9",
+      "source_url": "https://en.wikipedia.org/wiki/Symposium_on_Networked_Systems_Design_and_Implementation",
+      "source_title": "Symposium on Networked Systems Design and Implementation",
+      "source_type": "web",
+      "extracted_evidence": "Symposium on Networked Systems Design and Implementation: The Symposium on Networked Systems Design and Implementation (NSDI) is an academic conference that focuses on the design principles of large-scale distributed and networked systems.",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T04:40:34.257908"
+    },
+    {
+      "citation_id": "citation:10",
+      "source_url": "https://nsdi26fall.usenix.hotcrp.com/",
+      "source_title": "NSDI ’26 Fall",
+      "source_type": "web",
+      "extracted_evidence": "NSDI ’26 Fall: Welcome to the 23rd USENIX Symposium on Networked Systems Design and Implementation (NSDI ’26 Fall) submissions site. For general information, see https://www.usenix.org/conference/nsdi26.",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T04:40:34.257908"
+    },
+    {
+      "citation_id": "citation:11",
+      "source_url": "https://www.ogc.org/initiatives/national-spatial-data-infrastructure-modernization-project/",
+      "source_title": "OGC NSDI Modernization Project | Advancing U.S. Spatial Data",
+      "source_type": "web",
+      "extracted_evidence": "OGC NSDI Modernization Project | Advancing U.S. Spatial Data: OGC’s NSDI Modernization Project advances a modern, interoperable national spatial data infrastructure to empower U.S. agencies and citizens.",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T04:40:34.257908"
+    },
+    {
+      "citation_id": "citation:12",
+      "source_url": "https://www.microsoft.com/en-us/research/blog/microsoft-at-nsdi-2026-advances-in-large-scale-networked-systems/",
+      "source_title": "Microsoft at NSDI 2026: Advances in large-scale networked systems",
+      "source_type": "web",
+      "extracted_evidence": "Microsoft at NSDI 2026: Advances in large-scale networked systems: Microsoft researchers share advances in building and operating large-scale distributed systems, spanning datacenters, networking, and the growing intersection with AI during NSDI ’26.",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T04:40:34.257908"
+    },
+    {
+      "citation_id": "citation:13",
+      "source_url": "https://harp.cms.gov/",
+      "source_title": "HARP Login",
+      "source_type": "web",
+      "extracted_evidence": "HARP Login: HARP Login provides access to CMS systems like iQIES, enabling users to manage credentials and roles for healthcare-related activities.",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T04:40:34.257908"
+    },
+    {
+      "citation_id": "citation:14",
+      "source_url": "https://en.wikipedia.org/wiki/Harp",
+      "source_title": "Harp - Wikipedia",
+      "source_type": "web",
+      "extracted_evidence": "Harp - Wikipedia: In blues music, the harmonica is often casually referred to as a \"blues harp\" or \"harp\", but it is a free reed wind instrument, not a stringed instrument, and is therefore not a true harp.",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T04:40:34.257908"
+    },
+    {
+      "citation_id": "citation:15",
+      "source_url": "https://omh.ny.gov/omhweb/bho/harp.html",
+      "source_title": "Health and Recovery Plans (HARPs)",
+      "source_type": "web",
+      "extracted_evidence": "Health and Recovery Plans (HARPs): Who is eligible for HARP? People must be 21 or older and be eligible for Medicaid managed care to join a HARP. People must also meet the NYS behavioral health high-risk criteria to enroll in a HARP. People who are eligible will get a letter in the mail from NYS or ",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T04:40:34.257908"
+    },
+    {
+      "citation_id": "citation:16",
+      "source_url": "https://www.health.ny.gov/health_care/medicaid/program/medicaid_health_homes/harp_bh/index.htm",
+      "source_title": "Health and Recovery Plan (HARP)/ Behavioral Health",
+      "source_type": "web",
+      "extracted_evidence": "Health and Recovery Plan (HARP)/ Behavioral Health: Health and Recovery Plan (HARP)/ Behavioral Health Health and Recovery Plans (HARPs) will manage care for adults with significant behavioral health needs.",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T04:40:34.257908"
+    },
+    {
+      "citation_id": "citation:17",
+      "source_url": "https://www.musicalhow.com/harp-types/",
+      "source_title": "12 Different Types of Harps - MusicalHow",
+      "source_type": "web",
+      "extracted_evidence": "12 Different Types of Harps - MusicalHow: Despite the diversity of harp types, they mostly use the same playing method which involves plucking. Yet, certain harps feature unique mechanisms for creating specific tones.",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T04:40:34.257908"
+    },
+    {
+      "citation_id": "citation:18",
+      "source_url": "https://thebiographybytes.com/natalie-harp/",
+      "source_title": "Natalie Harp Bio, Age, Height, Husband, Family, Health & Net Worth",
+      "source_type": "web",
+      "extracted_evidence": "Natalie Harp Bio, Age, Height, Husband, Family, Health & Net Worth: Natalie Harp is an American political aide, former television host, and conservative media personality. She gained national attention after sharing her cancer survival story on Fox News in 2019.",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T04:40:34.257908"
+    },
+    {
+      "citation_id": "citation:19",
+      "source_url": "https://www.britannica.com/art/harp-musical-instrument",
+      "source_title": "Harp | Description, History, & Facts | Britannica",
+      "source_type": "web",
+      "extracted_evidence": "Harp | Description, History, & Facts | Britannica: Harp, stringed instrument in which the resonator, or belly, is perpendicular, or nearly so, to the plane of the strings. Each string produces one note, the gradation of string length from short to long corresponding to that from high to low pitch. L",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T04:40:34.257908"
+    },
+    {
+      "citation_id": "citation:20",
+      "source_url": "https://www.harp.com/",
+      "source_title": "Harps | Harp Sheet Music - Harp Parts & Accessories - Harp Strings | Harp",
+      "source_type": "web",
+      "extracted_evidence": "Harps | Harp Sheet Music - Harp Parts & Accessories - Harp Strings | Harp: Harp.com is your #1 source for harps, harp strings, harp sheet music, harp CDs, harp methods, and harp accessories such as dollies and tuning keys.",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T04:40:34.257908"
+    },
+    {
+      "citation_id": "citation:21",
+      "source_url": "https://theharpplace.com/harp-rentals/",
+      "source_title": "Rentals and Sales - The Harp Place",
+      "source_type": "web",
+      "extracted_evidence": "Rentals and Sales - The Harp Place: The Harp Place is proud to offer established brands of harps, including Blevins, Dusty Strings, Ravenna, Harpsicle, and William Rees for rental or purchase. Other brands such as Triplett Harps, October Mountain, Camac, Salvi, and Westover are also available. All n",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T04:40:34.257908"
+    },
+    {
+      "citation_id": "citation:22",
+      "source_url": "https://www.merriam-webster.com/dictionary/harp",
+      "source_title": "HARP Definition & Meaning - Merriam-Webster",
+      "source_type": "web",
+      "extracted_evidence": "HARP Definition & Meaning - Merriam-Webster: The meaning of HARP is a plucked stringed instrument consisting of a resonator, an arched or angled neck that may be supported by a post, and strings of graded length that are strung between the soundboard and the neck.",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T04:40:34.257908"
+    },
+    {
+      "citation_id": "citation:23",
+      "source_url": "https://www.tencent.com/",
+      "source_title": "Home - Tencent",
+      "source_type": "web",
+      "extracted_evidence": "Home - Tencent: Tencent is: Three friends making dinner plans. And over a billion monthly active users. Learn more about Tencent for consumers",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T04:40:34.257908"
+    },
+    {
+      "citation_id": "citation:24",
+      "source_url": "https://en.wikipedia.org/wiki/Tencent",
+      "source_title": "Tencent - Wikipedia",
+      "source_type": "web",
+      "extracted_evidence": "Tencent - Wikipedia: Tencent (Chinese: 腾讯; pinyin: Téngxùn) is a Chinese multinational technology conglomerate and holding company headquartered in Shenzhen. It is one of the highest grossing multimedia companies in the world based on revenue. It is also the world's largest company in the video game",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T04:40:34.257908"
+    },
+    {
+      "citation_id": "citation:25",
+      "source_url": "https://www.tencent.com.cn/zh-hk/",
+      "source_title": "Home - Tencent",
+      "source_type": "web",
+      "extracted_evidence": "Home - Tencent: Tencent strives to promote environmental sustainability in our daily operations, product development, and public outreach initiatives. As a technology company, we have a responsibility to support society's most vulnerable and drive positive change. Tencent is committed to the highest",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T04:40:34.257908"
+    },
+    {
+      "citation_id": "citation:26",
+      "source_url": "https://meeting.tencent.com/download/",
+      "source_title": "下载中心-腾讯会议",
+      "source_type": "web",
+      "extracted_evidence": "下载中心-腾讯会议: 腾讯会议是一款基于腾讯20多年音视频通讯经验积累的高清流畅、便捷易用、安全可靠的多人远程音视频会议产品。 目前有多种版本腾讯会议供您下载安装：MacOS、Windows、iOS、Android、微信小程序。",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T04:40:34.257908"
+    },
+    {
+      "citation_id": "citation:27",
+      "source_url": "https://www.qq.com/",
+      "source_title": "腾讯网",
+      "source_type": "web",
+      "extracted_evidence": "腾讯网: 腾讯网从2003年创立至今，已经成为集新闻信息，区域垂直生活服务、社会化媒体资讯和产品为一体的互联网媒体平台。 腾讯网下设新闻、科技、财经、娱乐、体育、汽车、时尚等多个频道，充分满足用户对不同类型资讯的需求。 同时专注不同领域内容，打造精品栏目，并顺应技术发展趋势，推出网络直播等创新形式，改变了用户获取资讯的方式和习惯。",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T04:40:34.257908"
+    },
+    {
+      "citation_id": "citation:28",
+      "source_url": "https://www.britannica.com/money/Tencent",
+      "source_title": "Tencent | Company, WeChat, Gaming, Controversy, & Facts | Britannica Money",
+      "source_type": "web",
+      "extracted_evidence": "Tencent | Company, WeChat, Gaming, Controversy, & Facts | Britannica Money: Tencent is an Internet and technology-oriented holding company based in Shenzhen, China, and best known for its messaging application WeChat.",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T04:40:34.257908"
+    },
+    {
+      "citation_id": "citation:29",
+      "source_url": "https://meeting.tencent.com/",
+      "source_title": "腾讯会议官方——腾讯会议 会开会",
+      "source_type": "web",
+      "extracted_evidence": "腾讯会议官方——腾讯会议 会开会: 基于腾讯20多年音视频通讯经验，腾讯会议提供一站式音视频会议解决方案，让您能随时随地体验高清流畅的会议以及会议协作。",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T04:40:34.257908"
+    },
+    {
+      "citation_id": "citation:30",
+      "source_url": "https://careers.tencent.com/en-us/home.html",
+      "source_title": "Home | Tencent Careers",
+      "source_type": "web",
+      "extracted_evidence": "Home | Tencent Careers: Tencent is a world-leading internet and technology company that develops innovative products and services to improve the quality of life for people around the world. Founded in 1998 with its headquarters in Shenzhen, China, Tencent's guiding principle is to use technology for",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T04:40:34.257908"
+    },
+    {
+      "citation_id": "citation:31",
+      "source_url": "https://finance.yahoo.com/quote/TCEHY/",
+      "source_title": "Tencent Holdings Limited (TCEHY) Stock Price, News, Quote & History ...",
+      "source_type": "web",
+      "extracted_evidence": "Tencent Holdings Limited (TCEHY) Stock Price, News, Quote & History ...: Find the latest Tencent Holdings Limited (TCEHY) stock quote, history, news and other vital information to help you with your stock trading and investing.",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T04:40:34.257908"
+    },
+    {
+      "citation_id": "citation:32",
+      "source_url": "https://hy.tencent.ai/",
+      "source_title": "Tencent Hy",
+      "source_type": "web",
+      "extracted_evidence": "Tencent Hy: For large language models, answering this question requires accounting for the online generation of training trajectories and the computational asymmetry between generation and training.",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T04:40:34.257908"
+    }
+  ],
+  "organization_research": {
+    "scope": {
+      "topic": "VPC network failure detection and recovery",
+      "end_date": "2026-10-21",
+      "entities": [
+        {
+          "name": "Tencent",
+          "type": "company",
+          "aliases": [
+            "Tencent Cloud",
+            "腾讯",
+            "腾讯云"
+          ],
+          "entity_id": "tencent",
+          "unit_kind": "organization",
+          "source_urls": [
+            "https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu"
+          ],
+          "resolution_status": "pending"
+        }
+      ],
+      "start_date": "2026-01-01",
+      "disciplines": [
+        "computer science"
+      ],
+      "organization_types": [
+        "company"
+      ]
+    },
+    "weights": {
+      "preset": "research_development",
+      "weights": {},
+      "mappings": [],
+      "config_version": "tencent-network-case-20261021-v1",
+      "metric_weights": {},
+      "performance_groups": {
+        "paper": 1,
+        "venue": 1
+      }
+    },
+    "schema_version": "adrs-organization-run-v2",
+    "evidence_cutoff": "2026-10-21T04:39:19.742424+00:00",
+    "selected_preset": null,
+    "catalog_manifest": {
+      "schemes": [
+        {
+          "level": "venue",
+          "family": "directory",
+          "adapter": "exact_catalogue",
+          "editions": [],
+          "scheme_id": "ccf",
+          "source_url": "https://www.ccf.org.cn/Academic_Evaluation/By_category/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "directory",
+          "adapter": "exact_catalogue",
+          "editions": [],
+          "scheme_id": "icore",
+          "source_url": "https://portal.core.edu.au/conf-ranks/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "index",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "wos_scie",
+          "source_url": "https://mjl.clarivate.com/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "index",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "wos_ssci",
+          "source_url": "https://mjl.clarivate.com/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "index",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "wos_ahci",
+          "source_url": "https://mjl.clarivate.com/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "index",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "wos_esci",
+          "source_url": "https://mjl.clarivate.com/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "index",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "scopus",
+          "source_url": "https://www.scopus.com/sources",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "journal_metric",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "jcr_jif",
+          "source_url": "https://jcr.clarivate.com/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "journal_metric",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "jcr_quartile",
+          "source_url": "https://jcr.clarivate.com/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "journal_metric",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "jcr_jci",
+          "source_url": "https://jcr.clarivate.com/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "journal_metric",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "cas_partition",
+          "source_url": "https://www.fenqubiao.com/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "journal_metric",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "citescore",
+          "source_url": "https://www.scopus.com/sources",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "journal_metric",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "citescore_percentile",
+          "source_url": "https://www.scopus.com/sources",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "journal_metric",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "sjr",
+          "source_url": "https://www.scimagojr.com/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "journal_metric",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "snip",
+          "source_url": "https://www.scopus.com/sources",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "directory",
+          "adapter": "exact_catalogue",
+          "editions": [],
+          "scheme_id": "abdc",
+          "source_url": "https://abdc.edu.au/abdc-journal-quality-list/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "directory",
+          "adapter": "exact_catalogue",
+          "editions": [],
+          "scheme_id": "ajg",
+          "source_url": "https://charteredabs.org/academic-journal-guide",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "work",
+          "family": "paper_metric",
+          "adapter": "paper_metric",
+          "editions": [],
+          "scheme_id": "citation_percentile",
+          "source_url": "https://help.openalex.org/data/works/citations/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "work",
+          "family": "paper_metric",
+          "adapter": "paper_metric",
+          "editions": [],
+          "scheme_id": "cnci",
+          "source_url": "https://incites.help.clarivate.com/Content/Indicators-Handbook/ih-normalized-citation-impact.htm",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "work",
+          "family": "paper_metric",
+          "adapter": "paper_metric",
+          "editions": [],
+          "scheme_id": "fwci",
+          "source_url": "https://help.openalex.org/data/works/citations/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        }
+      ],
+      "sources": [
+        {
+          "access": "public",
+          "edition": "2012",
+          "records": [
+            {
+              "track": "main",
+              "status": "available",
+              "category": "Computer networks",
+              "raw_value": "B",
+              "target_id": "dblp:conf/nsdi",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            },
+            {
+              "track": "main",
+              "status": "available",
+              "category": "Computer networks",
+              "raw_value": "A",
+              "target_id": "dblp:conf/sigcomm",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            }
+          ],
+          "coverage": "partial",
+          "provider": "CCF (issued PDF, public mirror)",
+          "scheme_id": "ccf",
+          "source_id": "public-ccf-2012",
+          "authorized": false,
+          "source_url": "https://risame.github.io/sun/ccf.pdf",
+          "metric_year": 2012,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": null
+        },
+        {
+          "access": "public",
+          "edition": "2022",
+          "records": [
+            {
+              "track": "main",
+              "status": "available",
+              "category": "Computer networks",
+              "raw_value": "A",
+              "target_id": "dblp:conf/nsdi",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            },
+            {
+              "track": "main",
+              "status": "available",
+              "category": "Computer networks",
+              "raw_value": "A",
+              "target_id": "dblp:conf/sigcomm",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            }
+          ],
+          "coverage": "partial",
+          "provider": "CCF (issued PDF, public mirror)",
+          "scheme_id": "ccf",
+          "source_id": "public-ccf-2022",
+          "authorized": false,
+          "source_url": "https://scdm-shu.github.io/ccf/2022-CCF-Ranking.pdf",
+          "metric_year": 2022,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": null
+        },
+        {
+          "access": "public",
+          "edition": "CORE2023",
+          "records": [
+            {
+              "track": "main",
+              "status": "available",
+              "category": "4606",
+              "raw_value": "A*",
+              "target_id": "dblp:conf/sigcomm",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            }
+          ],
+          "coverage": "partial",
+          "provider": "ICORE",
+          "scheme_id": "icore",
+          "source_id": "public-icore-2023",
+          "authorized": false,
+          "source_url": "https://portal.core.edu.au/conf-ranks/?search=SIGCOMM&by=all&source=CORE2023&sort=atitle&page=1",
+          "metric_year": 2023,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": null
+        },
+        {
+          "access": "public",
+          "edition": "ICORE2026",
+          "records": [
+            {
+              "track": "main",
+              "status": "available",
+              "category": "4606",
+              "raw_value": "A*",
+              "target_id": "dblp:conf/sigcomm",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            }
+          ],
+          "coverage": "partial",
+          "provider": "ICORE",
+          "scheme_id": "icore",
+          "source_id": "public-icore-2026",
+          "authorized": false,
+          "source_url": "https://portal.core.edu.au/conf-ranks/?search=SIGCOMM&by=all&source=ICORE2026&sort=atitle&page=1",
+          "metric_year": 2026,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": null
+        },
+        {
+          "access": "public",
+          "edition": "2010",
+          "records": [
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "1503",
+              "raw_value": "A*",
+              "target_id": "issn:0047-2506",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            },
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "1503",
+              "raw_value": "A*",
+              "target_id": "issn:1478-6990",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            }
+          ],
+          "coverage": "partial",
+          "provider": "ABDC",
+          "scheme_id": "abdc",
+          "source_id": "public-abdc-2010",
+          "authorized": false,
+          "source_url": "https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx",
+          "metric_year": 2010,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": null
+        },
+        {
+          "access": "public",
+          "edition": "2013",
+          "records": [
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "1503",
+              "raw_value": "A*",
+              "target_id": "issn:0047-2506",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            },
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "1503",
+              "raw_value": "A*",
+              "target_id": "issn:1478-6990",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            }
+          ],
+          "coverage": "partial",
+          "provider": "ABDC",
+          "scheme_id": "abdc",
+          "source_id": "public-abdc-2013",
+          "authorized": false,
+          "source_url": "https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx",
+          "metric_year": 2013,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": null
+        },
+        {
+          "access": "public",
+          "edition": "2016",
+          "records": [
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "1503",
+              "raw_value": "A*",
+              "target_id": "issn:0047-2506",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            },
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "1503",
+              "raw_value": "A*",
+              "target_id": "issn:1478-6990",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            }
+          ],
+          "coverage": "partial",
+          "provider": "ABDC",
+          "scheme_id": "abdc",
+          "source_id": "public-abdc-2016",
+          "authorized": false,
+          "source_url": "https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx",
+          "metric_year": 2016,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": null
+        },
+        {
+          "access": "public",
+          "edition": "2019",
+          "records": [
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "1503",
+              "raw_value": "A*",
+              "target_id": "issn:0047-2506",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            },
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "1503",
+              "raw_value": "A*",
+              "target_id": "issn:1478-6990",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            }
+          ],
+          "coverage": "partial",
+          "provider": "ABDC",
+          "scheme_id": "abdc",
+          "source_id": "public-abdc-2019",
+          "authorized": false,
+          "source_url": "https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx",
+          "metric_year": 2019,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": null
+        },
+        {
+          "access": "public",
+          "edition": "2022",
+          "records": [
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "3507",
+              "raw_value": "A*",
+              "target_id": "issn:0047-2506",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            },
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "3507",
+              "raw_value": "A*",
+              "target_id": "issn:1478-6990",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            }
+          ],
+          "coverage": "partial",
+          "provider": "ABDC",
+          "scheme_id": "abdc",
+          "source_id": "public-abdc-2022",
+          "authorized": false,
+          "source_url": "https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx",
+          "metric_year": 2022,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": null
+        },
+        {
+          "access": "public",
+          "edition": "2025",
+          "records": [
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "3507",
+              "raw_value": "A*",
+              "target_id": "issn:0047-2506",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            },
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "3507",
+              "raw_value": "A*",
+              "target_id": "issn:1478-6990",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            }
+          ],
+          "coverage": "partial",
+          "provider": "ABDC",
+          "scheme_id": "abdc",
+          "source_id": "public-abdc-2025",
+          "authorized": false,
+          "source_url": "https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx",
+          "metric_year": 2025,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": null
+        },
+        {
+          "access": "public",
+          "edition": "OpenAlex snapshot 2026-10-19",
+          "records": [
+            {
+              "track": "work",
+              "status": "available",
+              "category": "https://openalex.org/subfields/2613 | Statistics and Probability",
+              "raw_value": 3266.5958,
+              "target_id": "openalex:W1951724000",
+              "document_type": "article",
+              "citation_cutoff": "2018-12-31",
+              "publication_year": 2015
+            }
+          ],
+          "coverage": "partial",
+          "provider": "OpenAlex",
+          "scheme_id": "fwci",
+          "source_id": "openalex-W1951724000-fwci-2026-10-19",
+          "authorized": false,
+          "source_url": "https://api.openalex.org/works/W1951724000",
+          "metric_year": 2026,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": "2026-10-19T09:35:57.686232"
+        },
+        {
+          "access": "public",
+          "edition": "OpenAlex snapshot 2026-10-19",
+          "records": [
+            {
+              "track": "work",
+              "status": "available",
+              "category": "https://openalex.org/subfields/2613 | Statistics and Probability",
+              "raw_value": 1,
+              "target_id": "openalex:W1951724000",
+              "document_type": "article",
+              "citation_cutoff": "2018-12-31",
+              "publication_year": 2015
+            }
+          ],
+          "coverage": "partial",
+          "provider": "OpenAlex",
+          "scheme_id": "citation_percentile",
+          "source_id": "openalex-W1951724000-citation_percentile-2026-10-19",
+          "authorized": false,
+          "source_url": "https://api.openalex.org/works/W1951724000",
+          "metric_year": 2026,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": "2026-10-19T09:35:57.686232"
+        }
+      ],
+      "captured_at": "2026-10-21T04:39:19.742424+00:00",
+      "schema_version": "adrs-evaluation-catalog-v1",
+      "availability_note": "Frozen public samples and import requirements; not a live lookup or verified evaluation of collected evidence.",
+      "applied_to_evidence": false,
+      "adapter_rule_version": "adrs-evaluation-adapters-v1"
+    },
+    "effective_weights": {
+      "mappings": [
+        {
+          "scores": {
+            "A": 1,
+            "B": 0.6666666666666667,
+            "C": 0.33333333333333337
+          },
+          "version": "adrs-preference-map-v1",
+          "scheme_id": "ccf"
+        },
+        {
+          "scores": {
+            "A": 0.75,
+            "B": 0.5,
+            "C": 0.25,
+            "A*": 1
+          },
+          "version": "adrs-preference-map-v1",
+          "scheme_id": "icore"
+        },
+        {
+          "scores": {
+            "A": 0.75,
+            "B": 0.5,
+            "C": 0.25,
+            "A*": 1
+          },
+          "version": "adrs-preference-map-v1",
+          "scheme_id": "abdc"
+        },
+        {
+          "scores": {
+            "1": 0.19999999999999996,
+            "2": 0.4,
+            "3": 0.6,
+            "4": 0.8,
+            "4*": 1
+          },
+          "version": "adrs-preference-map-v1",
+          "scheme_id": "ajg"
+        },
+        {
+          "scores": {
+            "Q1": 1,
+            "Q2": 0.75,
+            "Q3": 0.5,
+            "Q4": 0.25
+          },
+          "version": "adrs-preference-map-v1",
+          "scheme_id": "jcr_quartile"
+        },
+        {
+          "scores": {
+            "1": 1,
+            "2": 0.75,
+            "3": 0.5,
+            "4": 0.25
+          },
+          "version": "adrs-preference-map-v1",
+          "scheme_id": "cas_partition"
+        }
+      ],
+      "semantics": "preference_configuration_only",
+      "raw_config": {
+        "preset": "research_development",
+        "weights": {
+          "recency": {
+            "weight": 10,
+            "enabled": true
+          },
+          "topic_relevance": {
+            "weight": 35,
+            "enabled": true
+          },
+          "output_performance": {
+            "weight": 20,
+            "enabled": true
+          },
+          "research_alignment": {
+            "weight": 20,
+            "enabled": true
+          },
+          "evidence_completeness": {
+            "weight": 15,
+            "enabled": true
+          },
+          "cooperation_complementarity": {
+            "weight": 0,
+            "enabled": true
+          }
+        },
+        "metric_weights": {},
+        "performance_groups": {
+          "paper": {
+            "weight": 1,
+            "enabled": true
+          },
+          "venue": {
+            "weight": 1,
+            "enabled": true
+          }
+        }
+      },
+      "rule_version": "adrs-weight-rules-v1",
+      "config_version": "tencent-network-case-20261021-v1",
+      "preset_version": "adrs-presets-v1",
+      "effective_groups": {
+        "paper": 0.5,
+        "venue": 0.5
+      },
+      "effective_weights": {
+        "recency": 0.09999999999999999,
+        "topic_relevance": 0.35,
+        "output_performance": 0.19999999999999998,
+        "research_alignment": 0.19999999999999998,
+        "evidence_completeness": 0.15,
+        "cooperation_complementarity": 0
+      },
+      "effective_metric_weights": {}
+    },
+    "scope_rule_version": "adrs-organization-scope-v2"
+  },
+  "organization_result": {
+    "gaps": [
+      "证据索引不等于机构成果全集或已核实合作关系。"
+    ],
+    "scope": {
+      "topic": "VPC network failure detection and recovery",
+      "end_date": "2026-10-21",
+      "entities": [
+        {
+          "name": "Tencent",
+          "type": "company",
+          "aliases": [
+            "Tencent Cloud",
+            "腾讯",
+            "腾讯云"
+          ],
+          "entity_id": "tencent",
+          "unit_kind": "organization",
+          "source_urls": [
+            "https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu"
+          ],
+          "resolution_status": "pending"
+        }
+      ],
+      "start_date": "2026-01-01",
+      "disciplines": [
+        "computer science"
+      ],
+      "organization_types": [
+        "company"
+      ]
+    },
+    "coverage": "retrieved_sample_not_real_world_census",
+    "extraction": {
+      "status": "returned",
+      "finish_reason": "stop",
+      "response_fields": [
+        "analysis_text",
+        "organization_data"
+      ]
+    },
+    "inferences": [
+      {
+        "kind": "inference",
+        "statement": "Harp 是腾讯在 VPC 故障检测与绕行方向的一项 2026 年 5 月 NSDI 论文，含 5 名腾讯作者与 1 名复旦作者；共著仅为学术合作线索，不构成正式机构协议。",
+        "entity_ids": [
+          "tencent"
+        ],
+        "evidence_ids": [
+          "ev-249a9032"
+        ],
+        "verification_status": "model_interpretation_requires_review"
+      },
+      {
+        "kind": "inference",
+        "statement": "摘要中的 78.71%–99.97% 中断时间下降与亚秒级绕行属作者自述生产结果，缺乏独立验证；引用时应标注为作者报告。",
+        "entity_ids": [
+          "tencent"
+        ],
+        "evidence_ids": [
+          "ev-249a9032"
+        ],
+        "verification_status": "model_interpretation_requires_review"
+      }
+    ],
+    "object_views": [
+      {
+        "gaps": [
+          "对象提及及来源域名仅是证据定位，不证明作者署名或时间归属；成果需继续核验。"
+        ],
+        "name": "Tencent",
+        "type": "company",
+        "entity_id": "tencent",
+        "resolution_status": "pending",
+        "mention_evidence_ids": [
+          "ev-249a9032",
+          "ev-a69d0310",
+          "ev-26070100",
+          "ev-35762055",
+          "ev-2c95fa60",
+          "ev-3c3e1bbd",
+          "ev-45591054",
+          "ev-b41535ac",
+          "ev-7de125a0",
+          "ev-cac3e8b4",
+          "ev-7af1d0b9"
+        ],
+        "publication_attribution": "pending",
+        "source_domain_evidence_ids": [
+          "ev-249a9032",
+          "ev-7375e4f1",
+          "ev-cbd057ff",
+          "ev-6863bbe3"
+        ]
+      }
+    ],
+    "scope_result": {
+      "scope": {
+        "topic": "VPC network failure detection and recovery",
+        "end_date": "2026-10-21",
+        "entities": [
+          {
+            "name": "Tencent",
+            "type": "company",
+            "aliases": [
+              "Tencent Cloud",
+              "腾讯",
+              "腾讯云"
+            ],
+            "entity_id": "tencent",
+            "unit_kind": "organization",
+            "source_urls": [
+              "https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu"
+            ],
+            "resolution_status": "pending"
+          }
+        ],
+        "start_date": "2026-01-01",
+        "disciplines": [
+          "computer science"
+        ],
+        "organization_types": [
+          "company"
+        ]
+      },
+      "views": [
+        {
+          "name": "Tencent",
+          "type": "company",
+          "entity_id": "tencent",
+          "output_ids": [
+            "harp-nsdi26"
+          ],
+          "output_count": 1,
+          "counting_method": "full",
+          "direct_output_ids": [
+            "harp-nsdi26"
+          ],
+          "publication_count": 1,
+          "research_family_ids": [
+            "publication:harp-nsdi26"
+          ],
+          "inherited_output_ids": [],
+          "research_family_count": 1,
+          "unlinked_publication_count": 1
+        }
+      ],
+      "outputs": [
+        {
+          "title": "Harp: Improving VPC Network Availability via Efficient Failure Detection and Rerouting in Tencent Cloud",
+          "output_id": "harp-nsdi26",
+          "source_urls": [
+            "https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu"
+          ],
+          "affiliations": [
+            {
+              "author_id": "Jiayu Hu",
+              "entity_id": "tencent",
+              "source_urls": [
+                "https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu"
+              ],
+              "raw_affiliation": "Tencent"
+            },
+            {
+              "author_id": "Feng Jin",
+              "entity_id": "tencent",
+              "source_urls": [
+                "https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu"
+              ],
+              "raw_affiliation": "Tencent"
+            },
+            {
+              "author_id": "Xianping Zhou",
+              "entity_id": "tencent",
+              "source_urls": [
+                "https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu"
+              ],
+              "raw_affiliation": "Tencent"
+            },
+            {
+              "author_id": "Kai Zhang",
+              "entity_id": "fudan-university",
+              "source_urls": [
+                "https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu"
+              ],
+              "raw_affiliation": "Fudan University"
+            },
+            {
+              "author_id": "Zhen Shen",
+              "entity_id": "tencent",
+              "source_urls": [
+                "https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu"
+              ],
+              "raw_affiliation": "Tencent"
+            },
+            {
+              "author_id": "Yongkang Luo",
+              "entity_id": "tencent",
+              "source_urls": [
+                "https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu"
+              ],
+              "raw_affiliation": "Tencent"
+            }
+          ],
+          "published_on": "2026-05-01",
+          "date_precision": "month",
+          "published_until": "2026-05-31"
+        }
+      ],
+      "summary": {
+        "output_ids": [
+          "harp-nsdi26"
+        ],
+        "output_count": 1,
+        "counting_method": "full",
+        "publication_count": 1,
+        "research_family_ids": [
+          "publication:harp-nsdi26"
+        ],
+        "research_family_count": 1,
+        "unlinked_publication_count": 1
+      },
+      "verification": {
+        "source_status": "provided_records_only",
+        "external_sources_checked": false
+      },
+      "relationships": [],
+      "schema_version": "2",
+      "selection_mode": "named_entities",
+      "discovery_query": null,
+      "relation_counts": {
+        "funding": 0,
+        "citation": 0,
+        "coauthorship": 1
+      },
+      "output_relations": [
+        {
+          "kind": "coauthorship",
+          "output_id": "harp-nsdi26",
+          "entity_ids": [
+            "fudan-university",
+            "tencent"
+          ],
+          "source_urls": [
+            "https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu"
+          ]
+        }
+      ],
+      "research_families": [],
+      "selected_entities": [
+        {
+          "name": "Tencent",
+          "type": "company",
+          "aliases": [
+            "Tencent Cloud",
+            "腾讯",
+            "腾讯云"
+          ],
+          "entity_id": "tencent",
+          "unit_kind": "organization",
+          "source_urls": [
+            "https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu"
+          ],
+          "resolution_status": "pending"
+        }
+      ],
+      "pending_entity_ids": [
+        "tencent"
+      ],
+      "excluded_candidates": [
+        {
+          "reason": "type_out_of_scope",
+          "entity_id": "fudan-university"
+        }
+      ],
+      "current_affiliations": [],
+      "undated_relationship_count": 0
+    },
+    "counting_unit": "retrieved_evidence_not_publications",
+    "source_checks": {
+      "proofs": [
+        {
+          "end": 1040,
+          "quote": "Kai Zhang, Fudan University",
+          "start": 1013,
+          "source_url": "https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu",
+          "evidence_id": "ev-249a9032"
+        },
+        {
+          "end": 238,
+          "quote": "title = {Harp: Improving {VPC} Network Availability via Efficient Failure Detection and Rerouting in Tencent Cloud}",
+          "start": 123,
+          "source_url": "https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu",
+          "evidence_id": "ev-249a9032"
+        },
+        {
+          "end": 918,
+          "quote": "Harp: Improving VPC Network Availability via Efficient Failure Detection and Rerouting in Tencent Cloud",
+          "start": 815,
+          "source_url": "https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu",
+          "evidence_id": "ev-249a9032"
+        },
+        {
+          "end": 348,
+          "quote": "year = {2026",
+          "start": 336,
+          "source_url": "https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu",
+          "evidence_id": "ev-249a9032"
+        },
+        {
+          "end": 548,
+          "quote": "month = may",
+          "start": 537,
+          "source_url": "https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu",
+          "evidence_id": "ev-249a9032"
+        },
+        {
+          "end": 1011,
+          "quote": "Jiayu Hu, Feng Jin, and Xianping Zhou, Tencent",
+          "start": 965,
+          "source_url": "https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu",
+          "evidence_id": "ev-249a9032"
+        },
+        {
+          "end": 1077,
+          "quote": "Zhen Shen and Yongkang Luo, Tencent",
+          "start": 1042,
+          "source_url": "https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu",
+          "evidence_id": "ev-249a9032"
+        },
+        {
+          "end": 333,
+          "quote": "booktitle = {23rd USENIX Symposium on Networked Systems Design and Implementation (NSDI 26)}",
+          "start": 241,
+          "source_url": "https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu",
+          "evidence_id": "ev-249a9032"
+        },
+        {
+          "end": 1077,
+          "quote": "Jiayu Hu, Feng Jin, and Xianping Zhou, Tencent; Kai Zhang, Fudan University; Zhen Shen and Yongkang Luo, Tencent",
+          "start": 965,
+          "source_url": "https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu",
+          "evidence_id": "ev-249a9032"
+        },
+        {
+          "end": 1901,
+          "quote": "According to the results from production systems, Harp can significantly reduce the VPC network's outage time by 78.71%-99.97% and essentially bypass failed paths on a sub-second timescale.",
+          "start": 1712,
+          "source_url": "https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu",
+          "evidence_id": "ev-249a9032"
+        },
+        {
+          "end": 2024,
+          "quote": "We also share our experiences of how Harp efficiently detects and handles network failures when deployed in Tencent Cloud.",
+          "start": 1902,
+          "source_url": "https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu",
+          "evidence_id": "ev-249a9032"
+        }
+      ],
+      "status": "source_quote_and_reference_checked_not_independent_semantic_review",
+      "accepted_output_count": 1,
+      "available_evidence_ids": [
+        "ev-249a9032",
+        "ev-7375e4f1",
+        "ev-f6b1631f",
+        "ev-cbd057ff",
+        "ev-6863bbe3",
+        "ev-9fe5722d",
+        "ev-a937dff0",
+        "ev-85c8a45f",
+        "ev-5f9577a5",
+        "ev-b7f990e1",
+        "ev-904b3946",
+        "ev-7fafe161",
+        "ev-3fa39308",
+        "ev-89749cdd",
+        "ev-42b7e814",
+        "ev-ce948196",
+        "ev-01d613d5",
+        "ev-c55a7368",
+        "ev-30902970",
+        "ev-05bf7aee",
+        "ev-c6491567",
+        "ev-410ace9d",
+        "ev-a69d0310",
+        "ev-26070100",
+        "ev-35762055",
+        "ev-2c95fa60",
+        "ev-3c3e1bbd",
+        "ev-45591054",
+        "ev-b41535ac",
+        "ev-7de125a0",
+        "ev-cac3e8b4",
+        "ev-7af1d0b9"
+      ],
+      "analyst_excerpt_evidence_ids": [
+        "ev-249a9032",
+        "ev-7375e4f1",
+        "ev-f6b1631f",
+        "ev-cbd057ff",
+        "ev-6863bbe3",
+        "ev-9fe5722d",
+        "ev-a937dff0",
+        "ev-85c8a45f",
+        "ev-5f9577a5",
+        "ev-b7f990e1",
+        "ev-904b3946",
+        "ev-7fafe161",
+        "ev-3fa39308",
+        "ev-89749cdd",
+        "ev-42b7e814",
+        "ev-ce948196",
+        "ev-01d613d5",
+        "ev-c55a7368",
+        "ev-30902970",
+        "ev-05bf7aee"
+      ]
+    },
+    "evidence_count": 32,
+    "report_summary": {
+      "gaps": [
+        "证据索引不等于机构成果全集或已核实合作关系。",
+        "仅覆盖本次取得的样本；空样本不代表现实中零成果，来源未覆盖年份不补零。",
+        "学科比较组使用请求标签，尚未逐篇核定学科；不输出跨学科或载体的统一质量榜。",
+        "原文位置与引用检查不等于独立语义复核；模型推断、建议和未来情景仍须复核。",
+        "评价目录为冻结的部分样本及授权要求，未自动应用到本次成果；缺失指标不作零分或最低等级。",
+        "funding 关系尚无已纳入的直接依据；不表示该关系不存在。",
+        "citation 关系尚无已纳入的直接依据；不表示该关系不存在。"
+      ],
+      "sample": {
+        "views": [
+          {
+            "name": "Tencent",
+            "type": "company",
+            "entity_id": "tencent",
+            "output_ids": [
+              "harp-nsdi26"
+            ],
+            "output_count": 1,
+            "counting_method": "full",
+            "direct_output_ids": [
+              "harp-nsdi26"
+            ],
+            "publication_count": 1,
+            "research_family_ids": [
+              "publication:harp-nsdi26"
+            ],
+            "inherited_output_ids": [],
+            "research_family_count": 1,
+            "unlinked_publication_count": 1
+          }
+        ],
+        "summary": {
+          "output_ids": [
+            "harp-nsdi26"
+          ],
+          "output_count": 1,
+          "counting_method": "full",
+          "publication_count": 1,
+          "research_family_ids": [
+            "publication:harp-nsdi26"
+          ],
+          "research_family_count": 1,
+          "unlinked_publication_count": 1
+        },
+        "coverage": "retrieved_sample_not_real_world_census",
+        "entities": [
+          {
+            "name": "Tencent",
+            "type": "company",
+            "aliases": [
+              "Tencent Cloud",
+              "腾讯",
+              "腾讯云"
+            ],
+            "entity_id": "tencent",
+            "unit_kind": "organization",
+            "source_urls": [
+              "https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu"
+            ],
+            "resolution_status": "pending"
+          }
+        ],
+        "counting_note": "分别保留发表记录与研究家族；同成果可归属多个对象，汇总取并集，未关联版本按独立发表计数。",
+        "counting_rule": "per_object_full_count_and_union_deduplication",
+        "comparison_groups": [
+          {
+            "measure": "source_supported_sample_family_count_not_quality",
+            "objects": [
+              {
+                "entity_id": "tencent",
+                "research_family_count": 1
+              }
+            ],
+            "ranking": null,
+            "disciplines": [
+              "computer science"
+            ],
+            "output_type": "conference_paper",
+            "discipline_basis": "requested_scope",
+            "publication_year": 2026
+          }
+        ]
+      },
+      "sources": [
+        {
+          "source_url": "https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu",
+          "evidence_id": "ev-249a9032",
+          "source_type": "web",
+          "collected_at": "2026-10-21T04:39:46.906993",
+          "source_title": "Harp: Improving VPC Network Availability via Efficient Failure Detection and Rerouting in Tencent Cloud | USENIX"
+        },
+        {
+          "source_url": "https://www.usenix.org/conference/nsdi26/technical-sessions",
+          "evidence_id": "ev-7375e4f1",
+          "source_type": "web",
+          "collected_at": "2026-10-21T04:39:49.686679",
+          "source_title": "NSDI '26 Technical Sessions | USENIX"
+        },
+        {
+          "source_url": "https://www.fgdc.gov/nsdi/nsdi.html",
+          "evidence_id": "ev-f6b1631f",
+          "source_type": "web",
+          "collected_at": "2026-10-21T04:39:28.274812+00:00",
+          "source_title": "NSDI | Overview — Federal Geographic Data Committee - FGDC"
+        },
+        {
+          "source_url": "https://www.usenix.org/conference/nsdi26",
+          "evidence_id": "ev-cbd057ff",
+          "source_type": "web",
+          "collected_at": "2026-10-21T04:39:28.274812+00:00",
+          "source_title": "NSDI '26 | USENIX"
+        },
+        {
+          "source_url": "https://www.usenix.org/conference/nsdi24",
+          "evidence_id": "ev-6863bbe3",
+          "source_type": "web",
+          "collected_at": "2026-10-21T04:39:28.274812+00:00",
+          "source_title": "NSDI '24 | USENIX"
+        },
+        {
+          "source_url": "https://www.fgdc.gov/nsdi-plan",
+          "evidence_id": "ev-9fe5722d",
+          "source_type": "web",
+          "collected_at": "2026-10-21T04:39:28.274812+00:00",
+          "source_title": "NSDI | Strategic Plan — Federal Geographic Data Committee"
+        },
+        {
+          "source_url": "https://dl.acm.org/conference/nsdi",
+          "evidence_id": "ev-a937dff0",
+          "source_type": "web",
+          "collected_at": "2026-10-21T04:39:28.274812+00:00",
+          "source_title": "NSDI Conference - Home"
+        },
+        {
+          "source_url": "https://dl.acm.org/doi/proceedings/10.5555/3691825",
+          "evidence_id": "ev-85c8a45f",
+          "source_type": "web",
+          "collected_at": "2026-10-21T04:39:28.274812+00:00",
+          "source_title": "NSDI"
+        },
+        {
+          "source_url": "https://en.wikipedia.org/wiki/Symposium_on_Networked_Systems_Design_and_Implementation",
+          "evidence_id": "ev-5f9577a5",
+          "source_type": "web",
+          "collected_at": "2026-10-21T04:39:28.274812+00:00",
+          "source_title": "Symposium on Networked Systems Design and Implementation"
+        },
+        {
+          "source_url": "https://nsdi26fall.usenix.hotcrp.com/",
+          "evidence_id": "ev-b7f990e1",
+          "source_type": "web",
+          "collected_at": "2026-10-21T04:39:28.274812+00:00",
+          "source_title": "NSDI ’26 Fall"
+        },
+        {
+          "source_url": "https://www.ogc.org/initiatives/national-spatial-data-infrastructure-modernization-project/",
+          "evidence_id": "ev-904b3946",
+          "source_type": "web",
+          "collected_at": "2026-10-21T04:39:28.274812+00:00",
+          "source_title": "OGC NSDI Modernization Project | Advancing U.S. Spatial Data"
+        },
+        {
+          "source_url": "https://www.microsoft.com/en-us/research/blog/microsoft-at-nsdi-2026-advances-in-large-scale-networked-systems/",
+          "evidence_id": "ev-7fafe161",
+          "source_type": "web",
+          "collected_at": "2026-10-21T04:39:28.274812+00:00",
+          "source_title": "Microsoft at NSDI 2026: Advances in large-scale networked systems"
+        },
+        {
+          "source_url": "https://harp.cms.gov/",
+          "evidence_id": "ev-3fa39308",
+          "source_type": "web",
+          "collected_at": "2026-10-21T04:39:28.270464+00:00",
+          "source_title": "HARP Login"
+        },
+        {
+          "source_url": "https://en.wikipedia.org/wiki/Harp",
+          "evidence_id": "ev-89749cdd",
+          "source_type": "web",
+          "collected_at": "2026-10-21T04:39:28.270464+00:00",
+          "source_title": "Harp - Wikipedia"
+        },
+        {
+          "source_url": "https://omh.ny.gov/omhweb/bho/harp.html",
+          "evidence_id": "ev-42b7e814",
+          "source_type": "web",
+          "collected_at": "2026-10-21T04:39:28.270464+00:00",
+          "source_title": "Health and Recovery Plans (HARPs)"
+        },
+        {
+          "source_url": "https://www.health.ny.gov/health_care/medicaid/program/medicaid_health_homes/harp_bh/index.htm",
+          "evidence_id": "ev-ce948196",
+          "source_type": "web",
+          "collected_at": "2026-10-21T04:39:28.270464+00:00",
+          "source_title": "Health and Recovery Plan (HARP)/ Behavioral Health"
+        },
+        {
+          "source_url": "https://www.musicalhow.com/harp-types/",
+          "evidence_id": "ev-01d613d5",
+          "source_type": "web",
+          "collected_at": "2026-10-21T04:39:28.270464+00:00",
+          "source_title": "12 Different Types of Harps - MusicalHow"
+        },
+        {
+          "source_url": "https://thebiographybytes.com/natalie-harp/",
+          "evidence_id": "ev-c55a7368",
+          "source_type": "web",
+          "collected_at": "2026-10-21T04:39:28.270464+00:00",
+          "source_title": "Natalie Harp Bio, Age, Height, Husband, Family, Health & Net Worth"
+        },
+        {
+          "source_url": "https://www.britannica.com/art/harp-musical-instrument",
+          "evidence_id": "ev-30902970",
+          "source_type": "web",
+          "collected_at": "2026-10-21T04:39:28.270464+00:00",
+          "source_title": "Harp | Description, History, & Facts | Britannica"
+        },
+        {
+          "source_url": "https://www.harp.com/",
+          "evidence_id": "ev-05bf7aee",
+          "source_type": "web",
+          "collected_at": "2026-10-21T04:39:28.270464+00:00",
+          "source_title": "Harps | Harp Sheet Music - Harp Parts & Accessories - Harp Strings | Harp"
+        },
+        {
+          "source_url": "https://theharpplace.com/harp-rentals/",
+          "evidence_id": "ev-c6491567",
+          "source_type": "web",
+          "collected_at": "2026-10-21T04:39:28.270464+00:00",
+          "source_title": "Rentals and Sales - The Harp Place"
+        },
+        {
+          "source_url": "https://www.merriam-webster.com/dictionary/harp",
+          "evidence_id": "ev-410ace9d",
+          "source_type": "web",
+          "collected_at": "2026-10-21T04:39:28.270464+00:00",
+          "source_title": "HARP Definition & Meaning - Merriam-Webster"
+        },
+        {
+          "source_url": "https://www.tencent.com/",
+          "evidence_id": "ev-a69d0310",
+          "source_type": "web",
+          "collected_at": "2026-10-21T04:39:28.276988+00:00",
+          "source_title": "Home - Tencent"
+        },
+        {
+          "source_url": "https://en.wikipedia.org/wiki/Tencent",
+          "evidence_id": "ev-26070100",
+          "source_type": "web",
+          "collected_at": "2026-10-21T04:39:28.276988+00:00",
+          "source_title": "Tencent - Wikipedia"
+        },
+        {
+          "source_url": "https://www.tencent.com.cn/zh-hk/",
+          "evidence_id": "ev-35762055",
+          "source_type": "web",
+          "collected_at": "2026-10-21T04:39:28.276988+00:00",
+          "source_title": "Home - Tencent"
+        },
+        {
+          "source_url": "https://meeting.tencent.com/download/",
+          "evidence_id": "ev-2c95fa60",
+          "source_type": "web",
+          "collected_at": "2026-10-21T04:39:28.276988+00:00",
+          "source_title": "下载中心-腾讯会议"
+        },
+        {
+          "source_url": "https://www.qq.com/",
+          "evidence_id": "ev-3c3e1bbd",
+          "source_type": "web",
+          "collected_at": "2026-10-21T04:39:28.276988+00:00",
+          "source_title": "腾讯网"
+        },
+        {
+          "source_url": "https://www.britannica.com/money/Tencent",
+          "evidence_id": "ev-45591054",
+          "source_type": "web",
+          "collected_at": "2026-10-21T04:39:28.276988+00:00",
+          "source_title": "Tencent | Company, WeChat, Gaming, Controversy, & Facts | Britannica Money"
+        },
+        {
+          "source_url": "https://meeting.tencent.com/",
+          "evidence_id": "ev-b41535ac",
+          "source_type": "web",
+          "collected_at": "2026-10-21T04:39:28.276988+00:00",
+          "source_title": "腾讯会议官方——腾讯会议 会开会"
+        },
+        {
+          "source_url": "https://careers.tencent.com/en-us/home.html",
+          "evidence_id": "ev-7de125a0",
+          "source_type": "web",
+          "collected_at": "2026-10-21T04:39:28.276988+00:00",
+          "source_title": "Home | Tencent Careers"
+        },
+        {
+          "source_url": "https://finance.yahoo.com/quote/TCEHY/",
+          "evidence_id": "ev-cac3e8b4",
+          "source_type": "web",
+          "collected_at": "2026-10-21T04:39:28.276988+00:00",
+          "source_title": "Tencent Holdings Limited (TCEHY) Stock Price, News, Quote & History ..."
+        },
+        {
+          "source_url": "https://hy.tencent.ai/",
+          "evidence_id": "ev-7af1d0b9",
+          "source_type": "web",
+          "collected_at": "2026-10-21T04:39:28.276988+00:00",
+          "source_title": "Tencent Hy"
+        }
+      ],
+      "weights": {
+        "mappings": [
+          {
+            "scores": {
+              "A": 1,
+              "B": 0.6666666666666667,
+              "C": 0.33333333333333337
+            },
+            "version": "adrs-preference-map-v1",
+            "scheme_id": "ccf"
+          },
+          {
+            "scores": {
+              "A": 0.75,
+              "B": 0.5,
+              "C": 0.25,
+              "A*": 1
+            },
+            "version": "adrs-preference-map-v1",
+            "scheme_id": "icore"
+          },
+          {
+            "scores": {
+              "A": 0.75,
+              "B": 0.5,
+              "C": 0.25,
+              "A*": 1
+            },
+            "version": "adrs-preference-map-v1",
+            "scheme_id": "abdc"
+          },
+          {
+            "scores": {
+              "1": 0.19999999999999996,
+              "2": 0.4,
+              "3": 0.6,
+              "4": 0.8,
+              "4*": 1
+            },
+            "version": "adrs-preference-map-v1",
+            "scheme_id": "ajg"
+          },
+          {
+            "scores": {
+              "Q1": 1,
+              "Q2": 0.75,
+              "Q3": 0.5,
+              "Q4": 0.25
+            },
+            "version": "adrs-preference-map-v1",
+            "scheme_id": "jcr_quartile"
+          },
+          {
+            "scores": {
+              "1": 1,
+              "2": 0.75,
+              "3": 0.5,
+              "4": 0.25
+            },
+            "version": "adrs-preference-map-v1",
+            "scheme_id": "cas_partition"
+          }
+        ],
+        "semantics": "preference_configuration_only",
+        "raw_config": {
+          "preset": "research_development",
+          "weights": {
+            "recency": {
+              "weight": 10,
+              "enabled": true
+            },
+            "topic_relevance": {
+              "weight": 35,
+              "enabled": true
+            },
+            "output_performance": {
+              "weight": 20,
+              "enabled": true
+            },
+            "research_alignment": {
+              "weight": 20,
+              "enabled": true
+            },
+            "evidence_completeness": {
+              "weight": 15,
+              "enabled": true
+            },
+            "cooperation_complementarity": {
+              "weight": 0,
+              "enabled": true
+            }
+          },
+          "metric_weights": {},
+          "performance_groups": {
+            "paper": {
+              "weight": 1,
+              "enabled": true
+            },
+            "venue": {
+              "weight": 1,
+              "enabled": true
+            }
+          }
+        },
+        "rule_version": "adrs-weight-rules-v1",
+        "config_version": "tencent-network-case-20261021-v1",
+        "preset_version": "adrs-presets-v1",
+        "effective_groups": {
+          "paper": 0.5,
+          "venue": 0.5
+        },
+        "effective_weights": {
+          "recency": 0.09999999999999999,
+          "topic_relevance": 0.35,
+          "output_performance": 0.19999999999999998,
+          "research_alignment": 0.19999999999999998,
+          "evidence_completeness": 0.15,
+          "cooperation_complementarity": 0
+        },
+        "effective_metric_weights": {}
+      },
+      "versions": {
+        "schema_version": "adrs-organization-run-v2",
+        "scope_rule_version": "adrs-organization-scope-v2"
+      },
+      "evaluation": {
+        "schemes": [
+          {
+            "level": "venue",
+            "family": "directory",
+            "adapter": "exact_catalogue",
+            "editions": [],
+            "scheme_id": "ccf",
+            "source_url": "https://www.ccf.org.cn/Academic_Evaluation/By_category/",
+            "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+            "availability": "import_only"
+          },
+          {
+            "level": "venue",
+            "family": "directory",
+            "adapter": "exact_catalogue",
+            "editions": [],
+            "scheme_id": "icore",
+            "source_url": "https://portal.core.edu.au/conf-ranks/",
+            "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+            "availability": "import_only"
+          },
+          {
+            "level": "venue",
+            "family": "index",
+            "adapter": "authorized_metric",
+            "editions": [],
+            "scheme_id": "wos_scie",
+            "source_url": "https://mjl.clarivate.com/",
+            "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+            "availability": "import_only"
+          },
+          {
+            "level": "venue",
+            "family": "index",
+            "adapter": "authorized_metric",
+            "editions": [],
+            "scheme_id": "wos_ssci",
+            "source_url": "https://mjl.clarivate.com/",
+            "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+            "availability": "import_only"
+          },
+          {
+            "level": "venue",
+            "family": "index",
+            "adapter": "authorized_metric",
+            "editions": [],
+            "scheme_id": "wos_ahci",
+            "source_url": "https://mjl.clarivate.com/",
+            "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+            "availability": "import_only"
+          },
+          {
+            "level": "venue",
+            "family": "index",
+            "adapter": "authorized_metric",
+            "editions": [],
+            "scheme_id": "wos_esci",
+            "source_url": "https://mjl.clarivate.com/",
+            "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+            "availability": "import_only"
+          },
+          {
+            "level": "venue",
+            "family": "index",
+            "adapter": "authorized_metric",
+            "editions": [],
+            "scheme_id": "scopus",
+            "source_url": "https://www.scopus.com/sources",
+            "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+            "availability": "import_only"
+          },
+          {
+            "level": "venue",
+            "family": "journal_metric",
+            "adapter": "authorized_metric",
+            "editions": [],
+            "scheme_id": "jcr_jif",
+            "source_url": "https://jcr.clarivate.com/",
+            "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+            "availability": "import_only"
+          },
+          {
+            "level": "venue",
+            "family": "journal_metric",
+            "adapter": "authorized_metric",
+            "editions": [],
+            "scheme_id": "jcr_quartile",
+            "source_url": "https://jcr.clarivate.com/",
+            "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+            "availability": "import_only"
+          },
+          {
+            "level": "venue",
+            "family": "journal_metric",
+            "adapter": "authorized_metric",
+            "editions": [],
+            "scheme_id": "jcr_jci",
+            "source_url": "https://jcr.clarivate.com/",
+            "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+            "availability": "import_only"
+          },
+          {
+            "level": "venue",
+            "family": "journal_metric",
+            "adapter": "authorized_metric",
+            "editions": [],
+            "scheme_id": "cas_partition",
+            "source_url": "https://www.fenqubiao.com/",
+            "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+            "availability": "import_only"
+          },
+          {
+            "level": "venue",
+            "family": "journal_metric",
+            "adapter": "authorized_metric",
+            "editions": [],
+            "scheme_id": "citescore",
+            "source_url": "https://www.scopus.com/sources",
+            "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+            "availability": "import_only"
+          },
+          {
+            "level": "venue",
+            "family": "journal_metric",
+            "adapter": "authorized_metric",
+            "editions": [],
+            "scheme_id": "citescore_percentile",
+            "source_url": "https://www.scopus.com/sources",
+            "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+            "availability": "import_only"
+          },
+          {
+            "level": "venue",
+            "family": "journal_metric",
+            "adapter": "authorized_metric",
+            "editions": [],
+            "scheme_id": "sjr",
+            "source_url": "https://www.scimagojr.com/",
+            "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+            "availability": "import_only"
+          },
+          {
+            "level": "venue",
+            "family": "journal_metric",
+            "adapter": "authorized_metric",
+            "editions": [],
+            "scheme_id": "snip",
+            "source_url": "https://www.scopus.com/sources",
+            "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+            "availability": "import_only"
+          },
+          {
+            "level": "venue",
+            "family": "directory",
+            "adapter": "exact_catalogue",
+            "editions": [],
+            "scheme_id": "abdc",
+            "source_url": "https://abdc.edu.au/abdc-journal-quality-list/",
+            "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+            "availability": "import_only"
+          },
+          {
+            "level": "venue",
+            "family": "directory",
+            "adapter": "exact_catalogue",
+            "editions": [],
+            "scheme_id": "ajg",
+            "source_url": "https://charteredabs.org/academic-journal-guide",
+            "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+            "availability": "import_only"
+          },
+          {
+            "level": "work",
+            "family": "paper_metric",
+            "adapter": "paper_metric",
+            "editions": [],
+            "scheme_id": "citation_percentile",
+            "source_url": "https://help.openalex.org/data/works/citations/",
+            "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+            "availability": "import_only"
+          },
+          {
+            "level": "work",
+            "family": "paper_metric",
+            "adapter": "paper_metric",
+            "editions": [],
+            "scheme_id": "cnci",
+            "source_url": "https://incites.help.clarivate.com/Content/Indicators-Handbook/ih-normalized-citation-impact.htm",
+            "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+            "availability": "import_only"
+          },
+          {
+            "level": "work",
+            "family": "paper_metric",
+            "adapter": "paper_metric",
+            "editions": [],
+            "scheme_id": "fwci",
+            "source_url": "https://help.openalex.org/data/works/citations/",
+            "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+            "availability": "import_only"
+          }
+        ],
+        "sources": [
+          {
+            "access": "public",
+            "edition": "2012",
+            "records": [
+              {
+                "track": "main",
+                "status": "available",
+                "category": "Computer networks",
+                "raw_value": "B",
+                "target_id": "dblp:conf/nsdi",
+                "document_type": null,
+                "citation_cutoff": null,
+                "publication_year": null
+              },
+              {
+                "track": "main",
+                "status": "available",
+                "category": "Computer networks",
+                "raw_value": "A",
+                "target_id": "dblp:conf/sigcomm",
+                "document_type": null,
+                "citation_cutoff": null,
+                "publication_year": null
+              }
+            ],
+            "coverage": "partial",
+            "provider": "CCF (issued PDF, public mirror)",
+            "scheme_id": "ccf",
+            "source_id": "public-ccf-2012",
+            "authorized": false,
+            "source_url": "https://risame.github.io/sun/ccf.pdf",
+            "metric_year": 2012,
+            "retrieved_on": "2026-10-19",
+            "provider_updated_at": null
+          },
+          {
+            "access": "public",
+            "edition": "2022",
+            "records": [
+              {
+                "track": "main",
+                "status": "available",
+                "category": "Computer networks",
+                "raw_value": "A",
+                "target_id": "dblp:conf/nsdi",
+                "document_type": null,
+                "citation_cutoff": null,
+                "publication_year": null
+              },
+              {
+                "track": "main",
+                "status": "available",
+                "category": "Computer networks",
+                "raw_value": "A",
+                "target_id": "dblp:conf/sigcomm",
+                "document_type": null,
+                "citation_cutoff": null,
+                "publication_year": null
+              }
+            ],
+            "coverage": "partial",
+            "provider": "CCF (issued PDF, public mirror)",
+            "scheme_id": "ccf",
+            "source_id": "public-ccf-2022",
+            "authorized": false,
+            "source_url": "https://scdm-shu.github.io/ccf/2022-CCF-Ranking.pdf",
+            "metric_year": 2022,
+            "retrieved_on": "2026-10-19",
+            "provider_updated_at": null
+          },
+          {
+            "access": "public",
+            "edition": "CORE2023",
+            "records": [
+              {
+                "track": "main",
+                "status": "available",
+                "category": "4606",
+                "raw_value": "A*",
+                "target_id": "dblp:conf/sigcomm",
+                "document_type": null,
+                "citation_cutoff": null,
+                "publication_year": null
+              }
+            ],
+            "coverage": "partial",
+            "provider": "ICORE",
+            "scheme_id": "icore",
+            "source_id": "public-icore-2023",
+            "authorized": false,
+            "source_url": "https://portal.core.edu.au/conf-ranks/?search=SIGCOMM&by=all&source=CORE2023&sort=atitle&page=1",
+            "metric_year": 2023,
+            "retrieved_on": "2026-10-19",
+            "provider_updated_at": null
+          },
+          {
+            "access": "public",
+            "edition": "ICORE2026",
+            "records": [
+              {
+                "track": "main",
+                "status": "available",
+                "category": "4606",
+                "raw_value": "A*",
+                "target_id": "dblp:conf/sigcomm",
+                "document_type": null,
+                "citation_cutoff": null,
+                "publication_year": null
+              }
+            ],
+            "coverage": "partial",
+            "provider": "ICORE",
+            "scheme_id": "icore",
+            "source_id": "public-icore-2026",
+            "authorized": false,
+            "source_url": "https://portal.core.edu.au/conf-ranks/?search=SIGCOMM&by=all&source=ICORE2026&sort=atitle&page=1",
+            "metric_year": 2026,
+            "retrieved_on": "2026-10-19",
+            "provider_updated_at": null
+          },
+          {
+            "access": "public",
+            "edition": "2010",
+            "records": [
+              {
+                "track": "journal",
+                "status": "available",
+                "category": "1503",
+                "raw_value": "A*",
+                "target_id": "issn:0047-2506",
+                "document_type": null,
+                "citation_cutoff": null,
+                "publication_year": null
+              },
+              {
+                "track": "journal",
+                "status": "available",
+                "category": "1503",
+                "raw_value": "A*",
+                "target_id": "issn:1478-6990",
+                "document_type": null,
+                "citation_cutoff": null,
+                "publication_year": null
+              }
+            ],
+            "coverage": "partial",
+            "provider": "ABDC",
+            "scheme_id": "abdc",
+            "source_id": "public-abdc-2010",
+            "authorized": false,
+            "source_url": "https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx",
+            "metric_year": 2010,
+            "retrieved_on": "2026-10-19",
+            "provider_updated_at": null
+          },
+          {
+            "access": "public",
+            "edition": "2013",
+            "records": [
+              {
+                "track": "journal",
+                "status": "available",
+                "category": "1503",
+                "raw_value": "A*",
+                "target_id": "issn:0047-2506",
+                "document_type": null,
+                "citation_cutoff": null,
+                "publication_year": null
+              },
+              {
+                "track": "journal",
+                "status": "available",
+                "category": "1503",
+                "raw_value": "A*",
+                "target_id": "issn:1478-6990",
+                "document_type": null,
+                "citation_cutoff": null,
+                "publication_year": null
+              }
+            ],
+            "coverage": "partial",
+            "provider": "ABDC",
+            "scheme_id": "abdc",
+            "source_id": "public-abdc-2013",
+            "authorized": false,
+            "source_url": "https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx",
+            "metric_year": 2013,
+            "retrieved_on": "2026-10-19",
+            "provider_updated_at": null
+          },
+          {
+            "access": "public",
+            "edition": "2016",
+            "records": [
+              {
+                "track": "journal",
+                "status": "available",
+                "category": "1503",
+                "raw_value": "A*",
+                "target_id": "issn:0047-2506",
+                "document_type": null,
+                "citation_cutoff": null,
+                "publication_year": null
+              },
+              {
+                "track": "journal",
+                "status": "available",
+                "category": "1503",
+                "raw_value": "A*",
+                "target_id": "issn:1478-6990",
+                "document_type": null,
+                "citation_cutoff": null,
+                "publication_year": null
+              }
+            ],
+            "coverage": "partial",
+            "provider": "ABDC",
+            "scheme_id": "abdc",
+            "source_id": "public-abdc-2016",
+            "authorized": false,
+            "source_url": "https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx",
+            "metric_year": 2016,
+            "retrieved_on": "2026-10-19",
+            "provider_updated_at": null
+          },
+          {
+            "access": "public",
+            "edition": "2019",
+            "records": [
+              {
+                "track": "journal",
+                "status": "available",
+                "category": "1503",
+                "raw_value": "A*",
+                "target_id": "issn:0047-2506",
+                "document_type": null,
+                "citation_cutoff": null,
+                "publication_year": null
+              },
+              {
+                "track": "journal",
+                "status": "available",
+                "category": "1503",
+                "raw_value": "A*",
+                "target_id": "issn:1478-6990",
+                "document_type": null,
+                "citation_cutoff": null,
+                "publication_year": null
+              }
+            ],
+            "coverage": "partial",
+            "provider": "ABDC",
+            "scheme_id": "abdc",
+            "source_id": "public-abdc-2019",
+            "authorized": false,
+            "source_url": "https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx",
+            "metric_year": 2019,
+            "retrieved_on": "2026-10-19",
+            "provider_updated_at": null
+          },
+          {
+            "access": "public",
+            "edition": "2022",
+            "records": [
+              {
+                "track": "journal",
+                "status": "available",
+                "category": "3507",
+                "raw_value": "A*",
+                "target_id": "issn:0047-2506",
+                "document_type": null,
+                "citation_cutoff": null,
+                "publication_year": null
+              },
+              {
+                "track": "journal",
+                "status": "available",
+                "category": "3507",
+                "raw_value": "A*",
+                "target_id": "issn:1478-6990",
+                "document_type": null,
+                "citation_cutoff": null,
+                "publication_year": null
+              }
+            ],
+            "coverage": "partial",
+            "provider": "ABDC",
+            "scheme_id": "abdc",
+            "source_id": "public-abdc-2022",
+            "authorized": false,
+            "source_url": "https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx",
+            "metric_year": 2022,
+            "retrieved_on": "2026-10-19",
+            "provider_updated_at": null
+          },
+          {
+            "access": "public",
+            "edition": "2025",
+            "records": [
+              {
+                "track": "journal",
+                "status": "available",
+                "category": "3507",
+                "raw_value": "A*",
+                "target_id": "issn:0047-2506",
+                "document_type": null,
+                "citation_cutoff": null,
+                "publication_year": null
+              },
+              {
+                "track": "journal",
+                "status": "available",
+                "category": "3507",
+                "raw_value": "A*",
+                "target_id": "issn:1478-6990",
+                "document_type": null,
+                "citation_cutoff": null,
+                "publication_year": null
+              }
+            ],
+            "coverage": "partial",
+            "provider": "ABDC",
+            "scheme_id": "abdc",
+            "source_id": "public-abdc-2025",
+            "authorized": false,
+            "source_url": "https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx",
+            "metric_year": 2025,
+            "retrieved_on": "2026-10-19",
+            "provider_updated_at": null
+          },
+          {
+            "access": "public",
+            "edition": "OpenAlex snapshot 2026-10-19",
+            "records": [
+              {
+                "track": "work",
+                "status": "available",
+                "category": "https://openalex.org/subfields/2613 | Statistics and Probability",
+                "raw_value": 3266.5958,
+                "target_id": "openalex:W1951724000",
+                "document_type": "article",
+                "citation_cutoff": "2018-12-31",
+                "publication_year": 2015
+              }
+            ],
+            "coverage": "partial",
+            "provider": "OpenAlex",
+            "scheme_id": "fwci",
+            "source_id": "openalex-W1951724000-fwci-2026-10-19",
+            "authorized": false,
+            "source_url": "https://api.openalex.org/works/W1951724000",
+            "metric_year": 2026,
+            "retrieved_on": "2026-10-19",
+            "provider_updated_at": "2026-10-19T09:35:57.686232"
+          },
+          {
+            "access": "public",
+            "edition": "OpenAlex snapshot 2026-10-19",
+            "records": [
+              {
+                "track": "work",
+                "status": "available",
+                "category": "https://openalex.org/subfields/2613 | Statistics and Probability",
+                "raw_value": 1,
+                "target_id": "openalex:W1951724000",
+                "document_type": "article",
+                "citation_cutoff": "2018-12-31",
+                "publication_year": 2015
+              }
+            ],
+            "coverage": "partial",
+            "provider": "OpenAlex",
+            "scheme_id": "citation_percentile",
+            "source_id": "openalex-W1951724000-citation_percentile-2026-10-19",
+            "authorized": false,
+            "source_url": "https://api.openalex.org/works/W1951724000",
+            "metric_year": 2026,
+            "retrieved_on": "2026-10-19",
+            "provider_updated_at": "2026-10-19T09:35:57.686232"
+          }
+        ],
+        "applied_to_evidence": false,
+        "adapter_rule_version": "adrs-evaluation-adapters-v1",
+        "catalog_schema_version": "adrs-evaluation-catalog-v1"
+      },
+      "configuration": {
+        "scope": {
+          "topic": "VPC network failure detection and recovery",
+          "end_date": "2026-10-21",
+          "entities": [
+            {
+              "name": "Tencent",
+              "type": "company",
+              "aliases": [
+                "Tencent Cloud",
+                "腾讯",
+                "腾讯云"
+              ],
+              "entity_id": "tencent",
+              "unit_kind": "organization",
+              "source_urls": [
+                "https://www.usenix.org/conference/nsdi26/presentation/hu-jiayu"
+              ],
+              "resolution_status": "pending"
+            }
+          ],
+          "start_date": "2026-01-01",
+          "disciplines": [
+            "computer science"
+          ],
+          "organization_types": [
+            "company"
+          ]
+        },
+        "weights": {
+          "preset": "research_development",
+          "weights": {},
+          "mappings": [],
+          "config_version": "tencent-network-case-20261021-v1",
+          "metric_weights": {},
+          "performance_groups": {
+            "paper": 1,
+            "venue": 1
+          }
+        },
+        "schema_version": "adrs-organization-run-v2",
+        "evidence_cutoff": "2026-10-21T04:39:19.742424+00:00",
+        "selected_preset": null,
+        "catalog_manifest": {
+          "schemes": [
+            {
+              "level": "venue",
+              "family": "directory",
+              "adapter": "exact_catalogue",
+              "editions": [],
+              "scheme_id": "ccf",
+              "source_url": "https://www.ccf.org.cn/Academic_Evaluation/By_category/",
+              "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+              "availability": "import_only"
+            },
+            {
+              "level": "venue",
+              "family": "directory",
+              "adapter": "exact_catalogue",
+              "editions": [],
+              "scheme_id": "icore",
+              "source_url": "https://portal.core.edu.au/conf-ranks/",
+              "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+              "availability": "import_only"
+            },
+            {
+              "level": "venue",
+              "family": "index",
+              "adapter": "authorized_metric",
+              "editions": [],
+              "scheme_id": "wos_scie",
+              "source_url": "https://mjl.clarivate.com/",
+              "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+              "availability": "import_only"
+            },
+            {
+              "level": "venue",
+              "family": "index",
+              "adapter": "authorized_metric",
+              "editions": [],
+              "scheme_id": "wos_ssci",
+              "source_url": "https://mjl.clarivate.com/",
+              "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+              "availability": "import_only"
+            },
+            {
+              "level": "venue",
+              "family": "index",
+              "adapter": "authorized_metric",
+              "editions": [],
+              "scheme_id": "wos_ahci",
+              "source_url": "https://mjl.clarivate.com/",
+              "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+              "availability": "import_only"
+            },
+            {
+              "level": "venue",
+              "family": "index",
+              "adapter": "authorized_metric",
+              "editions": [],
+              "scheme_id": "wos_esci",
+              "source_url": "https://mjl.clarivate.com/",
+              "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+              "availability": "import_only"
+            },
+            {
+              "level": "venue",
+              "family": "index",
+              "adapter": "authorized_metric",
+              "editions": [],
+              "scheme_id": "scopus",
+              "source_url": "https://www.scopus.com/sources",
+              "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+              "availability": "import_only"
+            },
+            {
+              "level": "venue",
+              "family": "journal_metric",
+              "adapter": "authorized_metric",
+              "editions": [],
+              "scheme_id": "jcr_jif",
+              "source_url": "https://jcr.clarivate.com/",
+              "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+              "availability": "import_only"
+            },
+            {
+              "level": "venue",
+              "family": "journal_metric",
+              "adapter": "authorized_metric",
+              "editions": [],
+              "scheme_id": "jcr_quartile",
+              "source_url": "https://jcr.clarivate.com/",
+              "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+              "availability": "import_only"
+            },
+            {
+              "level": "venue",
+              "family": "journal_metric",
+              "adapter": "authorized_metric",
+              "editions": [],
+              "scheme_id": "jcr_jci",
+              "source_url": "https://jcr.clarivate.com/",
+              "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+              "availability": "import_only"
+            },
+            {
+              "level": "venue",
+              "family": "journal_metric",
+              "adapter": "authorized_metric",
+              "editions": [],
+              "scheme_id": "cas_partition",
+              "source_url": "https://www.fenqubiao.com/",
+              "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+              "availability": "import_only"
+            },
+            {
+              "level": "venue",
+              "family": "journal_metric",
+              "adapter": "authorized_metric",
+              "editions": [],
+              "scheme_id": "citescore",
+              "source_url": "https://www.scopus.com/sources",
+              "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+              "availability": "import_only"
+            },
+            {
+              "level": "venue",
+              "family": "journal_metric",
+              "adapter": "authorized_metric",
+              "editions": [],
+              "scheme_id": "citescore_percentile",
+              "source_url": "https://www.scopus.com/sources",
+              "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+              "availability": "import_only"
+            },
+            {
+              "level": "venue",
+              "family": "journal_metric",
+              "adapter": "authorized_metric",
+              "editions": [],
+              "scheme_id": "sjr",
+              "source_url": "https://www.scimagojr.com/",
+              "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+              "availability": "import_only"
+            },
+            {
+              "level": "venue",
+              "family": "journal_metric",
+              "adapter": "authorized_metric",
+              "editions": [],
+              "scheme_id": "snip",
+              "source_url": "https://www.scopus.com/sources",
+              "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+              "availability": "import_only"
+            },
+            {
+              "level": "venue",
+              "family": "directory",
+              "adapter": "exact_catalogue",
+              "editions": [],
+              "scheme_id": "abdc",
+              "source_url": "https://abdc.edu.au/abdc-journal-quality-list/",
+              "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+              "availability": "import_only"
+            },
+            {
+              "level": "venue",
+              "family": "directory",
+              "adapter": "exact_catalogue",
+              "editions": [],
+              "scheme_id": "ajg",
+              "source_url": "https://charteredabs.org/academic-journal-guide",
+              "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+              "availability": "import_only"
+            },
+            {
+              "level": "work",
+              "family": "paper_metric",
+              "adapter": "paper_metric",
+              "editions": [],
+              "scheme_id": "citation_percentile",
+              "source_url": "https://help.openalex.org/data/works/citations/",
+              "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+              "availability": "import_only"
+            },
+            {
+              "level": "work",
+              "family": "paper_metric",
+              "adapter": "paper_metric",
+              "editions": [],
+              "scheme_id": "cnci",
+              "source_url": "https://incites.help.clarivate.com/Content/Indicators-Handbook/ih-normalized-citation-impact.htm",
+              "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+              "availability": "import_only"
+            },
+            {
+              "level": "work",
+              "family": "paper_metric",
+              "adapter": "paper_metric",
+              "editions": [],
+              "scheme_id": "fwci",
+              "source_url": "https://help.openalex.org/data/works/citations/",
+              "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+              "availability": "import_only"
+            }
+          ],
+          "sources": [
+            {
+              "access": "public",
+              "edition": "2012",
+              "records": [
+                {
+                  "track": "main",
+                  "status": "available",
+                  "category": "Computer networks",
+                  "raw_value": "B",
+                  "target_id": "dblp:conf/nsdi",
+                  "document_type": null,
+                  "citation_cutoff": null,
+                  "publication_year": null
+                },
+                {
+                  "track": "main",
+                  "status": "available",
+                  "category": "Computer networks",
+                  "raw_value": "A",
+                  "target_id": "dblp:conf/sigcomm",
+                  "document_type": null,
+                  "citation_cutoff": null,
+                  "publication_year": null
+                }
+              ],
+              "coverage": "partial",
+              "provider": "CCF (issued PDF, public mirror)",
+              "scheme_id": "ccf",
+              "source_id": "public-ccf-2012",
+              "authorized": false,
+              "source_url": "https://risame.github.io/sun/ccf.pdf",
+              "metric_year": 2012,
+              "retrieved_on": "2026-10-19",
+              "provider_updated_at": null
+            },
+            {
+              "access": "public",
+              "edition": "2022",
+              "records": [
+                {
+                  "track": "main",
+                  "status": "available",
+                  "category": "Computer networks",
+                  "raw_value": "A",
+                  "target_id": "dblp:conf/nsdi",
+                  "document_type": null,
+                  "citation_cutoff": null,
+                  "publication_year": null
+                },
+                {
+                  "track": "main",
+                  "status": "available",
+                  "category": "Computer networks",
+                  "raw_value": "A",
+                  "target_id": "dblp:conf/sigcomm",
+                  "document_type": null,
+                  "citation_cutoff": null,
+                  "publication_year": null
+                }
+              ],
+              "coverage": "partial",
+              "provider": "CCF (issued PDF, public mirror)",
+              "scheme_id": "ccf",
+              "source_id": "public-ccf-2022",
+              "authorized": false,
+              "source_url": "https://scdm-shu.github.io/ccf/2022-CCF-Ranking.pdf",
+              "metric_year": 2022,
+              "retrieved_on": "2026-10-19",
+              "provider_updated_at": null
+            },
+            {
+              "access": "public",
+              "edition": "CORE2023",
+              "records": [
+                {
+                  "track": "main",
+                  "status": "available",
+                  "category": "4606",
+                  "raw_value": "A*",
+                  "target_id": "dblp:conf/sigcomm",
+                  "document_type": null,
+                  "citation_cutoff": null,
+                  "publication_year": null
+                }
+              ],
+              "coverage": "partial",
+              "provider": "ICORE",
+              "scheme_id": "icore",
+              "source_id": "public-icore-2023",
+              "authorized": false,
+              "source_url": "https://portal.core.edu.au/conf-ranks/?search=SIGCOMM&by=all&source=CORE2023&sort=atitle&page=1",
+              "metric_year": 2023,
+              "retrieved_on": "2026-10-19",
+              "provider_updated_at": null
+            },
+            {
+              "access": "public",
+              "edition": "ICORE2026",
+              "records": [
+                {
+                  "track": "main",
+                  "status": "available",
+                  "category": "4606",
+                  "raw_value": "A*",
+                  "target_id": "dblp:conf/sigcomm",
+                  "document_type": null,
+                  "citation_cutoff": null,
+                  "publication_year": null
+                }
+              ],
+              "coverage": "partial",
+              "provider": "ICORE",
+              "scheme_id": "icore",
+              "source_id": "public-icore-2026",
+              "authorized": false,
+              "source_url": "https://portal.core.edu.au/conf-ranks/?search=SIGCOMM&by=all&source=ICORE2026&sort=atitle&page=1",
+              "metric_year": 2026,
+              "retrieved_on": "2026-10-19",
+              "provider_updated_at": null
+            },
+            {
+              "access": "public",
+              "edition": "2010",
+              "records": [
+                {
+                  "track": "journal",
+                  "status": "available",
+                  "category": "1503",
+                  "raw_value": "A*",
+                  "target_id": "issn:0047-2506",
+                  "document_type": null,
+                  "citation_cutoff": null,
+                  "publication_year": null
+                },
+                {
+                  "track": "journal",
+                  "status": "available",
+                  "category": "1503",
+                  "raw_value": "A*",
+                  "target_id": "issn:1478-6990",
+                  "document_type": null,
+                  "citation_cutoff": null,
+                  "publication_year": null
+                }
+              ],
+              "coverage": "partial",
+              "provider": "ABDC",
+              "scheme_id": "abdc",
+              "source_id": "public-abdc-2010",
+              "authorized": false,
+              "source_url": "https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx",
+              "metric_year": 2010,
+              "retrieved_on": "2026-10-19",
+              "provider_updated_at": null
+            },
+            {
+              "access": "public",
+              "edition": "2013",
+              "records": [
+                {
+                  "track": "journal",
+                  "status": "available",
+                  "category": "1503",
+                  "raw_value": "A*",
+                  "target_id": "issn:0047-2506",
+                  "document_type": null,
+                  "citation_cutoff": null,
+                  "publication_year": null
+                },
+                {
+                  "track": "journal",
+                  "status": "available",
+                  "category": "1503",
+                  "raw_value": "A*",
+                  "target_id": "issn:1478-6990",
+                  "document_type": null,
+                  "citation_cutoff": null,
+                  "publication_year": null
+                }
+              ],
+              "coverage": "partial",
+              "provider": "ABDC",
+              "scheme_id": "abdc",
+              "source_id": "public-abdc-2013",
+              "authorized": false,
+              "source_url": "https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx",
+              "metric_year": 2013,
+              "retrieved_on": "2026-10-19",
+              "provider_updated_at": null
+            },
+            {
+              "access": "public",
+              "edition": "2016",
+              "records": [
+                {
+                  "track": "journal",
+                  "status": "available",
+                  "category": "1503",
+                  "raw_value": "A*",
+                  "target_id": "issn:0047-2506",
+                  "document_type": null,
+                  "citation_cutoff": null,
+                  "publication_year": null
+                },
+                {
+                  "track": "journal",
+                  "status": "available",
+                  "category": "1503",
+                  "raw_value": "A*",
+                  "target_id": "issn:1478-6990",
+                  "document_type": null,
+                  "citation_cutoff": null,
+                  "publication_year": null
+                }
+              ],
+              "coverage": "partial",
+              "provider": "ABDC",
+              "scheme_id": "abdc",
+              "source_id": "public-abdc-2016",
+              "authorized": false,
+              "source_url": "https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx",
+              "metric_year": 2016,
+              "retrieved_on": "2026-10-19",
+              "provider_updated_at": null
+            },
+            {
+              "access": "public",
+              "edition": "2019",
+              "records": [
+                {
+                  "track": "journal",
+                  "status": "available",
+                  "category": "1503",
+                  "raw_value": "A*",
+                  "target_id": "issn:0047-2506",
+                  "document_type": null,
+                  "citation_cutoff": null,
+                  "publication_year": null
+                },
+                {
+                  "track": "journal",
+                  "status": "available",
+                  "category": "1503",
+                  "raw_value": "A*",
+                  "target_id": "issn:1478-6990",
+                  "document_type": null,
+                  "citation_cutoff": null,
+                  "publication_year": null
+                }
+              ],
+              "coverage": "partial",
+              "provider": "ABDC",
+              "scheme_id": "abdc",
+              "source_id": "public-abdc-2019",
+              "authorized": false,
+              "source_url": "https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx",
+              "metric_year": 2019,
+              "retrieved_on": "2026-10-19",
+              "provider_updated_at": null
+            },
+            {
+              "access": "public",
+              "edition": "2022",
+              "records": [
+                {
+                  "track": "journal",
+                  "status": "available",
+                  "category": "3507",
+                  "raw_value": "A*",
+                  "target_id": "issn:0047-2506",
+                  "document_type": null,
+                  "citation_cutoff": null,
+                  "publication_year": null
+                },
+                {
+                  "track": "journal",
+                  "status": "available",
+                  "category": "3507",
+                  "raw_value": "A*",
+                  "target_id": "issn:1478-6990",
+                  "document_type": null,
+                  "citation_cutoff": null,
+                  "publication_year": null
+                }
+              ],
+              "coverage": "partial",
+              "provider": "ABDC",
+              "scheme_id": "abdc",
+              "source_id": "public-abdc-2022",
+              "authorized": false,
+              "source_url": "https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx",
+              "metric_year": 2022,
+              "retrieved_on": "2026-10-19",
+              "provider_updated_at": null
+            },
+            {
+              "access": "public",
+              "edition": "2025",
+              "records": [
+                {
+                  "track": "journal",
+                  "status": "available",
+                  "category": "3507",
+                  "raw_value": "A*",
+                  "target_id": "issn:0047-2506",
+                  "document_type": null,
+                  "citation_cutoff": null,
+                  "publication_year": null
+                },
+                {
+                  "track": "journal",
+                  "status": "available",
+                  "category": "3507",
+                  "raw_value": "A*",
+                  "target_id": "issn:1478-6990",
+                  "document_type": null,
+                  "citation_cutoff": null,
+                  "publication_year": null
+                }
+              ],
+              "coverage": "partial",
+              "provider": "ABDC",
+              "scheme_id": "abdc",
+              "source_id": "public-abdc-2025",
+              "authorized": false,
+              "source_url": "https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx",
+              "metric_year": 2025,
+              "retrieved_on": "2026-10-19",
+              "provider_updated_at": null
+            },
+            {
+              "access": "public",
+              "edition": "OpenAlex snapshot 2026-10-19",
+              "records": [
+                {
+                  "track": "work",
+                  "status": "available",
+                  "category": "https://openalex.org/subfields/2613 | Statistics and Probability",
+                  "raw_value": 3266.5958,
+                  "target_id": "openalex:W1951724000",
+                  "document_type": "article",
+                  "citation_cutoff": "2018-12-31",
+                  "publication_year": 2015
+                }
+              ],
+              "coverage": "partial",
+              "provider": "OpenAlex",
+              "scheme_id": "fwci",
+              "source_id": "openalex-W1951724000-fwci-2026-10-19",
+              "authorized": false,
+              "source_url": "https://api.openalex.org/works/W1951724000",
+              "metric_year": 2026,
+              "retrieved_on": "2026-10-19",
+              "provider_updated_at": "2026-10-19T09:35:57.686232"
+            },
+            {
+              "access": "public",
+              "edition": "OpenAlex snapshot 2026-10-19",
+              "records": [
+                {
+                  "track": "work",
+                  "status": "available",
+                  "category": "https://openalex.org/subfields/2613 | Statistics and Probability",
+                  "raw_value": 1,
+                  "target_id": "openalex:W1951724000",
+                  "document_type": "article",
+                  "citation_cutoff": "2018-12-31",
+                  "publication_year": 2015
+                }
+              ],
+              "coverage": "partial",
+              "provider": "OpenAlex",
+              "scheme_id": "citation_percentile",
+              "source_id": "openalex-W1951724000-citation_percentile-2026-10-19",
+              "authorized": false,
+              "source_url": "https://api.openalex.org/works/W1951724000",
+              "metric_year": 2026,
+              "retrieved_on": "2026-10-19",
+              "provider_updated_at": "2026-10-19T09:35:57.686232"
+            }
+          ],
+          "captured_at": "2026-10-21T04:39:19.742424+00:00",
+          "schema_version": "adrs-evaluation-catalog-v1",
+          "availability_note": "Frozen public samples and import requirements; not a live lookup or verified evaluation of collected evidence.",
+          "applied_to_evidence": false,
+          "adapter_rule_version": "adrs-evaluation-adapters-v1"
+        },
+        "effective_weights": {
+          "mappings": [
+            {
+              "scores": {
+                "A": 1,
+                "B": 0.6666666666666667,
+                "C": 0.33333333333333337
+              },
+              "version": "adrs-preference-map-v1",
+              "scheme_id": "ccf"
+            },
+            {
+              "scores": {
+                "A": 0.75,
+                "B": 0.5,
+                "C": 0.25,
+                "A*": 1
+              },
+              "version": "adrs-preference-map-v1",
+              "scheme_id": "icore"
+            },
+            {
+              "scores": {
+                "A": 0.75,
+                "B": 0.5,
+                "C": 0.25,
+                "A*": 1
+              },
+              "version": "adrs-preference-map-v1",
+              "scheme_id": "abdc"
+            },
+            {
+              "scores": {
+                "1": 0.19999999999999996,
+                "2": 0.4,
+                "3": 0.6,
+                "4": 0.8,
+                "4*": 1
+              },
+              "version": "adrs-preference-map-v1",
+              "scheme_id": "ajg"
+            },
+            {
+              "scores": {
+                "Q1": 1,
+                "Q2": 0.75,
+                "Q3": 0.5,
+                "Q4": 0.25
+              },
+              "version": "adrs-preference-map-v1",
+              "scheme_id": "jcr_quartile"
+            },
+            {
+              "scores": {
+                "1": 1,
+                "2": 0.75,
+                "3": 0.5,
+                "4": 0.25
+              },
+              "version": "adrs-preference-map-v1",
+              "scheme_id": "cas_partition"
+            }
+          ],
+          "semantics": "preference_configuration_only",
+          "raw_config": {
+            "preset": "research_development",
+            "weights": {
+              "recency": {
+                "weight": 10,
+                "enabled": true
+              },
+              "topic_relevance": {
+                "weight": 35,
+                "enabled": true
+              },
+              "output_performance": {
+                "weight": 20,
+                "enabled": true
+              },
+              "research_alignment": {
+                "weight": 20,
+                "enabled": true
+              },
+              "evidence_completeness": {
+                "weight": 15,
+                "enabled": true
+              },
+              "cooperation_complementarity": {
+                "weight": 0,
+                "enabled": true
+              }
+            },
+            "metric_weights": {},
+            "performance_groups": {
+              "paper": {
+                "weight": 1,
+                "enabled": true
+              },
+              "venue": {
+                "weight": 1,
+                "enabled": true
+              }
+            }
+          },
+          "rule_version": "adrs-weight-rules-v1",
+          "config_version": "tencent-network-case-20261021-v1",
+          "preset_version": "adrs-presets-v1",
+          "effective_groups": {
+            "paper": 0.5,
+            "venue": 0.5
+          },
+          "effective_weights": {
+            "recency": 0.09999999999999999,
+            "topic_relevance": 0.35,
+            "output_performance": 0.19999999999999998,
+            "research_alignment": 0.19999999999999998,
+            "evidence_completeness": 0.15,
+            "cooperation_complementarity": 0
+          },
+          "effective_metric_weights": {}
+        },
+        "scope_rule_version": "adrs-organization-scope-v2"
+      },
+      "schema_version": "adrs-organization-report-v1",
+      "pending_records": [],
+      "request_frozen_at": "2026-10-21T04:39:19.742424+00:00",
+      "matching_semantics": "偏好配置不等于已完成评分；结果页只读重排不改写本报告的配置、事实或证据。"
+    },
+    "schema_version": "adrs-organization-findings-v1",
+    "pending_records": [],
+    "recommendations": [
+      {
+        "kind": "recommendation",
+        "statement": "建议下一步获取 NSDI '26 全文 PDF 与可能的 artifact evaluation 记录，以核实实验条件、基线对比与独立验证情况。",
+        "entity_ids": [
+          "tencent"
+        ],
+        "evidence_ids": [
+          "ev-249a9032"
+        ],
+        "verification_status": "model_interpretation_requires_review"
+      }
+    ],
+    "comparison_groups": [
+      {
+        "measure": "source_supported_sample_family_count_not_quality",
+        "objects": [
+          {
+            "entity_id": "tencent",
+            "research_family_count": 1
+          }
+        ],
+        "ranking": null,
+        "disciplines": [
+          "computer science"
+        ],
+        "output_type": "conference_paper",
+        "discipline_basis": "requested_scope",
+        "publication_year": 2026
+      }
+    ],
+    "attribution_status": "source_supported_sample",
+    "publication_metadata": {
+      "harp-nsdi26": {
+        "year": 2026,
+        "venue": "23rd USENIX Symposium on Networked Systems Design and Implementation (NSDI 26)",
+        "date_basis": "publisher_fields",
+        "output_type": "conference_paper",
+        "evidence_ids": [
+          "ev-249a9032"
+        ],
+        "identity_basis": "primary_source_url"
+      }
+    },
+    "combined_evidence_ids": [
+      "ev-249a9032",
+      "ev-7375e4f1",
+      "ev-f6b1631f",
+      "ev-cbd057ff",
+      "ev-6863bbe3",
+      "ev-9fe5722d",
+      "ev-a937dff0",
+      "ev-85c8a45f",
+      "ev-5f9577a5",
+      "ev-b7f990e1",
+      "ev-904b3946",
+      "ev-7fafe161",
+      "ev-3fa39308",
+      "ev-89749cdd",
+      "ev-42b7e814",
+      "ev-ce948196",
+      "ev-01d613d5",
+      "ev-c55a7368",
+      "ev-30902970",
+      "ev-05bf7aee",
+      "ev-c6491567",
+      "ev-410ace9d",
+      "ev-a69d0310",
+      "ev-26070100",
+      "ev-35762055",
+      "ev-2c95fa60",
+      "ev-3c3e1bbd",
+      "ev-45591054",
+      "ev-b41535ac",
+      "ev-7de125a0",
+      "ev-cac3e8b4",
+      "ev-7af1d0b9"
+    ],
+    "relationship_coverage": {
+      "funding": "not_established",
+      "citation": "not_established",
+      "coauthorship": "source_supported_sample"
+    },
+    "unassigned_evidence_ids": [
+      "ev-7375e4f1",
+      "ev-f6b1631f",
+      "ev-cbd057ff",
+      "ev-6863bbe3",
+      "ev-9fe5722d",
+      "ev-a937dff0",
+      "ev-85c8a45f",
+      "ev-5f9577a5",
+      "ev-b7f990e1",
+      "ev-904b3946",
+      "ev-7fafe161",
+      "ev-3fa39308",
+      "ev-89749cdd",
+      "ev-42b7e814",
+      "ev-ce948196",
+      "ev-01d613d5",
+      "ev-c55a7368",
+      "ev-30902970",
+      "ev-05bf7aee",
+      "ev-c6491567",
+      "ev-410ace9d"
+    ],
+    "candidate_discovery_status": "named_entities"
+  }
+}

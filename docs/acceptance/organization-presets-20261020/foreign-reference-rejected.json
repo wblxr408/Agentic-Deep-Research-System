@@ -1,0 +1,8 @@
+{
+  "status": 404,
+  "response": {
+    "detail": "Preset not found"
+  },
+  "owner_research_count_before": 0,
+  "owner_research_count_after": 0
+}

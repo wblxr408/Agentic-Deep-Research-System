@@ -1,0 +1,21 @@
+{
+  "version": "adrs-presets-v2-resume-acceptance",
+  "presets": {
+    "research_development": {
+      "topic_relevance": 45,
+      "research_alignment": 10,
+      "output_performance": 20,
+      "evidence_completeness": 15,
+      "recency": 10,
+      "cooperation_complementarity": 0
+    },
+    "cooperation_discovery": {
+      "topic_relevance": 30,
+      "research_alignment": 15,
+      "output_performance": 15,
+      "evidence_completeness": 15,
+      "recency": 10,
+      "cooperation_complementarity": 15
+    }
+  }
+}

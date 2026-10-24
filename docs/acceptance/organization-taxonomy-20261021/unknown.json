@@ -1,0 +1,247 @@
+{
+  "snapshot_id": "edda1ddd-ce70-43b6-9479-90112a70d52a",
+  "schema_version": "adrs-disciplinary-mapping-v1",
+  "created_at": "2026-10-21T09:53:30.965182+00:00",
+  "taxonomy": {
+    "rule_version": "adrs-disciplinary-mapping-v1",
+    "preset_edition": "adrs-topic-presets-2026-10-21",
+    "request": {
+      "preset": "custom",
+      "version": "materials-e2e-v3-unknown",
+      "nodes": [
+        {
+          "node_id": "unknown-method",
+          "label": "待证实的新方法",
+          "discipline": "materials science",
+          "axis": "method",
+          "role": "core",
+          "parent_id": null,
+          "terms": [
+            "unobserved-experimental-method"
+          ]
+        }
+      ]
+    },
+    "version": "materials-e2e-v3-unknown",
+    "nodes": [
+      {
+        "node_id": "unknown-method",
+        "label": "待证实的新方法",
+        "discipline": "materials science",
+        "axis": "method",
+        "role": "core",
+        "parent_id": null,
+        "terms": [
+          "unobserved-experimental-method"
+        ]
+      }
+    ],
+    "disciplines": [
+      "materials science"
+    ],
+    "match_scope": "source_supported_primary_title_and_marked_publisher_abstract",
+    "semantics": "按主成果题名及出版商明确标记的摘要作可编辑词面映射；旧材料未保留摘要标记时只用题名。不是官方标签、全文机制核验或主题硬筛选。"
+  },
+  "reason": "检验未命中规则时保留未知",
+  "records": [
+    {
+      "output_id": "kfu-plosone-e0351439",
+      "title": "Enhancing perovskite solar cells efficiency via dual surface passivation",
+      "year": 2026,
+      "labels": [],
+      "axes": {
+        "problem": "unknown",
+        "method": "unknown",
+        "application": "unknown"
+      },
+      "evidence_ids": [
+        "ev-3b962f41"
+      ],
+      "status": "unknown",
+      "unknown_reason": "未命中冻结规则或缺少保留的主成果题名／明确摘要；不从载体推断学科。"
+    }
+  ],
+  "annual": [
+    {
+      "year": 2026,
+      "publication_count": 1,
+      "label_counts": {},
+      "unknown_publication_count": 1,
+      "unknown_by_axis": {
+        "problem": 1,
+        "method": 1,
+        "application": 1
+      }
+    }
+  ],
+  "evidence_ids": [
+    "ev-3b962f41"
+  ],
+  "coverage": "accepted_publications_in_retained_sample_only",
+  "counting_unit": "publication_multi_label_each_node_once_per_publication",
+  "unknown_year_count": 0,
+  "unobserved_years": [
+    2025
+  ],
+  "interpretation": "各年仅为已采纳样本，未覆盖年份不补零；标签可交叉。重分类变化来自规则，不能解释为新增成果、投入增长或战略变化。",
+  "effects": {
+    "network_requests": 0,
+    "model_calls": 0,
+    "original_report_modified": false
+  },
+  "comparison": {
+    "kind": "reclassification_only",
+    "previous_snapshot_id": "4c3d0123-1349-4f0a-9375-4525ef3874c5",
+    "previous_version": "materials-e2e-v2",
+    "same_publication_ids": true,
+    "same_evidence_ids": true,
+    "changes": [
+      {
+        "output_id": "kfu-plosone-e0351439",
+        "before": [
+          {
+            "axis": "problem",
+            "role": "core",
+            "basis": {
+              "end": 391,
+              "field": "primary_title",
+              "quote": "efficiency",
+              "start": 381,
+              "source_url": "https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0351439",
+              "evidence_id": "ev-3b962f41"
+            },
+            "label": "能量转换效率",
+            "node_id": "materials_science:conversion-efficiency",
+            "ancestors": [
+              "materials_science:materials-performance"
+            ],
+            "discipline": "materials_science"
+          },
+          {
+            "axis": "problem",
+            "role": "core",
+            "basis": {
+              "end": 1659,
+              "field": "publisher_abstract",
+              "quote": "stability",
+              "start": 1650,
+              "source_url": "https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0351439",
+              "evidence_id": "ev-3b962f41"
+            },
+            "label": "材料稳定性",
+            "node_id": "materials_science:material-stability",
+            "ancestors": [
+              "materials_science:materials-performance"
+            ],
+            "discipline": "materials_science"
+          },
+          {
+            "axis": "method",
+            "role": "associated",
+            "basis": {
+              "end": 420,
+              "field": "primary_title",
+              "quote": "surface passivation",
+              "start": 401,
+              "source_url": "https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0351439",
+              "evidence_id": "ev-3b962f41"
+            },
+            "label": "界面／表面钝化",
+            "node_id": "materials_science:interface-passivation",
+            "ancestors": [
+              "materials-methods"
+            ],
+            "discipline": "materials_science"
+          },
+          {
+            "axis": "method",
+            "role": "associated",
+            "basis": {
+              "end": 926,
+              "field": "publisher_abstract",
+              "quote": "Dimensional engineering",
+              "start": 903,
+              "source_url": "https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0351439",
+              "evidence_id": "ev-3b962f41"
+            },
+            "label": "维度工程",
+            "node_id": "materials_science:dimensional-engineering",
+            "ancestors": [
+              "materials-methods"
+            ],
+            "discipline": "materials_science"
+          },
+          {
+            "axis": "application",
+            "role": "core",
+            "basis": {
+              "end": 380,
+              "field": "primary_title",
+              "quote": "solar cells",
+              "start": 369,
+              "source_url": "https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0351439",
+              "evidence_id": "ev-3b962f41"
+            },
+            "label": "太阳能电池",
+            "node_id": "materials_science:solar-cells",
+            "ancestors": [],
+            "discipline": "materials_science"
+          },
+          {
+            "axis": "method",
+            "role": "core",
+            "basis": {
+              "end": 1177,
+              "field": "publisher_abstract",
+              "quote": "dual-cation",
+              "start": 1166,
+              "source_url": "https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0351439",
+              "evidence_id": "ev-3b962f41"
+            },
+            "label": "双阳离子策略",
+            "node_id": "dual-cation",
+            "ancestors": [
+              "materials-methods"
+            ],
+            "discipline": "materials science"
+          }
+        ],
+        "after": []
+      }
+    ],
+    "annual_before": [
+      {
+        "year": 2026,
+        "label_counts": {
+          "dual-cation": 1,
+          "materials_science:solar-cells": 1,
+          "materials_science:material-stability": 1,
+          "materials_science:conversion-efficiency": 1,
+          "materials_science:interface-passivation": 1,
+          "materials_science:dimensional-engineering": 1
+        },
+        "unknown_by_axis": {
+          "method": 0,
+          "problem": 0,
+          "application": 0
+        },
+        "publication_count": 1,
+        "unknown_publication_count": 0
+      }
+    ],
+    "annual_after": [
+      {
+        "year": 2026,
+        "publication_count": 1,
+        "label_counts": {},
+        "unknown_publication_count": 1,
+        "unknown_by_axis": {
+          "problem": 1,
+          "method": 1,
+          "application": 1
+        }
+      }
+    ],
+    "publication_growth_claim": false
+  }
+}

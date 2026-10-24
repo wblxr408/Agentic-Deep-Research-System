@@ -1,0 +1,20 @@
+{
+  "organizations": [
+    {"name": "Microsoft Research", "type": "laboratory"}
+  ],
+  "topic": "以2024至2025年可取得的代表性公开论文为范围，分析Microsoft Research在数据中心网络拥塞相关方向的研究问题、技术路线、成果及可进一步验证的问题；逐项核对发表时单位，区分直接拥塞控制与相邻遥测工作；交付有界研究简报及未覆盖范围，不要求穷尽成果清单，不推断内部研发战略或仅据单篇论文推断路线转向",
+  "start_year": 2024,
+  "end_year": 2025,
+  "source_scope": {
+    "groups": ["publishers", "dblp", "arxiv", "google_scholar", "official"],
+    "official_domains": ["microsoft.com"]
+  },
+  "seed_urls": [
+    "https://www.microsoft.com/en-us/research/publication/reverie-low-pass-filter-based-switch-buffer-sharing-for-datacenters-with-rdma-and-tcp-traffic/",
+    "https://www.usenix.org/conference/nsdi24/presentation/addanki-reverie",
+    "https://www.microsoft.com/en-us/research/publication/enabling-silent-telemetry-data-transmission-with-invisiflow/",
+    "https://www.usenix.org/conference/nsdi25/presentation/zhang-yinda"
+  ],
+  "timeout_seconds": 600,
+  "max_tool_calls": 18
+}

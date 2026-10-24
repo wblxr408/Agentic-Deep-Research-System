@@ -1,0 +1,248 @@
+{
+  "session_id": "4274693b-c86d-477d-8a70-9ab35180876d",
+  "classification": {
+    "annual": [
+      {
+        "year": 2026,
+        "label_counts": {
+          "materials_science:solar-cells": 1,
+          "materials_science:material-stability": 1,
+          "materials_science:conversion-efficiency": 1,
+          "materials_science:interface-passivation": 1,
+          "materials_science:dimensional-engineering": 1
+        },
+        "unknown_by_axis": {
+          "method": 0,
+          "problem": 0,
+          "application": 0
+        },
+        "publication_count": 1,
+        "unknown_publication_count": 0
+      }
+    ],
+    "reason": "研究冻结规则首次分类",
+    "effects": {
+      "model_calls": 0,
+      "network_requests": 0,
+      "original_report_modified": false
+    },
+    "records": [
+      {
+        "axes": {
+          "method": "mapped",
+          "problem": "mapped",
+          "application": "mapped"
+        },
+        "year": 2026,
+        "title": "Enhancing perovskite solar cells efficiency via dual surface passivation",
+        "labels": [
+          {
+            "axis": "problem",
+            "role": "core",
+            "basis": {
+              "end": 391,
+              "field": "primary_title",
+              "quote": "efficiency",
+              "start": 381,
+              "source_url": "https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0351439",
+              "evidence_id": "ev-3b962f41"
+            },
+            "label": "能量转换效率",
+            "node_id": "materials_science:conversion-efficiency",
+            "ancestors": [
+              "materials_science:materials-performance"
+            ],
+            "discipline": "materials_science"
+          },
+          {
+            "axis": "problem",
+            "role": "core",
+            "basis": {
+              "end": 1659,
+              "field": "publisher_abstract",
+              "quote": "stability",
+              "start": 1650,
+              "source_url": "https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0351439",
+              "evidence_id": "ev-3b962f41"
+            },
+            "label": "材料稳定性",
+            "node_id": "materials_science:material-stability",
+            "ancestors": [
+              "materials_science:materials-performance"
+            ],
+            "discipline": "materials_science"
+          },
+          {
+            "axis": "method",
+            "role": "core",
+            "basis": {
+              "end": 420,
+              "field": "primary_title",
+              "quote": "surface passivation",
+              "start": 401,
+              "source_url": "https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0351439",
+              "evidence_id": "ev-3b962f41"
+            },
+            "label": "界面／表面钝化",
+            "node_id": "materials_science:interface-passivation",
+            "ancestors": [],
+            "discipline": "materials_science"
+          },
+          {
+            "axis": "method",
+            "role": "associated",
+            "basis": {
+              "end": 926,
+              "field": "publisher_abstract",
+              "quote": "Dimensional engineering",
+              "start": 903,
+              "source_url": "https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0351439",
+              "evidence_id": "ev-3b962f41"
+            },
+            "label": "维度工程",
+            "node_id": "materials_science:dimensional-engineering",
+            "ancestors": [],
+            "discipline": "materials_science"
+          },
+          {
+            "axis": "application",
+            "role": "core",
+            "basis": {
+              "end": 380,
+              "field": "primary_title",
+              "quote": "solar cells",
+              "start": 369,
+              "source_url": "https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0351439",
+              "evidence_id": "ev-3b962f41"
+            },
+            "label": "太阳能电池",
+            "node_id": "materials_science:solar-cells",
+            "ancestors": [],
+            "discipline": "materials_science"
+          }
+        ],
+        "status": "source_field_rule_mapping_requires_review",
+        "output_id": "kfu-plosone-e0351439",
+        "evidence_ids": [
+          "ev-3b962f41"
+        ],
+        "unknown_reason": null
+      }
+    ],
+    "coverage": "accepted_publications_in_retained_sample_only",
+    "taxonomy": {
+      "nodes": [
+        {
+          "axis": "problem",
+          "role": "core",
+          "label": "材料性能",
+          "terms": [],
+          "node_id": "materials_science:materials-performance",
+          "parent_id": null,
+          "discipline": "materials_science"
+        },
+        {
+          "axis": "problem",
+          "role": "core",
+          "label": "能量转换效率",
+          "terms": [
+            "efficiency",
+            "效率"
+          ],
+          "node_id": "materials_science:conversion-efficiency",
+          "parent_id": "materials_science:materials-performance",
+          "discipline": "materials_science"
+        },
+        {
+          "axis": "problem",
+          "role": "core",
+          "label": "材料稳定性",
+          "terms": [
+            "stability",
+            "稳定性"
+          ],
+          "node_id": "materials_science:material-stability",
+          "parent_id": "materials_science:materials-performance",
+          "discipline": "materials_science"
+        },
+        {
+          "axis": "method",
+          "role": "core",
+          "label": "界面／表面钝化",
+          "terms": [
+            "surface passivation",
+            "interfacial passivation",
+            "表面钝化"
+          ],
+          "node_id": "materials_science:interface-passivation",
+          "parent_id": null,
+          "discipline": "materials_science"
+        },
+        {
+          "axis": "method",
+          "role": "associated",
+          "label": "维度工程",
+          "terms": [
+            "dimensional engineering",
+            "维度工程"
+          ],
+          "node_id": "materials_science:dimensional-engineering",
+          "parent_id": null,
+          "discipline": "materials_science"
+        },
+        {
+          "axis": "application",
+          "role": "core",
+          "label": "太阳能电池",
+          "terms": [
+            "solar cells",
+            "solar cell",
+            "太阳能电池"
+          ],
+          "node_id": "materials_science:solar-cells",
+          "parent_id": null,
+          "discipline": "materials_science"
+        },
+        {
+          "axis": "application",
+          "role": "associated",
+          "label": "储能",
+          "terms": [
+            "batteries",
+            "battery",
+            "储能"
+          ],
+          "node_id": "materials_science:energy-storage",
+          "parent_id": null,
+          "discipline": "materials_science"
+        }
+      ],
+      "request": {
+        "nodes": [],
+        "preset": "materials_science",
+        "version": "materials-e2e-v1"
+      },
+      "version": "materials-e2e-v1",
+      "semantics": "按主成果题名及出版商明确标记的摘要作可编辑词面映射；旧材料未保留摘要标记时只用题名。不是官方标签、全文机制核验或主题硬筛选。",
+      "disciplines": [
+        "materials science"
+      ],
+      "match_scope": "source_supported_primary_title_and_marked_publisher_abstract",
+      "rule_version": "adrs-disciplinary-mapping-v1",
+      "preset_edition": "adrs-topic-presets-2026-10-21"
+    },
+    "comparison": null,
+    "created_at": "2026-10-21T09:53:14.657966+00:00",
+    "snapshot_id": "c6edd2bf-f0aa-42dd-b8a0-81225e7345ed",
+    "evidence_ids": [
+      "ev-3b962f41"
+    ],
+    "counting_unit": "publication_multi_label_each_node_once_per_publication",
+    "interpretation": "各年仅为已采纳样本，未覆盖年份不补零；标签可交叉。重分类变化来自规则，不能解释为新增成果、投入增长或战略变化。",
+    "schema_version": "adrs-disciplinary-mapping-v1",
+    "unobserved_years": [
+      2025
+    ],
+    "unknown_year_count": 0
+  }
+}

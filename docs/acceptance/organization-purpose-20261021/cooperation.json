@@ -1,0 +1,1489 @@
+{
+  "verification": {
+    "session_id": "6369a49d-6fd3-4890-bc88-20270a0855bc",
+    "status": "completed",
+    "purpose": "cooperation_discovery",
+    "modules": [
+      "landscape",
+      "relationships",
+      "validation",
+      "actions"
+    ],
+    "source_count": 42,
+    "publication_count": {
+      "output_ids": [
+        "out-distserve-osdi24"
+      ],
+      "output_count": 1,
+      "counting_method": "full",
+      "publication_count": 1,
+      "research_family_ids": [
+        "publication:out-distserve-osdi24"
+      ],
+      "research_family_count": 1,
+      "unlinked_publication_count": 1
+    },
+    "module_issues": [],
+    "final_audit": {
+      "needs_review": true,
+      "total_claims": 11,
+      "checked_claims": 11,
+      "supported_claims": 7,
+      "human_review_status": "not_reviewed"
+    },
+    "budget": {
+      "warning": false,
+      "estimated": true,
+      "llm_usage": [
+        {
+          "agent": "analyst",
+          "model": "deepseek-chat",
+          "cost_usd": 0.0,
+          "estimated": true,
+          "total_tokens": 8198,
+          "prompt_tokens": 6518,
+          "completion_tokens": 1680
+        },
+        {
+          "agent": "reflection",
+          "model": "deepseek-chat",
+          "cost_usd": 0.0,
+          "estimated": true,
+          "total_tokens": 10413,
+          "prompt_tokens": 9952,
+          "completion_tokens": 461
+        },
+        {
+          "agent": "report",
+          "model": "deepseek-chat",
+          "cost_usd": 0.0,
+          "estimated": true,
+          "total_tokens": 21599,
+          "prompt_tokens": 20036,
+          "completion_tokens": 1563
+        }
+      ],
+      "citation_max": 15,
+      "max_cost_usd": 0.5,
+      "used_cost_usd": 0.0,
+      "budget_profile": "medium",
+      "max_tool_calls": 12,
+      "rag_max_results": 8,
+      "used_tool_calls": 12,
+      "hard_stop_reason": "tool_call_limit",
+      "max_total_tokens": 60000,
+      "report_max_tokens": 6000,
+      "used_total_tokens": 44108,
+      "search_max_queries": 4,
+      "search_max_results": 10,
+      "browser_max_results": 2,
+      "max_retries_per_tool": 2,
+      "max_wall_clock_seconds": 420,
+      "elapsed_wall_clock_seconds": 48
+    },
+    "tool_calls": [
+      {
+        "tool_name": "execute_browse",
+        "status": "success",
+        "error_category": null
+      },
+      {
+        "tool_name": "execute_search",
+        "status": "success",
+        "error_category": null
+      },
+      {
+        "tool_name": "execute_search",
+        "status": "success",
+        "error_category": null
+      },
+      {
+        "tool_name": "execute_search",
+        "status": "success",
+        "error_category": null
+      },
+      {
+        "tool_name": "execute_search",
+        "status": "success",
+        "error_category": null
+      },
+      {
+        "tool_name": "execute_browse",
+        "status": "success",
+        "error_category": null
+      },
+      {
+        "tool_name": "execute_search",
+        "status": "error",
+        "error_category": "budget_exceeded"
+      },
+      {
+        "tool_name": "execute_search",
+        "status": "error",
+        "error_category": "budget_exceeded"
+      }
+    ]
+  },
+  "configuration": {
+    "scope": {
+      "topic": "基于 https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin 研究 Peking University 的公开系统研究。只覆盖这篇 DistServe 发表样本；按选择的研究目的和模块交付。只有一个年度观测时明确不能确立多年趋势。署名或共著不等于正式协议、产品部署或可联系性；缺证保留未知，不把机构成果量当作内部研发投入。",
+      "end_date": "2024-12-31",
+      "entities": [
+        {
+          "name": "Peking University",
+          "type": "university",
+          "aliases": [],
+          "entity_id": "selected-1",
+          "unit_kind": "organization",
+          "source_urls": [
+            "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin"
+          ],
+          "resolution_status": "pending"
+        }
+      ],
+      "start_date": "2024-01-01",
+      "disciplines": [
+        "computer science"
+      ],
+      "organization_types": [
+        "university"
+      ]
+    },
+    "modules": [
+      "landscape",
+      "relationships",
+      "validation",
+      "actions"
+    ],
+    "purpose": "cooperation_discovery",
+    "weights": {
+      "preset": "cooperation_discovery",
+      "weights": {
+        "recency": {
+          "weight": 10.0,
+          "enabled": true
+        },
+        "topic_relevance": {
+          "weight": 30.0,
+          "enabled": true
+        },
+        "output_performance": {
+          "weight": 15.0,
+          "enabled": true
+        },
+        "research_alignment": {
+          "weight": 15.0,
+          "enabled": true
+        },
+        "evidence_completeness": {
+          "weight": 15.0,
+          "enabled": true
+        },
+        "cooperation_complementarity": {
+          "weight": 15.0,
+          "enabled": true
+        }
+      },
+      "mappings": [
+        {
+          "scores": {
+            "A": 1.0,
+            "B": 0.6666666666666667,
+            "C": 0.33333333333333337
+          },
+          "version": "adrs-preference-map-v1",
+          "scheme_id": "ccf"
+        },
+        {
+          "scores": {
+            "A": 0.75,
+            "B": 0.5,
+            "C": 0.25,
+            "A*": 1.0
+          },
+          "version": "adrs-preference-map-v1",
+          "scheme_id": "icore"
+        },
+        {
+          "scores": {
+            "A": 0.75,
+            "B": 0.5,
+            "C": 0.25,
+            "A*": 1.0
+          },
+          "version": "adrs-preference-map-v1",
+          "scheme_id": "abdc"
+        },
+        {
+          "scores": {
+            "1": 0.19999999999999996,
+            "2": 0.4,
+            "3": 0.6,
+            "4": 0.8,
+            "4*": 1.0
+          },
+          "version": "adrs-preference-map-v1",
+          "scheme_id": "ajg"
+        },
+        {
+          "scores": {
+            "Q1": 1.0,
+            "Q2": 0.75,
+            "Q3": 0.5,
+            "Q4": 0.25
+          },
+          "version": "adrs-preference-map-v1",
+          "scheme_id": "jcr_quartile"
+        },
+        {
+          "scores": {
+            "1": 1.0,
+            "2": 0.75,
+            "3": 0.5,
+            "4": 0.25
+          },
+          "version": "adrs-preference-map-v1",
+          "scheme_id": "cas_partition"
+        }
+      ],
+      "config_version": "user-config-v1",
+      "metric_weights": {},
+      "performance_groups": {
+        "paper": {
+          "weight": 1.0,
+          "enabled": true
+        },
+        "venue": {
+          "weight": 1.0,
+          "enabled": true
+        }
+      }
+    },
+    "schema_version": "adrs-organization-run-v3",
+    "evidence_cutoff": "2026-10-21T05:32:14.292625+00:00",
+    "selected_preset": null,
+    "catalog_manifest": {
+      "schemes": [
+        {
+          "level": "venue",
+          "family": "directory",
+          "adapter": "exact_catalogue",
+          "editions": [],
+          "scheme_id": "ccf",
+          "source_url": "https://www.ccf.org.cn/Academic_Evaluation/By_category/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "directory",
+          "adapter": "exact_catalogue",
+          "editions": [],
+          "scheme_id": "icore",
+          "source_url": "https://portal.core.edu.au/conf-ranks/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "index",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "wos_scie",
+          "source_url": "https://mjl.clarivate.com/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "index",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "wos_ssci",
+          "source_url": "https://mjl.clarivate.com/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "index",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "wos_ahci",
+          "source_url": "https://mjl.clarivate.com/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "index",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "wos_esci",
+          "source_url": "https://mjl.clarivate.com/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "index",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "scopus",
+          "source_url": "https://www.scopus.com/sources",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "journal_metric",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "jcr_jif",
+          "source_url": "https://jcr.clarivate.com/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "journal_metric",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "jcr_quartile",
+          "source_url": "https://jcr.clarivate.com/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "journal_metric",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "jcr_jci",
+          "source_url": "https://jcr.clarivate.com/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "journal_metric",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "cas_partition",
+          "source_url": "https://www.fenqubiao.com/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "journal_metric",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "citescore",
+          "source_url": "https://www.scopus.com/sources",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "journal_metric",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "citescore_percentile",
+          "source_url": "https://www.scopus.com/sources",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "journal_metric",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "sjr",
+          "source_url": "https://www.scimagojr.com/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "journal_metric",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "snip",
+          "source_url": "https://www.scopus.com/sources",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "directory",
+          "adapter": "exact_catalogue",
+          "editions": [],
+          "scheme_id": "abdc",
+          "source_url": "https://abdc.edu.au/abdc-journal-quality-list/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "directory",
+          "adapter": "exact_catalogue",
+          "editions": [],
+          "scheme_id": "ajg",
+          "source_url": "https://charteredabs.org/academic-journal-guide",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "work",
+          "family": "paper_metric",
+          "adapter": "paper_metric",
+          "editions": [],
+          "scheme_id": "citation_percentile",
+          "source_url": "https://help.openalex.org/data/works/citations/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "work",
+          "family": "paper_metric",
+          "adapter": "paper_metric",
+          "editions": [],
+          "scheme_id": "cnci",
+          "source_url": "https://incites.help.clarivate.com/Content/Indicators-Handbook/ih-normalized-citation-impact.htm",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "work",
+          "family": "paper_metric",
+          "adapter": "paper_metric",
+          "editions": [],
+          "scheme_id": "fwci",
+          "source_url": "https://help.openalex.org/data/works/citations/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        }
+      ],
+      "sources": [
+        {
+          "access": "public",
+          "edition": "2012",
+          "records": [
+            {
+              "track": "main",
+              "status": "available",
+              "category": "Computer networks",
+              "raw_value": "B",
+              "target_id": "dblp:conf/nsdi",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            },
+            {
+              "track": "main",
+              "status": "available",
+              "category": "Computer networks",
+              "raw_value": "A",
+              "target_id": "dblp:conf/sigcomm",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            }
+          ],
+          "coverage": "partial",
+          "provider": "CCF (issued PDF, public mirror)",
+          "scheme_id": "ccf",
+          "source_id": "public-ccf-2012",
+          "authorized": false,
+          "source_url": "https://risame.github.io/sun/ccf.pdf",
+          "metric_year": 2012,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": null
+        },
+        {
+          "access": "public",
+          "edition": "2022",
+          "records": [
+            {
+              "track": "main",
+              "status": "available",
+              "category": "Computer networks",
+              "raw_value": "A",
+              "target_id": "dblp:conf/nsdi",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            },
+            {
+              "track": "main",
+              "status": "available",
+              "category": "Computer networks",
+              "raw_value": "A",
+              "target_id": "dblp:conf/sigcomm",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            }
+          ],
+          "coverage": "partial",
+          "provider": "CCF (issued PDF, public mirror)",
+          "scheme_id": "ccf",
+          "source_id": "public-ccf-2022",
+          "authorized": false,
+          "source_url": "https://scdm-shu.github.io/ccf/2022-CCF-Ranking.pdf",
+          "metric_year": 2022,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": null
+        },
+        {
+          "access": "public",
+          "edition": "CORE2023",
+          "records": [
+            {
+              "track": "main",
+              "status": "available",
+              "category": "4606",
+              "raw_value": "A*",
+              "target_id": "dblp:conf/sigcomm",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            }
+          ],
+          "coverage": "partial",
+          "provider": "ICORE",
+          "scheme_id": "icore",
+          "source_id": "public-icore-2023",
+          "authorized": false,
+          "source_url": "https://portal.core.edu.au/conf-ranks/?search=SIGCOMM&by=all&source=CORE2023&sort=atitle&page=1",
+          "metric_year": 2023,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": null
+        },
+        {
+          "access": "public",
+          "edition": "ICORE2026",
+          "records": [
+            {
+              "track": "main",
+              "status": "available",
+              "category": "4606",
+              "raw_value": "A*",
+              "target_id": "dblp:conf/sigcomm",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            }
+          ],
+          "coverage": "partial",
+          "provider": "ICORE",
+          "scheme_id": "icore",
+          "source_id": "public-icore-2026",
+          "authorized": false,
+          "source_url": "https://portal.core.edu.au/conf-ranks/?search=SIGCOMM&by=all&source=ICORE2026&sort=atitle&page=1",
+          "metric_year": 2026,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": null
+        },
+        {
+          "access": "public",
+          "edition": "2010",
+          "records": [
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "1503",
+              "raw_value": "A*",
+              "target_id": "issn:0047-2506",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            },
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "1503",
+              "raw_value": "A*",
+              "target_id": "issn:1478-6990",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            }
+          ],
+          "coverage": "partial",
+          "provider": "ABDC",
+          "scheme_id": "abdc",
+          "source_id": "public-abdc-2010",
+          "authorized": false,
+          "source_url": "https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx",
+          "metric_year": 2010,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": null
+        },
+        {
+          "access": "public",
+          "edition": "2013",
+          "records": [
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "1503",
+              "raw_value": "A*",
+              "target_id": "issn:0047-2506",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            },
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "1503",
+              "raw_value": "A*",
+              "target_id": "issn:1478-6990",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            }
+          ],
+          "coverage": "partial",
+          "provider": "ABDC",
+          "scheme_id": "abdc",
+          "source_id": "public-abdc-2013",
+          "authorized": false,
+          "source_url": "https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx",
+          "metric_year": 2013,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": null
+        },
+        {
+          "access": "public",
+          "edition": "2016",
+          "records": [
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "1503",
+              "raw_value": "A*",
+              "target_id": "issn:0047-2506",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            },
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "1503",
+              "raw_value": "A*",
+              "target_id": "issn:1478-6990",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            }
+          ],
+          "coverage": "partial",
+          "provider": "ABDC",
+          "scheme_id": "abdc",
+          "source_id": "public-abdc-2016",
+          "authorized": false,
+          "source_url": "https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx",
+          "metric_year": 2016,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": null
+        },
+        {
+          "access": "public",
+          "edition": "2019",
+          "records": [
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "1503",
+              "raw_value": "A*",
+              "target_id": "issn:0047-2506",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            },
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "1503",
+              "raw_value": "A*",
+              "target_id": "issn:1478-6990",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            }
+          ],
+          "coverage": "partial",
+          "provider": "ABDC",
+          "scheme_id": "abdc",
+          "source_id": "public-abdc-2019",
+          "authorized": false,
+          "source_url": "https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx",
+          "metric_year": 2019,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": null
+        },
+        {
+          "access": "public",
+          "edition": "2022",
+          "records": [
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "3507",
+              "raw_value": "A*",
+              "target_id": "issn:0047-2506",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            },
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "3507",
+              "raw_value": "A*",
+              "target_id": "issn:1478-6990",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            }
+          ],
+          "coverage": "partial",
+          "provider": "ABDC",
+          "scheme_id": "abdc",
+          "source_id": "public-abdc-2022",
+          "authorized": false,
+          "source_url": "https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx",
+          "metric_year": 2022,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": null
+        },
+        {
+          "access": "public",
+          "edition": "2025",
+          "records": [
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "3507",
+              "raw_value": "A*",
+              "target_id": "issn:0047-2506",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            },
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "3507",
+              "raw_value": "A*",
+              "target_id": "issn:1478-6990",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            }
+          ],
+          "coverage": "partial",
+          "provider": "ABDC",
+          "scheme_id": "abdc",
+          "source_id": "public-abdc-2025",
+          "authorized": false,
+          "source_url": "https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx",
+          "metric_year": 2025,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": null
+        },
+        {
+          "access": "public",
+          "edition": "OpenAlex snapshot 2026-10-19",
+          "records": [
+            {
+              "track": "work",
+              "status": "available",
+              "category": "https://openalex.org/subfields/2613 | Statistics and Probability",
+              "raw_value": 3266.5958,
+              "target_id": "openalex:W1951724000",
+              "document_type": "article",
+              "citation_cutoff": "2018-12-31",
+              "publication_year": 2015
+            }
+          ],
+          "coverage": "partial",
+          "provider": "OpenAlex",
+          "scheme_id": "fwci",
+          "source_id": "openalex-W1951724000-fwci-2026-10-19",
+          "authorized": false,
+          "source_url": "https://api.openalex.org/works/W1951724000",
+          "metric_year": 2026,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": "2026-10-19T09:35:57.686232"
+        },
+        {
+          "access": "public",
+          "edition": "OpenAlex snapshot 2026-10-19",
+          "records": [
+            {
+              "track": "work",
+              "status": "available",
+              "category": "https://openalex.org/subfields/2613 | Statistics and Probability",
+              "raw_value": 1.0,
+              "target_id": "openalex:W1951724000",
+              "document_type": "article",
+              "citation_cutoff": "2018-12-31",
+              "publication_year": 2015
+            }
+          ],
+          "coverage": "partial",
+          "provider": "OpenAlex",
+          "scheme_id": "citation_percentile",
+          "source_id": "openalex-W1951724000-citation_percentile-2026-10-19",
+          "authorized": false,
+          "source_url": "https://api.openalex.org/works/W1951724000",
+          "metric_year": 2026,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": "2026-10-19T09:35:57.686232"
+        }
+      ],
+      "captured_at": "2026-10-21T05:32:14.292625+00:00",
+      "schema_version": "adrs-evaluation-catalog-v1",
+      "availability_note": "Frozen public samples and import requirements; not a live lookup or verified evaluation of collected evidence.",
+      "applied_to_evidence": false,
+      "adapter_rule_version": "adrs-evaluation-adapters-v1"
+    },
+    "effective_weights": {
+      "mappings": [
+        {
+          "scores": {
+            "A": 1.0,
+            "B": 0.6666666666666667,
+            "C": 0.33333333333333337
+          },
+          "version": "adrs-preference-map-v1",
+          "scheme_id": "ccf"
+        },
+        {
+          "scores": {
+            "A": 0.75,
+            "B": 0.5,
+            "C": 0.25,
+            "A*": 1.0
+          },
+          "version": "adrs-preference-map-v1",
+          "scheme_id": "icore"
+        },
+        {
+          "scores": {
+            "A": 0.75,
+            "B": 0.5,
+            "C": 0.25,
+            "A*": 1.0
+          },
+          "version": "adrs-preference-map-v1",
+          "scheme_id": "abdc"
+        },
+        {
+          "scores": {
+            "1": 0.19999999999999996,
+            "2": 0.4,
+            "3": 0.6,
+            "4": 0.8,
+            "4*": 1.0
+          },
+          "version": "adrs-preference-map-v1",
+          "scheme_id": "ajg"
+        },
+        {
+          "scores": {
+            "Q1": 1.0,
+            "Q2": 0.75,
+            "Q3": 0.5,
+            "Q4": 0.25
+          },
+          "version": "adrs-preference-map-v1",
+          "scheme_id": "jcr_quartile"
+        },
+        {
+          "scores": {
+            "1": 1.0,
+            "2": 0.75,
+            "3": 0.5,
+            "4": 0.25
+          },
+          "version": "adrs-preference-map-v1",
+          "scheme_id": "cas_partition"
+        }
+      ],
+      "semantics": "preference_configuration_only",
+      "raw_config": {
+        "preset": "cooperation_discovery",
+        "weights": {
+          "recency": {
+            "weight": 10.0,
+            "enabled": true
+          },
+          "topic_relevance": {
+            "weight": 30.0,
+            "enabled": true
+          },
+          "output_performance": {
+            "weight": 15.0,
+            "enabled": true
+          },
+          "research_alignment": {
+            "weight": 15.0,
+            "enabled": true
+          },
+          "evidence_completeness": {
+            "weight": 15.0,
+            "enabled": true
+          },
+          "cooperation_complementarity": {
+            "weight": 15.0,
+            "enabled": true
+          }
+        },
+        "metric_weights": {},
+        "performance_groups": {
+          "paper": {
+            "weight": 1.0,
+            "enabled": true
+          },
+          "venue": {
+            "weight": 1.0,
+            "enabled": true
+          }
+        }
+      },
+      "rule_version": "adrs-weight-rules-v1",
+      "config_version": "user-config-v1",
+      "preset_version": "adrs-presets-v1",
+      "effective_groups": {
+        "paper": 0.5,
+        "venue": 0.5
+      },
+      "effective_weights": {
+        "recency": 0.09999999999999999,
+        "topic_relevance": 0.3,
+        "output_performance": 0.15,
+        "research_alignment": 0.15,
+        "evidence_completeness": 0.15,
+        "cooperation_complementarity": 0.15
+      },
+      "effective_metric_weights": {}
+    },
+    "scope_rule_version": "adrs-organization-scope-v2",
+    "analysis_policy_version": "adrs-analysis-modules-v1"
+  },
+  "module_report": {
+    "issues": [],
+    "modules": [
+      {
+        "label": "研究全景",
+        "status": "draft_requires_review",
+        "module_id": "landscape",
+        "paragraphs": [
+          {
+            "kind": "observation",
+            "text": "本次研究仅覆盖一篇发表样本：DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving，收录于第18届 USENIX OSDI 24（Santa Clara, CA），页码 193–210，2024年7月。",
+            "citations": [
+              1
+            ]
+          },
+          {
+            "kind": "observation",
+            "text": "该论文的公开研究方向为大语言模型服务系统性能优化：将 prefill 与 decoding 计算分配到不同 GPU 以消除两阶段干扰，并依据应用的 TTFT 与 TPOT 延迟要求，分别协同优化两阶段的资源分配与并行策略，同时按服务集群带宽放置两阶段以减少解耦带来的通信开销。",
+            "citations": [
+              1
+            ]
+          },
+          {
+            "kind": "observation",
+            "text": "USENIX 作者列表标注 Yinmin Zhong、Shengyu Liu、Jianbo Hu、Xuanzhe Liu、Xin Jin 为 Peking University，Junda Chen、Hao Zhang 为 UC San Diego，Yibo Zhu 为 StepFun；这是本样本中 Peking University 署名的直接证据。本样本为单一年度（2024）观测，不能据此确立多年趋势；1 篇论文的计数不代表机构研发投入或系统研究整体规模。",
+            "citations": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "label": "关系分析",
+        "status": "draft_requires_review",
+        "module_id": "relationships",
+        "paragraphs": [
+          {
+            "kind": "observation",
+            "text": "已知署名与共著：Peking University 与 UC San Diego、StepFun 出现在同一论文作者列表中，构成学术共著事实。",
+            "citations": [
+              1
+            ]
+          },
+          {
+            "kind": "gap",
+            "text": "资助方面，所提供证据中未出现论文的资助或基金声明；USENIX 页面上的“OSDI '24 Open Access Sponsored by King Abdullah University of Science and Technology (KAUST)”是会议开放获取赞助方，不能归为 Peking University 的研究资助。项目、正式协议或合作备忘录均无证据；共著不等于正式协议、产品部署或可联系性。",
+            "citations": [
+              1
+            ]
+          },
+          {
+            "kind": "observation",
+            "text": "论文给出系统评估结果（相对当时最优系统可服务 7.4 倍更多请求或 12.6 倍更紧 SLO，且超过 90% 请求满足延迟约束），但证据未表明该系统已实际生产部署。",
+            "citations": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "label": "交叉验证",
+        "status": "draft_requires_review",
+        "module_id": "validation",
+        "paragraphs": [
+          {
+            "kind": "observation",
+            "text": "支持性证据为 USENIX 会议页面一项，同时提供标题、作者与机构对应、会议、年份与页码，内部一致。",
+            "citations": [
+              1
+            ]
+          },
+          {
+            "kind": "gap",
+            "text": "未发现冲突材料；但未取得论文全文、致谢与资助段落、Peking University 官方研究页面、作者个人主页或实验室页面，因此资助来源、组织单元归属与部署状态均无法交叉确认。其余检索到的浏览器下载页、地名解释等材料与本样本无关，不构成支持或反驳。",
+            "citations": []
+          }
+        ]
+      },
+      {
+        "label": "后续行动",
+        "status": "draft_requires_review",
+        "module_id": "actions",
+        "paragraphs": [
+          {
+            "kind": "gap",
+            "text": "合作发现目的下，当前缺少合作需求条件，不应擅自联系任何作者或机构。建议先补齐待补条件：论文全文的致谢与资助声明、Peking University 相关作者所属实验室或课题组页面，以及合作需求本身（技术方向、形式、地域）。",
+            "citations": []
+          },
+          {
+            "kind": "gap",
+            "text": "可提出的验证问题包括：该论文是否列有基金或企业资助；五位 Peking University 作者是否隶属同一课题组；DistServe 是否有公开的生产部署或开源实现记录。单一论文不足以评估机构系统研究广度，如需趋势判断须扩展至多年份、多会议样本。",
+            "citations": []
+          }
+        ]
+      }
+    ],
+    "purpose": "cooperation_discovery",
+    "validation": "selected_ids_and_source_numbers_only",
+    "rule_version": "adrs-analysis-modules-v1",
+    "not_requested": [
+      "evolution",
+      "deep_dive"
+    ],
+    "rejected_paragraphs": [],
+    "independent_semantic_review": false
+  },
+  "frozen_analysis": {
+    "modules": [
+      "landscape",
+      "relationships",
+      "validation",
+      "actions"
+    ],
+    "purpose": "cooperation_discovery",
+    "semantics": "研究目的、内容模块与匹配权重分别冻结；不改变模板、权限或取证预算。",
+    "rule_version": "adrs-analysis-modules-v1",
+    "module_labels": {
+      "actions": "后续行动",
+      "landscape": "研究全景",
+      "validation": "交叉验证",
+      "relationships": "关系分析"
+    },
+    "not_requested": [
+      "evolution",
+      "deep_dive"
+    ],
+    "purpose_label": "合作发现"
+  },
+  "report": "# Peking University 公开系统研究：DistServe（OSDI 24）单样本合作发现\n\n> 按本次所选研究模块组织；来源摘述和分析仍需阅读审核状态。\n\n## 研究全景\n\n**来源摘述（待审核）**：本次研究仅覆盖一篇发表样本：DistServe: Disaggregating Prefill and Decoding for Goodput\\-optimized Large Language Model Serving，收录于第18届 USENIX OSDI 24（Santa Clara, CA），页码 193–210，2024年7月。 [citation:1]\n\n**来源摘述（待审核）**：该论文的公开研究方向为大语言模型服务系统性能优化：将 prefill 与 decoding 计算分配到不同 GPU 以消除两阶段干扰，并依据应用的 TTFT 与 TPOT 延迟要求，分别协同优化两阶段的资源分配与并行策略，同时按服务集群带宽放置两阶段以减少解耦带来的通信开销。 [citation:1]\n\n**来源摘述（待审核）**：USENIX 作者列表标注 Yinmin Zhong、Shengyu Liu、Jianbo Hu、Xuanzhe Liu、Xin Jin 为 Peking University，Junda Chen、Hao Zhang 为 UC San Diego，Yibo Zhu 为 StepFun；这是本样本中 Peking University 署名的直接证据。本样本为单一年度（2024）观测，不能据此确立多年趋势；1 篇论文的计数不代表机构研发投入或系统研究整体规模。 [citation:1]\n\n## 关系分析\n\n**来源摘述（待审核）**：已知署名与共著：Peking University 与 UC San Diego、StepFun 出现在同一论文作者列表中，构成学术共著事实。 [citation:1]\n\n**证据缺口**：资助方面，所提供证据中未出现论文的资助或基金声明；USENIX 页面上的“OSDI '24 Open Access Sponsored by King Abdullah University of Science and Technology \\(KAUST\\)”是会议开放获取赞助方，不能归为 Peking University 的研究资助。项目、正式协议或合作备忘录均无证据；共著不等于正式协议、产品部署或可联系性。 [citation:1]\n\n**来源摘述（待审核）**：论文给出系统评估结果（相对当时最优系统可服务 7\\.4 倍更多请求或 12\\.6 倍更紧 SLO，且超过 90% 请求满足延迟约束），但证据未表明该系统已实际生产部署。 [citation:1]\n\n## 交叉验证\n\n**来源摘述（待审核）**：支持性证据为 USENIX 会议页面一项，同时提供标题、作者与机构对应、会议、年份与页码，内部一致。 [citation:1]\n\n**证据缺口**：未发现冲突材料；但未取得论文全文、致谢与资助段落、Peking University 官方研究页面、作者个人主页或实验室页面，因此资助来源、组织单元归属与部署状态均无法交叉确认。其余检索到的浏览器下载页、地名解释等材料与本样本无关，不构成支持或反驳。 \n\n## 后续行动\n\n**证据缺口**：合作发现目的下，当前缺少合作需求条件，不应擅自联系任何作者或机构。建议先补齐待补条件：论文全文的致谢与资助声明、Peking University 相关作者所属实验室或课题组页面，以及合作需求本身（技术方向、形式、地域）。 \n\n**证据缺口**：可提出的验证问题包括：该论文是否列有基金或企业资助；五位 Peking University 作者是否隶属同一课题组；DistServe 是否有公开的生产部署或开源实现记录。单一论文不足以评估机构系统研究广度，如需趋势判断须扩展至多年份、多会议样本。 \n\n\n## 核验结果\n\n自动来源支持：7/11 项；人工复核：未复核。模型置信度不代表人工确认。\n支持状态来自模型语义判断与原文引语校验，不能保证结论为真。\n\n- claim:1 [missing_citation] 按本次所选研究模块组织；来源摘述和分析仍需阅读审核状态。 — Awaiting source support judgement\n- claim:9 [missing_citation] **证据缺口**：未发现冲突材料；但未取得论文全文、致谢与资助段落、Peking University 官方研究页面、作者个人主页或实验室页面，因此资助来源、组织单元归属与部署状态均无法交叉确认。其余检索到的浏览器下载页、地名解释等材料与本样本无关，不构成支持或反驳。 — Awaiting source support judgement\n- claim:10 [missing_citation] **证据缺口**：合作发现目的下，当前缺少合作需求条件，不应擅自联系任何作者或机构。建议先补齐待补条件：论文全文的致谢与资助声明、Peking University 相关作者所属实验室或课题组页面，以及合作需求本身（技术方向、形式、地域）。 — Awaiting source support judgement\n- claim:11 [missing_citation] **证据缺口**：可提出的验证问题包括：该论文是否列有基金或企业资助；五位 Peking University 作者是否隶属同一课题组；DistServe 是否有公开的生产部署或开源实现记录。单一论文不足以评估机构系统研究广度，如需趋势判断须扩展至多年份、多会议样本。 — Awaiting source support judgement\n\n---\n\n## References\n\n[1] **DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving | USENIX** - https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin\n[2] **Chrome Web Browser - Google Chrome** - https://www.google.com/chrome/index.html\n[3] **Google Chrome - The Fast & Secure Web Browser Built to be Yours** - https://www.google.com/chrome/\n[4] **Download and install Google Chrome** - https://support.google.com/chrome/answer/95346?hl=en&co=GENIE.Platform%3DDesktop\n[5] **Download and install Google Chrome** - https://support.google.com/chrome/answer/95346?hl=en&co=GENIE.Platform%3DAndroid\n[6] **Browser features and tools – Google Chrome** - https://www.google.co.uk/chrome/browser-tools/\n[7] **Google Chrome - Wikipedia** - https://en.wikipedia.org/wiki/Google_Chrome\n[8] **Chrome Web Store** - https://chromewebstore.google.com/\n[9] **Google** - https://www.google.us/\n[10] **Google Chrome - Apps on Google Play** - https://play.google.com/store/apps/details/?id=com.android.chrome&hl=en\n[11] **Google Chrome Browser Download Free - 155.0.8059.85 | TechSpot** - https://www.techspot.com/downloads/4718-google-chrome.html\n[12] **Influenza (flu) - Symptoms and causes - Mayo Clinic** - https://www.mayoclinic.org/diseases-conditions/flu/symptoms-causes/syc-20351719\n[13] **Influenza and Sepsis: Mayo Expert Describes Signs of Severe Sepsis ...** - https://newsnetwork.mayoclinic.org/discussion/influenza-and-sepsis-mayo-expert-describes-warning-signs-of-severe-sepsis-septic-shock/\n[14] **Bird flu (avian influenza) - Diagnosis and treatment - Mayo Clinic** - https://www.mayoclinic.org/diseases-conditions/bird-flu/diagnosis-treatment/drc-20568430\n[15] **COVID-19, cold, allergies and the flu: What are the differences?** - https://newsnetwork.mayoclinic.org/discussion/covid-19-cold-allergies-and-the-flu-what-are-the-differences/\n[16] **Should you take your Predisone when you have the flu** - https://connect.mayoclinic.org/discussion/should-you-take-your-predisone-when-you-have-the-flu/\n[17] **Rapid fluctuating 02 levels - Mayo Clinic Connect** - https://connect.mayoclinic.org/discussion/rapid-fluctuating-02-levels/\n[18] **Respiratory syncytial virus (RSV) and cancer - Mayo Clinic Press** - https://mcpress.mayoclinic.org/rsv/respiratory-syncytial-virus-rsv-and-cancer/\n[19] **The constant cold: Why kids are always sick and what to do about it** - https://mcpress.mayoclinic.org/parenting/the-constant-cold-why-kids-are-always-sick-and-what-to-do-about-it/\n[20] **Mayo Clinic Express Care North** - https://communityhealth.mayoclinic.org/locations/express-care-north\n[21] **Express Care Overview: Primary Care in Rochester / Kasson** - https://communityhealth.mayoclinic.org/express-care-overview\n[22] **Verbs ending in -th - English Language Learners Stack Exchange** - https://ell.stackexchange.com/questions/477/verbs-ending-in-th\n[23] **mac - How can I get two calculators going? - Ask Different** - https://apple.stackexchange.com/questions/325420/how-can-i-get-two-calculators-going\n[24] **What is OLK15message files and how to recover it?** - https://apple.stackexchange.com/questions/318375/what-is-olk15message-files-and-how-to-recover-it\n[25] **\"What is the weather today?\" or \"How is the weather today?\"** - https://ell.stackexchange.com/questions/174118/what-is-the-weather-today-or-how-is-the-weather-today\n[26] **Get serial numbers of connected USB devices - Ask Different** - https://apple.stackexchange.com/questions/275382/get-serial-numbers-of-connected-usb-devices\n[27] **How can I tell if my iOS device is currently jailbroken?** - https://apple.stackexchange.com/questions/70809/how-can-i-tell-if-my-ios-device-is-currently-jailbroken\n[28] **Where are the installation directories for homebrew?** - https://apple.stackexchange.com/questions/159889/where-are-the-installation-directories-for-homebrew\n[29] **terminal - How to quit finder - Ask Different** - https://apple.stackexchange.com/questions/343407/how-to-quit-finder\n[30] **Can I create something like a macro in Numbers? - Ask Different** - https://apple.stackexchange.com/questions/367701/can-i-create-something-like-a-macro-in-numbers\n[31] **How to get Audio Drivers for Macbook in Windows 10** - https://apple.stackexchange.com/questions/199599/how-to-get-audio-drivers-for-macbook-in-windows-10\n[32] **Beijing - Wikipedia** - https://en.wikipedia.org/wiki/Beijing\n[33] **Why is Beijing no longer called Peking - Ruqin China Travel** - https://ruqintravel.com/china-destination-guides/beijing-and-peking/\n[34] **Names of Beijing - Wikipedia** - https://en.wikipedia.org/wiki/Names_of_Beijing\n[35] **Peking Restaurant** - https://www.pekingdining.com/\n[36] **Beijing - Simple English Wikipedia, the free encyclopedia** - https://simple.wikipedia.org/wiki/Beijing\n[37] **Explore | VISIT PEKING** - https://www.visitpeking.com/explore\n[38] **Peking – Wikipedia** - https://de.wikipedia.org/wiki/Peking\n[39] **THE 15 BEST Things to Do in Beijing (2026) - Tripadvisor** - https://www.tripadvisor.com/Attractions-g294212-Activities-Beijing.html\n[40] **Home | Peking Media Restaurant** - https://pekingmediapa.com/\n[41] **Beijing | Province, City, History, Map, & Facts | Britannica** - https://www.britannica.com/place/Beijing\n[42] **[2401.09670] DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving** - https://arxiv.org/abs/2401.09670\n\n## 研究对象、口径与冻结配置\n主题：基于 https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin 研究 Peking University 的公开系统研究。只覆盖这篇 DistServe 发表样本；按选择的研究目的和模块交付。只有一个年度观测时明确不能确立多年趋势。署名或共著不等于正式协议、产品部署或可联系性；缺证保留未知，不把机构成果量当作内部研发投入。；学科：computer science；时间：2024-01-01 至 2024-12-31。\n对象类型：university；请求冻结时间：2026-10-21T05:32:14.292625+00:00。实际采集时间逐来源保留。\n范围规则：adrs-organization-scope-v2；配置版本：user-config-v1；权重规则：adrs-weight-rules-v1；预设版本：adrs-presets-v1。\n分别保留发表记录与研究家族；同成果可归属多个对象，汇总取并集，未关联版本按独立发表计数。\n偏好配置不等于已完成评分；结果页只读重排不改写本报告的配置、事实或证据。\n研究目的：合作发现；研究模块：研究全景、关系分析、交叉验证、后续行动；模块规则：adrs-analysis-modules-v1。目的、模块与权重分别保存。\n### 对象与来源\n- Peking University（university；pending）：<https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin>\n### 原始与生效权重\n| 维度 | 原始权重 | 开启 | 生效权重 |\n| --- | ---: | --- | ---: |\n| 主题相关性 | 30.0 | 是 | 30.00% |\n| 研究路线契合 | 15.0 | 是 | 15.00% |\n| 成果表现 | 15.0 | 是 | 15.00% |\n| 证据完整度 | 15.0 | 是 | 15.00% |\n| 时效性 | 10.0 | 是 | 10.00% |\n| 合作互补性 | 15.0 | 是 | 15.00% |\n### 成果表现组内权重\n| 项目 | 原始权重 | 开启 | 组内生效权重 |\n| --- | ---: | --- | ---: |\n| venue | 1.0 | 是 | 50.00% |\n| paper | 1.0 | 是 | 50.00% |\n### 指标组内权重\n| 项目 | 原始权重 | 开启 | 组内生效权重 |\n| --- | ---: | --- | ---: |\n| 未显式配置 | — | — | — |\n### 有序偏好映射（产品偏好，非官方等价）\n- ccf／adrs-preference-map-v1：A=1.0；B=0.6666666666666667；C=0.33333333333333337\n- icore／adrs-preference-map-v1：A*=1.0；A=0.75；B=0.5；C=0.25\n- abdc／adrs-preference-map-v1：A*=1.0；A=0.75；B=0.5；C=0.25\n- ajg／adrs-preference-map-v1：1=0.19999999999999996；2=0.4；3=0.6；4=0.8；4*=1.0\n- jcr_quartile／adrs-preference-map-v1：Q1=1.0；Q2=0.75；Q3=0.5；Q4=0.25\n- cas_partition／adrs-preference-map-v1：1=1.0；2=0.75；3=0.5；4=0.25\n### 评价口径及可用性\n目录版本：adrs-evaluation-catalog-v1；适配规则：adrs-evaluation-adapters-v1。目录样本不代表本次成果已核定评价。\n- ccf：部分公开样本；<https://www.ccf.org.cn/Academic_Evaluation/By_category/>；尚未核定本次成果。\n- icore：部分公开样本；<https://portal.core.edu.au/conf-ranks/>；尚未核定本次成果。\n- wos_scie：需授权导入／尚无公开样本；<https://mjl.clarivate.com/>；尚未核定本次成果。\n- wos_ssci：需授权导入／尚无公开样本；<https://mjl.clarivate.com/>；尚未核定本次成果。\n- wos_ahci：需授权导入／尚无公开样本；<https://mjl.clarivate.com/>；尚未核定本次成果。\n- wos_esci：需授权导入／尚无公开样本；<https://mjl.clarivate.com/>；尚未核定本次成果。\n- scopus：需授权导入／尚无公开样本；<https://www.scopus.com/sources>；尚未核定本次成果。\n- jcr_jif：需授权导入／尚无公开样本；<https://jcr.clarivate.com/>；尚未核定本次成果。\n- jcr_quartile：需授权导入／尚无公开样本；<https://jcr.clarivate.com/>；尚未核定本次成果。\n- jcr_jci：需授权导入／尚无公开样本；<https://jcr.clarivate.com/>；尚未核定本次成果。\n- cas_partition：需授权导入／尚无公开样本；<https://www.fenqubiao.com/>；尚未核定本次成果。\n- citescore：需授权导入／尚无公开样本；<https://www.scopus.com/sources>；尚未核定本次成果。\n- citescore_percentile：需授权导入／尚无公开样本；<https://www.scopus.com/sources>；尚未核定本次成果。\n- sjr：需授权导入／尚无公开样本；<https://www.scimagojr.com/>；尚未核定本次成果。\n- snip：需授权导入／尚无公开样本；<https://www.scopus.com/sources>；尚未核定本次成果。\n- abdc：部分公开样本；<https://abdc.edu.au/abdc-journal-quality-list/>；尚未核定本次成果。\n- ajg：需授权导入／尚无公开样本；<https://charteredabs.org/academic-journal-guide>；尚未核定本次成果。\n- citation_percentile：部分公开样本；<https://help.openalex.org/data/works/citations/>；尚未核定本次成果。\n- cnci：需授权导入／尚无公开样本；<https://incites.help.clarivate.com/Content/Indicators-Handbook/ih-normalized-citation-impact.htm>；尚未核定本次成果。\n- fwci：部分公开样本；<https://help.openalex.org/data/works/citations/>；尚未核定本次成果。\n- ccf／2012／指标年 2012：public，partial；<https://risame.github.io/sun/ccf.pdf>\n- ccf／2022／指标年 2022：public，partial；<https://scdm-shu.github.io/ccf/2022-CCF-Ranking.pdf>\n- icore／CORE2023／指标年 2023：public，partial；<https://portal.core.edu.au/conf-ranks/?search=SIGCOMM&by=all&source=CORE2023&sort=atitle&page=1>\n- icore／ICORE2026／指标年 2026：public，partial；<https://portal.core.edu.au/conf-ranks/?search=SIGCOMM&by=all&source=ICORE2026&sort=atitle&page=1>\n- abdc／2010／指标年 2010：public，partial；<https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx>\n- abdc／2013／指标年 2013：public，partial；<https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx>\n- abdc／2016／指标年 2016：public，partial；<https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx>\n- abdc／2019／指标年 2019：public，partial；<https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx>\n- abdc／2022／指标年 2022：public，partial；<https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx>\n- abdc／2025／指标年 2025：public，partial；<https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx>\n- fwci／OpenAlex snapshot 2026-10-19／指标年 2026：public，partial；<https://api.openalex.org/works/W1951724000>\n- citation_percentile／OpenAlex snapshot 2026-10-19／指标年 2026：public，partial；<https://api.openalex.org/works/W1951724000>\n### 实际取证来源\n- ev-457b1257：DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving \\| USENIX；<https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin>；采集 2026-10-21T05:32:44.513687。\n- ev-7bf7ed4a：Chrome Web Browser - Google Chrome；<https://www.google.com/chrome/index.html>；采集 2026-10-21T05:32:23.679434+00:00。\n- ev-ff8eaa66：Google Chrome - The Fast & Secure Web Browser Built to be Yours；<https://www.google.com/chrome/>；采集 2026-10-21T05:32:23.679434+00:00。\n- ev-0add3983：Download and install Google Chrome；<https://support.google.com/chrome/answer/95346?hl=en&co=GENIE.Platform%3DDesktop>；采集 2026-10-21T05:32:23.679434+00:00。\n- ev-649542f9：Download and install Google Chrome；<https://support.google.com/chrome/answer/95346?hl=en&co=GENIE.Platform%3DAndroid>；采集 2026-10-21T05:32:23.679434+00:00。\n- ev-61b9c760：Browser features and tools – Google Chrome；<https://www.google.co.uk/chrome/browser-tools/>；采集 2026-10-21T05:32:23.679434+00:00。\n- ev-520e6b8c：Google Chrome - Wikipedia；<https://en.wikipedia.org/wiki/Google_Chrome>；采集 2026-10-21T05:32:23.679434+00:00。\n- ev-f7a98685：Chrome Web Store；<https://chromewebstore.google.com/>；采集 2026-10-21T05:32:23.679434+00:00。\n- ev-571c8577：Google；<https://www.google.us/>；采集 2026-10-21T05:32:23.679434+00:00。\n- ev-1f6e576d：Google Chrome - Apps on Google Play；<https://play.google.com/store/apps/details/?id=com.android.chrome&hl=en>；采集 2026-10-21T05:32:23.679434+00:00。\n- ev-59b2de4b：Google Chrome Browser Download Free - 155.0.8059.85 \\| TechSpot；<https://www.techspot.com/downloads/4718-google-chrome.html>；采集 2026-10-21T05:32:23.679434+00:00。\n- ev-013848ff：Influenza (flu) - Symptoms and causes - Mayo Clinic；<https://www.mayoclinic.org/diseases-conditions/flu/symptoms-causes/syc-20351719>；采集 2026-10-21T05:32:23.677193+00:00。\n- ev-d0e0a6ea：Influenza and Sepsis: Mayo Expert Describes Signs of Severe Sepsis ...；<https://newsnetwork.mayoclinic.org/discussion/influenza-and-sepsis-mayo-expert-describes-warning-signs-of-severe-sepsis-septic-shock/>；采集 2026-10-21T05:32:23.677193+00:00。\n- ev-b79a3691：Bird flu (avian influenza) - Diagnosis and treatment - Mayo Clinic；<https://www.mayoclinic.org/diseases-conditions/bird-flu/diagnosis-treatment/drc-20568430>；采集 2026-10-21T05:32:23.677193+00:00。\n- ev-e84c223f：COVID-19, cold, allergies and the flu: What are the differences?；<https://newsnetwork.mayoclinic.org/discussion/covid-19-cold-allergies-and-the-flu-what-are-the-differences/>；采集 2026-10-21T05:32:23.677193+00:00。\n- ev-f378d1a9：Should you take your Predisone when you have the flu；<https://connect.mayoclinic.org/discussion/should-you-take-your-predisone-when-you-have-the-flu/>；采集 2026-10-21T05:32:23.677193+00:00。\n- ev-986961e3：Rapid fluctuating 02 levels - Mayo Clinic Connect；<https://connect.mayoclinic.org/discussion/rapid-fluctuating-02-levels/>；采集 2026-10-21T05:32:23.677193+00:00。\n- ev-6a5c4cb7：Respiratory syncytial virus (RSV) and cancer - Mayo Clinic Press；<https://mcpress.mayoclinic.org/rsv/respiratory-syncytial-virus-rsv-and-cancer/>；采集 2026-10-21T05:32:23.677193+00:00。\n- ev-4034c376：The constant cold: Why kids are always sick and what to do about it；<https://mcpress.mayoclinic.org/parenting/the-constant-cold-why-kids-are-always-sick-and-what-to-do-about-it/>；采集 2026-10-21T05:32:23.677193+00:00。\n- ev-9325779f：Mayo Clinic Express Care North；<https://communityhealth.mayoclinic.org/locations/express-care-north>；采集 2026-10-21T05:32:23.677193+00:00。\n- ev-2b4ed630：Express Care Overview: Primary Care in Rochester / Kasson；<https://communityhealth.mayoclinic.org/express-care-overview>；采集 2026-10-21T05:32:23.677193+00:00。\n- ev-09864831：Verbs ending in -th - English Language Learners Stack Exchange；<https://ell.stackexchange.com/questions/477/verbs-ending-in-th>；采集 2026-10-21T05:32:23.682146+00:00。\n- ev-af1d337f：mac - How can I get two calculators going? - Ask Different；<https://apple.stackexchange.com/questions/325420/how-can-i-get-two-calculators-going>；采集 2026-10-21T05:32:23.682146+00:00。\n- ev-573c76e3：What is OLK15message files and how to recover it?；<https://apple.stackexchange.com/questions/318375/what-is-olk15message-files-and-how-to-recover-it>；采集 2026-10-21T05:32:23.682146+00:00。\n- ev-32e40c82：\"What is the weather today?\" or \"How is the weather today?\"；<https://ell.stackexchange.com/questions/174118/what-is-the-weather-today-or-how-is-the-weather-today>；采集 2026-10-21T05:32:23.682146+00:00。\n- ev-e864d3e9：Get serial numbers of connected USB devices - Ask Different；<https://apple.stackexchange.com/questions/275382/get-serial-numbers-of-connected-usb-devices>；采集 2026-10-21T05:32:23.682146+00:00。\n- ev-0495314b：How can I tell if my iOS device is currently jailbroken?；<https://apple.stackexchange.com/questions/70809/how-can-i-tell-if-my-ios-device-is-currently-jailbroken>；采集 2026-10-21T05:32:23.682146+00:00。\n- ev-4ef102c2：Where are the installation directories for homebrew?；<https://apple.stackexchange.com/questions/159889/where-are-the-installation-directories-for-homebrew>；采集 2026-10-21T05:32:23.682146+00:00。\n- ev-d8f83dc1：terminal - How to quit finder - Ask Different；<https://apple.stackexchange.com/questions/343407/how-to-quit-finder>；采集 2026-10-21T05:32:23.682146+00:00。\n- ev-6a48034c：Can I create something like a macro in Numbers? - Ask Different；<https://apple.stackexchange.com/questions/367701/can-i-create-something-like-a-macro-in-numbers>；采集 2026-10-21T05:32:23.682146+00:00。\n- ev-2bd0e49f：How to get Audio Drivers for Macbook in Windows 10；<https://apple.stackexchange.com/questions/199599/how-to-get-audio-drivers-for-macbook-in-windows-10>；采集 2026-10-21T05:32:23.682146+00:00。\n- ev-ac08834a：Beijing - Wikipedia；<https://en.wikipedia.org/wiki/Beijing>；采集 2026-10-21T05:32:23.691680+00:00。\n- ev-d3052138：Why is Beijing no longer called Peking - Ruqin China Travel；<https://ruqintravel.com/china-destination-guides/beijing-and-peking/>；采集 2026-10-21T05:32:23.691680+00:00。\n- ev-5f82b2ec：Names of Beijing - Wikipedia；<https://en.wikipedia.org/wiki/Names_of_Beijing>；采集 2026-10-21T05:32:23.691680+00:00。\n- ev-3a194991：Peking Restaurant；<https://www.pekingdining.com/>；采集 2026-10-21T05:32:23.691680+00:00。\n- ev-82c6149f：Beijing - Simple English Wikipedia, the free encyclopedia；<https://simple.wikipedia.org/wiki/Beijing>；采集 2026-10-21T05:32:23.691680+00:00。\n- ev-e1d8d9a3：Explore \\| VISIT PEKING；<https://www.visitpeking.com/explore>；采集 2026-10-21T05:32:23.691680+00:00。\n- ev-00709248：Peking – Wikipedia；<https://de.wikipedia.org/wiki/Peking>；采集 2026-10-21T05:32:23.691680+00:00。\n- ev-e750078a：THE 15 BEST Things to Do in Beijing (2026) - Tripadvisor；<https://www.tripadvisor.com/Attractions-g294212-Activities-Beijing.html>；采集 2026-10-21T05:32:23.691680+00:00。\n- ev-ee567fc5：Home \\| Peking Media Restaurant；<https://pekingmediapa.com/>；采集 2026-10-21T05:32:23.691680+00:00。\n- ev-8652a9d7：Beijing \\| Province, City, History, Map, & Facts \\| Britannica；<https://www.britannica.com/place/Beijing>；采集 2026-10-21T05:32:23.691680+00:00。\n- ev-7c7762bf：\\[2401.09670\\] DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving；<https://arxiv.org/abs/2401.09670>；采集 2026-10-21T05:33:01.863805。\n### 缺失与解释边界\n- 证据索引不等于机构成果全集或已核实合作关系。\n- 仅覆盖本次取得的样本；空样本不代表现实中零成果，来源未覆盖年份不补零。\n- 学科比较组使用请求标签，尚未逐篇核定学科；不输出跨学科或载体的统一质量榜。\n- 原文位置与引用检查不等于独立语义复核；模型推断、建议和未来情景仍须复核。\n- 评价目录为冻结的部分样本及授权要求，未自动应用到本次成果；缺失指标不作零分或最低等级。\n- coauthorship 关系尚无已纳入的直接依据；不表示该关系不存在。\n- funding 关系尚无已纳入的直接依据；不表示该关系不存在。\n- citation 关系尚无已纳入的直接依据；不表示该关系不存在。\n\n\n## 可复核样本与对象比较\n计数由结构化记录计算，仅覆盖本次取得并通过原文校验的样本；未链接版本暂按单条发表独立计数。\n| 对象 | 发表记录 | 研究家族 |\n| --- | ---: | ---: |\n| Peking University | 1 | 1 |\n| 去重汇总 | 1 | 1 |\n相同成果可分别归属多个对象，合并总量取成果／家族并集，不相加各对象行。\n### 同口径样本比较\n2024／conference_paper；学科口径来自请求：computer science。仅比较该组已取得样本，不作科研质量排序。\n| 对象 | 本组研究家族数 |\n| --- | ---: |\n| Peking University | 1 |\n### 已纳入成果与依据\n- DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving；日期区间 2024-07-01 至 2024-07-31（month 精度）；[citation:1]\n### 缺口与解释边界\n待核记录 0 项；未确立的关系：coauthorship、funding、citation。未取得证据不表示关系不存在。\n机构署名按所选名称／别名与发表来源对照；不推出当前任职、正式协议、内部研发投入或科研质量优劣。跨载体／年份不汇成统一质量榜。\n### 后续评估建议（模型判断，待复核）\n- 合作发现目的下，当前缺需求条件，不擅自联系；建议先补论文全文致谢/资助声明与作者课题组页面，以核实资助来源与组织单元归属，再评估合作潜力。 [citation:1]\n",
+  "citations": [
+    {
+      "citation_id": "citation:1",
+      "source_url": "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin",
+      "source_title": "DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving | USENIX",
+      "source_type": "web",
+      "extracted_evidence": "@inproceedings {298687,\n\tauthor = {Yinmin Zhong and Shengyu Liu and Junda Chen and Jianbo Hu and Yibo Zhu and Xuanzhe Liu and Xin Jin and Hao Zhang},\n\ttitle = {{DistServe}: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving},\n\tbooktitle = {18th USENIX Symposium on",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:33:33.491312"
+    },
+    {
+      "citation_id": "citation:2",
+      "source_url": "https://www.google.com/chrome/index.html",
+      "source_title": "Chrome Web Browser - Google Chrome",
+      "source_type": "web",
+      "extracted_evidence": "Chrome Web Browser - Google Chrome: A fast, secure, and free web browser built for the modern web. Chrome syncs bookmarks across all your devices, fills out forms automatically, and so much more.",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:33:33.491312"
+    },
+    {
+      "citation_id": "citation:3",
+      "source_url": "https://www.google.com/chrome/",
+      "source_title": "Google Chrome - The Fast & Secure Web Browser Built to be Yours",
+      "source_type": "web",
+      "extracted_evidence": "Google Chrome - The Fast & Secure Web Browser Built to be Yours: Chrome is the official web browser from Google, built to be fast, secure, and customizable. Download now and make it yours.",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:33:33.491312"
+    },
+    {
+      "citation_id": "citation:4",
+      "source_url": "https://support.google.com/chrome/answer/95346?hl=en&co=GENIE.Platform%3DDesktop",
+      "source_title": "Download and install Google Chrome",
+      "source_type": "web",
+      "extracted_evidence": "Download and install Google Chrome: You can download and install the Chrome web browser at no charge, and use it to browse the web. Check system requirements to use Chrome",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:33:33.491312"
+    },
+    {
+      "citation_id": "citation:5",
+      "source_url": "https://support.google.com/chrome/answer/95346?hl=en&co=GENIE.Platform%3DAndroid",
+      "source_title": "Download and install Google Chrome",
+      "source_type": "web",
+      "extracted_evidence": "Download and install Google Chrome: Download and install Google Chrome You can download and install the Chrome web browser at no charge, and use it to browse the web.",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:33:33.491312"
+    },
+    {
+      "citation_id": "citation:6",
+      "source_url": "https://www.google.co.uk/chrome/browser-tools/",
+      "source_title": "Browser features and tools – Google Chrome",
+      "source_type": "web",
+      "extracted_evidence": "Browser features and tools – Google Chrome: Discover the browser features and tools that set Google Chrome apart and keep you focused. From search to productivity, Google Chrome empowers you to get more done.",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:33:33.491312"
+    },
+    {
+      "citation_id": "citation:7",
+      "source_url": "https://en.wikipedia.org/wiki/Google_Chrome",
+      "source_title": "Google Chrome - Wikipedia",
+      "source_type": "web",
+      "extracted_evidence": "Google Chrome - Wikipedia: Google Chrome ... Google Chrome is a cross-platform web browser developed by Google. It was launched in September 2008 for Microsoft Windows, built with free and open-source (FOSS) components from Apple WebKit and Mozilla Firefox. [16]",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:33:33.491312"
+    },
+    {
+      "citation_id": "citation:8",
+      "source_url": "https://chromewebstore.google.com/",
+      "source_title": "Chrome Web Store",
+      "source_type": "web",
+      "extracted_evidence": "Chrome Web Store: Welcome to the Chrome Web Store Supercharge your browser with extensions and themes for Chrome",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:33:33.491312"
+    },
+    {
+      "citation_id": "citation:9",
+      "source_url": "https://www.google.us/",
+      "source_title": "Google",
+      "source_type": "web",
+      "extracted_evidence": "Google: Search the world's information, including webpages, images, videos and more. Google has many special features to help you find exactly what you're looking for.",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:33:33.491312"
+    },
+    {
+      "citation_id": "citation:10",
+      "source_url": "https://play.google.com/store/apps/details/?id=com.android.chrome&hl=en",
+      "source_title": "Google Chrome - Apps on Google Play",
+      "source_type": "web",
+      "extracted_evidence": "Google Chrome - Apps on Google Play: Chrome helps you do what’s possible on the web. Choose the fast, secure browser by Google. GET THE BEST OF GOOGLE IN CHROME • SEARCH WITH GOOGLE - Search and get answers on Google fast....",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:33:33.491312"
+    },
+    {
+      "citation_id": "citation:11",
+      "source_url": "https://www.techspot.com/downloads/4718-google-chrome.html",
+      "source_title": "Google Chrome Browser Download Free - 155.0.8059.85 | TechSpot",
+      "source_type": "web",
+      "extracted_evidence": "Google Chrome Browser Download Free - 155.0.8059.85 | TechSpot: Google Chrome is a fast, simple, and secure web browser, built for the modern web. Chrome combines a minimal design with sophisticated technology to make the web faster, safer, and easier.",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:33:33.491312"
+    },
+    {
+      "citation_id": "citation:12",
+      "source_url": "https://www.mayoclinic.org/diseases-conditions/flu/symptoms-causes/syc-20351719",
+      "source_title": "Influenza (flu) - Symptoms and causes - Mayo Clinic",
+      "source_type": "web",
+      "extracted_evidence": "Influenza (flu) - Symptoms and causes - Mayo Clinic: Learn more about the symptoms, causes and prevention of this potentially deadly viral infection that attacks the respiratory system.",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:33:33.491312"
+    },
+    {
+      "citation_id": "citation:13",
+      "source_url": "https://newsnetwork.mayoclinic.org/discussion/influenza-and-sepsis-mayo-expert-describes-warning-signs-of-severe-sepsis-septic-shock/",
+      "source_title": "Influenza and Sepsis: Mayo Expert Describes Signs of Severe Sepsis ...",
+      "source_type": "web",
+      "extracted_evidence": "Influenza and Sepsis: Mayo Expert Describes Signs of Severe Sepsis ...: Sepsis can be a dangerous complication of almost any type of infection, including influenza, pneumonia and food poisoning; urinary tract infections; bloodstream infections from wounds; and abdominal infections. Steve Peters, M.D",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:33:33.491312"
+    },
+    {
+      "citation_id": "citation:14",
+      "source_url": "https://www.mayoclinic.org/diseases-conditions/bird-flu/diagnosis-treatment/drc-20568430",
+      "source_title": "Bird flu (avian influenza) - Diagnosis and treatment - Mayo Clinic",
+      "source_type": "web",
+      "extracted_evidence": "Bird flu (avian influenza) - Diagnosis and treatment - Mayo Clinic: Learn more about the diagnosis and treatment of Bird flu (avian influenza). Find tips to get ready for any appointments you need.",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:33:33.491312"
+    },
+    {
+      "citation_id": "citation:15",
+      "source_url": "https://newsnetwork.mayoclinic.org/discussion/covid-19-cold-allergies-and-the-flu-what-are-the-differences/",
+      "source_title": "COVID-19, cold, allergies and the flu: What are the differences?",
+      "source_type": "web",
+      "extracted_evidence": "COVID-19, cold, allergies and the flu: What are the differences?: If you have signs or symptoms of coronavirus disease 2019 (COVID-19), it's important that you contact your health care provider right away for medical advice. But COVID-19, the common cold, seasonal allergies and the flu (influenza) c",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:33:33.491312"
+    },
+    {
+      "citation_id": "citation:16",
+      "source_url": "https://connect.mayoclinic.org/discussion/should-you-take-your-predisone-when-you-have-the-flu/",
+      "source_title": "Should you take your Predisone when you have the flu",
+      "source_type": "web",
+      "extracted_evidence": "Should you take your Predisone when you have the flu: Going off prednisone without properly tapering down (titrating) can cause your body to have serious reactions which can land you in the ER. Talk with your doctor about the proper actions while taking prednisone, when to taper down, when to hold a",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:33:33.491312"
+    },
+    {
+      "citation_id": "citation:17",
+      "source_url": "https://connect.mayoclinic.org/discussion/rapid-fluctuating-02-levels/",
+      "source_title": "Rapid fluctuating 02 levels - Mayo Clinic Connect",
+      "source_type": "web",
+      "extracted_evidence": "Rapid fluctuating 02 levels - Mayo Clinic Connect: Hello @robman - It can be really hard to recover fully after an illness - even one like influenza, which often includes some pneumonia. It is great that they have checked your heart and circulation. Fluctuations in oxygen levels are common during re",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:33:33.491312"
+    },
+    {
+      "citation_id": "citation:18",
+      "source_url": "https://mcpress.mayoclinic.org/rsv/respiratory-syncytial-virus-rsv-and-cancer/",
+      "source_title": "Respiratory syncytial virus (RSV) and cancer - Mayo Clinic Press",
+      "source_type": "web",
+      "extracted_evidence": "Respiratory syncytial virus (RSV) and cancer - Mayo Clinic Press: “This makes it more difficult to breathe, similar to when infection with a COVID-19 or influenza virus invades the lungs,” says Dr. Virk. Other lower respiratory symptoms include severe cough, rapid breathing and wheezing, a high-pitc",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:33:33.491312"
+    },
+    {
+      "citation_id": "citation:19",
+      "source_url": "https://mcpress.mayoclinic.org/parenting/the-constant-cold-why-kids-are-always-sick-and-what-to-do-about-it/",
+      "source_title": "The constant cold: Why kids are always sick and what to do about it",
+      "source_type": "web",
+      "extracted_evidence": "The constant cold: Why kids are always sick and what to do about it: Discover why kids are constantly sick and what parents can do about it. Learn from Mayo Clinic experts how to address frequent colds and illnesses in children, understand their immune systems, and find practical solutions to keep y",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:33:33.491312"
+    },
+    {
+      "citation_id": "citation:20",
+      "source_url": "https://communityhealth.mayoclinic.org/locations/express-care-north",
+      "source_title": "Mayo Clinic Express Care North",
+      "source_type": "web",
+      "extracted_evidence": "Mayo Clinic Express Care North: Mayo Clinic Express Care North in Rochester, Minn., offers services for minor acute illnesses and conditions that don't require X-ray or blood work.",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:33:33.491312"
+    },
+    {
+      "citation_id": "citation:21",
+      "source_url": "https://communityhealth.mayoclinic.org/express-care-overview",
+      "source_title": "Express Care Overview: Primary Care in Rochester / Kasson",
+      "source_type": "web",
+      "extracted_evidence": "Express Care Overview: Primary Care in Rochester / Kasson: Cold sores. Cold symptoms. Diaper dermatitis. Impetigo. Influenza-like symptoms. Insect bites. Lice. Mastitis (breast infection). Nicotine cessation (ages 18 and older). Oral contraceptives (new prescription only, females, ages 18–34). Perio",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:33:33.491312"
+    },
+    {
+      "citation_id": "citation:22",
+      "source_url": "https://ell.stackexchange.com/questions/477/verbs-ending-in-th",
+      "source_title": "Verbs ending in -th - English Language Learners Stack Exchange",
+      "source_type": "web",
+      "extracted_evidence": "Verbs ending in -th - English Language Learners Stack Exchange: Sometimes especially when I am reading books or quotes, I encounter verbs ending in -th. Is that an arcaic form? How should I properly translate them?",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:33:33.491312"
+    },
+    {
+      "citation_id": "citation:23",
+      "source_url": "https://apple.stackexchange.com/questions/325420/how-can-i-get-two-calculators-going",
+      "source_title": "mac - How can I get two calculators going? - Ask Different",
+      "source_type": "web",
+      "extracted_evidence": "mac - How can I get two calculators going? - Ask Different: Is there anyway I can have two instances of native Calculator app running simultaneously.",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:33:33.491312"
+    },
+    {
+      "citation_id": "citation:24",
+      "source_url": "https://apple.stackexchange.com/questions/318375/what-is-olk15message-files-and-how-to-recover-it",
+      "source_title": "What is OLK15message files and how to recover it?",
+      "source_type": "web",
+      "extracted_evidence": "What is OLK15message files and how to recover it?: OLK15message files are a separate backup scheme that Outlook mac used to store its database. As far as your recovery query is concerned, I don't think that it's possible to recover OLK15message files without a third party tool. However, you can rebu",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:33:33.491312"
+    },
+    {
+      "citation_id": "citation:25",
+      "source_url": "https://ell.stackexchange.com/questions/174118/what-is-the-weather-today-or-how-is-the-weather-today",
+      "source_title": "\"What is the weather today?\" or \"How is the weather today?\"",
+      "source_type": "web",
+      "extracted_evidence": "\"What is the weather today?\" or \"How is the weather today?\": They're both perfectly natural. Arguably some people might think the what version is more appropriate when the speaker is specifically interested in knowing what the weather actually is (or perhaps will be, later in the day). Conversely, t",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:33:33.491312"
+    },
+    {
+      "citation_id": "citation:26",
+      "source_url": "https://apple.stackexchange.com/questions/275382/get-serial-numbers-of-connected-usb-devices",
+      "source_title": "Get serial numbers of connected USB devices - Ask Different",
+      "source_type": "web",
+      "extracted_evidence": "Get serial numbers of connected USB devices - Ask Different: I'm searching for a terminal command to find out the serial numbers of connected USB devices on macOS computers. Is there any equivalent to the linux command \"usb-devices\"? I tried \"ioreg -p IOUSB\"...",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:33:33.491312"
+    },
+    {
+      "citation_id": "citation:27",
+      "source_url": "https://apple.stackexchange.com/questions/70809/how-can-i-tell-if-my-ios-device-is-currently-jailbroken",
+      "source_title": "How can I tell if my iOS device is currently jailbroken?",
+      "source_type": "web",
+      "extracted_evidence": "How can I tell if my iOS device is currently jailbroken?: How can I find out if my iOS device has been jailbroken (with a drive-by exploit for example)? Is there an app for that?",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:33:33.491312"
+    },
+    {
+      "citation_id": "citation:28",
+      "source_url": "https://apple.stackexchange.com/questions/159889/where-are-the-installation-directories-for-homebrew",
+      "source_title": "Where are the installation directories for homebrew?",
+      "source_type": "web",
+      "extracted_evidence": "Where are the installation directories for homebrew?: Where does Homebrew install it's software? I've installed Maven with Homebrew and searching for the Maven installation directory, so that I can set MAVEN_HOME.",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:33:33.491312"
+    },
+    {
+      "citation_id": "citation:29",
+      "source_url": "https://apple.stackexchange.com/questions/343407/how-to-quit-finder",
+      "source_title": "terminal - How to quit finder - Ask Different",
+      "source_type": "web",
+      "extracted_evidence": "terminal - How to quit finder - Ask Different: In Terminal use killall Finder will kill the Finder process, which will then automatically relaunch as a fresh new Finder process. If you restore finder frequently crate a menu item to Quit it. defaults write com.apple.finder QuitMenuItem -bool YES Choo",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:33:33.491312"
+    },
+    {
+      "citation_id": "citation:30",
+      "source_url": "https://apple.stackexchange.com/questions/367701/can-i-create-something-like-a-macro-in-numbers",
+      "source_title": "Can I create something like a macro in Numbers? - Ask Different",
+      "source_type": "web",
+      "extracted_evidence": "Can I create something like a macro in Numbers? - Ask Different: I know this is an old question but If anyone’s still interested in a possible solution, there is a way to get macro-like behavior. I don’t know if this feature is documented. To do this you need to create a two column table with the fi",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:33:33.491312"
+    },
+    {
+      "citation_id": "citation:31",
+      "source_url": "https://apple.stackexchange.com/questions/199599/how-to-get-audio-drivers-for-macbook-in-windows-10",
+      "source_title": "How to get Audio Drivers for Macbook in Windows 10",
+      "source_type": "web",
+      "extracted_evidence": "How to get Audio Drivers for Macbook in Windows 10: I have installed Windows 10 on my Mid 2012 Macbook Pro. I already had a separate partition which was a leftover from Ubuntu in it, so I didn't partitioned it using Bootcamp and directly formatted i...",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:33:33.491312"
+    },
+    {
+      "citation_id": "citation:32",
+      "source_url": "https://en.wikipedia.org/wiki/Beijing",
+      "source_title": "Beijing - Wikipedia",
+      "source_type": "web",
+      "extracted_evidence": "Beijing - Wikipedia: Beijing is a global city and one of the world's leading centers for culture, diplomacy, politics, finance, business and economics, education, research, language, tourism, media, sports, science and technology, transportation, and art.",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:33:33.491312"
+    },
+    {
+      "citation_id": "citation:33",
+      "source_url": "https://ruqintravel.com/china-destination-guides/beijing-and-peking/",
+      "source_title": "Why is Beijing no longer called Peking - Ruqin China Travel",
+      "source_type": "web",
+      "extracted_evidence": "Why is Beijing no longer called Peking - Ruqin China Travel: Although “Beijing” is now the official and widely accepted name, “Peking” still holds significance in certain areas. This older name appears across various spheres, maintaining a cultural presence and historical connection.",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:33:33.491312"
+    },
+    {
+      "citation_id": "citation:34",
+      "source_url": "https://en.wikipedia.org/wiki/Names_of_Beijing",
+      "source_title": "Names of Beijing - Wikipedia",
+      "source_type": "web",
+      "extracted_evidence": "Names of Beijing - Wikipedia: In 1949, the official name again reverted to \"Peking\" (the Postal Romanization) when the Chinese Communist Party conquered it during the Chinese Civil War and made it capital of their newly founded People's Republic of China.",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:33:33.491312"
+    },
+    {
+      "citation_id": "citation:35",
+      "source_url": "https://www.pekingdining.com/",
+      "source_title": "Peking Restaurant",
+      "source_type": "web",
+      "extracted_evidence": "Peking Restaurant: It is our goal to provide the finest, most healthful Chinese dining experience in Richmond and we guarantee it! We are proud to offer delicious entrees using only the freshest produce. Our beef is fresh, closely trimmed USDA Choice Grade Lean.",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:33:33.491312"
+    },
+    {
+      "citation_id": "citation:36",
+      "source_url": "https://simple.wikipedia.org/wiki/Beijing",
+      "source_title": "Beijing - Simple English Wikipedia, the free encyclopedia",
+      "source_type": "web",
+      "extracted_evidence": "Beijing - Simple English Wikipedia, the free encyclopedia: Beijing is the capital of the People's Republic of China. The city used to be known as Peking. It is in the northern and eastern parts of the country. Having more that 21 million residents, it is one of the most populous capital cities in th",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:33:33.491312"
+    },
+    {
+      "citation_id": "citation:37",
+      "source_url": "https://www.visitpeking.com/explore",
+      "source_title": "Explore | VISIT PEKING",
+      "source_type": "web",
+      "extracted_evidence": "Explore | VISIT PEKING: Explore VisitPeking places on a Mapbox map.",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:33:33.491312"
+    },
+    {
+      "citation_id": "citation:38",
+      "source_url": "https://de.wikipedia.org/wiki/Peking",
+      "source_title": "Peking – Wikipedia",
+      "source_type": "web",
+      "extracted_evidence": "Peking – Wikipedia: Nach Peking ist die berühmte Peking-Oper benannt, die eine besondere Vermischung verschiedener Kunstformen, wie Gesang, Tanz, Akrobatik und mimischem Spiel, darstellt.",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:33:33.491312"
+    },
+    {
+      "citation_id": "citation:39",
+      "source_url": "https://www.tripadvisor.com/Attractions-g294212-Activities-Beijing.html",
+      "source_title": "THE 15 BEST Things to Do in Beijing (2026) - Tripadvisor",
+      "source_type": "web",
+      "extracted_evidence": "THE 15 BEST Things to Do in Beijing (2026) - Tripadvisor: Mutianyu Great Wall, Summer Palace, Hiking Trails, Flea & Street Markets. For personalized recommendations, try our AI trip-planning product. See what other travelers like to do, based on ratings and number of bookings. Book these experiences",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:33:33.491312"
+    },
+    {
+      "citation_id": "citation:40",
+      "source_url": "https://pekingmediapa.com/",
+      "source_title": "Home | Peking Media Restaurant",
+      "source_type": "web",
+      "extracted_evidence": "Home | Peking Media Restaurant: Media, PA 19063 Chinese food for Pickup - Delivery Order from Peking Media Restaurant in Media, PA 19063, phone: 610-892-0115",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:33:33.491312"
+    },
+    {
+      "citation_id": "citation:41",
+      "source_url": "https://www.britannica.com/place/Beijing",
+      "source_title": "Beijing | Province, City, History, Map, & Facts | Britannica",
+      "source_type": "web",
+      "extracted_evidence": "Beijing | Province, City, History, Map, & Facts | Britannica: Beijing, city, province-level shi (municipality), and capital of the People’s Republic of China. Few cities in the world have served for so long as the political headquarters and cultural centre of an area as immense as China.",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:33:33.491312"
+    },
+    {
+      "citation_id": "citation:42",
+      "source_url": "https://arxiv.org/abs/2401.09670",
+      "source_title": "[2401.09670] DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving",
+      "source_type": "web",
+      "extracted_evidence": "citation_title: DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving\ncitation_date: 2024/01/18\n\n# Computer Science > Distributed, Parallel, and Cluster Computing\n\n# DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model ",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:33:33.491312"
+    }
+  ]
+}

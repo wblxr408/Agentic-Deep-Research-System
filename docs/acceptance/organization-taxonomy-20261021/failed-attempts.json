@@ -1,0 +1,316 @@
+[
+  {
+    "session_id": "a9644166-8208-49a7-b77c-c15f3bf00ccb",
+    "status": "completed",
+    "pending_records": [
+      {
+        "id": "kfu-plosone-e0351439",
+        "kind": "publication",
+        "title": "Enhancing perovskite solar cells efficiency via dual surface passivation",
+        "reason": "no source-supported publication affiliations",
+        "reason_code": null,
+        "proposed_record": {
+          "title": "Enhancing perovskite solar cells efficiency via dual surface passivation",
+          "venue": "PLOS ONE 21(7): e0351439",
+          "output_id": "kfu-plosone-e0351439",
+          "date_proof": {
+            "quote": "Received: July 5, 2025; Accepted: May 27, 2026; Published:  July 10, 2026",
+            "evidence_id": "ev-d0852bbe"
+          },
+          "output_type": "journal_article",
+          "title_proof": {
+            "quote": "Citation: Sai R, Aleithan SH (2026) Enhancing perovskite solar cells efficiency via dual surface passivation. PLoS One 21(7): e0351439.",
+            "evidence_id": "ev-d0852bbe"
+          },
+          "venue_proof": {
+            "quote": "PLoS One 21(7): e0351439.",
+            "evidence_id": "ev-d0852bbe"
+          },
+          "affiliations": [],
+          "publication_date": "2026-07-10"
+        }
+      }
+    ],
+    "classification": {
+      "annual": [],
+      "reason": "研究冻结规则首次分类",
+      "effects": {
+        "model_calls": 0,
+        "network_requests": 0,
+        "original_report_modified": false
+      },
+      "records": [],
+      "coverage": "accepted_publications_in_retained_sample_only",
+      "taxonomy": {
+        "nodes": [
+          {
+            "axis": "problem",
+            "role": "core",
+            "label": "材料性能",
+            "terms": [],
+            "node_id": "materials_science:materials-performance",
+            "parent_id": null,
+            "discipline": "materials_science"
+          },
+          {
+            "axis": "problem",
+            "role": "core",
+            "label": "能量转换效率",
+            "terms": [
+              "efficiency",
+              "效率"
+            ],
+            "node_id": "materials_science:conversion-efficiency",
+            "parent_id": "materials_science:materials-performance",
+            "discipline": "materials_science"
+          },
+          {
+            "axis": "problem",
+            "role": "core",
+            "label": "材料稳定性",
+            "terms": [
+              "stability",
+              "稳定性"
+            ],
+            "node_id": "materials_science:material-stability",
+            "parent_id": "materials_science:materials-performance",
+            "discipline": "materials_science"
+          },
+          {
+            "axis": "method",
+            "role": "core",
+            "label": "界面／表面钝化",
+            "terms": [
+              "surface passivation",
+              "interfacial passivation",
+              "表面钝化"
+            ],
+            "node_id": "materials_science:interface-passivation",
+            "parent_id": null,
+            "discipline": "materials_science"
+          },
+          {
+            "axis": "method",
+            "role": "associated",
+            "label": "维度工程",
+            "terms": [
+              "dimensional engineering",
+              "维度工程"
+            ],
+            "node_id": "materials_science:dimensional-engineering",
+            "parent_id": null,
+            "discipline": "materials_science"
+          },
+          {
+            "axis": "application",
+            "role": "core",
+            "label": "太阳能电池",
+            "terms": [
+              "solar cells",
+              "solar cell",
+              "太阳能电池"
+            ],
+            "node_id": "materials_science:solar-cells",
+            "parent_id": null,
+            "discipline": "materials_science"
+          },
+          {
+            "axis": "application",
+            "role": "associated",
+            "label": "储能",
+            "terms": [
+              "batteries",
+              "battery",
+              "储能"
+            ],
+            "node_id": "materials_science:energy-storage",
+            "parent_id": null,
+            "discipline": "materials_science"
+          }
+        ],
+        "request": {
+          "nodes": [],
+          "preset": "materials_science",
+          "version": "materials-e2e-v1"
+        },
+        "version": "materials-e2e-v1",
+        "semantics": "按主成果题名及出版商明确标记的摘要作可编辑词面映射；旧材料未保留摘要标记时只用题名。不是官方标签、全文机制核验或主题硬筛选。",
+        "disciplines": [
+          "materials science"
+        ],
+        "match_scope": "source_supported_primary_title_and_marked_publisher_abstract",
+        "rule_version": "adrs-disciplinary-mapping-v1",
+        "preset_edition": "adrs-topic-presets-2026-10-21"
+      },
+      "comparison": null,
+      "created_at": "2026-10-21T09:44:21.879135+00:00",
+      "snapshot_id": "dd928a7f-be34-4776-a0a9-91d59cfab993",
+      "evidence_ids": [],
+      "counting_unit": "publication_multi_label_each_node_once_per_publication",
+      "interpretation": "各年仅为已采纳样本，未覆盖年份不补零；标签可交叉。重分类变化来自规则，不能解释为新增成果、投入增长或战略变化。",
+      "schema_version": "adrs-disciplinary-mapping-v1",
+      "unobserved_years": [
+        2025,
+        2026
+      ],
+      "unknown_year_count": 0
+    }
+  },
+  {
+    "session_id": "f7ad8d4f-03e9-4532-9573-433815a22062",
+    "status": "completed",
+    "pending_records": [
+      {
+        "id": "kfu-plosone-e0351439",
+        "kind": "publication",
+        "title": "Enhancing perovskite solar cells efficiency via dual surface passivation",
+        "reason": "no source-supported publication affiliations",
+        "reason_code": null,
+        "proposed_record": {
+          "title": "Enhancing perovskite solar cells efficiency via dual surface passivation",
+          "venue": "PLOS ONE 21(7): e0351439",
+          "output_id": "kfu-plosone-e0351439",
+          "date_proof": {
+            "quote": "Received: July 5, 2025; Accepted: May 27, 2026; Published:  July 10, 2026",
+            "evidence_id": "ev-ef2d47ab"
+          },
+          "output_type": "journal_article",
+          "title_proof": {
+            "quote": "Enhancing perovskite solar cells efficiency via dual surface passivation",
+            "evidence_id": "ev-ef2d47ab"
+          },
+          "venue_proof": {
+            "quote": "Citation: Sai R, Aleithan SH (2026) Enhancing perovskite solar cells efficiency via dual surface passivation. PLoS One 21(7): e0351439.",
+            "evidence_id": "ev-ef2d47ab"
+          },
+          "affiliations": [],
+          "publication_date": "2026-07-10"
+        }
+      }
+    ],
+    "classification": {
+      "annual": [],
+      "reason": "研究冻结规则首次分类",
+      "effects": {
+        "model_calls": 0,
+        "network_requests": 0,
+        "original_report_modified": false
+      },
+      "records": [],
+      "coverage": "accepted_publications_in_retained_sample_only",
+      "taxonomy": {
+        "nodes": [
+          {
+            "axis": "problem",
+            "role": "core",
+            "label": "材料性能",
+            "terms": [],
+            "node_id": "materials_science:materials-performance",
+            "parent_id": null,
+            "discipline": "materials_science"
+          },
+          {
+            "axis": "problem",
+            "role": "core",
+            "label": "能量转换效率",
+            "terms": [
+              "efficiency",
+              "效率"
+            ],
+            "node_id": "materials_science:conversion-efficiency",
+            "parent_id": "materials_science:materials-performance",
+            "discipline": "materials_science"
+          },
+          {
+            "axis": "problem",
+            "role": "core",
+            "label": "材料稳定性",
+            "terms": [
+              "stability",
+              "稳定性"
+            ],
+            "node_id": "materials_science:material-stability",
+            "parent_id": "materials_science:materials-performance",
+            "discipline": "materials_science"
+          },
+          {
+            "axis": "method",
+            "role": "core",
+            "label": "界面／表面钝化",
+            "terms": [
+              "surface passivation",
+              "interfacial passivation",
+              "表面钝化"
+            ],
+            "node_id": "materials_science:interface-passivation",
+            "parent_id": null,
+            "discipline": "materials_science"
+          },
+          {
+            "axis": "method",
+            "role": "associated",
+            "label": "维度工程",
+            "terms": [
+              "dimensional engineering",
+              "维度工程"
+            ],
+            "node_id": "materials_science:dimensional-engineering",
+            "parent_id": null,
+            "discipline": "materials_science"
+          },
+          {
+            "axis": "application",
+            "role": "core",
+            "label": "太阳能电池",
+            "terms": [
+              "solar cells",
+              "solar cell",
+              "太阳能电池"
+            ],
+            "node_id": "materials_science:solar-cells",
+            "parent_id": null,
+            "discipline": "materials_science"
+          },
+          {
+            "axis": "application",
+            "role": "associated",
+            "label": "储能",
+            "terms": [
+              "batteries",
+              "battery",
+              "储能"
+            ],
+            "node_id": "materials_science:energy-storage",
+            "parent_id": null,
+            "discipline": "materials_science"
+          }
+        ],
+        "request": {
+          "nodes": [],
+          "preset": "materials_science",
+          "version": "materials-e2e-v1"
+        },
+        "version": "materials-e2e-v1",
+        "semantics": "按主成果题名及出版商明确标记的摘要作可编辑词面映射；旧材料未保留摘要标记时只用题名。不是官方标签、全文机制核验或主题硬筛选。",
+        "disciplines": [
+          "materials science"
+        ],
+        "match_scope": "source_supported_primary_title_and_marked_publisher_abstract",
+        "rule_version": "adrs-disciplinary-mapping-v1",
+        "preset_edition": "adrs-topic-presets-2026-10-21"
+      },
+      "comparison": null,
+      "created_at": "2026-10-21T09:48:32.907917+00:00",
+      "snapshot_id": "65b65f59-4fb1-41b7-9c23-0ccd4f99d67b",
+      "evidence_ids": [],
+      "counting_unit": "publication_multi_label_each_node_once_per_publication",
+      "interpretation": "各年仅为已采纳样本，未覆盖年份不补零；标签可交叉。重分类变化来自规则，不能解释为新增成果、投入增长或战略变化。",
+      "schema_version": "adrs-disciplinary-mapping-v1",
+      "unobserved_years": [
+        2025,
+        2026
+      ],
+      "unknown_year_count": 0
+    }
+  }
+]

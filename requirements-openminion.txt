@@ -1,0 +1,2 @@
+# Optional local organization research workflow; install after requirements.txt.
+openminion==0.1.7

@@ -30,7 +30,7 @@ class TestResearchState:
             "search_results", "browser_results", "rag_results", "aggregated_evidence",
             "revision_needed", "revision_count", "analysis",
             "final_report", "citations", "guardrail_decision", "evidence_status",
-            "review_status", "failure_memory", "user_confirmed", "allow_web_after_rag_hit", "rag_group",
+            "review_status", "failure_memory", "user_confirmed", "use_internal_docs", "rag_group",
             "retrieval_policy", "runtime_status", "budget_state", "pending_approvals", "output_length",
             "skill_context",
             "agent_trace", "guardrail_trace", "errors"
@@ -416,6 +416,7 @@ class TestGraphCompilation:
         old_node = PlanNode(node_id="s1", node_type="search", query="old query")
         new_node = PlanNode(node_id="s2", node_type="rag", query="new query")
         state = create_initial_state("test query", "session-1")
+        state["use_internal_docs"] = True
         state["dag"] = serialize_dag(DAGDefinition(dag_name="old", nodes=[old_node], edges=[]))
         state["failure_memory"] = {
             "records": [{
@@ -501,6 +502,7 @@ class TestGraphCompilation:
         browser = PlanNode(node_id="b1", node_type="browser", query="browse query")
         rag = PlanNode(node_id="r1", node_type="rag", query="rag query")
         state = create_initial_state("test query", "session-1")
+        state["use_internal_docs"] = True
         state["dag"] = serialize_dag(DAGDefinition(dag_name="test", nodes=[search, browser, rag], edges=[]))
         state["current_executing_nodes"] = [search.node_id, browser.node_id, rag.node_id]
         state["guardrail_decision"] = {"enabled_tools": ["search", "browser", "rag"]}
@@ -542,7 +544,7 @@ class TestGraphCompilation:
         )
         assert mock_create.call_args.kwargs["planner_hints"] == ["Prefer earnings, guidance, and filings."]
 
-    def test_planner_enforces_internal_rag_before_search(self):
+    def test_planner_keeps_public_search_independent_of_internal_docs(self):
         from unittest.mock import patch
 
         from app.graph.compiler import planner_node
@@ -563,10 +565,10 @@ class TestGraphCompilation:
         rag_nodes = [node for node in planned.nodes if node.node_type == "rag"]
         search_nodes = [node for node in planned.nodes if node.node_type == "search"]
 
-        assert rag_nodes
-        assert search_nodes[0].depends_on == [rag_nodes[0].node_id]
+        assert not rag_nodes
+        assert search_nodes[0].depends_on == []
 
-    def test_dag_aggregator_skips_web_after_rag_hit_by_default(self):
+    def test_dag_aggregator_keeps_web_after_internal_document_hit(self):
         from app.graph.compiler import dag_results_aggregator
         from app.graph.state import (
             DAGDefinition,
@@ -587,9 +589,9 @@ class TestGraphCompilation:
         planned = deserialize_dag(result["dag"])
         skipped = next(node for node in planned.nodes if node.node_id == "s1")
 
-        assert skipped.status == StepStatus.SKIPPED
-        assert "s1" in result["completed_nodes"]
-        assert result["retrieval_policy"]["web_search_required"] is False
+        assert skipped.status == StepStatus.PENDING
+        assert "s1" not in result["completed_nodes"]
+        assert result["retrieval_policy"]["rag_hit_count"] == 1
 
     def test_dag_aggregator_allows_web_when_rag_empty(self):
         from app.graph.compiler import dag_results_aggregator
@@ -613,7 +615,7 @@ class TestGraphCompilation:
         web = next(node for node in planned.nodes if node.node_id == "s1")
 
         assert web.status == StepStatus.PENDING
-        assert result["retrieval_policy"]["web_search_required"] is True
+        assert result["retrieval_policy"]["rag_hit_count"] == 0
 
     def test_dag_aggregator_triggers_budget_breaker_on_tool_call_limit(self):
         from app.graph.compiler import dag_results_aggregator

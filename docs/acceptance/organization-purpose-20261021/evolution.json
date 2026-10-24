@@ -1,0 +1,1522 @@
+{
+  "verification": {
+    "session_id": "6a9d417e-effa-4916-8612-279808f99959",
+    "status": "completed",
+    "purpose": "research_development",
+    "modules": [
+      "evolution"
+    ],
+    "source_count": 52,
+    "publication_count": {
+      "output_ids": [
+        "out-distserve-osdi24"
+      ],
+      "output_count": 1,
+      "counting_method": "full",
+      "publication_count": 1,
+      "research_family_ids": [
+        "publication:out-distserve-osdi24"
+      ],
+      "research_family_count": 1,
+      "unlinked_publication_count": 1
+    },
+    "module_issues": [],
+    "final_audit": {
+      "needs_review": true,
+      "total_claims": 7,
+      "checked_claims": 7,
+      "supported_claims": 5,
+      "human_review_status": "not_reviewed"
+    },
+    "budget": {
+      "warning": false,
+      "estimated": true,
+      "llm_usage": [
+        {
+          "agent": "analyst",
+          "model": "deepseek-chat",
+          "cost_usd": 0.0,
+          "estimated": true,
+          "total_tokens": 8225,
+          "prompt_tokens": 6054,
+          "completion_tokens": 2171
+        },
+        {
+          "agent": "reflection",
+          "model": "deepseek-chat",
+          "cost_usd": 0.0,
+          "estimated": true,
+          "total_tokens": 9992,
+          "prompt_tokens": 9607,
+          "completion_tokens": 385
+        },
+        {
+          "agent": "report",
+          "model": "deepseek-chat",
+          "cost_usd": 0.0,
+          "estimated": true,
+          "total_tokens": 18446,
+          "prompt_tokens": 17101,
+          "completion_tokens": 1345
+        }
+      ],
+      "citation_max": 15,
+      "max_cost_usd": 0.5,
+      "used_cost_usd": 0.0,
+      "budget_profile": "medium",
+      "max_tool_calls": 12,
+      "rag_max_results": 8,
+      "used_tool_calls": 12,
+      "hard_stop_reason": "tool_call_limit",
+      "max_total_tokens": 60000,
+      "report_max_tokens": 6000,
+      "used_total_tokens": 40097,
+      "search_max_queries": 4,
+      "search_max_results": 10,
+      "browser_max_results": 2,
+      "max_retries_per_tool": 2,
+      "max_wall_clock_seconds": 420,
+      "elapsed_wall_clock_seconds": 44
+    },
+    "tool_calls": [
+      {
+        "tool_name": "execute_browse",
+        "status": "success",
+        "error_category": null
+      },
+      {
+        "tool_name": "execute_search",
+        "status": "success",
+        "error_category": null
+      },
+      {
+        "tool_name": "execute_search",
+        "status": "success",
+        "error_category": null
+      },
+      {
+        "tool_name": "execute_search",
+        "status": "success",
+        "error_category": null
+      },
+      {
+        "tool_name": "execute_search",
+        "status": "success",
+        "error_category": null
+      },
+      {
+        "tool_name": "execute_search",
+        "status": "success",
+        "error_category": null
+      },
+      {
+        "tool_name": "execute_browse",
+        "status": "success",
+        "error_category": null
+      }
+    ]
+  },
+  "configuration": {
+    "scope": {
+      "topic": "基于 https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin 研究 Peking University 的公开系统研究。只覆盖这篇 DistServe 发表样本；按选择的研究目的和模块交付。只有一个年度观测时明确不能确立多年趋势。署名或共著不等于正式协议、产品部署或可联系性；缺证保留未知，不把机构成果量当作内部研发投入。",
+      "end_date": "2024-12-31",
+      "entities": [
+        {
+          "name": "Peking University",
+          "type": "university",
+          "aliases": [],
+          "entity_id": "selected-1",
+          "unit_kind": "organization",
+          "source_urls": [
+            "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin"
+          ],
+          "resolution_status": "pending"
+        }
+      ],
+      "start_date": "2024-01-01",
+      "disciplines": [
+        "computer science"
+      ],
+      "organization_types": [
+        "university"
+      ]
+    },
+    "modules": [
+      "evolution"
+    ],
+    "purpose": "research_development",
+    "weights": {
+      "preset": "cooperation_discovery",
+      "weights": {
+        "recency": {
+          "weight": 10.0,
+          "enabled": true
+        },
+        "topic_relevance": {
+          "weight": 30.0,
+          "enabled": true
+        },
+        "output_performance": {
+          "weight": 15.0,
+          "enabled": true
+        },
+        "research_alignment": {
+          "weight": 15.0,
+          "enabled": true
+        },
+        "evidence_completeness": {
+          "weight": 15.0,
+          "enabled": true
+        },
+        "cooperation_complementarity": {
+          "weight": 15.0,
+          "enabled": true
+        }
+      },
+      "mappings": [
+        {
+          "scores": {
+            "A": 1.0,
+            "B": 0.6666666666666667,
+            "C": 0.33333333333333337
+          },
+          "version": "adrs-preference-map-v1",
+          "scheme_id": "ccf"
+        },
+        {
+          "scores": {
+            "A": 0.75,
+            "B": 0.5,
+            "C": 0.25,
+            "A*": 1.0
+          },
+          "version": "adrs-preference-map-v1",
+          "scheme_id": "icore"
+        },
+        {
+          "scores": {
+            "A": 0.75,
+            "B": 0.5,
+            "C": 0.25,
+            "A*": 1.0
+          },
+          "version": "adrs-preference-map-v1",
+          "scheme_id": "abdc"
+        },
+        {
+          "scores": {
+            "1": 0.19999999999999996,
+            "2": 0.4,
+            "3": 0.6,
+            "4": 0.8,
+            "4*": 1.0
+          },
+          "version": "adrs-preference-map-v1",
+          "scheme_id": "ajg"
+        },
+        {
+          "scores": {
+            "Q1": 1.0,
+            "Q2": 0.75,
+            "Q3": 0.5,
+            "Q4": 0.25
+          },
+          "version": "adrs-preference-map-v1",
+          "scheme_id": "jcr_quartile"
+        },
+        {
+          "scores": {
+            "1": 1.0,
+            "2": 0.75,
+            "3": 0.5,
+            "4": 0.25
+          },
+          "version": "adrs-preference-map-v1",
+          "scheme_id": "cas_partition"
+        }
+      ],
+      "config_version": "user-config-v1",
+      "metric_weights": {},
+      "performance_groups": {
+        "paper": {
+          "weight": 1.0,
+          "enabled": true
+        },
+        "venue": {
+          "weight": 1.0,
+          "enabled": true
+        }
+      }
+    },
+    "schema_version": "adrs-organization-run-v3",
+    "evidence_cutoff": "2026-10-21T05:28:05.529024+00:00",
+    "selected_preset": null,
+    "catalog_manifest": {
+      "schemes": [
+        {
+          "level": "venue",
+          "family": "directory",
+          "adapter": "exact_catalogue",
+          "editions": [],
+          "scheme_id": "ccf",
+          "source_url": "https://www.ccf.org.cn/Academic_Evaluation/By_category/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "directory",
+          "adapter": "exact_catalogue",
+          "editions": [],
+          "scheme_id": "icore",
+          "source_url": "https://portal.core.edu.au/conf-ranks/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "index",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "wos_scie",
+          "source_url": "https://mjl.clarivate.com/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "index",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "wos_ssci",
+          "source_url": "https://mjl.clarivate.com/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "index",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "wos_ahci",
+          "source_url": "https://mjl.clarivate.com/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "index",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "wos_esci",
+          "source_url": "https://mjl.clarivate.com/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "index",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "scopus",
+          "source_url": "https://www.scopus.com/sources",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "journal_metric",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "jcr_jif",
+          "source_url": "https://jcr.clarivate.com/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "journal_metric",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "jcr_quartile",
+          "source_url": "https://jcr.clarivate.com/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "journal_metric",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "jcr_jci",
+          "source_url": "https://jcr.clarivate.com/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "journal_metric",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "cas_partition",
+          "source_url": "https://www.fenqubiao.com/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "journal_metric",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "citescore",
+          "source_url": "https://www.scopus.com/sources",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "journal_metric",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "citescore_percentile",
+          "source_url": "https://www.scopus.com/sources",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "journal_metric",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "sjr",
+          "source_url": "https://www.scimagojr.com/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "journal_metric",
+          "adapter": "authorized_metric",
+          "editions": [],
+          "scheme_id": "snip",
+          "source_url": "https://www.scopus.com/sources",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "directory",
+          "adapter": "exact_catalogue",
+          "editions": [],
+          "scheme_id": "abdc",
+          "source_url": "https://abdc.edu.au/abdc-journal-quality-list/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "venue",
+          "family": "directory",
+          "adapter": "exact_catalogue",
+          "editions": [],
+          "scheme_id": "ajg",
+          "source_url": "https://charteredabs.org/academic-journal-guide",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "work",
+          "family": "paper_metric",
+          "adapter": "paper_metric",
+          "editions": [],
+          "scheme_id": "citation_percentile",
+          "source_url": "https://help.openalex.org/data/works/citations/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "work",
+          "family": "paper_metric",
+          "adapter": "paper_metric",
+          "editions": [],
+          "scheme_id": "cnci",
+          "source_url": "https://incites.help.clarivate.com/Content/Indicators-Handbook/ih-normalized-citation-impact.htm",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        },
+        {
+          "level": "work",
+          "family": "paper_metric",
+          "adapter": "paper_metric",
+          "editions": [],
+          "scheme_id": "fwci",
+          "source_url": "https://help.openalex.org/data/works/citations/",
+          "access_note": "Public snapshots are partial; authorized imports retain caller provenance. No live queries in preview.",
+          "availability": "import_only"
+        }
+      ],
+      "sources": [
+        {
+          "access": "public",
+          "edition": "2012",
+          "records": [
+            {
+              "track": "main",
+              "status": "available",
+              "category": "Computer networks",
+              "raw_value": "B",
+              "target_id": "dblp:conf/nsdi",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            },
+            {
+              "track": "main",
+              "status": "available",
+              "category": "Computer networks",
+              "raw_value": "A",
+              "target_id": "dblp:conf/sigcomm",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            }
+          ],
+          "coverage": "partial",
+          "provider": "CCF (issued PDF, public mirror)",
+          "scheme_id": "ccf",
+          "source_id": "public-ccf-2012",
+          "authorized": false,
+          "source_url": "https://risame.github.io/sun/ccf.pdf",
+          "metric_year": 2012,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": null
+        },
+        {
+          "access": "public",
+          "edition": "2022",
+          "records": [
+            {
+              "track": "main",
+              "status": "available",
+              "category": "Computer networks",
+              "raw_value": "A",
+              "target_id": "dblp:conf/nsdi",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            },
+            {
+              "track": "main",
+              "status": "available",
+              "category": "Computer networks",
+              "raw_value": "A",
+              "target_id": "dblp:conf/sigcomm",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            }
+          ],
+          "coverage": "partial",
+          "provider": "CCF (issued PDF, public mirror)",
+          "scheme_id": "ccf",
+          "source_id": "public-ccf-2022",
+          "authorized": false,
+          "source_url": "https://scdm-shu.github.io/ccf/2022-CCF-Ranking.pdf",
+          "metric_year": 2022,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": null
+        },
+        {
+          "access": "public",
+          "edition": "CORE2023",
+          "records": [
+            {
+              "track": "main",
+              "status": "available",
+              "category": "4606",
+              "raw_value": "A*",
+              "target_id": "dblp:conf/sigcomm",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            }
+          ],
+          "coverage": "partial",
+          "provider": "ICORE",
+          "scheme_id": "icore",
+          "source_id": "public-icore-2023",
+          "authorized": false,
+          "source_url": "https://portal.core.edu.au/conf-ranks/?search=SIGCOMM&by=all&source=CORE2023&sort=atitle&page=1",
+          "metric_year": 2023,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": null
+        },
+        {
+          "access": "public",
+          "edition": "ICORE2026",
+          "records": [
+            {
+              "track": "main",
+              "status": "available",
+              "category": "4606",
+              "raw_value": "A*",
+              "target_id": "dblp:conf/sigcomm",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            }
+          ],
+          "coverage": "partial",
+          "provider": "ICORE",
+          "scheme_id": "icore",
+          "source_id": "public-icore-2026",
+          "authorized": false,
+          "source_url": "https://portal.core.edu.au/conf-ranks/?search=SIGCOMM&by=all&source=ICORE2026&sort=atitle&page=1",
+          "metric_year": 2026,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": null
+        },
+        {
+          "access": "public",
+          "edition": "2010",
+          "records": [
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "1503",
+              "raw_value": "A*",
+              "target_id": "issn:0047-2506",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            },
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "1503",
+              "raw_value": "A*",
+              "target_id": "issn:1478-6990",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            }
+          ],
+          "coverage": "partial",
+          "provider": "ABDC",
+          "scheme_id": "abdc",
+          "source_id": "public-abdc-2010",
+          "authorized": false,
+          "source_url": "https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx",
+          "metric_year": 2010,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": null
+        },
+        {
+          "access": "public",
+          "edition": "2013",
+          "records": [
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "1503",
+              "raw_value": "A*",
+              "target_id": "issn:0047-2506",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            },
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "1503",
+              "raw_value": "A*",
+              "target_id": "issn:1478-6990",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            }
+          ],
+          "coverage": "partial",
+          "provider": "ABDC",
+          "scheme_id": "abdc",
+          "source_id": "public-abdc-2013",
+          "authorized": false,
+          "source_url": "https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx",
+          "metric_year": 2013,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": null
+        },
+        {
+          "access": "public",
+          "edition": "2016",
+          "records": [
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "1503",
+              "raw_value": "A*",
+              "target_id": "issn:0047-2506",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            },
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "1503",
+              "raw_value": "A*",
+              "target_id": "issn:1478-6990",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            }
+          ],
+          "coverage": "partial",
+          "provider": "ABDC",
+          "scheme_id": "abdc",
+          "source_id": "public-abdc-2016",
+          "authorized": false,
+          "source_url": "https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx",
+          "metric_year": 2016,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": null
+        },
+        {
+          "access": "public",
+          "edition": "2019",
+          "records": [
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "1503",
+              "raw_value": "A*",
+              "target_id": "issn:0047-2506",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            },
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "1503",
+              "raw_value": "A*",
+              "target_id": "issn:1478-6990",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            }
+          ],
+          "coverage": "partial",
+          "provider": "ABDC",
+          "scheme_id": "abdc",
+          "source_id": "public-abdc-2019",
+          "authorized": false,
+          "source_url": "https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx",
+          "metric_year": 2019,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": null
+        },
+        {
+          "access": "public",
+          "edition": "2022",
+          "records": [
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "3507",
+              "raw_value": "A*",
+              "target_id": "issn:0047-2506",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            },
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "3507",
+              "raw_value": "A*",
+              "target_id": "issn:1478-6990",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            }
+          ],
+          "coverage": "partial",
+          "provider": "ABDC",
+          "scheme_id": "abdc",
+          "source_id": "public-abdc-2022",
+          "authorized": false,
+          "source_url": "https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx",
+          "metric_year": 2022,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": null
+        },
+        {
+          "access": "public",
+          "edition": "2025",
+          "records": [
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "3507",
+              "raw_value": "A*",
+              "target_id": "issn:0047-2506",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            },
+            {
+              "track": "journal",
+              "status": "available",
+              "category": "3507",
+              "raw_value": "A*",
+              "target_id": "issn:1478-6990",
+              "document_type": null,
+              "citation_cutoff": null,
+              "publication_year": null
+            }
+          ],
+          "coverage": "partial",
+          "provider": "ABDC",
+          "scheme_id": "abdc",
+          "source_id": "public-abdc-2025",
+          "authorized": false,
+          "source_url": "https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx",
+          "metric_year": 2025,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": null
+        },
+        {
+          "access": "public",
+          "edition": "OpenAlex snapshot 2026-10-19",
+          "records": [
+            {
+              "track": "work",
+              "status": "available",
+              "category": "https://openalex.org/subfields/2613 | Statistics and Probability",
+              "raw_value": 3266.5958,
+              "target_id": "openalex:W1951724000",
+              "document_type": "article",
+              "citation_cutoff": "2018-12-31",
+              "publication_year": 2015
+            }
+          ],
+          "coverage": "partial",
+          "provider": "OpenAlex",
+          "scheme_id": "fwci",
+          "source_id": "openalex-W1951724000-fwci-2026-10-19",
+          "authorized": false,
+          "source_url": "https://api.openalex.org/works/W1951724000",
+          "metric_year": 2026,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": "2026-10-19T09:35:57.686232"
+        },
+        {
+          "access": "public",
+          "edition": "OpenAlex snapshot 2026-10-19",
+          "records": [
+            {
+              "track": "work",
+              "status": "available",
+              "category": "https://openalex.org/subfields/2613 | Statistics and Probability",
+              "raw_value": 1.0,
+              "target_id": "openalex:W1951724000",
+              "document_type": "article",
+              "citation_cutoff": "2018-12-31",
+              "publication_year": 2015
+            }
+          ],
+          "coverage": "partial",
+          "provider": "OpenAlex",
+          "scheme_id": "citation_percentile",
+          "source_id": "openalex-W1951724000-citation_percentile-2026-10-19",
+          "authorized": false,
+          "source_url": "https://api.openalex.org/works/W1951724000",
+          "metric_year": 2026,
+          "retrieved_on": "2026-10-19",
+          "provider_updated_at": "2026-10-19T09:35:57.686232"
+        }
+      ],
+      "captured_at": "2026-10-21T05:28:05.529024+00:00",
+      "schema_version": "adrs-evaluation-catalog-v1",
+      "availability_note": "Frozen public samples and import requirements; not a live lookup or verified evaluation of collected evidence.",
+      "applied_to_evidence": false,
+      "adapter_rule_version": "adrs-evaluation-adapters-v1"
+    },
+    "effective_weights": {
+      "mappings": [
+        {
+          "scores": {
+            "A": 1.0,
+            "B": 0.6666666666666667,
+            "C": 0.33333333333333337
+          },
+          "version": "adrs-preference-map-v1",
+          "scheme_id": "ccf"
+        },
+        {
+          "scores": {
+            "A": 0.75,
+            "B": 0.5,
+            "C": 0.25,
+            "A*": 1.0
+          },
+          "version": "adrs-preference-map-v1",
+          "scheme_id": "icore"
+        },
+        {
+          "scores": {
+            "A": 0.75,
+            "B": 0.5,
+            "C": 0.25,
+            "A*": 1.0
+          },
+          "version": "adrs-preference-map-v1",
+          "scheme_id": "abdc"
+        },
+        {
+          "scores": {
+            "1": 0.19999999999999996,
+            "2": 0.4,
+            "3": 0.6,
+            "4": 0.8,
+            "4*": 1.0
+          },
+          "version": "adrs-preference-map-v1",
+          "scheme_id": "ajg"
+        },
+        {
+          "scores": {
+            "Q1": 1.0,
+            "Q2": 0.75,
+            "Q3": 0.5,
+            "Q4": 0.25
+          },
+          "version": "adrs-preference-map-v1",
+          "scheme_id": "jcr_quartile"
+        },
+        {
+          "scores": {
+            "1": 1.0,
+            "2": 0.75,
+            "3": 0.5,
+            "4": 0.25
+          },
+          "version": "adrs-preference-map-v1",
+          "scheme_id": "cas_partition"
+        }
+      ],
+      "semantics": "preference_configuration_only",
+      "raw_config": {
+        "preset": "cooperation_discovery",
+        "weights": {
+          "recency": {
+            "weight": 10.0,
+            "enabled": true
+          },
+          "topic_relevance": {
+            "weight": 30.0,
+            "enabled": true
+          },
+          "output_performance": {
+            "weight": 15.0,
+            "enabled": true
+          },
+          "research_alignment": {
+            "weight": 15.0,
+            "enabled": true
+          },
+          "evidence_completeness": {
+            "weight": 15.0,
+            "enabled": true
+          },
+          "cooperation_complementarity": {
+            "weight": 15.0,
+            "enabled": true
+          }
+        },
+        "metric_weights": {},
+        "performance_groups": {
+          "paper": {
+            "weight": 1.0,
+            "enabled": true
+          },
+          "venue": {
+            "weight": 1.0,
+            "enabled": true
+          }
+        }
+      },
+      "rule_version": "adrs-weight-rules-v1",
+      "config_version": "user-config-v1",
+      "preset_version": "adrs-presets-v1",
+      "effective_groups": {
+        "paper": 0.5,
+        "venue": 0.5
+      },
+      "effective_weights": {
+        "recency": 0.09999999999999999,
+        "topic_relevance": 0.3,
+        "output_performance": 0.15,
+        "research_alignment": 0.15,
+        "evidence_completeness": 0.15,
+        "cooperation_complementarity": 0.15
+      },
+      "effective_metric_weights": {}
+    },
+    "scope_rule_version": "adrs-organization-scope-v2",
+    "analysis_policy_version": "adrs-analysis-modules-v1"
+  },
+  "module_report": {
+    "issues": [],
+    "modules": [
+      {
+        "label": "研究演进",
+        "status": "draft_requires_review",
+        "module_id": "evolution",
+        "paragraphs": [
+          {
+            "kind": "observation",
+            "text": "本模块只覆盖一个已选对象（北京大学）与一篇发表样本：USENIX OSDI '24 的 DistServe 论文页面。该页面给出的 BibTeX 显示，作者为 Yinmin Zhong、Shengyu Liu、Junda Chen、Jianbo Hu、Yibo Zhu、Xuanzhe Liu、Xin Jin、Hao Zhang；标题为《DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving》；会议为 18th USENIX Symposium on Operating Systems Design and Implementation (OSDI 24)；年份 2024，月份 jul；页码 193–210；出版方 USENIX Association。这是本次演进分析唯一可用的时间与归属证据。",
+            "citations": [
+              1
+            ]
+          },
+          {
+            "kind": "observation",
+            "text": "同一页面的作者单位标注为：Yinmin Zhong、Shengyu Liu 属 Peking University；Junda Chen 属 UC San Diego；Jianbo Hu 属 Peking University；Yibo Zhu 属 StepFun；Xuanzhe Liu、Xin Jin 属 Peking University；Hao Zhang 属 UC San Diego。按此标注，北京大学在该作品中有 5 位署名作者，另有 UC San Diego 2 位、StepFun 1 位。该署名构成只说明这一篇作品的作者归属，不构成机构间正式协议、产品部署或可联系性证据。",
+            "citations": [
+              1
+            ]
+          },
+          {
+            "kind": "observation",
+            "text": "技术内容方面，该页面摘要指出 DistServe 通过把 prefill 与 decoding 计算拆分来提升大语言模型服务性能，针对现有系统将两阶段同置并统一批处理所导致的 prefill-decoding 干扰以及资源分配与并行方案耦合问题，分别以首 token 时延（TTFT）和每输出 token 时延（TPOT）为约束进行优化；评估称在多种模型、应用与延迟要求下，相比当时最先进系统可服务 7.4 倍更多请求或承受 12.6 倍更紧的 SLO，同时使超过 90% 的请求满足延迟约束。",
+            "citations": [
+              1
+            ]
+          },
+          {
+            "kind": "interpretation",
+            "text": "就本样本而言，北京大学在系统研究中的公开呈现集中于“LLM 推理服务系统的性能与 goodput 优化”这一方向，且以高校—高校—企业多方署名的方式出现。这属于对单篇作品署名与技术主题的解读，不能据此推断北京大学内部研发投入规模、团队人数、长期布局或组织级战略。",
+            "citations": [
+              1
+            ]
+          },
+          {
+            "kind": "interpretation",
+            "text": "演进维度上，本契约在 2024-01-01 至 2024-12-31 范围内只有 2024 年 7 月这一个年度观测点，且只有一篇作品。因此不能确立多年趋势，也无法区分“观测变化”与“覆盖变化”：覆盖本身仅为一篇、一年，任何“从某方向演进到另一方向”的叙述都缺乏证据支撑。",
+            "citations": [
+              1
+            ]
+          },
+          {
+            "kind": "gap",
+            "text": "待核缺口：北京大学在系统研究领域其他年份的成果与日期证据、该团队的延续性、DistServe 的后续版本或衍生系统，均无本次证据支持，保留为未知。共著关系不构成合作机构关系或产品化证据；机构成果计数也不应被解读为内部研发投入。若需讨论演进，应先补充 OSDI/SOSP/NSDI 等多个年度的成果与日期证据，再区分观测变化与覆盖变化。",
+            "citations": []
+          }
+        ]
+      }
+    ],
+    "purpose": "research_development",
+    "validation": "selected_ids_and_source_numbers_only",
+    "rule_version": "adrs-analysis-modules-v1",
+    "not_requested": [
+      "landscape",
+      "relationships",
+      "deep_dive",
+      "validation",
+      "actions"
+    ],
+    "independent_semantic_review": false
+  },
+  "frozen_analysis": {
+    "modules": [
+      "evolution"
+    ],
+    "purpose": "research_development",
+    "semantics": "研究目的、内容模块与匹配权重分别冻结；不改变模板、权限或取证预算。",
+    "rule_version": "adrs-analysis-modules-v1",
+    "module_labels": {
+      "evolution": "研究演进"
+    },
+    "not_requested": [
+      "landscape",
+      "relationships",
+      "deep_dive",
+      "validation",
+      "actions"
+    ],
+    "purpose_label": "布局与演进"
+  },
+  "report": "# 北京大学 DistServe（OSDI '24）单样本研究演进观察\n\n> 按本次所选研究模块组织；来源摘述和分析仍需阅读审核状态。\n\n## 研究演进\n\n**来源摘述（待审核）**：本模块只覆盖一个已选对象（北京大学）与一篇发表样本：USENIX OSDI '24 的 DistServe 论文页面。该页面给出的 BibTeX 显示，作者为 Yinmin Zhong、Shengyu Liu、Junda Chen、Jianbo Hu、Yibo Zhu、Xuanzhe Liu、Xin Jin、Hao Zhang；标题为《DistServe: Disaggregating Prefill and Decoding for Goodput\\-optimized Large Language Model Serving》；会议为 18th USENIX Symposium on Operating Systems Design and Implementation \\(OSDI 24\\)；年份 2024，月份 jul；页码 193–210；出版方 USENIX Association。这是本次演进分析唯一可用的时间与归属证据。 [citation:1]\n\n**来源摘述（待审核）**：同一页面的作者单位标注为：Yinmin Zhong、Shengyu Liu 属 Peking University；Junda Chen 属 UC San Diego；Jianbo Hu 属 Peking University；Yibo Zhu 属 StepFun；Xuanzhe Liu、Xin Jin 属 Peking University；Hao Zhang 属 UC San Diego。按此标注，北京大学在该作品中有 5 位署名作者，另有 UC San Diego 2 位、StepFun 1 位。该署名构成只说明这一篇作品的作者归属，不构成机构间正式协议、产品部署或可联系性证据。 [citation:1]\n\n**来源摘述（待审核）**：技术内容方面，该页面摘要指出 DistServe 通过把 prefill 与 decoding 计算拆分来提升大语言模型服务性能，针对现有系统将两阶段同置并统一批处理所导致的 prefill\\-decoding 干扰以及资源分配与并行方案耦合问题，分别以首 token 时延（TTFT）和每输出 token 时延（TPOT）为约束进行优化；评估称在多种模型、应用与延迟要求下，相比当时最先进系统可服务 7\\.4 倍更多请求或承受 12\\.6 倍更紧的 SLO，同时使超过 90% 的请求满足延迟约束。 [citation:1]\n\n**分析判断（待复核）**：就本样本而言，北京大学在系统研究中的公开呈现集中于“LLM 推理服务系统的性能与 goodput 优化”这一方向，且以高校—高校—企业多方署名的方式出现。这属于对单篇作品署名与技术主题的解读，不能据此推断北京大学内部研发投入规模、团队人数、长期布局或组织级战略。 [citation:1]\n\n**分析判断（待复核）**：演进维度上，本契约在 2024\\-01\\-01 至 2024\\-12\\-31 范围内只有 2024 年 7 月这一个年度观测点，且只有一篇作品。因此不能确立多年趋势，也无法区分“观测变化”与“覆盖变化”：覆盖本身仅为一篇、一年，任何“从某方向演进到另一方向”的叙述都缺乏证据支撑。 [citation:1]\n\n**证据缺口**：待核缺口：北京大学在系统研究领域其他年份的成果与日期证据、该团队的延续性、DistServe 的后续版本或衍生系统，均无本次证据支持，保留为未知。共著关系不构成合作机构关系或产品化证据；机构成果计数也不应被解读为内部研发投入。若需讨论演进，应先补充 OSDI/SOSP/NSDI 等多个年度的成果与日期证据，再区分观测变化与覆盖变化。 \n\n\n## 核验结果\n\n自动来源支持：5/7 项；人工复核：未复核。模型置信度不代表人工确认。\n支持状态来自模型语义判断与原文引语校验，不能保证结论为真。\n\n- claim:1 [missing_citation] 按本次所选研究模块组织；来源摘述和分析仍需阅读审核状态。 — Awaiting source support judgement\n- claim:7 [missing_citation] **证据缺口**：待核缺口：北京大学在系统研究领域其他年份的成果与日期证据、该团队的延续性、DistServe 的后续版本或衍生系统，均无本次证据支持，保留为未知。共著关系不构成合作机构关系或产品化证据；机构成果计数也不应被解读为内部研发投入。若需讨论演进，应先补充 OSDI/SOSP/NSDI 等多个年度的成果与日期证据，再区分观测变化与覆盖变化。 — Awaiting source support judgement\n\n---\n\n## References\n\n[1] **DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving | USENIX** - https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin\n[2] **Arsenal Scores, Stats and Highlights - ESPN** - https://www.espn.com/soccer/team/_/id/359/arsenal\n[3] **Arsenal Scores & Latest Results Today | LiveScore** - https://www.livescore.com/en/football/team/arsenal/2773/overview/\n[4] **Arsenal live scores, results, fixtures, Bayern Munich v Arsenal live ...** - https://www.flashscore.com/team/arsenal/hA1Zm19f/\n[5] **Arsenal FC Official Website | Arsenal.com** - https://www.arsenal.com/fixtures/men/fixtures\n[6] **Home | Arsenal FC Official Website | Arsenal.com** - https://www.arsenal.com/?thisNav=fixtures\n[7] **Arsenal 2026 Results - ESPN** - https://www.espn.com/soccer/team/results/_/id/359/arsenal\n[8] **Arsenal News, Fixtures, Transfers, Results | Sky Sports Football** - https://www.skysports.com/arsenal\n[9] **Arsenal — Scores, Fixtures & Results - SportScore** - https://sportscore.com/football/team/arsenal/z318q66hdd1qo9j/\n[10] **Arsenal live score, schedule & player stats | Sofascore** - https://www.sofascore.com/football/team/arsenal/42\n[11] **Arsenal live scores, results, fixtures, Bayern Munich - Arsenal live ...** - https://www.flashscoreusa.com/team/arsenal/hA1Zm19f/\n[12] **Office Depot OfficeMax | Official Online Store** - https://www.officedepot.com/\n[13] **Office Depot Locator** - https://storelocator.officedepot.com/index2014.html\n[14] **Office Supplies in San Pedro, CA | Office Depot 2270** - https://www.officedepot.com/storelocator/ca/san-pedro/office-depot-2270\n[15] **Office Supplies, Furniture, Technology at Office Depot** - https://www.odpbusiness.com/\n[16] **Office Depot - Torrance, CA 90501 - The Real Yellow Pages** - https://www.yellowpages.com/torrance-ca/mip/office-depot-10118922\n[17] **Office Depot - Support Home Page** - https://help.officedepot.com/\n[18] **Office Depot in Torrance, CA - Hours & Locations - Chamber of Commerce** - https://www.chamberofcommerce.com/united-states/california/torrance/office-supply-store/3299580-office-depot\n[19] **Office Depot Locations & Hours Near Torrance, CA with Reviews | The ...** - https://www.yellowpages.com/torrance-ca/office-depot\n[20] **Office Depot in Torrance, 19100 HARBORGATE WAY. Location, phone ...** - https://www.storeshours.com/office-depot/california/torrance/harborgateway\n[21] **Office Depot in Torrance, CA - Hours & Locations - Chamber of Commerce** - https://www.chamberofcommerce.com/united-states/california/torrance/office-supply-store/3318344-office-depot\n[22] **Why Aquafit? - AquaFit** - https://aquafit419.com/why-aquafit/\n[23] **Aqua Fit Zeven - AquaFit Zeven** - https://www.aquafit-zeven.de/\n[24] **AQUAFIT Half Gallon Water Bottle with Time Marker - Amazon** - https://www.amazon.com/AQUAFIT-Gallon-Bottle-Motivational-Marker/dp/B0971JZ934\n[25] **Aquafit - Palestra e Piscina Coperta a Casale sul Sile** - https://aquafit.it/\n[26] **AQUAFIT Half Gallon Water Bottle with Time Marker - Amazon** - https://www.amazon.com/AQUAFIT-Gallon-Water-Bottle-Motivational/dp/B094XBQ8CM\n[27] **AQUAFIT 64 oz Water Bottle with Handle, 2in1 Lid - Amazon** - https://www.amazon.com/AQUAFIT-Water-Bottle-Time-Marker/dp/B0D2RGQJXQ\n[28] **Contact – Aquafit Physiotherapy Clinic** - https://aquafit.on.ca/contact/\n[29] **Water Cardio Workout & Strength Exercises - Fitness First SG** - https://www.fitnessfirst.com/sg/en/classes/strength-and-conditioning/aqua-fit\n[30] **AquaFit Water Bottles - amazon.com** - https://www.amazon.com/stores/AquaFitWaterBottles/page/A13D0BC8-B8D2-4409-AB60-5579F4D71B52\n[31] **AquaFit Other Products – Hydration & Fitness Essentials** - https://aquafit-shop.com/other-products/\n[32] **Best Smartphones 2025: Tested & Ranked Buying Guide** - https://nexttechbuy.com/best-smartphones-2025-tested-ranked/\n[33] **The Best Phones of 2025 - Gizmodo** - https://gizmodo.com/the-best-phones-you-can-buy-1830552418\n[34] **The ultimate smartphone guide 2025: Best picks for power, photos, and ...** - https://www.techedt.com/the-ultimate-smartphone-guide-2025-best-picks-for-power-photos-and-value\n[35] **Best Smartphones in 2025: Prices, Pros, Cons & Features** - https://www.analyticsinsight.net/gadgets/best-phones-of-2025-detailed-guide-on-features-pricing-and-performance\n[36] **The Best Smartphones** - https://www.theconsumers.guide/reviews/best-smartphones-2025\n[37] **Best Phone to Buy in 2025 - tech.yahoo.com** - https://tech.yahoo.com/phones/articles/best-phone-buy-2025-103000116.html\n[38] **The 5 Best Android Phones of 2025 (Consumer Reports)** - https://www.ghacks.net/2026/01/17/the-5-best-android-phones-of-2025-according-to-consumer-reports/\n[39] **Best Smartphones 2025: Price, Features & Value & Tech** - https://zipaitech.com/best-smartphones-2025/\n[40] **Best Phones 2025: 10 Smartphones That Outshine the Competition** - https://qrius.com/best-phones/\n[41] **Best Phone 2026: Top 10 Android & iPhone Mobile Phones Today – Tech Advisor** - https://www.techadvisor.com/article/724318/best-phone.html\n[42] **‎Remove AOL Completely From My Computer - Dell** - https://www.dell.com/community/en/conversations/windows-general/remove-aol-completely-from-my-computer/647e6e9ef4ccf8a8de751b20\n[43] **Outlookでサード パーティーのEメールを設定する方法 | Dell 日本** - https://www.dell.com/support/kbdoc/ja-jp/000148879/outlook%E3%81%A7%E3%82%B5%E3%83%BC%E3%83%89-%E3%83%91%E3%83%BC%E3%83%86%E3%82%A3%E3%83%BC%E3%81%AEe%E3%83%A1%E3%83%BC%E3%83%AB%E3%82%92%E3%82%BB%E3%83%83%E3%83%88%E3%82%A2%E3%83%83%E3%83%97%E3%81%99%E3%82%8B%E6%96%B9%E6%B3%95\n[44] **Microsoft Community** - https://answers.microsoft.com/en-us/outlook_com/forum/all/recover-my-active-hotmail/55d8941f-c2a2-499b-9d32-a67c6f6f22f8\n[45] **Microsoft Community** - https://answers.microsoft.com/en-us/windows/forum/all/sound-playing-with-no-programs-open-netstat-ano/39fb87b6-f53b-47aa-af34-6de9a9ff9f5e\n[46] **How to Set Up Third-Party Emails in Outlook | Dell US** - https://www.dell.com/support/kbdoc/en-us/000148879/how-to-set-up-3rd-party-emails-in-outlook\n[47] **cannot sign on to aol.error= snmaster.idx is missing** - https://www.dell.com/community/en/conversations/windows-general/cannot-sign-on-to-aolerror-snmasteridx-is-missing/647e9851f4ccf8a8de08bad0\n[48] **windows me and aol. | DELL Technologies** - https://www.dell.com/community/en/conversations/locked-topics-desktops-general/windows-me-and-aol/647e3298f4ccf8a8de74f23b\n[49] **AOL 9.0 Optimized SE Released ! | DELL Technologies** - https://www.dell.com/community/en/conversations/windows-general/aol-90-optimized-se-released/647e450af4ccf8a8de1166ad\n[50] **How to Improve Performance on a Slow Dell Computer or Laptop** - https://www.dell.com/support/kbdoc/en-us/000178928/how-to-troubleshoot-slow-performance-issues\n[51] **AOL Explorer stole my Internet access and IE doesn't work** - https://www.dell.com/community/en/conversations/networking-internet-bluetooth/aol-explorer-stole-my-internet-access-and-ie-doesnt-work/647e6d0ef4ccf8a8de561a36\n[52] **[2401.09670] DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving** - https://arxiv.org/abs/2401.09670\n\n## 研究对象、口径与冻结配置\n主题：基于 https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin 研究 Peking University 的公开系统研究。只覆盖这篇 DistServe 发表样本；按选择的研究目的和模块交付。只有一个年度观测时明确不能确立多年趋势。署名或共著不等于正式协议、产品部署或可联系性；缺证保留未知，不把机构成果量当作内部研发投入。；学科：computer science；时间：2024-01-01 至 2024-12-31。\n对象类型：university；请求冻结时间：2026-10-21T05:28:05.529024+00:00。实际采集时间逐来源保留。\n范围规则：adrs-organization-scope-v2；配置版本：user-config-v1；权重规则：adrs-weight-rules-v1；预设版本：adrs-presets-v1。\n分别保留发表记录与研究家族；同成果可归属多个对象，汇总取并集，未关联版本按独立发表计数。\n偏好配置不等于已完成评分；结果页只读重排不改写本报告的配置、事实或证据。\n研究目的：布局与演进；研究模块：研究演进；模块规则：adrs-analysis-modules-v1。目的、模块与权重分别保存。\n### 对象与来源\n- Peking University（university；pending）：<https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin>\n### 原始与生效权重\n| 维度 | 原始权重 | 开启 | 生效权重 |\n| --- | ---: | --- | ---: |\n| 主题相关性 | 30.0 | 是 | 30.00% |\n| 研究路线契合 | 15.0 | 是 | 15.00% |\n| 成果表现 | 15.0 | 是 | 15.00% |\n| 证据完整度 | 15.0 | 是 | 15.00% |\n| 时效性 | 10.0 | 是 | 10.00% |\n| 合作互补性 | 15.0 | 是 | 15.00% |\n### 成果表现组内权重\n| 项目 | 原始权重 | 开启 | 组内生效权重 |\n| --- | ---: | --- | ---: |\n| venue | 1.0 | 是 | 50.00% |\n| paper | 1.0 | 是 | 50.00% |\n### 指标组内权重\n| 项目 | 原始权重 | 开启 | 组内生效权重 |\n| --- | ---: | --- | ---: |\n| 未显式配置 | — | — | — |\n### 有序偏好映射（产品偏好，非官方等价）\n- ccf／adrs-preference-map-v1：A=1.0；B=0.6666666666666667；C=0.33333333333333337\n- icore／adrs-preference-map-v1：A*=1.0；A=0.75；B=0.5；C=0.25\n- abdc／adrs-preference-map-v1：A*=1.0；A=0.75；B=0.5；C=0.25\n- ajg／adrs-preference-map-v1：1=0.19999999999999996；2=0.4；3=0.6；4=0.8；4*=1.0\n- jcr_quartile／adrs-preference-map-v1：Q1=1.0；Q2=0.75；Q3=0.5；Q4=0.25\n- cas_partition／adrs-preference-map-v1：1=1.0；2=0.75；3=0.5；4=0.25\n### 评价口径及可用性\n目录版本：adrs-evaluation-catalog-v1；适配规则：adrs-evaluation-adapters-v1。目录样本不代表本次成果已核定评价。\n- ccf：部分公开样本；<https://www.ccf.org.cn/Academic_Evaluation/By_category/>；尚未核定本次成果。\n- icore：部分公开样本；<https://portal.core.edu.au/conf-ranks/>；尚未核定本次成果。\n- wos_scie：需授权导入／尚无公开样本；<https://mjl.clarivate.com/>；尚未核定本次成果。\n- wos_ssci：需授权导入／尚无公开样本；<https://mjl.clarivate.com/>；尚未核定本次成果。\n- wos_ahci：需授权导入／尚无公开样本；<https://mjl.clarivate.com/>；尚未核定本次成果。\n- wos_esci：需授权导入／尚无公开样本；<https://mjl.clarivate.com/>；尚未核定本次成果。\n- scopus：需授权导入／尚无公开样本；<https://www.scopus.com/sources>；尚未核定本次成果。\n- jcr_jif：需授权导入／尚无公开样本；<https://jcr.clarivate.com/>；尚未核定本次成果。\n- jcr_quartile：需授权导入／尚无公开样本；<https://jcr.clarivate.com/>；尚未核定本次成果。\n- jcr_jci：需授权导入／尚无公开样本；<https://jcr.clarivate.com/>；尚未核定本次成果。\n- cas_partition：需授权导入／尚无公开样本；<https://www.fenqubiao.com/>；尚未核定本次成果。\n- citescore：需授权导入／尚无公开样本；<https://www.scopus.com/sources>；尚未核定本次成果。\n- citescore_percentile：需授权导入／尚无公开样本；<https://www.scopus.com/sources>；尚未核定本次成果。\n- sjr：需授权导入／尚无公开样本；<https://www.scimagojr.com/>；尚未核定本次成果。\n- snip：需授权导入／尚无公开样本；<https://www.scopus.com/sources>；尚未核定本次成果。\n- abdc：部分公开样本；<https://abdc.edu.au/abdc-journal-quality-list/>；尚未核定本次成果。\n- ajg：需授权导入／尚无公开样本；<https://charteredabs.org/academic-journal-guide>；尚未核定本次成果。\n- citation_percentile：部分公开样本；<https://help.openalex.org/data/works/citations/>；尚未核定本次成果。\n- cnci：需授权导入／尚无公开样本；<https://incites.help.clarivate.com/Content/Indicators-Handbook/ih-normalized-citation-impact.htm>；尚未核定本次成果。\n- fwci：部分公开样本；<https://help.openalex.org/data/works/citations/>；尚未核定本次成果。\n- ccf／2012／指标年 2012：public，partial；<https://risame.github.io/sun/ccf.pdf>\n- ccf／2022／指标年 2022：public，partial；<https://scdm-shu.github.io/ccf/2022-CCF-Ranking.pdf>\n- icore／CORE2023／指标年 2023：public，partial；<https://portal.core.edu.au/conf-ranks/?search=SIGCOMM&by=all&source=CORE2023&sort=atitle&page=1>\n- icore／ICORE2026／指标年 2026：public，partial；<https://portal.core.edu.au/conf-ranks/?search=SIGCOMM&by=all&source=ICORE2026&sort=atitle&page=1>\n- abdc／2010／指标年 2010：public，partial；<https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx>\n- abdc／2013／指标年 2013：public，partial；<https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx>\n- abdc／2016／指标年 2016：public，partial；<https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx>\n- abdc／2019／指标年 2019：public，partial；<https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx>\n- abdc／2022／指标年 2022：public，partial；<https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx>\n- abdc／2025／指标年 2025：public，partial；<https://abdc.edu.au/wp-content/uploads/2026/09/ABDC-JQL-2025-v3-210926.xlsx>\n- fwci／OpenAlex snapshot 2026-10-19／指标年 2026：public，partial；<https://api.openalex.org/works/W1951724000>\n- citation_percentile／OpenAlex snapshot 2026-10-19／指标年 2026：public，partial；<https://api.openalex.org/works/W1951724000>\n### 实际取证来源\n- ev-b678a9c6：DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving \\| USENIX；<https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin>；采集 2026-10-21T05:28:32.758346。\n- ev-5e5cd030：Arsenal Scores, Stats and Highlights - ESPN；<https://www.espn.com/soccer/team/_/id/359/arsenal>；采集 2026-10-21T05:28:14.256326+00:00。\n- ev-24d6c58a：Arsenal Scores & Latest Results Today \\| LiveScore；<https://www.livescore.com/en/football/team/arsenal/2773/overview/>；采集 2026-10-21T05:28:14.256326+00:00。\n- ev-3f94b320：Arsenal live scores, results, fixtures, Bayern Munich v Arsenal live ...；<https://www.flashscore.com/team/arsenal/hA1Zm19f/>；采集 2026-10-21T05:28:14.256326+00:00。\n- ev-2eea9665：Arsenal FC Official Website \\| Arsenal.com；<https://www.arsenal.com/fixtures/men/fixtures>；采集 2026-10-21T05:28:14.256326+00:00。\n- ev-d998d10a：Home \\| Arsenal FC Official Website \\| Arsenal.com；<https://www.arsenal.com/?thisNav=fixtures>；采集 2026-10-21T05:28:14.256326+00:00。\n- ev-5e68fca9：Arsenal 2026 Results - ESPN；<https://www.espn.com/soccer/team/results/_/id/359/arsenal>；采集 2026-10-21T05:28:14.256326+00:00。\n- ev-80d4a01d：Arsenal News, Fixtures, Transfers, Results \\| Sky Sports Football；<https://www.skysports.com/arsenal>；采集 2026-10-21T05:28:14.256326+00:00。\n- ev-34f8b045：Arsenal — Scores, Fixtures & Results - SportScore；<https://sportscore.com/football/team/arsenal/z318q66hdd1qo9j/>；采集 2026-10-21T05:28:14.256326+00:00。\n- ev-7dd2a2f3：Arsenal live score, schedule & player stats \\| Sofascore；<https://www.sofascore.com/football/team/arsenal/42>；采集 2026-10-21T05:28:14.256326+00:00。\n- ev-7cdb3615：Arsenal live scores, results, fixtures, Bayern Munich - Arsenal live ...；<https://www.flashscoreusa.com/team/arsenal/hA1Zm19f/>；采集 2026-10-21T05:28:14.256326+00:00。\n- ev-cb0571d0：Office Depot OfficeMax \\| Official Online Store；<https://www.officedepot.com/>；采集 2026-10-21T05:28:14.257464+00:00。\n- ev-706d7819：Office Depot Locator；<https://storelocator.officedepot.com/index2014.html>；采集 2026-10-21T05:28:14.257464+00:00。\n- ev-e4a5fd95：Office Supplies in San Pedro, CA \\| Office Depot 2270；<https://www.officedepot.com/storelocator/ca/san-pedro/office-depot-2270>；采集 2026-10-21T05:28:14.257464+00:00。\n- ev-148aa204：Office Supplies, Furniture, Technology at Office Depot；<https://www.odpbusiness.com/>；采集 2026-10-21T05:28:14.257464+00:00。\n- ev-48547165：Office Depot - Torrance, CA 90501 - The Real Yellow Pages；<https://www.yellowpages.com/torrance-ca/mip/office-depot-10118922>；采集 2026-10-21T05:28:14.257464+00:00。\n- ev-49906039：Office Depot - Support Home Page；<https://help.officedepot.com/>；采集 2026-10-21T05:28:14.257464+00:00。\n- ev-43ae7027：Office Depot in Torrance, CA - Hours & Locations - Chamber of Commerce；<https://www.chamberofcommerce.com/united-states/california/torrance/office-supply-store/3299580-office-depot>；采集 2026-10-21T05:28:14.257464+00:00。\n- ev-063abcb9：Office Depot Locations & Hours Near Torrance, CA with Reviews \\| The ...；<https://www.yellowpages.com/torrance-ca/office-depot>；采集 2026-10-21T05:28:14.257464+00:00。\n- ev-f3d5d0b2：Office Depot in Torrance, 19100 HARBORGATE WAY. Location, phone ...；<https://www.storeshours.com/office-depot/california/torrance/harborgateway>；采集 2026-10-21T05:28:14.257464+00:00。\n- ev-75bc4476：Office Depot in Torrance, CA - Hours & Locations - Chamber of Commerce；<https://www.chamberofcommerce.com/united-states/california/torrance/office-supply-store/3318344-office-depot>；采集 2026-10-21T05:28:14.257464+00:00。\n- ev-b4883125：Why Aquafit? - AquaFit；<https://aquafit419.com/why-aquafit/>；采集 2026-10-21T05:28:14.259139+00:00。\n- ev-65c351dc：Aqua Fit Zeven - AquaFit Zeven；<https://www.aquafit-zeven.de/>；采集 2026-10-21T05:28:14.259139+00:00。\n- ev-6aa99bc9：AQUAFIT Half Gallon Water Bottle with Time Marker - Amazon；<https://www.amazon.com/AQUAFIT-Gallon-Bottle-Motivational-Marker/dp/B0971JZ934>；采集 2026-10-21T05:28:14.259139+00:00。\n- ev-a9de9914：Aquafit - Palestra e Piscina Coperta a Casale sul Sile；<https://aquafit.it/>；采集 2026-10-21T05:28:14.259139+00:00。\n- ev-0afb115b：AQUAFIT Half Gallon Water Bottle with Time Marker - Amazon；<https://www.amazon.com/AQUAFIT-Gallon-Water-Bottle-Motivational/dp/B094XBQ8CM>；采集 2026-10-21T05:28:14.259139+00:00。\n- ev-c3a4c580：AQUAFIT 64 oz Water Bottle with Handle, 2in1 Lid - Amazon；<https://www.amazon.com/AQUAFIT-Water-Bottle-Time-Marker/dp/B0D2RGQJXQ>；采集 2026-10-21T05:28:14.259139+00:00。\n- ev-4786e4c4：Contact – Aquafit Physiotherapy Clinic；<https://aquafit.on.ca/contact/>；采集 2026-10-21T05:28:14.259139+00:00。\n- ev-df909bcc：Water Cardio Workout & Strength Exercises - Fitness First SG；<https://www.fitnessfirst.com/sg/en/classes/strength-and-conditioning/aqua-fit>；采集 2026-10-21T05:28:14.259139+00:00。\n- ev-440b1575：AquaFit Water Bottles - amazon.com；<https://www.amazon.com/stores/AquaFitWaterBottles/page/A13D0BC8-B8D2-4409-AB60-5579F4D71B52>；采集 2026-10-21T05:28:14.259139+00:00。\n- ev-b1b156f0：AquaFit Other Products – Hydration & Fitness Essentials；<https://aquafit-shop.com/other-products/>；采集 2026-10-21T05:28:14.259139+00:00。\n- ev-3251bd78：Best Smartphones 2025: Tested & Ranked Buying Guide；<https://nexttechbuy.com/best-smartphones-2025-tested-ranked/>；采集 2026-10-21T05:28:14.260223+00:00。\n- ev-25a38246：The Best Phones of 2025 - Gizmodo；<https://gizmodo.com/the-best-phones-you-can-buy-1830552418>；采集 2026-10-21T05:28:14.260223+00:00。\n- ev-f6f42d03：The ultimate smartphone guide 2025: Best picks for power, photos, and ...；<https://www.techedt.com/the-ultimate-smartphone-guide-2025-best-picks-for-power-photos-and-value>；采集 2026-10-21T05:28:14.260223+00:00。\n- ev-63c0218c：Best Smartphones in 2025: Prices, Pros, Cons & Features；<https://www.analyticsinsight.net/gadgets/best-phones-of-2025-detailed-guide-on-features-pricing-and-performance>；采集 2026-10-21T05:28:14.260223+00:00。\n- ev-236f3b05：The Best Smartphones；<https://www.theconsumers.guide/reviews/best-smartphones-2025>；采集 2026-10-21T05:28:14.260223+00:00。\n- ev-13ab5d51：Best Phone to Buy in 2025 - tech.yahoo.com；<https://tech.yahoo.com/phones/articles/best-phone-buy-2025-103000116.html>；采集 2026-10-21T05:28:14.260223+00:00。\n- ev-9a0d1411：The 5 Best Android Phones of 2025 (Consumer Reports)；<https://www.ghacks.net/2026/01/17/the-5-best-android-phones-of-2025-according-to-consumer-reports/>；采集 2026-10-21T05:28:14.260223+00:00。\n- ev-c0288673：Best Smartphones 2025: Price, Features & Value & Tech；<https://zipaitech.com/best-smartphones-2025/>；采集 2026-10-21T05:28:14.260223+00:00。\n- ev-f8c44b77：Best Phones 2025: 10 Smartphones That Outshine the Competition；<https://qrius.com/best-phones/>；采集 2026-10-21T05:28:14.260223+00:00。\n- ev-21956d78：Best Phone 2026: Top 10 Android & iPhone Mobile Phones Today – Tech Advisor；<https://www.techadvisor.com/article/724318/best-phone.html>；采集 2026-10-21T05:28:14.260223+00:00。\n- ev-4f4b685b：‎Remove AOL Completely From My Computer - Dell；<https://www.dell.com/community/en/conversations/windows-general/remove-aol-completely-from-my-computer/647e6e9ef4ccf8a8de751b20>；采集 2026-10-21T05:28:14.261869+00:00。\n- ev-3b9fdcba：Outlookでサード パーティーのEメールを設定する方法 \\| Dell 日本；<https://www.dell.com/support/kbdoc/ja-jp/000148879/outlook%E3%81%A7%E3%82%B5%E3%83%BC%E3%83%89-%E3%83%91%E3%83%BC%E3%83%86%E3%82%A3%E3%83%BC%E3%81%AEe%E3%83%A1%E3%83%BC%E3%83%AB%E3%82%92%E3%82%BB%E3%83%83%E3%83%88%E3%82%A2%E3%83%83%E3%83%97%E3%81%99%E3%82%8B%E6%96%B9%E6%B3%95>；采集 2026-10-21T05:28:14.261869+00:00。\n- ev-7b40607d：Microsoft Community；<https://answers.microsoft.com/en-us/outlook_com/forum/all/recover-my-active-hotmail/55d8941f-c2a2-499b-9d32-a67c6f6f22f8>；采集 2026-10-21T05:28:14.261869+00:00。\n- ev-76bdcbe6：Microsoft Community；<https://answers.microsoft.com/en-us/windows/forum/all/sound-playing-with-no-programs-open-netstat-ano/39fb87b6-f53b-47aa-af34-6de9a9ff9f5e>；采集 2026-10-21T05:28:14.261869+00:00。\n- ev-4f0fcdac：How to Set Up Third-Party Emails in Outlook \\| Dell US；<https://www.dell.com/support/kbdoc/en-us/000148879/how-to-set-up-3rd-party-emails-in-outlook>；采集 2026-10-21T05:28:14.261869+00:00。\n- ev-7bf0c8d5：cannot sign on to aol.error= snmaster.idx is missing；<https://www.dell.com/community/en/conversations/windows-general/cannot-sign-on-to-aolerror-snmasteridx-is-missing/647e9851f4ccf8a8de08bad0>；采集 2026-10-21T05:28:14.261869+00:00。\n- ev-a6300bb7：windows me and aol. \\| DELL Technologies；<https://www.dell.com/community/en/conversations/locked-topics-desktops-general/windows-me-and-aol/647e3298f4ccf8a8de74f23b>；采集 2026-10-21T05:28:14.261869+00:00。\n- ev-2d8e8476：AOL 9.0 Optimized SE Released ! \\| DELL Technologies；<https://www.dell.com/community/en/conversations/windows-general/aol-90-optimized-se-released/647e450af4ccf8a8de1166ad>；采集 2026-10-21T05:28:14.261869+00:00。\n- ev-f1d97aa5：How to Improve Performance on a Slow Dell Computer or Laptop；<https://www.dell.com/support/kbdoc/en-us/000178928/how-to-troubleshoot-slow-performance-issues>；采集 2026-10-21T05:28:14.261869+00:00。\n- ev-8b890145：AOL Explorer stole my Internet access and IE doesn't work；<https://www.dell.com/community/en/conversations/networking-internet-bluetooth/aol-explorer-stole-my-internet-access-and-ie-doesnt-work/647e6d0ef4ccf8a8de561a36>；采集 2026-10-21T05:28:14.261869+00:00。\n- ev-9059b246：\\[2401.09670\\] DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving；<https://arxiv.org/abs/2401.09670>；采集 2026-10-21T05:28:49.750759。\n### 缺失与解释边界\n- 证据索引不等于机构成果全集或已核实合作关系。\n- 仅覆盖本次取得的样本；空样本不代表现实中零成果，来源未覆盖年份不补零。\n- 学科比较组使用请求标签，尚未逐篇核定学科；不输出跨学科或载体的统一质量榜。\n- 原文位置与引用检查不等于独立语义复核；模型推断、建议和未来情景仍须复核。\n- 评价目录为冻结的部分样本及授权要求，未自动应用到本次成果；缺失指标不作零分或最低等级。\n- coauthorship 关系尚无已纳入的直接依据；不表示该关系不存在。\n- funding 关系尚无已纳入的直接依据；不表示该关系不存在。\n- citation 关系尚无已纳入的直接依据；不表示该关系不存在。\n\n\n## 可复核样本与对象比较\n计数由结构化记录计算，仅覆盖本次取得并通过原文校验的样本；未链接版本暂按单条发表独立计数。\n| 对象 | 发表记录 | 研究家族 |\n| --- | ---: | ---: |\n| Peking University | 1 | 1 |\n| 去重汇总 | 1 | 1 |\n相同成果可分别归属多个对象，合并总量取成果／家族并集，不相加各对象行。\n### 同口径样本比较\n2024／conference_paper；学科口径来自请求：computer science。仅比较该组已取得样本，不作科研质量排序。\n| 对象 | 本组研究家族数 |\n| --- | ---: |\n| Peking University | 1 |\n### 已纳入成果与依据\n- DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving；日期区间 2024-07-01 至 2024-07-31（month 精度）；[citation:1]\n### 缺口与解释边界\n待核记录 0 项；未确立的关系：coauthorship、funding、citation。未取得证据不表示关系不存在。\n机构署名按所选名称／别名与发表来源对照；不推出当前任职、正式协议、内部研发投入或科研质量优劣。跨载体／年份不汇成统一质量榜。\n",
+  "citations": [
+    {
+      "citation_id": "citation:1",
+      "source_url": "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin",
+      "source_title": "DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving | USENIX",
+      "source_type": "web",
+      "extracted_evidence": "@inproceedings {298687,\n\tauthor = {Yinmin Zhong and Shengyu Liu and Junda Chen and Jianbo Hu and Yibo Zhu and Xuanzhe Liu and Xin Jin and Hao Zhang},\n\ttitle = {{DistServe}: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving},\n\tbooktitle = {18th USENIX Symposium on",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:29:21.209978"
+    },
+    {
+      "citation_id": "citation:2",
+      "source_url": "https://www.espn.com/soccer/team/_/id/359/arsenal",
+      "source_title": "Arsenal Scores, Stats and Highlights - ESPN",
+      "source_type": "web",
+      "extracted_evidence": "Arsenal Scores, Stats and Highlights - ESPN: Visit ESPN for Arsenal live scores, video highlights, and latest news. Find standings and the full 2026-27 season schedule.",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:29:21.209978"
+    },
+    {
+      "citation_id": "citation:3",
+      "source_url": "https://www.livescore.com/en/football/team/arsenal/2773/overview/",
+      "source_title": "Arsenal Scores & Latest Results Today | LiveScore",
+      "source_type": "web",
+      "extracted_evidence": "Arsenal Scores & Latest Results Today | LiveScore: Arsenal scores with the latest results, fixtures and tables. View up-to-date results live as they happen.",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:29:21.209978"
+    },
+    {
+      "citation_id": "citation:4",
+      "source_url": "https://www.flashscore.com/team/arsenal/hA1Zm19f/",
+      "source_title": "Arsenal live scores, results, fixtures, Bayern Munich v Arsenal live ...",
+      "source_type": "web",
+      "extracted_evidence": "Arsenal live scores, results, fixtures, Bayern Munich v Arsenal live ...: Arsenal page on Flashscore.com offers livescore, results, standings and match details (goal scorers, red cards, …).",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:29:21.209978"
+    },
+    {
+      "citation_id": "citation:5",
+      "source_url": "https://www.arsenal.com/fixtures/men/fixtures",
+      "source_title": "Arsenal FC Official Website | Arsenal.com",
+      "source_type": "web",
+      "extracted_evidence": "Arsenal FC Official Website | Arsenal.com: Please note, fixtures, dates, and kick-off times are subject to change. All times are shown in your local time.",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:29:21.209978"
+    },
+    {
+      "citation_id": "citation:6",
+      "source_url": "https://www.arsenal.com/?thisNav=fixtures",
+      "source_title": "Home | Arsenal FC Official Website | Arsenal.com",
+      "source_type": "web",
+      "extracted_evidence": "Home | Arsenal FC Official Website | Arsenal.com: Arsenal Football Club Official Website: get the latest Arsenal FC news, highlights, fixtures and results. Become a free digital member for exclusive content.",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:29:21.209978"
+    },
+    {
+      "citation_id": "citation:7",
+      "source_url": "https://www.espn.com/soccer/team/results/_/id/359/arsenal",
+      "source_title": "Arsenal 2026 Results - ESPN",
+      "source_type": "web",
+      "extracted_evidence": "Arsenal 2026 Results - ESPN: Get all the Arsenal results for the 2026 season on ESPN. Includes all the Arsenal results from all national and international games.",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:29:21.209978"
+    },
+    {
+      "citation_id": "citation:8",
+      "source_url": "https://www.skysports.com/arsenal",
+      "source_title": "Arsenal News, Fixtures, Transfers, Results | Sky Sports Football",
+      "source_type": "web",
+      "extracted_evidence": "Arsenal News, Fixtures, Transfers, Results | Sky Sports Football: Arsenal Football Club - find the latest news, fixtures, transfers, live scores, results, videos, photos, squad and player stats on Sky Sports Football.",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:29:21.209978"
+    },
+    {
+      "citation_id": "citation:9",
+      "source_url": "https://sportscore.com/football/team/arsenal/z318q66hdd1qo9j/",
+      "source_title": "Arsenal — Scores, Fixtures & Results - SportScore",
+      "source_type": "web",
+      "extracted_evidence": "Arsenal — Scores, Fixtures & Results - SportScore: Arsenal: live scores, upcoming fixtures, recent results, full squad, form guide, league standings and head-to-head records — with live match updates, lineups and goal alerts on SportScore.",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:29:21.209978"
+    },
+    {
+      "citation_id": "citation:10",
+      "source_url": "https://www.sofascore.com/football/team/arsenal/42",
+      "source_title": "Arsenal live score, schedule & player stats | Sofascore",
+      "source_type": "web",
+      "extracted_evidence": "Arsenal live score, schedule & player stats | Sofascore: When the match starts, you will be able to follow FC Bayern München vs Arsenal live score, standings, minute by minute updated live results and match statistics.",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:29:21.209978"
+    },
+    {
+      "citation_id": "citation:11",
+      "source_url": "https://www.flashscoreusa.com/team/arsenal/hA1Zm19f/",
+      "source_title": "Arsenal live scores, results, fixtures, Bayern Munich - Arsenal live ...",
+      "source_type": "web",
+      "extracted_evidence": "Arsenal live scores, results, fixtures, Bayern Munich - Arsenal live ...: Flashscore offers Arsenal livescore, final and partial results, standings and match details (goal scorers, red cards, odds comparison, …). Besides Arsenal scores you can follow 1000+ soccer competitions from 90+ countries arou",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:29:21.209978"
+    },
+    {
+      "citation_id": "citation:12",
+      "source_url": "https://www.officedepot.com/",
+      "source_title": "Office Depot OfficeMax | Official Online Store",
+      "source_type": "web",
+      "extracted_evidence": "Office Depot OfficeMax | Official Online Store: Shop office supplies, furniture & technology at Office Depot. For paper, ink, toner & more, find trusted brands at everyday low prices.",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:29:21.209978"
+    },
+    {
+      "citation_id": "citation:13",
+      "source_url": "https://storelocator.officedepot.com/index2014.html",
+      "source_title": "Office Depot Locator",
+      "source_type": "web",
+      "extracted_evidence": "Office Depot Locator: Find Office Depot and OfficeMax stores near you with the Store Locator tool.",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:29:21.209978"
+    },
+    {
+      "citation_id": "citation:14",
+      "source_url": "https://www.officedepot.com/storelocator/ca/san-pedro/office-depot-2270",
+      "source_title": "Office Supplies in San Pedro, CA | Office Depot 2270",
+      "source_type": "web",
+      "extracted_evidence": "Office Supplies in San Pedro, CA | Office Depot 2270: Shop office supplies, furniture, and technology at Office Depot for trusted brands at everyday low prices.",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:29:21.209978"
+    },
+    {
+      "citation_id": "citation:15",
+      "source_url": "https://www.odpbusiness.com/",
+      "source_title": "Office Supplies, Furniture, Technology at Office Depot",
+      "source_type": "web",
+      "extracted_evidence": "Office Supplies, Furniture, Technology at Office Depot: Shop office supplies, office furniture and business technology at Office Depot. Paper, file folders, ink, toner and more. Huge selections, brands you trust, everyday low prices! Take Care of Business, shop today.",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:29:21.209978"
+    },
+    {
+      "citation_id": "citation:16",
+      "source_url": "https://www.yellowpages.com/torrance-ca/mip/office-depot-10118922",
+      "source_title": "Office Depot - Torrance, CA 90501 - The Real Yellow Pages",
+      "source_type": "web",
+      "extracted_evidence": "Office Depot - Torrance, CA 90501 - The Real Yellow Pages: Get reviews, hours, directions, coupons and more for Office Depot. Search for other Office Equipment & Supplies on The Real Yellow Pages®.",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:29:21.209978"
+    },
+    {
+      "citation_id": "citation:17",
+      "source_url": "https://help.officedepot.com/",
+      "source_title": "Office Depot - Support Home Page",
+      "source_type": "web",
+      "extracted_evidence": "Office Depot - Support Home Page: Browse our knowledge base categories below or use the search bar to find the answers to your questions.",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:29:21.209978"
+    },
+    {
+      "citation_id": "citation:18",
+      "source_url": "https://www.chamberofcommerce.com/united-states/california/torrance/office-supply-store/3299580-office-depot",
+      "source_title": "Office Depot in Torrance, CA - Hours & Locations - Chamber of Commerce",
+      "source_type": "web",
+      "extracted_evidence": "Office Depot in Torrance, CA - Hours & Locations - Chamber of Commerce: Office Depot at 19800 Hawthorne Blvd, Suite 248 Torrance, CA 90503. Get Office Depot can be contacted at (310) 214-9179. Get Office Depot reviews, rating, hours, phone number, directions and more.",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:29:21.209978"
+    },
+    {
+      "citation_id": "citation:19",
+      "source_url": "https://www.yellowpages.com/torrance-ca/office-depot",
+      "source_title": "Office Depot Locations & Hours Near Torrance, CA with Reviews | The ...",
+      "source_type": "web",
+      "extracted_evidence": "Office Depot Locations & Hours Near Torrance, CA with Reviews | The ...: Find 59 listings related to Office Depot in Torrance on YP.com. See reviews, photos, directions, phone numbers and more for Office Depot locations in Torrance, CA.",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:29:21.209978"
+    },
+    {
+      "citation_id": "citation:20",
+      "source_url": "https://www.storeshours.com/office-depot/california/torrance/harborgateway",
+      "source_title": "Office Depot in Torrance, 19100 HARBORGATE WAY. Location, phone ...",
+      "source_type": "web",
+      "extracted_evidence": "Office Depot in Torrance, 19100 HARBORGATE WAY. Location, phone ...: Office Depot - Torrance 19100 HARBORGATE WAY, Torrance, CA 90501. Operating hours, map location, phone number and driving directions.",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:29:21.209978"
+    },
+    {
+      "citation_id": "citation:21",
+      "source_url": "https://www.chamberofcommerce.com/united-states/california/torrance/office-supply-store/3318344-office-depot",
+      "source_title": "Office Depot in Torrance, CA - Hours & Locations - Chamber of Commerce",
+      "source_type": "web",
+      "extracted_evidence": "Office Depot in Torrance, CA - Hours & Locations - Chamber of Commerce: Office Depot at 19100 Harborgate Way, Torrance, CA 90501. Get Office Depot can be contacted at (310) 800-9022. Get Office Depot reviews, rating, hours, phone number, directions and more.",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:29:21.209978"
+    },
+    {
+      "citation_id": "citation:22",
+      "source_url": "https://aquafit419.com/why-aquafit/",
+      "source_title": "Why Aquafit? - AquaFit",
+      "source_type": "web",
+      "extracted_evidence": "Why Aquafit? - AquaFit: AQUAFIT offers a variety of classes from Aqua Cycling, Apah Yoga, our own Aqua Fit program that incorporates strength and conditioning training using a broad range of methods like barre, pilates, and HIIT, to our new Mermaid Bootcamp! Our instructors pride themselves on chang",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:29:21.209978"
+    },
+    {
+      "citation_id": "citation:23",
+      "source_url": "https://www.aquafit-zeven.de/",
+      "source_title": "Aqua Fit Zeven - AquaFit Zeven",
+      "source_type": "web",
+      "extracted_evidence": "Aqua Fit Zeven - AquaFit Zeven: AquaFit öffnet für Schulen und Vereine Das Hallenbad AquaFit öffnet nach der Sommerpause ab Montag, den 17. August 2026, ausschließlich für den Schul- und Vereinssport. Der öffentliche Badebetrieb entfällt; ebenso bleibt der Saunabereich geschlossen. Insbesondere wege",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:29:21.209978"
+    },
+    {
+      "citation_id": "citation:24",
+      "source_url": "https://www.amazon.com/AQUAFIT-Gallon-Bottle-Motivational-Marker/dp/B0971JZ934",
+      "source_title": "AQUAFIT Half Gallon Water Bottle with Time Marker - Amazon",
+      "source_type": "web",
+      "extracted_evidence": "AQUAFIT Half Gallon Water Bottle with Time Marker - Amazon: About this item Track how much you drink - Our half gallon water bottles come with clear time markers on the side so you can see your daily water intake and stay on track to meet your health and fitness goals. Large 1/2 gallon, 64 oz water ",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:29:21.209978"
+    },
+    {
+      "citation_id": "citation:25",
+      "source_url": "https://aquafit.it/",
+      "source_title": "Aquafit - Palestra e Piscina Coperta a Casale sul Sile",
+      "source_type": "web",
+      "extracted_evidence": "Aquafit - Palestra e Piscina Coperta a Casale sul Sile: IL CENTRO AQUAFIT LA NOSTRA STRUTTURA Lungo la Restera, immersa nella tranquillità del Parco del Sile, sorge Aquafit Original, struttura aperta dal 2002 e che da sempre offre servizi di alta qualità legati allo sport e al benessere della person",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:29:21.209978"
+    },
+    {
+      "citation_id": "citation:26",
+      "source_url": "https://www.amazon.com/AQUAFIT-Gallon-Water-Bottle-Motivational/dp/B094XBQ8CM",
+      "source_title": "AQUAFIT Half Gallon Water Bottle with Time Marker - Amazon",
+      "source_type": "web",
+      "extracted_evidence": "AQUAFIT Half Gallon Water Bottle with Time Marker - Amazon: About this item Track how much you drink - Our half gallon water bottles come with clear time markers on the side so you can see your daily water intake and stay on track to meet your health and fitness goals. Large 1/2 gallon, 64 oz water ",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:29:21.209978"
+    },
+    {
+      "citation_id": "citation:27",
+      "source_url": "https://www.amazon.com/AQUAFIT-Water-Bottle-Time-Marker/dp/B0D2RGQJXQ",
+      "source_title": "AQUAFIT 64 oz Water Bottle with Handle, 2in1 Lid - Amazon",
+      "source_type": "web",
+      "extracted_evidence": "AQUAFIT 64 oz Water Bottle with Handle, 2in1 Lid - Amazon: Buy AQUAFIT 64 oz Water Bottle with Handle, 2in1 Lid | BPA Free Half Gallon Water Bottle with 2in1 Straw and Chug Lid - Leakproof Gym Water Bottle with Time Marker (Blue): Sports Water Bottles - Amazon.com FREE DELIVERY possible on eligible ",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:29:21.209978"
+    },
+    {
+      "citation_id": "citation:28",
+      "source_url": "https://aquafit.on.ca/contact/",
+      "source_title": "Contact – Aquafit Physiotherapy Clinic",
+      "source_type": "web",
+      "extracted_evidence": "Contact – Aquafit Physiotherapy Clinic: 519-474-0240 Aquafit Physiotherapy Clinic Address : 269 Springbank Dr, London, Ontario N6J 1G3 Canada Tel : 519-474-0240 Fax : 519-474-7559 Email : aquafit@odyssey.on.ca",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:29:21.209978"
+    },
+    {
+      "citation_id": "citation:29",
+      "source_url": "https://www.fitnessfirst.com/sg/en/classes/strength-and-conditioning/aqua-fit",
+      "source_title": "Water Cardio Workout & Strength Exercises - Fitness First SG",
+      "source_type": "web",
+      "extracted_evidence": "Water Cardio Workout & Strength Exercises - Fitness First SG: Strength and Conditioning Aqua Fit Working out in a pool is a full body challenge. The class kicks off with low impact exercises. Eventually building up the intensity. The water resistance tones muscles as it fuels your cardio and strengt",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:29:21.209978"
+    },
+    {
+      "citation_id": "citation:30",
+      "source_url": "https://www.amazon.com/stores/AquaFitWaterBottles/page/A13D0BC8-B8D2-4409-AB60-5579F4D71B52",
+      "source_title": "AquaFit Water Bottles - amazon.com",
+      "source_type": "web",
+      "extracted_evidence": "AquaFit Water Bottles - amazon.com: AquaFit Water Bottles Amazon Music Stream millions of songs Amazon Ads Reach customers wherever they spend their time 6pm Score deals on fashion brands AbeBooks Books, art & collectibles ACX Audiobook Publishing Made Easy Sell on Amazon Start a Selling Account Vee",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:29:21.209978"
+    },
+    {
+      "citation_id": "citation:31",
+      "source_url": "https://aquafit-shop.com/other-products/",
+      "source_title": "AquaFit Other Products – Hydration & Fitness Essentials",
+      "source_type": "web",
+      "extracted_evidence": "AquaFit Other Products – Hydration & Fitness Essentials: Explore AquaFit’s other hydration and fitness products, from shaker bottles to durable accessories designed for active lifestyles. Premium quality for daily performance.",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:29:21.209978"
+    },
+    {
+      "citation_id": "citation:32",
+      "source_url": "https://nexttechbuy.com/best-smartphones-2025-tested-ranked/",
+      "source_title": "Best Smartphones 2025: Tested & Ranked Buying Guide",
+      "source_type": "web",
+      "extracted_evidence": "Best Smartphones 2025: Tested & Ranked Buying Guide: Looking for the best smartphone in 2025? After four months of hands-on testing with nine flagship and mid-range devices, I’ve separated marketing hype from genuine performance.",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:29:21.209978"
+    },
+    {
+      "citation_id": "citation:33",
+      "source_url": "https://gizmodo.com/the-best-phones-you-can-buy-1830552418",
+      "source_title": "The Best Phones of 2025 - Gizmodo",
+      "source_type": "web",
+      "extracted_evidence": "The Best Phones of 2025 - Gizmodo: Smartphones | Find out our selection of the best phones you can buy in 2025 for every taste, from Android to IOS users.",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:29:21.209978"
+    },
+    {
+      "citation_id": "citation:34",
+      "source_url": "https://www.techedt.com/the-ultimate-smartphone-guide-2025-best-picks-for-power-photos-and-value",
+      "source_title": "The ultimate smartphone guide 2025: Best picks for power, photos, and ...",
+      "source_type": "web",
+      "extracted_evidence": "The ultimate smartphone guide 2025: Best picks for power, photos, and ...: Discover the best smartphones of 2025, featuring powerful performance, advanced cameras, stunning displays, and long-lasting battery life.",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:29:21.209978"
+    },
+    {
+      "citation_id": "citation:35",
+      "source_url": "https://www.analyticsinsight.net/gadgets/best-phones-of-2025-detailed-guide-on-features-pricing-and-performance",
+      "source_title": "Best Smartphones in 2025: Prices, Pros, Cons & Features",
+      "source_type": "web",
+      "extracted_evidence": "Best Smartphones in 2025: Prices, Pros, Cons & Features: A curated list of the best smartphones of 2025, blending performance, design, and innovation. Detailed insights on pros, cons, features, and pricing in USD for every major flagship.",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:29:21.209978"
+    },
+    {
+      "citation_id": "citation:36",
+      "source_url": "https://www.theconsumers.guide/reviews/best-smartphones-2025",
+      "source_title": "The Best Smartphones",
+      "source_type": "web",
+      "extracted_evidence": "The Best Smartphones: Consumer Reports' owner satisfaction survey has put Apple at the top of the smartphone field, ahead of Google and Samsung, and ecosystem fit is a big part of why.",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:29:21.209978"
+    },
+    {
+      "citation_id": "citation:37",
+      "source_url": "https://tech.yahoo.com/phones/articles/best-phone-buy-2025-103000116.html",
+      "source_title": "Best Phone to Buy in 2025 - tech.yahoo.com",
+      "source_type": "web",
+      "extracted_evidence": "Best Phone to Buy in 2025 - tech.yahoo.com: We tested the best phones -- from Samsung’s Galaxy Z Fold 7 and Google’s Pixel 10 to Apple's iPhone Air and iPhone 17 -- and updated our top picks.",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:29:21.209978"
+    },
+    {
+      "citation_id": "citation:38",
+      "source_url": "https://www.ghacks.net/2026/01/17/the-5-best-android-phones-of-2025-according-to-consumer-reports/",
+      "source_title": "The 5 Best Android Phones of 2025 (Consumer Reports)",
+      "source_type": "web",
+      "extracted_evidence": "The 5 Best Android Phones of 2025 (Consumer Reports): Consumer Reports has published its rankings of the best Android phones released in 2025, highlighting five models that stood out for performance, camera quality, battery life, and overall reliability.",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:29:21.209978"
+    },
+    {
+      "citation_id": "citation:39",
+      "source_url": "https://zipaitech.com/best-smartphones-2025/",
+      "source_title": "Best Smartphones 2025: Price, Features & Value & Tech",
+      "source_type": "web",
+      "extracted_evidence": "Best Smartphones 2025: Price, Features & Value & Tech: In this guide, we’ll look at the best smartphones you can buy in 2025 — spanning flagship, mid-range, and “value champion” models. We’ll compare price vs features, help you decide based on your priorities, and point out trends shaping the smartp",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:29:21.209978"
+    },
+    {
+      "citation_id": "citation:40",
+      "source_url": "https://qrius.com/best-phones/",
+      "source_title": "Best Phones 2025: 10 Smartphones That Outshine the Competition",
+      "source_type": "web",
+      "extracted_evidence": "Best Phones 2025: 10 Smartphones That Outshine the Competition: This article dives into the 10 best phones of 2025, ranked and tested based on camera performance, real-world speed, AI features, and value for money. Each review covers strengths, drawbacks, and ideal buyer profiles, so by the end, you",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:29:21.209978"
+    },
+    {
+      "citation_id": "citation:41",
+      "source_url": "https://www.techadvisor.com/article/724318/best-phone.html",
+      "source_title": "Best Phone 2026: Top 10 Android & iPhone Mobile Phones Today – Tech Advisor",
+      "source_type": "web",
+      "extracted_evidence": "Best Phone 2026: Top 10 Android & iPhone Mobile Phones Today – Tech Advisor: Our full-time Mobile Editor, Anyron Copeman, is the lead on this list of the best phones. He spends almost all his time testing, reviewing and writing about phones and is often among the first in the world to get hold of th",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:29:21.209978"
+    },
+    {
+      "citation_id": "citation:42",
+      "source_url": "https://www.dell.com/community/en/conversations/windows-general/remove-aol-completely-from-my-computer/647e6e9ef4ccf8a8de751b20",
+      "source_title": "‎Remove AOL Completely From My Computer - Dell",
+      "source_type": "web",
+      "extracted_evidence": "‎Remove AOL Completely From My Computer - Dell: AOL, and some other nasty sticky programs leave registry codes behind, and the only way I know how to rid of this is doing a reformat, and reinstall of windows. Lots of work, saving the stuff you want to keep on a cdrw or dvd, than wiping the system cl",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:29:21.209978"
+    },
+    {
+      "citation_id": "citation:43",
+      "source_url": "https://www.dell.com/support/kbdoc/ja-jp/000148879/outlook%E3%81%A7%E3%82%B5%E3%83%BC%E3%83%89-%E3%83%91%E3%83%BC%E3%83%86%E3%82%A3%E3%83%BC%E3%81%AEe%E3%83%A1%E3%83%BC%E3%83%AB%E3%82%92%E3%82%BB%E3%83%83%E3%83%88%E3%82%A2%E3%83%83%E3%83%97%E3%81%99%E3%82%8B%E6%96%B9%E6%B3%95",
+      "source_title": "Outlookでサード パーティーのEメールを設定する方法 | Dell 日本",
+      "source_type": "web",
+      "extracted_evidence": "Outlookでサード パーティーのEメールを設定する方法 | Dell 日本: この記事では、OutlookでHotmail、Yahooメール、Gmail、AOLメールなどのサード パーティーのメールを設定するための基本的な情報を提供します。",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:29:21.209978"
+    },
+    {
+      "citation_id": "citation:44",
+      "source_url": "https://answers.microsoft.com/en-us/outlook_com/forum/all/recover-my-active-hotmail/55d8941f-c2a2-499b-9d32-a67c6f6f22f8",
+      "source_title": "Microsoft Community",
+      "source_type": "web",
+      "extracted_evidence": "Microsoft Community: Microsoft Community",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:29:21.209978"
+    },
+    {
+      "citation_id": "citation:45",
+      "source_url": "https://answers.microsoft.com/en-us/windows/forum/all/sound-playing-with-no-programs-open-netstat-ano/39fb87b6-f53b-47aa-af34-6de9a9ff9f5e",
+      "source_title": "Microsoft Community",
+      "source_type": "web",
+      "extracted_evidence": "Microsoft Community: Microsoft Community",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:29:21.209978"
+    },
+    {
+      "citation_id": "citation:46",
+      "source_url": "https://www.dell.com/support/kbdoc/en-us/000148879/how-to-set-up-3rd-party-emails-in-outlook",
+      "source_title": "How to Set Up Third-Party Emails in Outlook | Dell US",
+      "source_type": "web",
+      "extracted_evidence": "How to Set Up Third-Party Emails in Outlook | Dell US: This article provides some basic information about setting up third-party emails such as Hotmail, Yahoo Mail, Gmail, or AOL mail in Outlook.",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:29:21.209978"
+    },
+    {
+      "citation_id": "citation:47",
+      "source_url": "https://www.dell.com/community/en/conversations/windows-general/cannot-sign-on-to-aolerror-snmasteridx-is-missing/647e9851f4ccf8a8de08bad0",
+      "source_title": "cannot sign on to aol.error= snmaster.idx is missing",
+      "source_type": "web",
+      "extracted_evidence": "cannot sign on to aol.error= snmaster.idx is missing: i downloaded aol 9.1 in the uk on my dimension 9200 and since then about 2 weeks i have been unable to sign on to aol... If  i try to sign on i get...aol software has stopped working please cl...",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:29:21.209978"
+    },
+    {
+      "citation_id": "citation:48",
+      "source_url": "https://www.dell.com/community/en/conversations/locked-topics-desktops-general/windows-me-and-aol/647e3298f4ccf8a8de74f23b",
+      "source_title": "windows me and aol. | DELL Technologies",
+      "source_type": "web",
+      "extracted_evidence": "windows me and aol. | DELL Technologies: windows me and aol. hi outthere.i'm new to computers-just ordered 4100series dell on 9/20/00,but read the epinions.com about 4100.somebody is saying that windows me isn't compatible with aol and i got 1 year of prepaid aol service.also did dell fix their fan ",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:29:21.209978"
+    },
+    {
+      "citation_id": "citation:49",
+      "source_url": "https://www.dell.com/community/en/conversations/windows-general/aol-90-optimized-se-released/647e450af4ccf8a8de1166ad",
+      "source_title": "AOL 9.0 Optimized SE Released ! | DELL Technologies",
+      "source_type": "web",
+      "extracted_evidence": "AOL 9.0 Optimized SE Released ! | DELL Technologies: AOL 9.0 OPTIMIZED SE has been in beta testing for over six months by thousands of testers. - In AOL® 9.0 Optimized SE over 100 features have been added or upgraded! - Provides both dial-up and AOL® for Broadband members a safer, fun and effortless",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:29:21.209978"
+    },
+    {
+      "citation_id": "citation:50",
+      "source_url": "https://www.dell.com/support/kbdoc/en-us/000178928/how-to-troubleshoot-slow-performance-issues",
+      "source_title": "How to Improve Performance on a Slow Dell Computer or Laptop",
+      "source_type": "web",
+      "extracted_evidence": "How to Improve Performance on a Slow Dell Computer or Laptop: Learn how to fix a slow computer or laptop by checking startup apps, storage, drivers, malware, hardware, and other common performance issues.",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:29:21.209978"
+    },
+    {
+      "citation_id": "citation:51",
+      "source_url": "https://www.dell.com/community/en/conversations/networking-internet-bluetooth/aol-explorer-stole-my-internet-access-and-ie-doesnt-work/647e6d0ef4ccf8a8de561a36",
+      "source_title": "AOL Explorer stole my Internet access and IE doesn't work",
+      "source_type": "web",
+      "extracted_evidence": "AOL Explorer stole my Internet access and IE doesn't work: One of my kids accepted the AOL explorer on my laptop. Once installed it disabled IE and only AOL programs can access the Internet. I uninstalled AOL Explorer (finally) but IE still doesn't work (AOL does). When I run network diagnostics the",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:29:21.209978"
+    },
+    {
+      "citation_id": "citation:52",
+      "source_url": "https://arxiv.org/abs/2401.09670",
+      "source_title": "[2401.09670] DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving",
+      "source_type": "web",
+      "extracted_evidence": "citation_title: DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving\ncitation_date: 2024/01/18\n\n# Computer Science > Distributed, Parallel, and Cluster Computing\n\n# DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model ",
+      "relevance_score": 0.5,
+      "access_timestamp": "2026-10-21T05:29:21.209978"
+    }
+  ]
+}
