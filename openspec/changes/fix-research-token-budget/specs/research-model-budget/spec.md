@@ -31,6 +31,10 @@
 - **WHEN** 报告不同位置的主张使用重叠选段
 - **THEN** 可按实际共享量同批核对且重叠文字只发一次，每项仍只能使用其自身passage列出的片段；结果保持原报告顺序，旧契约判定不跨版本复用
 
+#### Scenario: Content correction batch cannot fit
+- **WHEN** 唯一内容修订轮的段落原文符合批次上界，但包含问题和许可原文的完整消息超过剩余写作准入
+- **THEN** 先拆分尚未派发的批次再请求，不重试已处理段落；单段仍装不下或任一必要修订失败时保留原稿及已收到响应，不发布部分修订，不动用额外额度
+
 ### Requirement: Account actual usage and recompute limits
 系统 SHALL 接收流式及非流式供应商usage，合并所有模型尝试与工具用量，更新后重算预算状态；未知价格 SHALL 单独标识。
 
