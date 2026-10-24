@@ -2565,6 +2565,7 @@ async def report_node(state: ResearchState) -> dict:
             verification_timeout_seconds=remaining_report_seconds,
             organization_research=state.get("organization_research"),
             organization_statistics=(organization_result or {}).get('statistics'),
+            technical_reading=(organization_result or {}).get('technical_reading'),
             query_understanding=state.get('query_understanding'),
         )
     except TokenBudgetExceeded as error:

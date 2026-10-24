@@ -81,9 +81,34 @@ def _paragraph_window(text, start, end):
     return lower,upper
 
 
-def _ranges(source, query, deep, focus=None):
+def reading_source_spans(reading, evidence):
+    """Use located technical proofs as retrieval hints, never as verdicts.
+
+    Recheck exact retained text before carrying an old card's location into a
+    new writing context. No field summary is substituted for source content.
+    """
+    sources={source.evidence_id:source for source in evidence}
+    spans={}
+    for card in (reading or {}).get('cards',[]):
+        for field,statement in card.get('fields',{}).items():
+            if statement.get('status')!='source_summary_requires_semantic_review':continue
+            for proof in statement.get('proofs',[]):
+                source=sources.get(proof.get('evidence_id'))
+                start,end=proof.get('start'),proof.get('end')
+                if source is None or type(start) is not int or type(end) is not int:continue
+                if not 0<=start<end<=len(source.content) or source.content[start:end]!=proof.get('quote'):continue
+                spans.setdefault(source.evidence_id,[]).append((field,start,end))
+    return spans
+
+
+def _ranges(source, query, deep, focus=None, located_spans=None):
     text, meta = source.content, source.acquisition or {}
     spans = []
+    if deep:
+        for field,start,end in located_spans or []:
+            lower,upper=_paragraph_window(text,start,end)
+            spans.append((field,lower,upper))
+            spans.append(('retained_field_proof',lower,upper))
     for role, pattern in ROLES.items() if deep else []:
         sections = [item for item in meta.get('scientific_sections', [])
             if isinstance(item, dict) and re.search(pattern, str(item.get('label', '')), re.I)
@@ -132,7 +157,8 @@ def _ranges(source, query, deep, focus=None):
     return spans
 
 
-def evidence_context(evidence, query: str, *, deep: bool, max_bytes: int, preferred_ids=None, focus=None, identity_only=False) -> tuple[str, dict]:
+def evidence_context(evidence, query: str, *, deep: bool, max_bytes: int, preferred_ids=None, focus=None, identity_only=False,
+                     located_spans=None) -> tuple[str, dict]:
     """Distribute a UTF-8 payload allowance across sources, retaining exact spans.
 
     Omitted documents/passages remain in the task evidence. This is selection,
@@ -189,7 +215,8 @@ def evidence_context(evidence, query: str, *, deep: bool, max_bytes: int, prefer
             if len(encoded(record).encode('utf-8'))<=quota:rows.append(record)
             else:omitted.append(source.evidence_id)
             continue
-        ranges = _ranges(source, query, deep, focus=focus)
+        ranges = _ranges(source, query, deep, focus=focus,
+            located_spans=(located_spans or {}).get(source.evidence_id))
         if deep:
             # Merge overlaps once while preserving every retrieval role. A
             # single experimental paragraph often answers several fields.
@@ -201,7 +228,8 @@ def evidence_context(evidence, query: str, *, deep: bool, max_bytes: int, prefer
                     if role not in merged[-1]['roles']:merged[-1]['roles'].append(role)
                 else:merged.append({'start':start,'end':end,'roles':[role]})
             desired=list(focus or CONDITION_QUERIES)
-            merged.sort(key=lambda item:(-sum(role in item['roles'] for role in desired),item['start']))
+            merged.sort(key=lambda item:('retained_field_proof' not in item['roles'],
+                -sum(role in item['roles'] for role in desired),item['start']))
             covered=set()
             for item in merged:
                 start,end=item['start'],item['end']
@@ -236,6 +264,7 @@ def evidence_context(evidence, query: str, *, deep: bool, max_bytes: int, prefer
         else:
             rows.append(record)
     by_id={source.evidence_id:source for source in evidence}
+    selected_intervals={}
     for row in rows:
         source=by_id[row['evidence_id']]
         for excerpt in row['excerpts']:
@@ -246,6 +275,7 @@ def evidence_context(evidence, query: str, *, deep: bool, max_bytes: int, prefer
             if intervals and start<=intervals[-1][1]:intervals[-1]=(intervals[-1][0],max(end,intervals[-1][1]))
             else:intervals.append((start,end))
         selected_characters=sum(end-start for start,end in intervals)
+        selected_intervals[row['evidence_id']]=intervals
         row['compression']={'method':'literal_extractive_windows_no_generated_summary',
             'retained_source_characters':len(source.content),'selected_unique_characters':selected_characters,
             'omitted_characters':max(0,len(source.content)-selected_characters),
@@ -263,11 +293,18 @@ def evidence_context(evidence, query: str, *, deep: bool, max_bytes: int, prefer
     while rows and len(encoded(payload).encode('utf-8')) > max_bytes:
         omitted.append(rows.pop()['evidence_id'])
         prompt_sources.pop()
+    selected_ids={row['evidence_id'] for row in rows}
     manifest = {'sources': rows, 'omitted_evidence_ids': omitted,
         'total_sources': len(evidence), 'selected_sources': len(rows),
-        'selection': 'per_source_method_evaluation_question_windows',
+        'selection': 'per_source_method_evaluation_question_windows_with_located_proof_neighbors' if located_spans
+            else 'per_source_method_evaluation_question_windows',
         'source_selection':assessment,
         'conclusion_coverage': 'not_assessed', 'offset_unit': 'task_retained_evidence_character'}
+    if located_spans:
+        manifest['located_proofs']=[{'evidence_id':key,'field':field,'start':start,'end':end,
+            'selected':key in selected_ids and any(lower<=start and end<=upper
+                for lower,upper in selected_intervals.get(key,[])),
+            'support':'not_assessed'} for key,spans in located_spans.items() for field,start,end in spans]
     manifest['question_evidence']=context_coverage(manifest,assessment,deep=deep and not identity_only,focus=focus)
     return encoded(payload), manifest
 

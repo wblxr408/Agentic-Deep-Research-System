@@ -155,6 +155,7 @@ class ReportAgent:
         organization_research: dict | None = None,
         organization_statistics: dict | None = None,
         query_understanding:dict|None=None,
+        technical_reading: dict | None = None,
     ) -> tuple[str, list[Citation]]:
         """
         Generate the final research report.
@@ -223,11 +224,13 @@ class ReportAgent:
         # Generate citation range note
         citation_note = self._citation_range_note(len(citations))
 
-        from app.research_context import analysis_context, evidence_context, fit_messages, encoded
+        from app.research_context import analysis_context, evidence_context, fit_messages, encoded, reading_source_spans
+        located_spans=reading_source_spans(technical_reading,evidence_list)
         def build_messages(allowance):
             selected_analysis, omitted = analysis_context(analysis, int(allowance*.18))
             formatted_evidence, manifest = evidence_context(evidence_list, user_query,
-                deep=module_mode and 'deep_dive' in organization_research['modules'], max_bytes=int(allowance*.75))
+                deep=module_mode and 'deep_dive' in organization_research['modules'], max_bytes=int(allowance*.75),
+                located_spans=located_spans)
             stats = dict(computed_statistics) if computed_statistics else None
             if stats:
                 stats['metric_registry'] = dict(stats['metric_registry'])

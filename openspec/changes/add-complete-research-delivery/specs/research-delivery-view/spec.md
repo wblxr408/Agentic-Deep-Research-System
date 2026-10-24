@@ -6,6 +6,13 @@
 
 ## ADDED Requirements
 
+### Requirement: Located technical conditions reach writing source context
+系统 SHALL 将本次深读卡的合格原文proof在当前保留证据中重新核对，将仍有效的位置作为同源相邻条件选段线索，不以摘要代替来源、不扩展权限或预算。系统 SHALL 在研究记录中保留实际选中与遗漏，选段命中 MUST NOT 被当作科学支持或整篇已读证明。
+
+#### Scenario: A proof is stale or cannot fit
+- **WHEN** 深读卡原文位置／引语与当前证据不一致，或原来源配额无法装入该位置窗口
+- **THEN** 不把旧摘要当原文补入写作；失效proof不作线索，有效但未装入的proof保留未选状态，完整条件语义继续由最终审核及真实旅程判断
+
 ### Requirement: Frozen per-chart Skill overrides
 系统 SHALL 提供内置、手选及显式允许的自动绘图，并允许在非内置方案中按稳定数据图ID指定已注册Skill覆盖。默认及覆盖 SHALL 分别冻结当前适用版本，在同一原预算声明式计划中按图加载，不能执行Skill脚本或扩大权限。
 
