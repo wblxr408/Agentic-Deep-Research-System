@@ -453,7 +453,7 @@ def audit_report(report: str, evidence: list[Evidence], *, client: Any, model: s
             else 'retrieve_complete_conditions_or_narrow_claim'} for row in rows if row['status']!='supported']
     method_supported = sum(row['status']=='supported' and row.get('support_basis')=='task_method' for row in rows)
     source_claims = sum(not row.get('allowed_method_ids') for row in rows)
-    return {"schema_version": "1", "verification_kind": "model_judgement_with_source_or_frozen_task_provenance",
+    return {"schema_version": "2", "verification_kind": "model_judgement_with_source_or_frozen_task_provenance",
             "human_review_status": "not_reviewed", "total_claims": len(rows),
             "checked_claims": sum(row['model_verdict'] is not None for row in rows),
             'method_supported_claims':method_supported, 'source_supported_claims':supported-method_supported,
@@ -469,7 +469,7 @@ def audit_report(report: str, evidence: list[Evidence], *, client: Any, model: s
 
 def audit_markdown(audit: dict) -> str:
     lines = ["\n\n## 核验结果", "",
-             f"自动来源支持：{audit['supported_claims']}/{audit['total_claims']} 项；"
+             f"自动陈述核对：{audit['supported_claims']}/{audit['total_claims']} 项；"
              f"人工复核：未复核。模型置信度不代表人工确认。",
              "支持状态来自模型语义判断与原文引语校验，不能保证结论为真。", ""]
     for row in audit["claims"]:

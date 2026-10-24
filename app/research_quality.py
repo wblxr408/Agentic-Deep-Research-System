@@ -212,6 +212,8 @@ def quality_view(state,feedback):
             'parsing_accuracy':None,'reason':'no_independently_labeled_parse_reference'},
         'retrieval_runs':runs,'ranking_judgments':judgments,
         'answer':{'model_audit_supported_claims':supported,'model_audit_total_claims':total,
+            'model_audit_source_supported_claims':audit.get('source_supported_claims'),
+            'model_audit_method_supported_claims':audit.get('method_supported_claims'),
             'model_audit_supported_ratio':supported/total if complete_audit and isinstance(supported,int) and total else None,
             'audit_complete':complete_audit,'answer_correctness':None,'citation_accuracy':None,
             'human_assessments':[item for item in current if item['kind']=='answer_assessment'],

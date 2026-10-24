@@ -7,7 +7,8 @@ type Event={request_id:string;kind:string;created_at:string;payload:{note?:strin
 interface Quality {
   binding_id:string;data:{retained_evidence:number;coverage:Record<string,number>;freshness_observations:Record<string,number>}
   retrieval_runs:Run[];ranking_judgments:Array<{run_id:string;top_k:number;recall_at_k:number|null;ndcg_at_k:number|null;mrr:number|null;pairwise_accuracy:number|null;judged_count:number;pool_size:number}>
-  answer:{model_audit_supported_claims:number|null;model_audit_total_claims:number|null;audit_complete:boolean}
+  answer:{model_audit_supported_claims:number|null;model_audit_total_claims:number|null;audit_complete:boolean;
+    model_audit_source_supported_claims?:number|null;model_audit_method_supported_claims?:number|null}
   agent:{tool_calls:number;failed_or_stopped_calls:number;user_confirmed_task_complete:boolean}
   statistics_review:{available:boolean;issues:Array<{reason:string;metric_id?:string}>;input_conflicts?:unknown[]}
   feedback:Event[];historical_feedback_count:number;improvement_candidates:Array<{kind:string;basis:string;action:string}>
@@ -73,7 +74,8 @@ export default function ResearchQuality({sessionId}:{sessionId:string}) {
     {error&&<p role="alert" className="my-2 text-red-700">{error}</p>}
     {value&&<>
       <p className="my-2">保留证据 {value.data.retained_evidence} 条；工具调用 {value.agent.tool_calls} 次，其中失败或停止 {value.agent.failed_or_stopped_calls} 次。
-        来源支持审核 {value.answer.model_audit_supported_claims??'未知'} / {value.answer.model_audit_total_claims??'未知'} 项，{value.answer.audit_complete?'已完成记录':'尚不完整'}。</p>
+        陈述核对 {value.answer.model_audit_supported_claims??'未知'} / {value.answer.model_audit_total_claims??'未知'} 项，{value.answer.audit_complete?'已完成记录':'尚不完整'}。
+        {typeof value.answer.model_audit_source_supported_claims==='number' && <>其中原文支持 {value.answer.model_audit_source_supported_claims} 项，任务方法依据支持 {value.answer.model_audit_method_supported_claims ?? 0} 项。</>}</p>
       <p className="text-xs">统计快照：{!value.statistics_review.available?'本任务无统计快照':value.statistics_review.issues.length?`${value.statistics_review.issues.length}处算术或集合差异`:'未记录算术或集合差异'}。解析准确率和真实全集召回率需要独立标注。</p>
       <details className="my-2"><summary>资料覆盖与统计依据</summary><pre className="overflow-auto whitespace-pre-wrap text-xs">{JSON.stringify({data:value.data,statistics:value.statistics_review},null,2)}</pre></details>
       <details className="my-2"><summary>模型、工具与本地计算用量</summary><p className="text-xs">已知价格的小计与未定价项目分开；本地计算时间不折算为虚构账单，也不重复计入绘图模型费用。</p><pre className="max-h-96 overflow-auto whitespace-pre-wrap text-xs">{JSON.stringify(value.runtime_ledger,null,2)}</pre></details>

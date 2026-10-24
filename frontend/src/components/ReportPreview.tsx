@@ -17,6 +17,7 @@ import type { DeliveryView } from './ReportDeliveryView'
 
 interface ReportPreviewProps {
   reportAudit?: {needs_review?:boolean;audit_incomplete?:boolean;total_claims?:number;supported_claims?:number;
+    source_supported_claims?:number;method_supported_claims?:number;
     revision_requests?:Array<{claim_id:string;text:string;reason:string;requested_action:string}>}|null
   report: string
   citations: RetainedCitation[]
@@ -140,7 +141,8 @@ function ReportPreview({
       <details data-app-only aria-label="研究记录"><summary className="cursor-pointer font-medium py-3">研究记录</summary>
         <ContextEvidenceSummary analyst={contextEvidence?.analyst} report={contextEvidence?.report} sessionId={sessionId}/>
         {reportAudit && <section aria-label="报告内容核对">
-          <p>已获来源支持 {reportAudit.supported_claims ?? 0} / {reportAudit.total_claims ?? 0} 项。
+          <p>陈述核对支持 {reportAudit.supported_claims ?? 0} / {reportAudit.total_claims ?? 0} 项。
+            {typeof reportAudit.source_supported_claims==='number' && <>其中原文支持 {reportAudit.source_supported_claims} 项，任务方法依据支持 {reportAudit.method_supported_claims ?? 0} 项。</>}
             {reportAudit.audit_incomplete?'本轮核对尚未完成。':reportAudit.needs_review?'当前稿有需要补证或调整的陈述。':''}</p>
           {!!reportAudit.revision_requests?.length && <details><summary>需要调整的陈述</summary>
             <ol className="list-decimal pl-5 space-y-2">{reportAudit.revision_requests.map(item=><li key={item.claim_id}>
@@ -168,7 +170,7 @@ function ReportPreview({
         </details>}
         {deliveryView && <>
           <p>产物版本：{deliveryView.artifact_id}</p>
-          <p>来源支持审核：{deliveryView.audit?.supported_claims ?? '未知'} / {deliveryView.audit?.total_claims ?? '未知'} 项；人工复核状态未确认。</p>
+          <p>陈述核对：{deliveryView.audit?.supported_claims ?? '未知'} / {deliveryView.audit?.total_claims ?? '未知'} 项；人工复核状态未确认。</p>
           {reportEditorial?.note && <p>{reportEditorial.note}</p>}
           {deliveryView.gaps.map((gap,index)=><p key={index}>{gap}</p>)}
           {deliveryView.pages.filter(page=>page.gaps.length).map(page=><details key={page.page_id}><summary>{page.title}：交付记录</summary>{page.gaps.map((gap,index)=><p key={index}>{gap}</p>)}</details>)}
