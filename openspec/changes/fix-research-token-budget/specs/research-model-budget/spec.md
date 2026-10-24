@@ -20,6 +20,17 @@
 - **WHEN** 审核批次整体装不进额度但单条主张能够审核
 - **THEN** 缩小批次执行可完成判断，其余项明确未核
 
+### Requirement: Lossless shared audit passages
+审核 SHALL 保留每项显式引用的全部来源范围及原有选段，不用默认三来源上限裁掉复合主张依据。重叠原文可按来源边界拆成共享片段，但每项局部passage MUST 由有序片段完整恢复，不加入其他主张才可用的文字。系统 SHALL 保留全部主张及原预算／期限，载荷仍超限的项目保持未核，不以裁掉事实获得通过。
+
+#### Scenario: Compound claim across several papers
+- **WHEN** 一项主张引用四篇或更多论文，且比较中的多个事实需要不同原文
+- **THEN** 所有被引来源都参与选段，模型可返回多个本项局部passage_numbers，服务器逐个核对编号及精确原文；任何非法锚点不能记为支持
+
+#### Scenario: Overlapping passages in separated report sections
+- **WHEN** 报告不同位置的主张使用重叠选段
+- **THEN** 可按实际共享量同批核对且重叠文字只发一次，每项仍只能使用其自身passage列出的片段；结果保持原报告顺序，旧契约判定不跨版本复用
+
 ### Requirement: Account actual usage and recompute limits
 系统 SHALL 接收流式及非流式供应商usage，合并所有模型尝试与工具用量，更新后重算预算状态；未知价格 SHALL 单独标识。
 

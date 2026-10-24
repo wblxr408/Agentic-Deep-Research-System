@@ -17,7 +17,7 @@ from app.graph.state import Evidence
 from app.security.prompt_security import untrusted_context
 
 _CITATION = re.compile(r"\[(?:citation:)?(\d+)\](?!\()")
-AUDIT_CONTRACT_VERSION = 'adrs-claim-support-v2-local-passages'
+AUDIT_CONTRACT_VERSION = 'adrs-claim-support-v3-shared-spans'
 
 
 def canonicalize_report_citations(text: str) -> str:
@@ -161,8 +161,11 @@ AUDIT_PROMPT = """Audit the supplied report claims against only their supplied s
 Judge the individual sentence, using its context_id in the shared paragraphs only to resolve its
 subject, experimental conditions and interpretation. An inherited paragraph
 citation is a retrieval scope, not proof that every sentence is supported.
-Input contains claims with local passages and a shared excerpts array. Resolve
-excerpt_reference only through that claim's passages; the shared array avoids repeating the same source passage.
+Input contains claims with local passages and shared source fragments. A local
+passage's excerpt_references are ordered fragments of ONE contiguous original
+passage: concatenate them in order. Use only references listed for this claim.
+Fragments preserve the complete selected text, including conditions, without
+repeating overlapping source text. Source titles are in the shared sources array.
 bound_statistics are server-bound task sample quantities tied to their rendered
 paragraph and unit. They establish only that task statistic, never scientific
 measurements or a real-world census. Source documents, full-text documents,
@@ -180,7 +183,7 @@ request and retained-material coverage. These can establish only what was suppli
 or acquired in this task, never real-world absence, feasibility or a scientific result.
 Judge every clause; a gap label cannot excuse an embedded external claim.
 If a task-only gap is supported, return method_id from allowed_method_ids instead
-of passage_number. Otherwise return unsupported or unverifiable. Do not
+of passage_numbers. Otherwise return unsupported or unverifiable. Do not
 invent a citation to a paper to prove what the user did not supply.
 Coverage labels describe retained documents, not the absence of a section, code,
 licence or affiliation inside them. metadata_or_page_text may contain the complete
@@ -193,16 +196,18 @@ Judge only what the claim actually asserts. A correct scoped subclaim (such as a
 need not restate every other result or the upper bound; do not invent extra completeness requirements.
 For compound claims every asserted factual detail must follow from the supplied passages.
 Return JSON {"verdicts":[{"claim_id":"claim:1", "status":"supported|contradicted|unsupported|unverifiable",
-"passage_number":1,
+"passage_numbers":[1,2],
 "reason":"explain scope/conditions", "confidence":0.0}]}.
-passage_number is LOCAL to that claim's passages array, not the shared excerpt reference.
-Resolve each passage's excerpt_reference in the shared excerpts array. Choose a
-passage_number supplied for this claim. The server derives evidence identity,
+passage_numbers are LOCAL to that claim's passages array, not shared fragment references.
+List every passage used to support the factual clauses, including different
+papers for a cross-paper comparison. A single related passage does not support
+other clauses. All listed numbers must belong to this claim. The server derives evidence identity,
 original quote and offsets; never invent or return evidence IDs or character offsets.
 For a task-method claim use {"claim_id":"claim:2","status":"supported",
 "method_id":"task-input:request","reason":"what the frozen request establishes"}.
-Evaluate semantic support using all of this claim's passages; the selected passage
-anchors the judgement and is not itself proof of entailment.
+Evaluate every asserted clause using all of this claim's passages. Selected
+passages anchor the judgement and are not themselves proof of entailment.
+Keep reasons concise, stating the decisive support or missing condition.
 Use unverifiable if the excerpt is insufficient. Do not infer a human review status."""
 
 RETRIEVAL_PROMPT = """Turn each supplied research claim into a concise English search query for its cited source text.
@@ -289,6 +294,37 @@ def _cross_language_queries(claims, evidence, client, model, max_claims, token_b
     return queries, usage, errors, remaining
 
 
+def shared_passage_payload(excerpts: list[dict]) -> tuple[list[dict], list[dict], dict[str, list[int]]]:
+    """Share overlapping text without widening any claim's permitted passage.
+
+    Every original start/end is a boundary. Each original passage therefore
+    resolves to an ordered list of complete fragments, with no gaps or extra
+    characters. This is lossless packing, not a summary or evidence judgement.
+    """
+    grouped = {}
+    for excerpt in excerpts:
+        grouped.setdefault(excerpt['evidence_id'], {})[excerpt['excerpt_id']] = excerpt
+    sources, fragments, references = [], [], {}
+    for passages in grouped.values():
+        ordered = sorted(passages.values(), key=lambda item: (item['start'], item['end']))
+        first = ordered[0]
+        sources.append({'citation_id': first['citation_id'], 'source_title': first['source_title']})
+        boundaries = sorted({offset for item in ordered for offset in (item['start'], item['end'])})
+        for item in ordered:
+            references[item['excerpt_id']] = []
+        for start, end in zip(boundaries, boundaries[1:]):
+            containing = [item for item in ordered if item['start'] <= start and end <= item['end']]
+            if not containing:
+                continue
+            item = containing[0]
+            reference = len(fragments)+1
+            fragments.append({'excerpt_reference': reference, 'citation_id': item['citation_id'],
+                'quote': item['quote'][start-item['start']:end-item['start']]})
+            for passage in containing:
+                references[passage['excerpt_id']].append(reference)
+    return sources, fragments, references
+
+
 def audit_report(report: str, evidence: list[Evidence], *, client: Any, model: str,
                  max_claims: int | None = None, token_budget: int | None = None,
                  deadline: float | None = None, cross_language_retrieval: bool = False,
@@ -333,7 +369,11 @@ def audit_report(report: str, evidence: list[Evidence], *, client: Any, model: s
         status = ("not_checked" if i >= claim_limit else "invalid_citation" if invalid
                   else "missing_citation" if not ids and not method_ids else "unverifiable")
         retrieval_query = queries.get(claim["claim_id"], "")
-        excerpts = select_excerpts(claim["text"]+" "+retrieval_query, evidence, cited=ids, window=900, windows_per_source=2) if ids else []
+        # All explicitly cited sources belong to the retrieval scope. The
+        # generic selector's three-source default must not silently drop a
+        # paper in a compound comparison. Oversized claims remain unverified.
+        excerpts = select_excerpts(claim["text"]+" "+retrieval_query, evidence, cited=ids,
+            max_sources=len(ids), window=900, windows_per_source=2) if ids else []
         row = {**claim, "status": status, "model_verdict": None, "model_confidence": None,
                "human_review_status": "not_reviewed", "source_checks": [], "excerpts": excerpts,
                "retrieval_query": retrieval_query,
@@ -365,9 +405,8 @@ def audit_report(report: str, evidence: list[Evidence], *, client: Any, model: s
             pending.append(row)
 
     def compact_payload(batch):
-        excerpts={ex['excerpt_id']:{key:ex[key] for key in ('citation_id','source_title','quote')}
-            for row in batch for ex in row['excerpts']}
-        references={key:index for index,key in enumerate(excerpts,1)}
+        sources, excerpts, references = shared_passage_payload([
+            ex for row in batch for ex in row['excerpts']])
         contexts={row['paragraph_id']:row['paragraph_context'] for row in batch if row.get('paragraph_id')}
         # A binding proves only its own assembled paragraph. Sending every
         # report binding in every call repeats unrelated prose and statistics.
@@ -376,27 +415,40 @@ def audit_report(report: str, evidence: list[Evidence], *, client: Any, model: s
             if report_prose(item.get('rendered_paragraph','')).strip() in scope]
         return {'claims':[{'claim_id':row['claim_id'],'text':row['text'], 'context_id':row.get('paragraph_id'),
             'declared_kind':row.get('declared_kind'), 'allowed_method_ids':row.get('allowed_method_ids', []),
-            'passages':[{'passage_number':number,'excerpt_reference':references[ex['excerpt_id']]}
+            'passages':[{'passage_number':number,'excerpt_references':references[ex['excerpt_id']]}
                 for number,ex in enumerate(row['excerpts'],1)]} for row in batch],
-            'excerpts':[{'excerpt_reference':references[key],**value} for key,value in excerpts.items()],
+            'sources':sources, 'excerpts':excerpts,
             'paragraphs':[{'context_id':key,'text':value} for key,value in contexts.items()],
             'bound_statistics':statistics,
             'task_method':task_context if any(row.get('allowed_method_ids') for row in batch) else None}
 
-    batches, batch = [], []
+    batches, waiting = [], []
+    standalone_sizes = {}
     for row in pending:
         size = len(json.dumps(compact_payload([row]), ensure_ascii=False)) + 2
         if size > 22000:
             row.update(status="not_checked", reason="Claim/excerpts exceed verification context budget")
             continue
-        # Measure the actual shared excerpt/paragraph payload, rather than
-        # summing standalone claims and repeatedly charging identical context.
-        joined_size=len(json.dumps(compact_payload([*batch,row]),ensure_ascii=False))
-        if batch and (len(batch) >= 10 or joined_size > 22000):
-            batches.append(batch)
-            batch = []
-        batch.append(row)
-    if batch:
+        waiting.append(row)
+        standalone_sizes[row['claim_id']] = size
+    while waiting:
+        # The oldest remaining claim starts each batch. Fill its remaining
+        # space with the most shared context, even if report order separates
+        # the claims. Keep the report-order rows and every verdict unchanged.
+        batch = [waiting.pop(0)]
+        size = len(json.dumps(compact_payload(batch), ensure_ascii=False))
+        while waiting and len(batch) < 10:
+            candidates = []
+            for index, row in enumerate(waiting):
+                joined_size = len(json.dumps(compact_payload([*batch, row]), ensure_ascii=False))
+                if joined_size <= 22000:
+                    added = joined_size-size
+                    saved = standalone_sizes[row['claim_id']]-added
+                    candidates.append((saved, -added, -index, joined_size))
+            if not candidates:
+                break
+            _, _, negative_index, size = max(candidates)
+            batch.append(waiting.pop(-negative_index))
         batches.append(batch)
     while batches:
         batch = batches.pop(0)
@@ -445,50 +497,38 @@ def audit_report(report: str, evidence: list[Evidence], *, client: Any, model: s
                         reason=str(verdict.get('reason', ''))[:1200],
                         method_checks=[{'method_id': method_id, 'value': task_context[method_id]}])
                     continue
-                eid, quote = verdict.get("evidence_id"), verdict.get("quote")
-                ev = by_id.get(eid) if isinstance(eid, str) else None
-                permitted = [ex for ex in row["excerpts"] if ex["evidence_id"] == eid]
-                position, quote_end, quote_match = -1, -1, "absent"
-                excerpt_id = verdict.get("excerpt_id")
-                model_quote = quote
-                passage_number = verdict.get('passage_number')
-                if passage_number is not None:
-                    selected = row['excerpts'][passage_number-1] if type(passage_number) is int and 1<=passage_number<=len(row['excerpts']) else None
-                    if selected is not None:
-                        eid, quote, excerpt_id = selected['evidence_id'], selected['quote'], selected['excerpt_id']
-                        ev = by_id[eid]
-                        if ev.content[selected['start']:selected['end']] == quote:
-                            position, quote_end, quote_match = selected['start'], selected['end'], 'selected_passage_number'
-                elif excerpt_id is not None:
-                    selected = next((ex for ex in row["excerpts"] if ex["excerpt_id"] == excerpt_id
-                                     and (eid is None or ex["evidence_id"] == eid)), None)
-                    if selected is not None:
-                        eid, quote = selected["evidence_id"], selected["quote"]
-                        ev = by_id[eid]
-                        if ev.content[selected["start"]:selected["end"]] == quote:
-                            position, quote_end, quote_match = selected["start"], selected["end"], "selected_excerpt"
-                elif ev is not None and isinstance(quote, str) and len(quote.strip()) >= 12:
-                    for ex in permitted:
-                        local, local_end, kind = _quote_span(ex["quote"], quote)
-                        if local >= 0:
-                            position = ex["start"] + local
-                            quote_end, quote_match = ex["start"]+local_end, kind
-                            break
-                row["source_checks"] = [{"evidence_id": eid, "quote": quote,
-                    'passage_number':passage_number,
-                    "excerpt_id": excerpt_id, "model_quote": model_quote,
-                    "quote_start": position, "quote_end": quote_end, "quote_match": quote_match,
-                    "source_quote": ev.content[position:quote_end] if position >= 0 else "",
-                    "quote_valid": position >= 0}]
+                numbers = verdict.get('passage_numbers')
+                if numbers is None and 'passage_number' in verdict:
+                    numbers = [verdict['passage_number']]
+                valid_numbers = (isinstance(numbers, list) and bool(numbers)
+                    and all(type(number) is int and 1 <= number <= len(row['excerpts']) for number in numbers))
+                if valid_numbers:
+                    valid_numbers = len(set(numbers)) == len(numbers)
+                checks = []
+                if valid_numbers:
+                    for number in numbers:
+                        selected = row['excerpts'][number-1]
+                        ev = by_id[selected['evidence_id']]
+                        start, end = selected['start'], selected['end']
+                        valid = (0 <= start < end <= len(ev.content)
+                            and ev.content[start:end] == selected['quote'])
+                        checks.append({'evidence_id': ev.evidence_id,
+                            'passage_number': number, 'excerpt_id': selected['excerpt_id'],
+                            'quote': selected['quote'], 'model_quote': None,
+                            'quote_start': start, 'quote_end': end,
+                            'quote_match': 'selected_passage_number' if valid else 'absent',
+                            'source_quote': ev.content[start:end] if valid else '', 'quote_valid': valid})
+                row['source_checks'] = checks
                 confidence = verdict.get("confidence")
                 if isinstance(confidence, (int, float)) and math.isfinite(confidence) and 0 <= confidence <= 1:
                     row["model_confidence"] = confidence
                 row["model_verdict"] = status
                 row['support_basis'] = 'source_excerpt'
                 row["reason"] = str(verdict.get("reason", ""))[:1200]
-                row["status"] = status if position >= 0 else "unverifiable"
-                if position < 0:
-                    row["reason"] = "Source anchor is absent from this claim's selected cited passages; " + row["reason"]
+                anchors_valid = valid_numbers and all(check['quote_valid'] for check in checks)
+                row["status"] = status if anchors_valid else "unverifiable"
+                if not anchors_valid:
+                    row["reason"] = "Source anchors are absent or invalid in this claim's selected cited passages; " + row["reason"]
         except TokenBudgetExceeded as exc:
             errors.append(exc.reason)
             for row in batch:
