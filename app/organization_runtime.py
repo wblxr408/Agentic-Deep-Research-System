@@ -125,8 +125,16 @@ def seed_organization_sources(dag, configuration: dict | None):
                 seeds.append(PlanNode(node_id=f'org-source-{len(seeds)}', node_type='browser',
                                       query=url, description="读取研究范围中声明的来源；核对身份与研究证据"))
                 urls.add(url)
-    # Existing browser_max_pages/tool/time budgets still determine actual coverage.
-    return dag.model_copy(update={'nodes': seeds + dag.nodes})
+    combined=seeds+dag.nodes
+    if declared is not None:
+        # Preserve the user's declared source order. Missing PDF seeds must
+        # not leap ahead of primary pages already present in the model plan.
+        order={url:index for index,url in enumerate(declared)}
+        combined=sorted(enumerate(combined),key=lambda item:(
+            order.get(item[1].query.strip(),len(order)) if item[1].node_type=='browser' else len(order),item[0]))
+        combined=[node for _,node in combined]
+    # Dependencies and existing request/time budgets still govern execution.
+    return dag.model_copy(update={'nodes': combined})
 
 
 def _mentions(text: str, name: str) -> bool:
