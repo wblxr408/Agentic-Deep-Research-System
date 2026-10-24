@@ -17,7 +17,7 @@ from app.graph.state import Evidence
 from app.security.prompt_security import untrusted_context
 
 _CITATION = re.compile(r"\[(?:citation:)?(\d+)\](?!\()")
-AUDIT_CONTRACT_VERSION = 'adrs-claim-support-v3-shared-spans'
+AUDIT_CONTRACT_VERSION = 'adrs-claim-support-v4-source-context'
 
 
 def canonicalize_report_citations(text: str) -> str:
@@ -89,8 +89,67 @@ def _terms(text: str) -> Counter:
     return Counter(words)
 
 
+_AUDIT_FIELDS = {
+    'problem': r'问题|瓶颈|挑战|problem|bottleneck|challenge',
+    'prior_limitations': r'已有方法|现有方法|先前|prior work|existing approach',
+    'method_overview': r'方法|主线|方案|method|approach|design',
+    'mechanism': r'机制|架构|主线|解耦|调度|编排|并行|mechanism|architecture|design|schedul|parallel|disaggregat',
+    'innovation': r'创新|贡献|novel|contribution|innovation',
+    'experimental_design': r'实验设计|评估方法|experimental design|methodology|protocol',
+    'baselines': r'基线|对比|比较|baseline|compar|control group',
+    'conditions': r'条件|环境|硬件|配置|负载|数据集|样本|GPU|A100|V100|hardware|workload|dataset|configuration|sample',
+    'results': r'结果|吞吐|延迟|倍|性能|指标|[×%]|result|throughput|latency|performance|metric|goodput',
+    'limitations': r'限制|局限|limitation|caveat',
+}
+
+
+def _audit_source_anchor(claim, source, window, located_spans):
+    """Select exact current-source context, never a card summary or verdict."""
+    text = source.content
+    if not text:
+        return None
+    clean = _CITATION.sub('', claim)
+    meta = source.acquisition or {}
+    bibliographic = re.search(r'参考文献|引用关系|引证|被引|\b(?:cites?|citations?|references|bibliograph\w*)\b', clean, re.I)
+    if bibliographic:
+        return None
+    identity = re.search(r'作者|署名|隶属|发表|出版|\b(?:authors?|affiliat\w*|published|publication date|title)\b', clean, re.I)
+    if identity and meta.get('coverage') == 'full_text':
+        return 0, min(len(text), window+400), 'source_opening'
+    focused = {field for field, pattern in _AUDIT_FIELDS.items() if re.search(pattern, clean, re.I)}
+    measured = re.search(r'\d[\d.,]*\s*(?:×|%|倍|ms\b|s/token\b|GB\b|GPU\b)|实验|评估|基线|实验条件|experiment|evaluat|baseline', clean, re.I)
+    if 'mechanism' in focused and not measured:
+        focused = {'mechanism', 'method_overview'}
+    # A located experimental field is more useful than an abstract for a
+    # conditions/results assertion. All offsets still address retained text.
+    hits = [(field, start, end) for field, start, end in located_spans or []
+        if field in focused and type(start) is int and type(end) is int
+        and 0 <= start < end <= len(text)]
+    if hits:
+        field, start, end = max(hits, key=lambda item: (
+            len(set(_terms(clean)) & set(_terms(text[max(0,item[1]-200):item[2]+400]))), -item[1]))
+        room = max(window + 400, end-start)
+        lower = max(0, start-min(200, max(0, room-(end-start))))
+        return lower, min(len(text), max(end, lower+room)), 'located_field:'+field
+    if meta.get('coverage') != 'full_text':
+        return None
+    if not identity:
+        for section in meta.get('scientific_sections', []):
+            if not isinstance(section, dict):
+                continue
+            start, end = section.get('start'), section.get('end')
+            if (re.fullmatch(r'\s*(?:abstract|摘要)\s*', str(section.get('label','')), re.I)
+                and type(start) is int and type(end) is int and 0 <= start < end <= len(text)):
+                return start, min(end, start+window+400), 'source_abstract'
+        abstract = re.search(r'(?im)^[ \t]*(?:abstract|摘要)(?:\s|[:.—–-])', text[:20000])
+        if abstract:
+            return abstract.start(), min(len(text), abstract.start()+window+400), 'source_abstract'
+    return 0, min(len(text), window+400), 'source_opening'
+
+
 def select_excerpts(claim: str, evidence: list[Evidence], *, cited: list[int] | None = None,
-                    max_sources: int = 3, window: int = 1000, windows_per_source: int = 1) -> list[dict]:
+                    max_sources: int = 3, window: int = 1000, windows_per_source: int = 1,
+                    audit_context: bool = False, source_spans: dict | None = None) -> list[dict]:
     """Search the full retained bodies, rather than the first N source prefixes."""
     query = _terms(claim)
     ranked = []
@@ -118,24 +177,37 @@ def select_excerpts(claim: str, evidence: list[Evidence], *, cited: list[int] | 
         candidates = scored
         candidates.sort(key=lambda item: (-item[0], item[1]))
         selected, covered = [], set()
-        for _ in range(windows_per_source):
+        def retain(start, end, role):
+            excerpt = ev.content[start:end]
+            selected.append({"citation_id": number, "evidence_id": ev.evidence_id,
+                "excerpt_id": f"{ev.evidence_id}:{start}:{end}",
+                "source_url": ev.source_url, "source_title": ev.source_title,
+                "start": start, "end": end, "quote": excerpt,
+                'locator':{'evidence_id':ev.evidence_id,'start':start,'end':end,
+                    'offset_unit':'task_retained_evidence_character',
+                    'source_document_id':(ev.acquisition or {}).get('source_document_id'),
+                    'parse_version_id':(ev.acquisition or {}).get('parse_version_id'),
+                    'returned_span':(ev.acquisition or {}).get('returned_span')}})
+            if audit_context:
+                selected[-1]['selection_role'] = role
+            covered.update(term for term in _terms(excerpt) if term in query)
+        if audit_context and windows_per_source > 0:
+            anchor = _audit_source_anchor(claim, ev, window, (source_spans or {}).get(ev.evidence_id))
+            if anchor:
+                retain(*anchor)
+        bibliographic = re.search(r'参考文献|引用关系|引证|被引|\b(?:cites?|citations?|references|bibliograph\w*)\b', _CITATION.sub('',claim), re.I)
+        for _ in range(max(0, windows_per_source-len(selected))):
             available = [item for item in candidates if not any(
                 abs(item[1]-chosen["start"]) < window*0.6 for chosen in selected)]
             if not available:
                 break
             score, start, excerpt = max(available, key=lambda item: (
+                # Reference lists are still retained candidates. Their names
+                # must not outrank scientific exposition for a mechanism.
+                not (audit_context and not bibliographic and len(re.findall(r'(?m)^\s*\[\d{1,4}\]\s+', item[2])) >= 2),
                 sum(weight for term, weight in weights_by_start[item[1]].items() if term not in covered)
                 + 0.05*item[0], -item[1]))
-            selected.append({"citation_id": number, "evidence_id": ev.evidence_id,
-                "excerpt_id": f"{ev.evidence_id}:{start}:{start+len(excerpt)}",
-                "source_url": ev.source_url, "source_title": ev.source_title,
-                "start": start, "end": start+len(excerpt), "quote": excerpt,
-                'locator':{'evidence_id':ev.evidence_id,'start':start,'end':start+len(excerpt),
-                    'offset_unit':'task_retained_evidence_character',
-                    'source_document_id':(ev.acquisition or {}).get('source_document_id'),
-                    'parse_version_id':(ev.acquisition or {}).get('parse_version_id'),
-                    'returned_span':(ev.acquisition or {}).get('returned_span')}})
-            covered.update(weights_by_start[start])
+            retain(start, start+len(excerpt), 'lexical_question')
         if selected:
             ranked.append((candidates[0][0], number, selected))
     ranked.sort(key=lambda item: (-item[0], item[1]))
@@ -331,7 +403,7 @@ def audit_report(report: str, evidence: list[Evidence], *, client: Any, model: s
                  bound_statistics: list[dict] | None = None,
                  paragraph_kinds: dict[str, str] | None = None,
                  task_context: dict | None = None,
-                 previous_audit: dict | None = None) -> dict:
+                 previous_audit: dict | None = None, source_spans: dict | None = None) -> dict:
     from app.llm_budget import BudgetedClient, ModelTokenBudget, TokenBudgetExceeded, request_token_bound
     if client is not None and not isinstance(client,BudgetedClient):
         client = BudgetedClient(client,ModelTokenBudget(token_budget if token_budget is not None else 12000,
@@ -373,7 +445,8 @@ def audit_report(report: str, evidence: list[Evidence], *, client: Any, model: s
         # generic selector's three-source default must not silently drop a
         # paper in a compound comparison. Oversized claims remain unverified.
         excerpts = select_excerpts(claim["text"]+" "+retrieval_query, evidence, cited=ids,
-            max_sources=len(ids), window=900, windows_per_source=2) if ids else []
+            max_sources=len(ids), window=900, windows_per_source=2,
+            audit_context=True, source_spans=source_spans) if ids else []
         row = {**claim, "status": status, "model_verdict": None, "model_confidence": None,
                "human_review_status": "not_reviewed", "source_checks": [], "excerpts": excerpts,
                "retrieval_query": retrieval_query,

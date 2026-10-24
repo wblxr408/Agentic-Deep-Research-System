@@ -14,7 +14,8 @@ from app.security.prompt_security import untrusted_context
 
 
 def revise_report_claims(content, record, audit, *, configuration, statistics, evidence,
-                         client, model, budget, deadline, citation_count, upgrade_callback=None, task_context=None):
+                         client, model, budget, deadline, citation_count, upgrade_callback=None, task_context=None,
+                         source_spans=None):
     """Only change mapped paragraph text, then audit the whole resulting report."""
     if not audit.get('needs_review') or audit.get('audit_incomplete') or audit.get('budget_incomplete'):
         return content,record,audit
@@ -141,7 +142,8 @@ def revise_report_claims(content, record, audit, *, configuration, statistics, e
             for binding in item.get('statistic_bindings',[])]
         new_audit=audit_report(revised,evidence,client=budgeted_client(client,budget,'audit'),model=model,
             token_budget=budget.available('audit'),deadline=deadline,bound_statistics=bound,
-            paragraph_kinds=module_paragraph_kinds(new_record), task_context=task_context,previous_audit=audit)
+            paragraph_kinds=module_paragraph_kinds(new_record), task_context=task_context,previous_audit=audit,
+            source_spans=source_spans)
         new_record['semantic_revision']={'original_record':deepcopy(record),'original_audit':deepcopy(audit),
             'revised_paragraph_ids':list(replacements),'attempts':1,'request_attempts':request_attempts}
         new_audit['revision_attempt']={'attempted':True,'status':'reaudited','paragraph_count':len(targets),

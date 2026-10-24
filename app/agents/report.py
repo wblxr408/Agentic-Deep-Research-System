@@ -404,7 +404,8 @@ Evidence Sources:
             self.last_audit = audit_report(content, evidence_list,
                 client=budgeted_client(self.client,self.request_budget,'audit'), model=active_model,
                 token_budget=audit_tokens, deadline=verification_deadline,bound_statistics=bound_statistics,
-                paragraph_kinds=module_paragraph_kinds(self.last_module_report), task_context=method_context)
+                paragraph_kinds=module_paragraph_kinds(self.last_module_report), task_context=method_context,
+                source_spans=located_spans)
             if self.last_module_report is not None:
                 from app.report_revision import revise_report_claims
                 def upgrade_correction(trigger,details,required_tokens):
@@ -416,7 +417,8 @@ Evidence Sources:
                 content,self.last_module_report,self.last_audit=revise_report_claims(content,self.last_module_report,self.last_audit,
                     configuration=organization_research,statistics=organization_statistics,evidence=evidence_list,
                     client=self.client,model=active_model,budget=self.request_budget,deadline=verification_deadline,
-                    citation_count=len(citations),upgrade_callback=upgrade_correction, task_context=method_context)
+                    citation_count=len(citations),upgrade_callback=upgrade_correction, task_context=method_context,
+                    source_spans=located_spans)
                 self.last_audit['module_contract'] = self.last_module_report
                 self._emit_fallback_chunks(content,on_chunk)
             # Append references section if not present
