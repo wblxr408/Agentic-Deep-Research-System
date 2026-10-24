@@ -9,11 +9,11 @@ from app.data_governance import SECRET_PATTERN,scrub_urls,sensitive_url
 
 VERSION='adrs-disclosure-v1'
 REDACTED='[access credential redacted]'
-SECRET_FIELDS={'api_key','apikey','access_token','refresh_token','client_secret','password','passwd','authorization',
+SECRET_FIELDS={'api_key','apikey','access_token','refresh_token','id_token','session_token','client_secret','password','passwd','authorization',
     'private_key','fallback_api_key','secret','x-amz-signature','x-amz-security-token','x-goog-signature'}
 NORMALIZED_SECRET_FIELDS={name.replace('-','_') for name in SECRET_FIELDS}
 PRIVATE_KEY=re.compile(r'-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----[\s\S]*?(?:-----END (?:RSA |EC |OPENSSH )?PRIVATE KEY-----|\Z)')
-ASSIGNMENT=re.compile(r'''(?ix)(["']?(?:api[_-]?key|access[_-]?token|refresh[_-]?token|client_secret|password|passwd|authorization)["']?\s*[:=]\s*)
+ASSIGNMENT=re.compile(r'''(?ix)(["']?(?:api[_-]?key|access[_-]?token|refresh[_-]?token|id[_-]?token|session[_-]?token|client_secret|password|passwd|authorization)["']?\s*[:=]\s*)
     (["'])([^"'\r\n]+)\2''')
 
 

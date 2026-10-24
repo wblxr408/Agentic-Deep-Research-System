@@ -113,6 +113,11 @@ The system SHALL organize literal retained excerpts by the current question and 
 ### Requirement: Data egress and reader disclosure remain distinct
 系统 SHALL 冻结资料声明、可外传模型类别和可公开查询，并按实际源提高限制；MCP工具的出站类别 MUST 同时满足注册表和逐工具声明。展示脱敏 MUST NOT 修改原始授权参数、审批绑定或证据位置。
 
+#### Scenario: OAuth credentials in a URL fragment
+- **WHEN** 来源或任务文字的URL在fragment或SPA hash路由参数中携带访问／身份／会话token
+- **THEN** 系统 SHALL 沿与查询参数相同的访问凭据分级、搜索／代理拒绝及模型／展示脱敏规则处理，不因HTTP不发送fragment而视为公开文本
+- **AND** 普通论文页码及章节锚点不被当作访问凭据，本人原始输入仍由原权限入口保留
+
 #### Scenario: A report exposes access credentials
 - **WHEN** 生成正文在完整输出检查中包含已识别访问凭据或需要脱敏的访问URL
 - **THEN** 正文不作为流式完成报告发布，任务保留脱敏草稿并要求重新审核

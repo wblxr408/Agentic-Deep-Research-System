@@ -20,7 +20,7 @@ SECRET_PATTERN=re.compile(r'\b(?:sk-[A-Za-z0-9_-]{20,}|gh[pousr]_[A-Za-z0-9]{30,
     r'(?i:authorization\s*[:=]\s*(?:bearer|basic)\s+[A-Za-z0-9_./+=-]{16,})')
 RESTRICTION_PATTERN=re.compile(r'(?im)^\s*(?:strictly confidential|confidential|internal use only|'
     r'仅供内部使用|机密资料|绝密资料)\s*[。.！!]*\s*$')
-SENSITIVE_PARAMETER=re.compile(r'(?i)^(?:access[_-]?token|refresh[_-]?token|api[_-]?key|token|key|secret|'
+SENSITIVE_PARAMETER=re.compile(r'(?i)^(?:access[_-]?token|refresh[_-]?token|id[_-]?token|session[_-]?token|api[_-]?key|token|key|secret|'
     r'client_secret|password|passwd|authorization|auth|signature|sig|jwt|session(?:id|_id)?|sid|'
     r'x-amz-(?:credential|signature|security-token)|x-goog-(?:credential|signature)|samlresponse|ticket)$')
 
@@ -47,10 +47,19 @@ def model_class(value):
     return 'private' if value=='internal' else value
 
 
+def _sensitive_parameters(value):
+    return any(SENSITIVE_PARAMETER.fullmatch(key) for key,_ in parse_qsl(value,keep_blank_values=True))
+
+
 def sensitive_url(url):
     try:
         parsed=urlsplit(url)
-        return bool(parsed.username or parsed.password or any(SENSITIVE_PARAMETER.fullmatch(key) for key,_ in parse_qsl(parsed.query,keep_blank_values=True))
+        # OAuth responses can carry credentials after '#', including a SPA
+        # route such as '#/callback?access_token=...'. They are not HTTP query
+        # parameters, but must not be disclosed to a search/model/log either.
+        return bool(parsed.username or parsed.password or _sensitive_parameters(parsed.query)
+            or _sensitive_parameters(parsed.fragment)
+            or _sensitive_parameters(parsed.fragment.partition('?')[2])
             or re.search(r'eyJ[A-Za-z0-9_-]{15,}\.[A-Za-z0-9_-]{10,}\.',parsed.path))
     except (ValueError,TypeError):return True
 

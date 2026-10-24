@@ -49,6 +49,7 @@
 - [x] 7.3 受限URL只走pinned源读取、owner输入精确还原与公开归档分类；可编辑范围及明确拒绝原因。（源码完成，未运行）
 - [x] 7.4 MCP出站许可、完整输出后发布／引用／错误与日志／历史导出脱敏，以及原材料持久化边界。（源码完成，未运行；见docs/data-governance.md）
 - [ ] 7.5 全部实现后统一端到端，不能用规则命中或源码替代权限／隐私／内容验证。
+- [x] 7.6 补齐16.12a的OAuth fragment／SPA hash路由凭据，以及id_token／session_token披露；沿原来源分级、搜索／代理拒绝、模型派发及MCP、归档／历史出口传播，保留真实owner输入和普通页码锚点。（源码及文档完成，未运行检查或旅程）
 
 ## 8. OPT-17 Quality and explicit feedback
 
