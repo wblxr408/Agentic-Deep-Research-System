@@ -264,8 +264,10 @@ def iteration_decision(state: dict, policy: PlanningPolicy) -> dict:
     if (int(verification.get('total_claims') or 0) > int(verification.get('verified_claims') or 0)
             and str(verification.get('revision_focus') or '').strip()):
         gaps.append('unverified_claims_with_revision_focus')
-    if (state.get('organization_result') or {}).get('gaps'):
-        gaps.append('declared_organization_evidence_gaps')
+    # Locator/census caveats remain visible, but cannot by themselves request
+    # another full acquisition/analysis cycle. Reflection must identify an
+    # actual unsupported/conflicting claim or a specific unfinished claim focus.
+    coverage_notes=list((state.get('organization_result') or {}).get('gaps') or [])
     context=(state.get('organization_result') or {}).get('analyst_context') or {}
     phase_contexts=context.get('phases') or [context]
     context_gaps=[{'phase_id':item.get('phase_id'),'question':(item.get('question_evidence') or {}).get('question'),
@@ -289,6 +291,7 @@ def iteration_decision(state: dict, policy: PlanningPolicy) -> dict:
     else:
         action, reason = 'report', 'no_structured_evidence_gap_manual_review_available'
     return {'schema_version': VERSION, 'action': action, 'reason': reason, 'gap_reasons': gaps,
+        'coverage_notes':coverage_notes,
         'context_gaps':context_gaps,'context_gap_semantics':'selection_gaps_require_retained_text_rereading_not_automatic_external_replan_or_truth_verdict',
         'evidence_version': observed, 'no_gain_rounds': no_gain, 'revision_count': count, 'revision_limit': limit,
         'semantics': 'retained-material novelty is not semantic correctness; no confidence-only loop'}
