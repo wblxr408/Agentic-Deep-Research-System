@@ -2154,6 +2154,7 @@ async def analyst_node(state: ResearchState) -> dict:
         ).model_dump()]
         return {
             "analysis": message,
+            "runtime_status": RuntimeStatus.RUNNING.value,
             'evidence_access_gaps':state.get('evidence_access_gaps',[]),
             "organization_result": organization_result,
             "evidence_status": evidence_gate.model_dump(),
@@ -2236,6 +2237,7 @@ async def analyst_node(state: ResearchState) -> dict:
 
     return {
         "analysis": analysis_text,
+        "runtime_status": RuntimeStatus.RUNNING.value,
         'analysis_workflow':agent.last_workflow or None,
         'evidence_access_gaps':state.get('evidence_access_gaps',[]),
         "organization_result": organization_result,
