@@ -20,6 +20,15 @@
 - **WHEN** 用户重试失败批次且部分文件已经提交
 - **THEN** 已提交同组文件复用来源记录，失败项可单独重试，保留状态且不会重复嵌入已成功文件
 
+#### Scenario: Destination or intake configuration changes after partial completion
+- **WHEN** 当前页面批次已派发过请求，继续或失败重试时的分组、OCR、分块、特征／索引或保存范围／有效期与首次提交不同
+- **THEN** 系统 SHALL 在发送下一项前拒绝沿用旧批次状态，允许恢复原设置或显式重列整批
+- **AND** 重列整批只重置支持文件的页面状态，保留旧来源且不自动发送请求，不能把旧目标成功项当作新目标已接入
+
+#### Scenario: Repeated start before the button rerenders
+- **WHEN** 用户连续点击开始／继续导致React尚未更新按钮状态
+- **THEN** 同步派发闸口 SHALL 只允许当前批次的一条提交循环，服务端仍执行真实owner与完整配置的幂等写入
+
 ### Requirement: Immutable task evidence versions
 系统 SHALL 在任务归属内保存证据来源、获取时间、内容版本、原始证据标识及保留文字；重复事件不增加版本，变化原文建立新版本，不覆盖被引用版本。保留的归一文本不能冒称原始网络字节。
 
