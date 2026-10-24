@@ -285,22 +285,30 @@ def audit_report(report: str, evidence: list[Evidence], *, client: Any, model: s
         excerpts={ex['excerpt_id']:{key:ex[key] for key in ('excerpt_id','evidence_id','citation_id','source_title','quote')}
             for row in batch for ex in row['excerpts']}
         contexts={row['paragraph_id']:row['paragraph_context'] for row in batch if row.get('paragraph_id')}
+        # A binding proves only its own assembled paragraph. Sending every
+        # report binding in every call repeats unrelated prose and statistics.
+        from app.organization_purpose import report_prose
+        scope={_CITATION.sub('',text).strip() for text in contexts.values()}
+        statistics=[item for item in bound_statistics or []
+            if report_prose(item.get('rendered_paragraph','')).strip() in scope]
         return {'claims':[{'claim_id':row['claim_id'],'text':row['text'], 'context_id':row.get('paragraph_id'),
             'excerpt_ids':[ex['excerpt_id'] for ex in row['excerpts']]} for row in batch], 'excerpts':list(excerpts.values()),
             'paragraphs':[{'context_id':key,'text':value} for key,value in contexts.items()],
-            'bound_statistics':bound_statistics or []}
+            'bound_statistics':statistics}
 
-    batches, batch, batch_chars = [], [], 2
+    batches, batch = [], []
     for row in pending:
         size = len(json.dumps(compact_payload([row]), ensure_ascii=False)) + 2
         if size > 22000:
             row.update(status="not_checked", reason="Claim/excerpts exceed verification context budget")
             continue
-        if batch and (len(batch) >= 5 or batch_chars+size > 22000):
+        # Measure the actual shared excerpt/paragraph payload, rather than
+        # summing standalone claims and repeatedly charging identical context.
+        joined_size=len(json.dumps(compact_payload([*batch,row]),ensure_ascii=False))
+        if batch and (len(batch) >= 10 or joined_size > 22000):
             batches.append(batch)
-            batch, batch_chars = [], 2
+            batch = []
         batch.append(row)
-        batch_chars += size
     if batch:
         batches.append(batch)
     while batches:
@@ -314,7 +322,7 @@ def audit_report(report: str, evidence: list[Evidence], *, client: Any, model: s
                         serialized, limit=len(serialized))}]
             from app.llm_client import collect_usage_metrics
             available = client.budget.available('audit') if isinstance(client,BudgetedClient) else (remaining_tokens or 0)
-            output_cap = min(2200,max(384,len(batch)*400))
+            output_cap = min(4000,max(384,len(batch)*400))
             reservation = request_token_bound(messages,response_format={"type":"json_object"}) + output_cap
             if reservation > available and len(batch) > 1:
                 middle = len(batch)//2
