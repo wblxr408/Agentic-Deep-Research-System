@@ -32,4 +32,8 @@
 
 ## Migration Plan
 
+2026-10-24第五次真实旅程完成十二个分析步骤后，报告含未绑定样本／来源数量，一次段落修订原样返回，形成report_contract_invalid；最终保存又被旧取证budget_exceeded标签覆盖。此次增量保留阶段错误优先级，修订指令给出需改写的数量短语及中文例子，不放宽统计校验。增加`POST /{session_id}/report/resume`，与分析恢复共用原根读取、owner／冻结输入／当前资料／原期限和额度检查及事务execution／checkpoint比较；只接受已完成v2分析和报告partial_response故障，原report_binding仍须一致。新execution直接经report_resume→report继续，最多一次，原报告历史与用量保留；不新增Agent／服务／预算。
+
+沿用A2ABreak v1.0：A2AB-03《上下文归属与跨租户隔离》工程1—3负责本人、来源当前复核；A2AB-05《产物分块校验与断流恢复》工程1—4负责原产物绑定与完整审核后发布；A2AB-06《并发状态版本与审批绑定》工程1—4负责事务execution／checkpoint竞争；A2AB-10《委派环路检测与全链预算》工程1／3及T3负责原根／原额度／一次上限；A2AB-11《中断任务租约与有界资源回收》工程1／4负责原截止时间不漂移。条目入口与既有全11项见docs/question-analysis-workflow.md。其余01／02／04／07／08／09沿用原有效评估，无新技能授权、身份、Webhook、SSE或跨组织委派。以上是工程建议；本轮只以完整真实旅程取证，没有局部或安全回归通过声明。
+
 新增账本字段进入现有budget_state和review_status；旧计数作为下界保留。无数据库迁移。回退时保留原始研究及账本，停止状态不能被自动恢复为完成。

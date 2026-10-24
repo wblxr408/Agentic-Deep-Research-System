@@ -2773,6 +2773,7 @@ def compile_research_graph() -> StateGraph:
     builder.add_node("approval_reviewer", approval_reviewer_node)
     builder.add_node("approval_resume", lambda state: {"runtime_status": RuntimeStatus.RUNNING.value, "status": TaskStatus.RUNNING.value})
     builder.add_node("analysis_resume", lambda state: {"runtime_status": RuntimeStatus.RUNNING.value, "status": TaskStatus.RUNNING.value})
+    builder.add_node("report_resume", lambda state: {"runtime_status": RuntimeStatus.RUNNING.value, "status": TaskStatus.RUNNING.value})
     builder.add_node("analyst", analyst_node)
     builder.add_node("reflection", reflection_node)
     builder.add_node("replan", replan_node)
@@ -2819,6 +2820,7 @@ def compile_research_graph() -> StateGraph:
     builder.add_edge("approval_reviewer", END)
     builder.add_edge("approval_resume", "dag_executor")
     builder.add_edge("analysis_resume", "analyst")
+    builder.add_edge("report_resume", "report")
 
     # 分析 → 反思
     builder.add_conditional_edges('analyst',lambda state:'stop' if state.get('status') == 'paused' else 'continue',

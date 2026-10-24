@@ -26,3 +26,14 @@
 #### Scenario: Final stage crosses the limit
 - **WHEN** 新返回的实际usage达到或超过根上限
 - **THEN** 保存实际用量和停止原因，停止后续请求，不通过截断计数维持表面合法
+
+### Requirement: Bounded report continuation
+系统 SHALL 允许已完成分析的同一根任务对结构无效或流中断的报告最多进行一次显式续作。续作 MUST 复核owner、冻结输入、产物绑定、当前资料、原创建时间、累计用量与原期限，以事务execution及checkpoint裁决并发，直接进入报告阶段而非重新取证。旧失败、原始响应和报告历史 MUST 保留。
+
+#### Scenario: Continue after report contract failure
+- **WHEN** 本人任务的分析已完整保存、报告校验失败，原期限和可用额度仍足以准入
+- **THEN** 同根开始一次新的报告执行，完整审核后才可发布，累计用量和截止时间不重置
+
+#### Scenario: Repeated or expired report continuation
+- **WHEN** 报告续作次数已满、状态变化、输入或来源变化、额度或原期限不足
+- **THEN** 拒绝新的模型调用，保留当前资料、失败与用量

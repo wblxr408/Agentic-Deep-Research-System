@@ -65,7 +65,7 @@ def build_runtime_review_status(
     merged["pending_approval_count"] = pending_approval_count
     if budget_state is not None:
         merged["budget_state"] = budget_state
-    if last_error_category:
+    if last_error_category and not merged.get('last_error_category'):
         merged["last_error_category"] = last_error_category
     if tool_audit_summary is not None:
         merged["tool_audit_summary"] = tool_audit_summary

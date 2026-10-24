@@ -48,6 +48,10 @@
 
 ## 安全方案引用
 
+2026-10-24新增报告阶段的有界续作：`POST /api/v1/research/{session_id}/report/resume`与分析恢复共用本人／冻结输入／当前资料、原额度期限和事务execution／checkpoint控制。只接受完整v2分析已保存、报告partial_response且原结构失败或流中断的停止任务，原report_binding一致，最多一次；直接report_resume→report，不重复取证或分析。工作区提供独立按钮；旧失败与原始响应继续在历史中保留。次数、资料变动、原期限或额度不足时409。该入口接入源码，完整业务结果见统一真实旅程，不能把它视为恢复成功。
+
+报告续作增量沿用下述03／05及全11项评估，并应用A2AB-06《并发状态版本与审批绑定》v1.0／工程1—4（锁内比较状态、execution与检查点）、A2AB-10《委派环路检测与全链预算》v1.0／工程1／3及T3（一次续作且同根扣用）、A2AB-11《中断任务租约与有界资源回收》v1.0／工程1／4（不重置原创建时间）。[06](C:/Users/wblxr/basic-memory/engineering/security/a2abreak/solutions/A2AB-06%20并发状态版本与审批绑定.md)、[10](C:/Users/wblxr/basic-memory/engineering/security/a2abreak/solutions/A2AB-10%20委派环路检测与全链预算.md)、[11](C:/Users/wblxr/basic-memory/engineering/security/a2abreak/solutions/A2AB-11%20中断任务租约与有界资源回收.md)均为来源核对后的工程方案，尚非完整项目安全通过结论。其他项未改变其信任边界或协议。
+
 本轮重读Basic Memory相应完整条目，沿用既有11项适用性评估。以下均为A2ABreak **v1.0**的项目工程建议，不是A2A官方修复或已完成安全验收：
 
 - **A2AB-03《上下文归属与跨租户隔离》／工程解决方案1—3**：阶段写入的owner/execution/计划绑定、owner鉴权查询、每次阶段前的私有来源当前可用性检查。知识库：`main/engineering/security/a2abreak/solutions/a2-ab-03-上下文归属与跨租户隔离`。

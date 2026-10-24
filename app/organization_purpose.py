@@ -125,12 +125,20 @@ def module_report_instructions(configuration: dict) -> str:
 
 def paragraph_repair_messages(rejected: list[dict]) -> list[dict]:
     from app.security.prompt_security import untrusted_context
-    payload = json.dumps([{'paragraph_id': f'rejected:{index+1}', **row} for index, row in enumerate(rejected)], ensure_ascii=False)
+    number=r'(?:\d+(?:[.,]\d+)*|[零〇一二两三四五六七八九十百千万]+)'
+    quantities=number+r'\s*(?:篇(?:论文|全文|成果)?|份(?:全文|来源|文档)?|个研究家族|项成果|条发表)'
+    payload = json.dumps([{'paragraph_id': f'rejected:{index+1}', **row,
+        'quantity_phrases_to_rewrite':re.findall(quantities,row['paragraph']['text'])}
+        for index, row in enumerate(rejected)], ensure_ascii=False)
     return [{'role': 'system', 'content':
         'Correct only the rejected research paragraphs. Return JSON {"repairs":[{"paragraph_id":"rejected:1","text":"corrected prose"}]}. '
         'Return one text per supplied ID. For unbound aggregate errors REMOVE clauses counting publications, sources or yearly samples; '
         'do not replace them with another number, compute counts, or add statistical placeholders. '
         'Use paper names or qualitative scope statements instead. Preserve mechanism explanations, dates and experimental conditions. '
+        'The supplied paragraph is a rejected draft, not an approved answer. Copying it unchanged leaves the error unresolved. '
+        'For example: “取得A与B两篇全文” -> “取得A与B的全文”; “三篇论文覆盖不同层次” -> “A、B与C覆盖不同层次”; '
+        '“分别对应三个研究家族” -> “分别研究不同系统问题”. Use only names already present in that paragraph. '
+        'Rewrite every listed quantity phrase; if names are absent, remove only the count and keep a qualitative statement. '
         'Do not add facts or inline citation markers; citation arrays are locked by the server.'},
         {'role': 'user', 'content': untrusted_context('rejected_report_paragraphs', payload, limit=len(payload))}]
 

@@ -1346,7 +1346,9 @@ async def get_research_result(session_id: str, principal: Principal = principal_
                    (SELECT state_snapshot_json -> 'dag' FROM session_runtime_state
                     WHERE session_id = research_sessions.id) AS execution_plan,
                    (SELECT state_snapshot_json -> 'analysis_workflow' FROM session_runtime_state
-                    WHERE session_id = research_sessions.id) AS analysis_workflow
+                    WHERE session_id = research_sessions.id) AS analysis_workflow,
+                   (SELECT state_snapshot_json -> 'session' ->> 'report_resume_attempts' FROM session_runtime_state
+                    WHERE session_id = research_sessions.id) AS report_resume_attempts
             FROM research_sessions
             WHERE id = $1::uuid AND owner_id = $2::uuid
             """,
@@ -1416,6 +1418,11 @@ async def get_research_result(session_id: str, principal: Principal = principal_
             and workflow.get('schema_version')=='adrs-analysis-questions-v2'
             and workflow.get('stop_reason') in {'analysis_output_incomplete','analysis_provider_unavailable','model_output_limit','insufficient_context_budget'}
             and int((workflow.get('attempts') or {}).get(workflow.get('active_phase'),2))<2),
+        'report_recovery_available':bool(row['status'] in {'failed','paused'} and workflow.get('status')=='completed'
+            and review_status.get('output_stage')=='report' and review_status.get('report_payload_kind')=='partial_response'
+            and (((review_status.get('organization_result') or {}).get('module_report') or {}).get('issues')
+                or review_status.get('last_error_category')=='llm_stream_interrupted')
+            and int(row.get('report_resume_attempts') or 0)<1),
         "created_at": row["created_at"].isoformat(),
         "completed_at": row["completed_at"].isoformat() if row["completed_at"] else None,
     }
@@ -1652,6 +1659,17 @@ async def resolve_research_approval(
 async def resume_research_analysis(session_id: str, background_tasks: BackgroundTasks,
                                    principal: Principal = principal_dependency):
     """Continue retained questions inside the original root's allowance."""
+    return await _resume_retained_synthesis(session_id, background_tasks, principal, stage='analysis')
+
+
+@router.post('/{session_id}/report/resume')
+async def resume_research_report(session_id: str, background_tasks: BackgroundTasks,
+                                 principal: Principal = principal_dependency):
+    """One bounded rewrite using completed analysis and the original allowance."""
+    return await _resume_retained_synthesis(session_id, background_tasks, principal, stage='report')
+
+
+async def _resume_retained_synthesis(session_id, background_tasks, principal, *, stage):
     from datetime import UTC, datetime
     from app.graph.compiler import _build_budget_state, _stage_model_budget, _synthesis_question, _skill_prompt, _agent_skill_hints
     from app.graph.state import deserialize_evidence
@@ -1667,21 +1685,35 @@ async def resume_research_analysis(session_id: str, background_tasks: Background
     if not record:raise HTTPException(404,'Session not found')
     state=deepcopy(_json_object(record['state_snapshot_json']))
     root=state.get('session') or {}; workflow=state.get('analysis_workflow') or {}
+    report_resume=stage=='report'
+    review=state.get('review_status') or {}
+    module_report=(state.get('organization_result') or {}).get('module_report') or {}
     phase=workflow.get('active_phase')
     reason=workflow.get('stop_reason')
-    if (record['status']!='paused' or state.get('status')!='paused'
-            or state.get('runtime_status')!='analysis_paused'
-            or str(root.get('owner_id'))!=str(principal.id)
+    if report_resume:
+        from app.db.report_delivery import report_binding
+        recoverable=(record['status'] in {'failed','paused'} and state.get('status')==record['status']
+            and state.get('runtime_status') in {'retryable_failed','report_paused'}
+            and review.get('output_stage')=='report' and review.get('report_payload_kind')=='partial_response'
+            and review.get('report_binding')==report_binding(state)
+            and (module_report.get('issues') or review.get('last_error_category')=='llm_stream_interrupted')
+            and workflow.get('status')=='completed' and bool(state.get('analysis')))
+    else:
+        recoverable=(record['status']=='paused' and state.get('status')=='paused'
+            and state.get('runtime_status')=='analysis_paused' and workflow.get('status')=='paused'
+            and isinstance(phase,str)
+            and reason in {'analysis_output_incomplete','analysis_provider_unavailable','model_output_limit','insufficient_context_budget'})
+    if (not recoverable or str(root.get('owner_id'))!=str(principal.id)
             or str(root.get('session_id'))!=session_id or str(state.get('task_id'))!=session_id
             or root.get('execution_id')!=str(record['execution_id'])
             or state.get('user_query')!=record['user_query']
             or state.get('skill_context')!=_json_object(record['skill_context'])
             or workflow.get('schema_version')!='adrs-analysis-questions-v2'
-            or workflow.get('status')!='paused' or not isinstance(phase,str)
-            or reason not in {'analysis_output_incomplete','analysis_provider_unavailable','model_output_limit','insufficient_context_budget'}
             or state.get('pending_approvals')):
-        raise HTTPException(409,'analysis_checkpoint_not_recoverable')
-    if int((workflow.get('attempts') or {}).get(phase,0))>=2:
+        raise HTTPException(409,f'{stage}_checkpoint_not_recoverable')
+    if report_resume and int(root.get('report_resume_attempts') or 0)>=1:
+        raise HTTPException(409,'report_resume_attempt_limit')
+    if not report_resume and int((workflow.get('attempts') or {}).get(phase,0))>=2:
         raise HTTPException(409,'analysis_phase_attempt_limit')
     current=await current_synthesis_state(state)
     if current.get('collected_evidence')!=state.get('collected_evidence'):
@@ -1703,27 +1735,30 @@ async def resume_research_analysis(session_id: str, background_tasks: Background
         raise HTTPException(409,'analysis_original_deadline_unavailable')
     state['created_at']=started.isoformat()
     budget=_build_budget_state(state)
-    allowance=_stage_model_budget({**state,'budget_state':budget},'analyst')
+    allowance=_stage_model_budget({**state,'budget_state':budget},'report' if report_resume else 'analyst')
     import time
     cost_exhausted=budget.get('max_cost_usd') is not None and float(budget.get('used_cost_usd') or 0)>=float(budget['max_cost_usd'])
     # This route never dispatches new acquisition. Tool exhaustion cannot
     # erase the separate remaining model allowance; cost/time still apply.
     if (budget.get('hard_stop_reason') not in {None,'tool_call_limit'} or cost_exhausted or allowance.available()<1024
             or allowance.deadline is None or time.monotonic()>=allowance.deadline):
-        raise HTTPException(409,'analysis_original_allowance_exhausted')
+        raise HTTPException(409,f'{stage}_original_allowance_exhausted')
     budget['model_stop_reason']=None
     state.update(status='running',runtime_status='running',budget_state=budget)
     state['review_status']={**(state.get('review_status') or {}),'blocked':False,'reason':None,
         'last_error_category':None,'runtime_status':'running','budget_state':budget}
     execution_id=str(uuid.uuid4())
     state['session']={**root,'status':'running','execution_id':execution_id}
+    if report_resume:
+        state['session']['report_resume_attempts']=int(root.get('report_resume_attempts') or 0)+1
+        state['review_status']['report_resume_attempts']=state['session']['report_resume_attempts']
     async with pool.acquire() as conn,conn.transaction():
         locked=await conn.fetchrow('''SELECT s.status,s.execution_id,r.checkpoint_seq
             FROM research_sessions s JOIN session_runtime_state r ON r.session_id=s.id
             WHERE s.id=$1::uuid AND s.owner_id=$2::uuid FOR UPDATE OF s,r''',session_id,principal.id)
-        if (not locked or locked['status']!='paused' or locked['execution_id']!=record['execution_id']
+        if (not locked or locked['status']!=record['status'] or locked['execution_id']!=record['execution_id']
                 or locked['checkpoint_seq']!=record['checkpoint_seq']):
-            raise HTTPException(409,'analysis_checkpoint_changed')
+            raise HTTPException(409,f'{stage}_checkpoint_changed')
         await conn.execute('''UPDATE research_sessions SET status='running',execution_id=$3::uuid,
             review_status=$4::jsonb,completed_at=NULL,updated_at=NOW()
             WHERE id=$1::uuid AND owner_id=$2::uuid''',session_id,principal.id,execution_id,dumps_json(state['review_status']))
@@ -1736,7 +1771,7 @@ async def resume_research_analysis(session_id: str, background_tasks: Background
         use_internal_docs=bool(state.get('use_internal_docs')),rag_group=state.get('rag_group'),
         output_length=state.get('output_length','medium'),skill_context=state.get('skill_context'),
         owner_id=principal.id,channels=root.get('channels',[]),resume_state=state,execution_id=execution_id,
-        resume_at='analysis_resume')
+        resume_at='report_resume' if report_resume else 'analysis_resume')
     return {'session_id':session_id,'execution_id':execution_id,'status':'running','resumed':True}
 
 @controlled_execution
@@ -1859,7 +1894,7 @@ async def run_research_workflow(
 
         graph_input = state
         if resume_state is not None:
-            if resume_at not in {'approval_resume','analysis_resume'}:
+            if resume_at not in {'approval_resume','analysis_resume','report_resume'}:
                 raise ValueError('unsupported_resume_stage')
             graph.update_state(config, state, as_node=resume_at)
             graph_input = None
@@ -1954,7 +1989,7 @@ async def run_research_workflow(
                     if isinstance(outcome, dict) and outcome.get("error_category"):
                         last_error_category = outcome.get("error_category")
                         break
-                if last_error_category:
+                if last_error_category and not review_status.get('last_error_category'):
                     review_status["last_error_category"] = last_error_category
                 async with conn.transaction():
                     binding=await conn.fetchrow('SELECT owner_id,execution_id,status FROM research_sessions WHERE id=$1::uuid FOR UPDATE',session_id)
