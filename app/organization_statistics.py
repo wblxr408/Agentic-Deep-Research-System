@@ -219,14 +219,22 @@ def apply_statistics(findings,snapshot):
 
 def statistics_context(snapshot):
     if not snapshot:return None
-    priority=('sample:publications','sample:families','sources:documents','sources:full_text_documents',
-        'sources:partial_text_documents','sources:landing_documents','sources:retained')
-    registry=snapshot['metric_registry']
+    # The writer consumes scientific sample metrics. Acquisition/version
+    # accounting stays in the full research record and is never the report's
+    # research finding. An unestablished sample also cannot establish absence.
+    sample_established=bool(snapshot.get('publication_ids'))
+    priority=('sample:publications','sample:families')
+    registry={key:value for key,value in snapshot['metric_registry'].items()
+              if not key.startswith('sources:') and sample_established}
     ordered=[key for key in priority if key in registry]+[key for key in registry if key not in priority]
     return {'snapshot_id':snapshot['snapshot_id'],'schema_version':snapshot.get('schema_version',VERSION),'metric_registry':{
         key:{field:registry[key].get(field) for field in ('label','kind','display','value','numerator','denominator','unit','counting_unit','basis','status')}
-        for key in ordered[:100]},'conventions':snapshot['conventions'],
-        'conflicts':snapshot['conflicts'][:10],'retained_metric_count':len(snapshot['metric_registry'])}
+        for key in ordered[:100]},
+        'sample_status':'source_anchored_sample' if sample_established else 'sample_not_established',
+        'reader_use':'Use counts only when they answer the research question. Do not report acquisition, document-version or admission diagnostics. '
+            'An unestablished sample permits qualitative source-grounded analysis, not zero-publication or zero-research conclusions.',
+        'conventions':[text for text in snapshot['conventions'] if 'snapshot_id' not in text and '来源文档版本' not in text],
+        'conflicts':snapshot['conflicts'][:10],'retained_metric_count':len(registry)}
 
 
 def statistics_markdown(snapshot):
