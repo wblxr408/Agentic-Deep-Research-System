@@ -19,12 +19,15 @@ CONDITION_QUERIES = {
     'results': 'evaluation results measurements confidence interval effect size sensitivity performance analysis',
 }
 
+IDENTITY_CONTEXT_VERSION = 'adrs-publication-identity-v2'
+
 
 def analysis_binding(query, configuration, skills, hints, evidence):
     """Bind retained question phases to their exact frozen model inputs."""
     from app.query_understanding import identity
     from app.evidence_selection import VERSION as SELECTION_VERSION
     return identity({'version':'adrs-analysis-questions-v2','query':query,'configuration':configuration,
+        'identity_context_version':IDENTITY_CONTEXT_VERSION,
         'context_selection_version':SELECTION_VERSION,
         'skills':skills,'hints':hints,'evidence':[
             {'id':item.evidence_id,'url':item.source_url,'content':item.content,'acquisition':item.acquisition}
@@ -39,7 +42,10 @@ def identity_batches(evidence):
     """
     from app.organization_findings import _publication_url
     primary=[item for item in evidence if (item.acquisition or {}).get('coverage')=='full_text']
-    publishers=[item for item in evidence if (item.acquisition or {}).get('publisher_metadata')]
+    publishers=[item for item in evidence if (item.acquisition or {}).get('publisher_metadata') or (
+        (item.acquisition or {}).get('coverage') != 'discovery_only' and
+        re.search(r'(?m)^citation_title:\s*\S',item.content[:8000]) and
+        re.search(r'(?m)^citation_(?:publication_)?date:\s*\S',item.content[:8000]))]
     groups=[];seen=set()
     for item in primary:
         if item.evidence_id in seen:continue
