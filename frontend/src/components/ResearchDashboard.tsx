@@ -15,6 +15,7 @@ import { useSSE } from '../hooks/useSSE'
 import type { SSEvent } from '../hooks/useSSE'
 import AgentTrace from './AgentTrace'
 import ToolTrace from './ToolTrace'
+import type { PersistedToolCall } from './ToolTrace'
 import ReportPreview from './ReportPreview'
 import ReportDownloads from './ReportDownloads'
 import ReportHistory from './ReportHistory'
@@ -166,6 +167,19 @@ function ResearchDashboard({ onBack }: ResearchDashboardProps) {
     refetchInterval: query => ['pending', 'running'].includes(query.state.data?.status || 'running') ? 3000 : false,
   })
 
+  const toolAudit = useQuery<PersistedToolCall[]>({
+    queryKey: ['research-tool-calls', activeSessionId],
+    queryFn: async () => {
+      const response = await fetch(`/api/v1/research/${activeSessionId}/tool-calls`)
+      if (!response.ok) throw new Error('暂时无法读取本次研究的调用记录。')
+      return response.json()
+    },
+    enabled: !!activeSessionId,
+    staleTime: 0,
+    gcTime: 0,
+    refetchInterval: ['pending', 'running'].includes(result?.status || 'running') ? 3000 : false,
+  })
+
   const resumeSynthesis = useMutation({
     mutationFn: async (stage:'analysis'|'report') => {
       const response=await fetch(`/api/v1/research/${activeSessionId}/${stage}/resume`,{method:'POST'})
@@ -294,14 +308,12 @@ function ResearchDashboard({ onBack }: ResearchDashboardProps) {
   }, [sseStatus])
 
   useEffect(() => {
-    if (result?.status) {
+    if (result?.status && result.session_id === activeSessionId) {
       if (!query) setQuery(result.query)
       setSessionStatus(result.status)
-      if (['completed', 'failed', 'paused', 'canceled', 'pending_confirmation'].includes(result.status)) {
-        setIsStreaming(false)
-      }
+      setIsStreaming(['pending', 'running'].includes(result.status))
     }
-  }, [result, query])
+  }, [result, query, activeSessionId])
 
   // Build report from streaming chunks
   const streamedReport = events
@@ -314,7 +326,10 @@ function ResearchDashboard({ onBack }: ResearchDashboardProps) {
     if (typeof event !== 'object' || event === null || !('event_type' in event)) return []
     const data = event as Record<string, unknown>
     const metadata = typeof data.metadata === 'object' && data.metadata !== null ? data.metadata as Record<string, unknown> : {}
-    return [{ type: String(data.event_type), data: { ...data, ...metadata } }]
+    const retainedTime = typeof data.timestamp === 'string' ? data.timestamp : undefined
+    // Persisted trace timestamps use UTC without an offset; preserve their time on reopen.
+    const timestamp = retainedTime && !/(?:Z|[+-]\d{2}:\d{2})$/i.test(retainedTime) ? `${retainedTime}Z` : retainedTime
+    return [{ type: String(data.event_type), data: { ...data, ...metadata }, timestamp }]
   })
   const traceEvents = events.some(event => event.type !== 'connected') ? events : historicalEvents
   const progressEvent=[...events].reverse().find(event=>event.type==='state_update' && event.data.analysis_progress)
@@ -341,9 +356,9 @@ function ResearchDashboard({ onBack }: ResearchDashboardProps) {
   const agentEvents = traceEvents.filter((e: SSEvent) =>
     ['agent_start', 'agent_complete', 'agent_end'].includes(e.type)
   )
-  const toolEvents = traceEvents.filter((e: SSEvent) =>
-    ['tool_start', 'tool_call', 'tool_complete', 'tool_result', 'tool_error'].includes(e.type)
-  )
+  const planNodes = result?.execution_plan?.nodes
+  const completedNodes = planNodes?.filter(node => node.status === 'done').length
+  const toolCallCount = toolAudit.data?.length
 
   // Latest DAG node status
   const dagNodeEvents = traceEvents.filter((e: SSEvent) => e.type === 'agent_start')
@@ -666,9 +681,11 @@ function ResearchDashboard({ onBack }: ResearchDashboardProps) {
               </span>
             </div>
             <div className="h-4 w-px bg-xmgray-200" />
-            <span className="text-xs text-xmgray-400">{agentEvents.length} 步</span>
+            <span className="text-xs text-xmgray-400">{planNodes
+              ? `${completedNodes}/${planNodes.length} 步已完成` : `${agentEvents.length} 条执行记录`}</span>
             <div className="h-4 w-px bg-xmgray-200" />
-            <span className="text-xs text-xmgray-400">{toolEvents.length} 工具</span>
+            <span className="text-xs text-xmgray-400">{toolAudit.error ? '调用记录暂不可用'
+              : toolCallCount === undefined ? '调用记录读取中' : `${toolCallCount} 条工具记录`}</span>
           </div>
         </div>
       </div>
@@ -718,10 +735,12 @@ function ResearchDashboard({ onBack }: ResearchDashboardProps) {
                 </div>
                 <h3 className="text-sm font-medium text-xmgray-700">工具调用</h3>
               </div>
-              <span className="text-xs text-xmgray-400">{toolEvents.length} 次</span>
+              <span className="text-xs text-xmgray-400">{toolAudit.error ? '未读取'
+                : toolCallCount === undefined ? '读取中' : `${toolCallCount} 条记录`}</span>
             </div>
             <div className="p-4 h-44 overflow-y-auto">
-              <ToolTrace events={traceEvents} />
+              {toolAudit.error ? <p role="alert" className="text-xs text-red-600">{toolAudit.error.message}</p>
+                : <ToolTrace events={traceEvents} records={toolAudit.data} />}
             </div>
           </div>
         </div>

@@ -13,7 +13,7 @@ import type { SSEvent } from '../hooks/useSSE'
 interface ToolCall {
   id: string
   toolName: string
-  status: 'running' | 'success' | 'error'
+  status: 'running' | 'success' | 'error' | 'unknown'
   duration?: number
   agent?: string
   query?: string
@@ -22,6 +22,18 @@ interface ToolCall {
 
 interface ToolTraceProps {
   events: SSEvent[]
+  records?: PersistedToolCall[]
+}
+
+export interface PersistedToolCall {
+  call_id: string
+  tool_name: string
+  agent_type: string
+  args_json: Record<string, unknown>
+  status: string
+  error_message?: string | null
+  started_at?: string | null
+  completed_at?: string | null
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -115,8 +127,19 @@ function ToolIcon({ toolName }: { toolName: string }) {
   )
 }
 
-function ToolTrace({ events }: ToolTraceProps) {
+function ToolTrace({ events, records }: ToolTraceProps) {
   const toolCalls = useMemo<ToolCall[]>(() => {
+    // The owner-authorized audit rows also exist when a page missed the live events.
+    if (records !== undefined) return records.map<ToolCall>(record => {
+      const started = record.started_at ? Date.parse(record.started_at) : NaN
+      const completed = record.completed_at ? Date.parse(record.completed_at) : NaN
+      const duration = Number.isFinite(started) && Number.isFinite(completed) && completed >= started
+        ? completed - started : undefined
+      return { id: record.call_id, toolName: record.tool_name, agent: record.agent_type,
+        status: record.status === 'success' ? 'success' : record.status === 'error' ? 'error'
+          : ['running', 'started', 'pending'].includes(record.status) ? 'running' : 'unknown',
+        query: getQuery({args: record.args_json}), error: record.error_message || undefined, duration }
+    })
     const calls: ToolCall[] = []
     const callIndexById = new Map<string, number>()
 
@@ -180,7 +203,7 @@ function ToolTrace({ events }: ToolTraceProps) {
     })
 
     return calls
-  }, [events])
+  }, [events, records])
 
   if (toolCalls.length === 0) {
     return (
@@ -219,7 +242,7 @@ function ToolTrace({ events }: ToolTraceProps) {
           {/* Status dot */}
           <div className={`w-2 h-2 rounded-full shrink-0 ${
             call.status === 'success' ? 'bg-emerald-500' :
-            call.status === 'error' ? 'bg-red-500' :
+            call.status === 'error' ? 'bg-red-500' : call.status === 'unknown' ? 'bg-xmgray-400' :
             'bg-xm-500 streaming-indicator'
           }`} />
 
@@ -242,6 +265,9 @@ function ToolTrace({ events }: ToolTraceProps) {
               )}
               {call.status === 'running' && (
                 <span className="text-[10px] text-xm-500 shrink-0">执行中</span>
+              )}
+              {call.status === 'unknown' && (
+                <span className="text-[10px] text-xmgray-500 shrink-0">结果未知</span>
               )}
             </div>
             {call.query && (

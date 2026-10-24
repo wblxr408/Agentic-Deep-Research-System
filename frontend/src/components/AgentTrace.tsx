@@ -67,7 +67,8 @@ function AgentTrace({ events }: AgentTraceProps) {
 
   // Auto-scroll to bottom
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+    const panel = bottomRef.current?.parentElement?.parentElement
+    panel?.scrollTo({ top: panel.scrollHeight, behavior: 'smooth' })
   }, [events])
 
   const items = useMemo(() => {
@@ -137,7 +138,7 @@ function AgentTrace({ events }: AgentTraceProps) {
           eventClass,
           color: cfg?.color || DEFAULT_AGENT_COLOR,
           bg: cfg?.bg || DEFAULT_AGENT_BG,
-          timestamp: e.timestamp || new Date().toISOString(),
+          timestamp: e.timestamp,
         }
       })
   }, [events])
@@ -170,7 +171,7 @@ function AgentTrace({ events }: AgentTraceProps) {
                 : ''}
             </span>
             <span className="text-[10px] text-xmgray-400 ml-auto">
-              {new Date(item.timestamp).toLocaleTimeString('zh-CN', { hour12: false })}
+              {item.timestamp ? new Date(item.timestamp).toLocaleTimeString('zh-CN', { hour12: false }) : '时间未记录'}
             </span>
           </div>
           {/* Content */}
