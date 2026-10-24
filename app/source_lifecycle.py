@@ -151,11 +151,19 @@ def access_clause(alias='s',task_parameter='$6',group_parameter='$2'):
 
 
 async def current_access(conn,source_id,owner_id,task_id,group,expected_revision=None,*,with_snapshot=False):
+    from app.data_governance import PUBLIC_ARCHIVE_VERSION
     row=await conn.fetchrow(f'''SELECT s.id,COALESCE(lc.revision,0) AS revision,
         jsonb_build_object('source_id',s.id,'family_id',lc.family_id,'revision',COALESCE(lc.revision,0),
             'reuse_scope',COALESCE(lc.reuse_scope,'legacy_explicit_group'),'bound_task_id',lc.task_id,
             'actual_task_id',$3::uuid,'group_name',s.group_name,'valid_from',lc.valid_from,'valid_until',lc.valid_until,
-            'checked_at',CURRENT_TIMESTAMP) AS access_snapshot FROM document_sources s
+            'checked_at',CURRENT_TIMESTAMP,
+            'public_archive_origin',(SELECT jsonb_build_object('version','{PUBLIC_ARCHIVE_VERSION}',
+                'source_id',s.id,'source_content_version',s.metadata->>'content_hash',
+                'origin_version_id',event.result->>'source_version_id')
+                FROM source_lifecycle_events event WHERE event.owner_id=s.owner_id AND event.source_id=s.id
+                AND event.kind='archive_task_evidence' AND event.result->>'source_id'=s.id::text
+                AND event.result->>'archived_content_hash'=s.metadata->>'content_hash'
+                ORDER BY event.created_at DESC LIMIT 1)) AS access_snapshot FROM document_sources s
         LEFT JOIN document_source_lifecycle lc ON lc.source_id=s.id AND lc.owner_id=s.owner_id
         WHERE s.id=$1::uuid AND s.owner_id=$2::uuid AND s.status='active'
         AND (EXISTS(SELECT 1 FROM source_index_heads h WHERE h.source_id=s.id AND h.owner_id=s.owner_id AND h.mode='lexical')

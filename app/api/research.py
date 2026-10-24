@@ -1071,7 +1071,9 @@ async def archive_task_evidence(session_id:uuid.UUID,evidence_id:str,payload:Arc
                     'version_id':version['version_id'],'coverage':version.get('coverage'),
                     'collected_at':version.get('collected_at'),'acquisition':version.get('acquisition')},
                 'archival_semantics':'acquired_retained_text_not_network_bytes_or_independent_fact_verification'})
-        result={**archived,'source_version_id':version['version_id'],'replayed':False,
+        from hashlib import sha256
+        result={**archived,'source_version_id':version['version_id'],
+            'archived_content_hash':sha256(version['content'].encode('utf-8')).hexdigest(),'replayed':False,
             'effects':{'network_requests':0,'model_calls':0,'automatic_search_index':False},
             'retention':'owned_group_direct_only_explicitly_archived'}
         await record_operation(conn,owner,payload.request_id,fingerprint,archived['source_id'],

@@ -9,6 +9,7 @@ from pydantic import Field,model_validator
 from app.research_scope import ScopeRecord
 
 VERSION='adrs-data-governance-v1'
+PUBLIC_ARCHIVE_VERSION='adrs-public-archive-origin-v1'
 DataClass=Literal['public','internal','confidential','regulated']
 RANK={'public':0,'internal':1,'private':1,'confidential':2,'regulated':3}
 ANONYMOUS_BACKENDS={'pinned-http','public-browser','duckduckgo','bing-rss','github-api','v2ex-api',
@@ -91,16 +92,18 @@ def text_class(text):
     return 'public','no_detected_restriction_signal_not_a_license_or_authenticity_verdict'
 
 
-def classify_source(*,source_type='web',backend=None,channel=None,url=None,content='',declared=None):
+def classify_source(*,source_type='web',backend=None,channel=None,url=None,content='',declared=None,
+                    trusted_public_archive=False):
     content_class,reason=text_class(content)
-    inferred='internal' if source_type!='web' or backend not in ANONYMOUS_BACKENDS else 'public'
+    inferred='public' if trusted_public_archive else 'internal' if source_type!='web' or backend not in ANONYMOUS_BACKENDS else 'public'
     reasons=[reason]
     if inferred=='internal':reasons.append('internal_or_authenticated_or_unknown_transport')
+    if trusted_public_archive:reasons.append('server_bound_public_archive_same_content_version')
     if url and sensitive_url(url):inferred=maximum(inferred,'internal');reasons.append('source_access_capability_in_url')
     # An untrusted public label can never downgrade observed restrictions.
     inferred=maximum(inferred,content_class,declared)
     return {'version':VERSION,'data_class':inferred,'reasons':reasons,
-        'source_channel':channel,'basis':'trusted_transport_plus_literal_signals_and_explicit_higher_class',
+        'source_channel':channel,'basis':'trusted_archive_or_transport_plus_literal_signals_and_explicit_higher_class',
         'license_status':'not_established','semantic_dlp':'not_performed'}
 
 
@@ -116,9 +119,22 @@ def read_identity(url):
 
 def source_observation(item):
     acquisition=item.get('acquisition') or {}
+    snapshot=acquisition.get('source_access_snapshot') or {}
+    if not isinstance(snapshot,dict):snapshot={}
+    origin=snapshot.get('public_archive_origin') or {}
+    if not isinstance(origin,dict):origin={}
+    # Only the authenticated RAG path supplies this DB-derived attestation.
+    # Editable source metadata or a public URL alone cannot create one.
+    public_archive=bool(item.get('source_type')=='knowledge_base' and item.get('collected_by')=='rag'
+        and origin.get('version')==PUBLIC_ARCHIVE_VERSION and origin.get('origin_version_id')
+        and origin.get('source_id')
+        and origin.get('source_id')==snapshot.get('source_id')==acquisition.get('source_document_id')
+        and origin.get('source_content_version')
+        and origin.get('source_content_version')==acquisition.get('source_content_version'))
     observed=classify_source(source_type=item.get('source_type') if item.get('collected_by') in {'search','browser'} else 'internal',
         backend=item.get('source_backend'),channel=item.get('source_channel'),url=item.get('source_url'),
-        content=item.get('content',''),declared=(acquisition.get('data_governance') or {}).get('data_class'))
+        content=item.get('content',''),declared=(acquisition.get('data_governance') or {}).get('data_class'),
+        trusted_public_archive=public_archive)
     if any(sensitive_url(value) for value in (acquisition.get('requested_url'),acquisition.get('final_url')) if value):
         observed['data_class']=maximum(observed['data_class'],'internal')
         observed['reasons'].append('requested_or_redirected_access_capability')

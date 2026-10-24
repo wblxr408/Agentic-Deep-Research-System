@@ -6,6 +6,17 @@
 
 ## ADDED Requirements
 
+### Requirement: Public archival provenance remains distinct from access scope
+系统 SHALL 区分本人保存权限与公开原文的数据级别。只有服务端确认的公开归档事件与当前owner、来源ID及实际正文版本一致时，当前访问快照才 SHALL 为RAG分级携带公开来源依据；可编辑metadata或公网URL MUST NOT 单独证明public。更高限制、当前访问条件及模型类别上限仍有效。
+
+#### Scenario: Reuse an explicitly archived public paper
+- **WHEN** 当前owner显式归档真实取得的公开原文，之后发布索引并在许可范围检索同一正文版本
+- **THEN** 该来源可保留public依据，仍执行owner／任务／组／有效期及版本检查，不因资料公开而向其他owner开放
+
+#### Scenario: Revised text or legacy unbound archive
+- **WHEN** 正文生成新来源版本，或历史归档事件缺少可验证正文绑定
+- **THEN** 不沿用旧公开证明，按现有保守规则及实际限制信号分级，不猜测旧来源公开或复制旧权限
+
 ### Requirement: Immutable source revisions
 系统 SHALL 通过独立来源版本保存正文修订，支持全文替换和绑定旧版本原位范围的局部修订；同一版本族只允许一个当前版本。新版本失败不得替换当前版本，旧报告依据不得被覆盖。
 
