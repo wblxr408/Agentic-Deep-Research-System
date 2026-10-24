@@ -7,14 +7,14 @@ from copy import deepcopy
 
 from openai import APIError
 
-from app.claim_verification import audit_report
+from app.claim_verification import audit_report, module_paragraph_kinds
 from app.llm_budget import TokenBudgetExceeded, budgeted_client, request_token_bound
 from app.organization_purpose import ModuleReportDraft, assemble_module_report, report_prose
 from app.security.prompt_security import untrusted_context
 
 
 def revise_report_claims(content, record, audit, *, configuration, statistics, evidence,
-                         client, model, budget, deadline, citation_count, upgrade_callback=None):
+                         client, model, budget, deadline, citation_count, upgrade_callback=None, task_context=None):
     """Only change mapped paragraph text, then audit the whole resulting report."""
     if not audit.get('needs_review') or audit.get('audit_incomplete') or audit.get('budget_incomplete'):
         return content,record,audit
@@ -95,7 +95,8 @@ def revise_report_claims(content, record, audit, *, configuration, statistics, e
                 for item in [*module['paragraphs'],*module.get('appendix',[])]]]
             for binding in item.get('statistic_bindings',[])]
         new_audit=audit_report(revised,evidence,client=budgeted_client(client,budget,'audit'),model=model,
-            token_budget=budget.available('audit'),deadline=deadline,bound_statistics=bound)
+            token_budget=budget.available('audit'),deadline=deadline,bound_statistics=bound,
+            paragraph_kinds=module_paragraph_kinds(new_record), task_context=task_context)
         new_record['semantic_revision']={'original_record':deepcopy(record),'original_audit':deepcopy(audit),
             'revised_paragraph_ids':ids,'attempts':1}
         new_audit['revision_attempt']={'attempted':True,'status':'reaudited','paragraph_count':len(targets)}
