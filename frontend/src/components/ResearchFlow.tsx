@@ -24,7 +24,7 @@ function currentFlowNode(nodes:FlowNode[]):FlowNode|undefined {
   return nodes.find(node=>node.status==='running')||nodes.find(node=>node.status==='paused')||nodes.find(node=>node.status==='failed')||nodes[nodes.length-1]
 }
 function evidenceLabel(type:string,purpose:string,query:string):string {
-  if(type==='browser')try { const url=new URL(query),file=decodeURIComponent(url.pathname.split('/').filter(Boolean).pop()||'');return /\.pdf$/i.test(file)?file.replace(/^OSDI\d+_/,''):url.hostname.replace(/^www\./,'')+' · '+file.slice(0,28) } catch { /* Use the public plan label. */ }
+  if(type==='browser')try { const url=new URL(query),file=decodeURIComponent(url.pathname.split('/').filter(Boolean).pop()||'');return /\.pdf$/i.test(file)?file.replace(/^OSDI\d+_/,''):url.hostname.replace(/^www\./,'')+(file?' · '+file.slice(0,28):'') } catch { /* Use the public plan label. */ }
   return query||purpose||labels[type]||'取证'
 }
 interface Props {
@@ -131,16 +131,16 @@ export default function ResearchFlow(p:Props) {
   const shownActions=(node:FlowNode)=>(expanded[node.id]?node.actions:node.actions?.slice(-3))||[]
   const nodeHeight=(node:FlowNode)=>node.root?Math.max(165,110+shownActions(node).length*118+(node.actions&&node.actions.length>3?34:0)):165
   const width=Math.max(800,...nodes.map(n=>n.x+285)),height=Math.max(420,...nodes.map(n=>n.y+nodeHeight(n)+45))
-  const fit=useCallback((readable=false)=>{const el=viewport.current;if(!el||el.clientWidth<100)return;const fitted=Math.min(1,(el.clientWidth-48)/width,(el.clientHeight-48)/height),zoom=Math.max(readable ? .65 : .25,fitted);const current=readable?currentFlowNode(nodes):undefined;setCamera(current&&fitted<zoom?{zoom,x:el.clientWidth/2-(current.x+112)*zoom,y:el.clientHeight/2-(current.y+54)*zoom}:{x:(el.clientWidth-width*zoom)/2,y:(el.clientHeight-height*zoom)/2,zoom});initialized.current=true},[width,height,nodes])
+  const fit=useCallback((readable=false)=>{const el=viewport.current;if(!el||el.clientWidth<100)return;const fitted=Math.min(1,(el.clientWidth-48)/width,(el.clientHeight-48)/height),zoom=Math.max(readable ? .65 : .25,fitted);const current=readable?currentFlowNode(nodes):undefined;setCamera(current&&fitted<zoom?{zoom,x:el.clientWidth/2-(current.x+125)*zoom,y:el.clientHeight/2-(current.y+(current.root?210:80))*zoom}:{x:(el.clientWidth-width*zoom)/2,y:(el.clientHeight-height*zoom)/2,zoom});initialized.current=true},[width,height,nodes])
   useEffect(()=>{const el=viewport.current;if(!el)return;const observer=new ResizeObserver(()=>{if(!initialized.current&&nodes.length)fit(true)});observer.observe(el);return()=>observer.disconnect()},[fit,nodes.length])
   const changeZoom=(factor:number)=>{const el=viewport.current;if(!el)return;setCamera(c=>{const zoom=Math.min(1.7,Math.max(.25,c.zoom*factor)),x=el.clientWidth/2,y=el.clientHeight/2;return{zoom,x:x-(x-c.x)*zoom/c.zoom,y:y-(y-c.y)*zoom/c.zoom}})}
-  const focusNode=useCallback((node:FlowNode)=>{const el=viewport.current;if(node&&el)setCamera({zoom:.9,x:el.clientWidth/2-(node.x+125)*.9,y:el.clientHeight/2-(node.y+(node.root?170:80))*.9})},[])
+  const focusNode=useCallback((node:FlowNode)=>{const el=viewport.current;if(node&&el)setCamera({zoom:.9,x:el.clientWidth/2-(node.x+125)*.9,y:el.clientHeight/2-(node.y+(node.root?210:80))*.9})},[])
   const focusCurrent=()=>{const candidates=role==='all'?nodes:nodes.filter(node=>node.type===role),node=currentFlowNode(candidates);if(node)focusNode(node);setFollowing(true)}
   const lastEvent=p.events[p.events.length-1],lastKey=String(lastEvent?.data.event_id||lastEvent?.timestamp||p.events.length)
   useEffect(()=>{if(!following||!['running','pending'].includes(p.status)||followed.current===lastKey)return;followed.current=lastKey;const node=currentFlowNode(role==='all'?nodes:nodes.filter(item=>item.type===role));if(node)focusNode(node)},[following,p.status,lastKey,nodes,focusNode,role])
   const current=nodes.find(n=>n.id===selected||n.actions?.some(action=>action.id===selected))
   const action=current?.actions?.find(item=>item.id===selected)
-  const related=current?(p.tools||[]).filter(tool=>(tool.node_id||tool.args_json?.node_id)===current.id||Boolean(current.query&&(tool.args_json?.query===current.query||tool.args_json?.url===current.query))||(current.root&&tool.agent_type===current.type)):[]
+  const related=current?(p.tools||[]).filter(tool=>{if(current.root)return tool.agent_type===current.type;const nodeId=tool.node_id||tool.args_json?.node_id;return nodeId?nodeId===current.id:Boolean(current.query&&(tool.args_json?.query===current.query||tool.args_json?.url===current.query))}):[]
   if(!nodes.length)return <div className="flow-empty"><Icon name="network" size={36}/><p>正在取得研究计划</p></div>
   return <section className="flow-panel" aria-label="研究工作流">
     <div className="flow-heading"><div><Icon name="network"/><strong>研究工作流</strong><StatusPill status={p.status}/><span className="flow-stream-status">{['running','pending'].includes(p.status)?p.connection==='connected'?'SSE 实时推送':p.connection==='error'?'正在重连':'连接中':'执行记录'}</span></div><div className="canvas-toolbar" role="group" aria-label="画布操作">
@@ -187,7 +187,7 @@ export default function ResearchFlow(p:Props) {
           {!!current.actions?.length&&<><h3>执行动作</h3><div className="node-action-list">{current.actions.map(item=><button type="button" key={item.id} onClick={()=>setSelected(item.id)}><span><strong>{item.label}</strong><span>{briefFeedback(item.query||item.detail)}</span></span><StatusPill status={item.state}/></button>)}</div></>}
         </>}
         {!!current.dependencies.length&&<><h3>前置步骤</h3><div className="node-dependencies">{current.dependencies.map(id=><span className="tool-chip" key={id}>{nodes.find(n=>n.id===id)?.label||id}</span>)}</div></>}
-        {current.error&&<p role="alert" className="composer-error">{current.error}</p>}
+        {current.error&&!action&&<p role="alert" className="composer-error">{current.error}</p>}
         {!!related.length&&<><h3>相关调用</h3>{related.map(tool=><div className="task-row" key={tool.call_id}><span>{readableTool(tool.tool_name)}</span><StatusPill status={tool.status}/></div>)}</>}
       </div>}
     </Modal>

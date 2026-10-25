@@ -1410,6 +1410,15 @@ async def get_research_result(session_id: str, principal: Principal = principal_
         'review_status':review_status,'budget_state':review_status.get('budget_state'),
         'analysis_workflow':workflow,'pending_approvals':[{}]*min(1,int(review_status.get('pending_approval_count') or 0))})
     restart_source = _json_object(row.get('request_payload'))
+    phase_modules=((review_status.get('organization_research') or restart_source.get('organization_research') or {}).get('modules') or [])
+    def phase_order(item):
+        # JSONB object ordering is not the order in which questions ran.
+        parts=item[0].split(':')
+        batch=int(parts[-1]) if parts[-1].isdigit() else 1
+        if parts[0]=='extract_publications':return (0,0,batch,0,item[0])
+        module=parts[1] if len(parts)>1 else ''
+        return (1,phase_modules.index(module) if module in phase_modules else len(phase_modules),batch,
+            int('conditions' in parts),item[0])
     from app.research_delivery import build_delivery_view
     delivery_view = build_delivery_view(task_id=str(row['id']), execution_id=str(row['execution_id']) if row['execution_id'] else None,
         query=row['user_query'], report=row['final_report'], citations=citations,
@@ -1452,7 +1461,7 @@ async def get_research_result(session_id: str, principal: Principal = principal_
             'phases':[{'phase':phase,'status':'completed' if phase in (workflow.get('completed') or {}) else
                 'paused' if workflow.get('status')=='paused' else 'running',
                 'attempts':attempts,'summary':str(((workflow.get('completed') or {}).get(phase) or {}).get('analysis_text') or '')[:320]}
-                for phase,attempts in list((workflow.get('attempts') or {}).items())[:100]]} if workflow else None,
+                for phase,attempts in sorted((workflow.get('attempts') or {}).items(),key=phase_order)[:100]]} if workflow else None,
         'analysis_recovery_available':bool(row['status']=='paused' and workflow.get('status')=='paused'
             and workflow.get('schema_version')=='adrs-analysis-questions-v2'
             and workflow.get('stop_reason') in {'analysis_output_incomplete','analysis_provider_unavailable','model_output_limit','insufficient_context_budget'}
