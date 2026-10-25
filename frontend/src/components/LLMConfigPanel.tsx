@@ -228,7 +228,7 @@ function LLMConfigPanel({ onClose }: LLMConfigPanelProps) {
 
   // Handle reset
   const handleReset = useCallback(() => {
-    if (confirm('确定要重置为环境变量默认配置吗？')) {
+    if (confirm('重置你的模型配置？')) {
       resetMutation.mutate()
     }
   }, [resetMutation])
@@ -247,10 +247,10 @@ function LLMConfigPanel({ onClose }: LLMConfigPanelProps) {
       {/* Header */}
       <div className="mb-8">
         <h2 className="text-2xl font-bold text-xmgray-900 tracking-tight">
-          LLM 配置
+          我的模型
         </h2>
         <p className="mt-2 text-sm text-xmgray-500">
-          配置大语言模型提供商和 API 密钥。配置将保存到数据库并立即生效。
+          设置你的研究模型与 API 密钥。
         </p>
         {config?.updated_at && (
           <p className="mt-1 text-xs text-xmgray-400">
