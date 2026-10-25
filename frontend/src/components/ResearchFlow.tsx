@@ -31,7 +31,7 @@ interface Props {
 }
 function nodesFor(p:Props):FlowNode[] {
   const persisted=new Map((p.dag?.nodes||[]).map(node=>[node.node_id,node]))
-  const steps=p.plan?.steps||p.dag?.nodes.map(node=>({node_id:node.node_id,node_type:node.node_type,purpose:labels[node.node_type||'']||'取证步骤',query:node.query||'',depends_on:node.depends_on||[]}))||[]
+  const steps=p.plan?.steps||p.dag?.nodes?.map(node=>({node_id:node.node_id,node_type:node.node_type,purpose:labels[node.node_type||'']||'取证步骤',query:node.query||'',depends_on:node.depends_on||[]}))||[]
   const terminal=['completed','paused','canceled','failed'].includes(p.status)
   let analysisStart=-1
   p.events.forEach((event,index)=>{if(event.type==='agent_start'&&event.data.agent==='analyst')analysisStart=index})

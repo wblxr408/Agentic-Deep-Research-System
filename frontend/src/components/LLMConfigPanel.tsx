@@ -375,6 +375,9 @@ function LLMConfigPanel({ onClose }: LLMConfigPanelProps) {
           disabled={!currentProvider}
           className="input-xm w-full"
         >
+          {model && !currentProvider?.models.some(item => item.id === model) && (
+            <option value={model}>{model}</option>
+          )}
           {currentProvider?.models.map(m => (
             <option key={m.id} value={m.id}>
               {m.name} - {m.description}
