@@ -2,7 +2,7 @@
 
 ## 概述
 
-Agentic Deep Research System 现在支持通过前端界面动态配置 LLM 提供商和模型。用户无需修改环境变量或重启服务，即可实时切换 LLM 配置。
+每个已登录账号可在“我的模型”中保存自己的提供商、模型、密钥和路由。保存后用于该账号的后续研究执行，正在执行的工作使用已绑定的配置上下文；无需重启服务。参见[多用户工作区](MULTI_USER_WORKSPACES.md)。
 
 ## 功能特性
 
@@ -10,6 +10,8 @@ Agentic Deep Research System 现在支持通过前端界面动态配置 LLM 提�
 - **通义千问 (Qwen)** - 阿里云大模型，中文能力强
 - **DeepSeek** - 国产大模型，性价比极高
 - **OpenAI** - GPT 系列，国际领先
+- **Anthropic** - Claude 原生接口
+- **Ollama** - OpenAI 兼容模型服务
 
 ### 2. 配置项
 - **提供商选择**：下拉菜单选择 LLM 提供商
@@ -20,8 +22,8 @@ Agentic Deep Research System 现在支持通过前端界面动态配置 LLM 提�
 - **备用模型**：主模型失败时自动切换
 
 ### 3. 数据存储
-- **数据库存储**：配置保存到 PostgreSQL `system_config` 表
-- **运行时缓存**：配置立即生效，无需重启
+- **数据库存储**：配置保存到 PostgreSQL `system_config`，使用 `llm:<owner UUID>` 键与 owner 条件
+- **运行时上下文**：请求与后台执行各自绑定个人配置，不共用全局模型缓存
 - **安全加密**：API Key 加密存储，前端显示脱敏
 
 ## 使用指南
@@ -73,13 +75,14 @@ GET  /api/v1/config/llm          # 获取当前配置
 POST /api/v1/config/llm          # 更新配置
 GET  /api/v1/config/llm/status   # 获取配置状态
 GET  /api/v1/config/llm/providers # 获取可用提供商
-DELETE /api/v1/config/llm        # 重置为默认配置
+DELETE /api/v1/config/llm        # 删除本人保存的配置
 ```
 
 ### 数据库表
 ```sql
 CREATE TABLE system_config (
     config_key VARCHAR(50) PRIMARY KEY,
+    owner_id UUID,
     config_data JSONB NOT NULL DEFAULT '{}',
     description TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -88,9 +91,11 @@ CREATE TABLE system_config (
 ```
 
 ### 配置优先级
-1. **运行时配置** - 通过前端设置的最新配置
-2. **数据库配置** - 之前保存的配置
-3. **环境变量** - `.env` 文件中的默认配置
+1. **执行上下文** - 当前用户在本次请求／后台执行绑定的配置，线程继承同一归属。
+2. **本人数据库配置** - 每次研究执行开始加载，重启不需要预载某个用户的配置。
+3. **服务器环境配置** - 仅管理员或显式关闭认证的本机模式可使用。普通账号没有个人配置时显示未配置，启动研究返回 409，不借用管理员密钥。
+
+重置只删除本人的配置；普通账号回到未配置，管理员可回到部署环境后备配置。密钥加密保存，API 仅返回本人的脱敏值。配置无法读取或解密时返回错误，不静默借用另一账号的配置。
 
 ## 前端组件
 
