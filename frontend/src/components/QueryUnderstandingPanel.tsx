@@ -112,32 +112,27 @@ export function queryDraftRequest(draft: QueryDraft, organizationEnabled: boolea
 }
 
 export function UnderstandingSummary({ value }: { value: UnderstandingSnapshot | null | undefined }) {
-  if (!value) return <p className="text-xs text-xmgray-500">此任务未保存查询解释，沿用原任务配置；不会按今天重算历史时间。</p>
-  return <section className="space-y-2 rounded-xl border border-xmgray-200 bg-white p-4 text-sm" aria-label="查询解释">
-    <p className="font-medium">{queryTypes[value.query_type] || value.query_type} · {value.ready ? '可进入研究规划' : '需要补充约束'}</p>
-    <p>{value.slots.question}</p>
-    {value.writing_plan&&<p>回答形式：{({answer:'直接回答',summary:'研究总结',comparison:'对比分析',report:'完整研究报告',data_analysis:'数据分析'} as Record<string,string>)[value.writing_plan.output_kind]||value.writing_plan.output_kind}。</p>}
-    {value.data_governance&&<p>初始资料范围：{({public:'公开',internal:'内部',confidential:'机密',regulated:'受监管'} as Record<string,string>)[value.data_governance.initial_class]||value.data_governance.initial_class}；
-      模型外传上限：{({public:'公开',internal:'内部',confidential:'机密',regulated:'受监管'} as Record<string,string>)[value.data_governance.policy.max_model_class]}。实际请求还须满足当前模型服务许可。</p>}
-    <p>对象：{value.slots.entities.map(item => item.name).join('、') || '按问题发现候选'}；目的：{purposes[value.slots.purpose] || '通用研究'}</p>
-    {!!value.slots.modules.length && <p>内容：{value.slots.modules.map(key => modules[key] || key).join('、')}</p>}
-    <p>参考日期：{value.temporal.reference_date}；时间需求：{({ static: '静态知识', realtime: '实时资料', historical: '历史时点' } as Record<string, string>)[value.temporal.mode] || value.temporal.mode}
-      {value.temporal.as_of_date && `；观察截止：${value.temporal.as_of_date}`}</p>
-    {value.slots.time_window && <p>研究范围：{value.slots.time_window.start_date} 至 {value.slots.time_window.end_date}</p>}
-    <p>复杂度：{({ simple: '简单', moderate: '中等', complex: '复杂' } as Record<string, string>)[value.complexity.level]}；{value.complexity.decomposition_suggested ? '建议按独立对象或子问题分解' : '可先沿直接流程推进'}。</p>
-    <p className="text-xs text-xmgray-500">预览不调用模型；真实研究费用需按实际模型、工具和用量计量，目前未知。实体匹配与查询分类不代表事实已核实。</p>
-    {value.query_rewriting&&<p className="text-xs text-xmgray-500">检索配置：每步骤最多{value.query_rewriting.max_variants}个查询，
-      已明确{Object.keys(value.query_rewriting.term_aliases).length}组术语别称；实际执行数量按原预算分配。</p>}
-    {value.candidate_fusion&&<details><summary>本次候选融合配置</summary><pre className="whitespace-pre-wrap break-words text-xs">{JSON.stringify(value.candidate_fusion.policy,null,2)}</pre></details>}
-    {!!value.internal_filter?.policy.any_of.length&&<details><summary>本次内部资料筛选</summary>
-      <pre className="whitespace-pre-wrap break-words text-xs">{JSON.stringify(value.internal_filter.policy,null,2)}</pre>
-      <p className="text-xs">这些条件叠加在本人权限、有效来源和当前版本范围内。</p>
-    </details>}
-    {value.clarifications.length > 0 && <ul className="list-disc space-y-1 pl-5 text-amber-800" aria-label="待澄清的问题">
-      {value.clarifications.map((item, index) => <li key={`${item.id}-${index}`}>{item.message}</li>)}
-    </ul>}
-    {value.notes.map((note, index) => <p key={index} className="text-xs text-xmgray-600">{note}</p>)}
-    <p className="text-xs text-xmgray-500">交付：{value.delivery.template} · {value.delivery.formats.join('、')}。{value.delivery.renderer_status==='trusted_matplotlib_pending'?'所选Skill将指导受信绘图，使用本次数据生成可下载图表。':value.delivery.renderer_status==='drawing_configuration_blocked'?'所选绘图配置尚不能执行，请处理上述提示。':'交付在报告完成后使用本次实际数据组装；无数据的页面显示缺口。'}</p>
+  if (!value) return null
+  const templates:Record<string,string>={'markdown-v1':'简洁长文','research-map-v1':'研究脉络','organization-development-v1':'组织研究','technology-comparison-v1':'技术比较','cooperation-matching-v1':'合作资源','field-trends-v1':'领域趋势',custom:'自定义页面'}
+  return <section className="understanding-summary" aria-label="研究计划预览">
+    <div className="understanding-heading"><h3>研究计划预览</h3><span>{value.ready?'就绪':'补充信息'}</span></div>
+    <dl>
+      <div><dt>对象</dt><dd>{value.slots.entities.map(item=>item.name).join('、')||'按问题发现候选'}</dd></div>
+      <div><dt>目的</dt><dd>{purposes[value.slots.purpose]||queryTypes[value.query_type]||'通用研究'}</dd></div>
+      {value.slots.time_window&&<div><dt>时间</dt><dd>{value.slots.time_window.start_date} — {value.slots.time_window.end_date}</dd></div>}
+      {value.temporal.as_of_date&&<div><dt>观察截止</dt><dd>{value.temporal.as_of_date}</dd></div>}
+      {!!value.slots.modules.length&&<div><dt>内容</dt><dd>{value.slots.modules.map(key=>modules[key]||key).join(' · ')}</dd></div>}
+      <div><dt>交付</dt><dd>{templates[value.delivery.template]||value.delivery.template} · {value.delivery.formats.map(format=>format.toUpperCase()).join(' / ')}</dd></div>
+    </dl>
+    {!!value.clarifications.length&&<ul className="understanding-clarifications" aria-label="待补充信息">{value.clarifications.map(item=><li key={item.id}>{item.message}</li>)}</ul>}
+    <details><summary>配置明细</summary><dl>
+      <div><dt>参考日期</dt><dd>{value.temporal.reference_date}</dd></div>
+      {value.data_governance&&<><div><dt>资料范围</dt><dd>{({public:'公开',internal:'内部',confidential:'机密',regulated:'受监管'} as Record<string,string>)[value.data_governance.initial_class]||value.data_governance.initial_class}</dd></div><div><dt>模型范围</dt><dd>{({public:'公开',internal:'内部',confidential:'机密',regulated:'受监管'} as Record<string,string>)[value.data_governance.policy.max_model_class]}</dd></div></>}
+      {value.query_rewriting&&<div><dt>检索变体上限</dt><dd>{value.query_rewriting.max_variants}</dd></div>}
+    </dl>
+    {value.candidate_fusion&&<details><summary>候选融合</summary><pre className="whitespace-pre-wrap break-words text-xs">{JSON.stringify(value.candidate_fusion.policy,null,2)}</pre></details>}
+    {!!value.internal_filter?.policy.any_of.length&&<details><summary>资料筛选</summary><pre className="whitespace-pre-wrap break-words text-xs">{JSON.stringify(value.internal_filter.policy,null,2)}</pre></details>}
+    </details>
   </section>
 }
 
@@ -295,12 +290,12 @@ export default function QueryUnderstandingPanel({ value, onChange, organizationE
         <FieldLabel title="绘图方案"><select className="input-xm w-full" value={value.drawingMode} onChange={event => update({ drawingMode: event.target.value, drawingSkillIds: [],chartSkillIds:{} })}>
           <option value="builtin">内置绘图</option><option value="manual_skill">手选绘图 Skill</option><option value="auto_skill">允许自动匹配绘图 Skill</option>
         </select></FieldLabel>
-        {value.drawingMode === 'manual_skill' && <fieldset><legend className="text-xs text-xmgray-600">选择已注册的 Skill（显式启用到本次会话；绘图能力和格式适配仍需核实）</legend>
+        {value.drawingMode === 'manual_skill' && <fieldset><legend className="text-xs text-xmgray-600">选择绘图 Skill</legend>
           <div className="mt-2 flex flex-wrap gap-3">{skills.map(skill => <label className="text-xs" key={skill.id}><input type="checkbox" checked={value.drawingSkillIds.includes(skill.id)} onChange={() => update({ drawingSkillIds: toggle(value.drawingSkillIds, skill.id) })} /> {skill.name}</label>)}</div>
           {!skills.length && <p className="text-xs text-amber-800">目前没有可选的已注册 Skill。</p>}
         </fieldset>}
         {value.drawingMode!=='builtin'&&<details className="rounded-lg border p-3"><summary className="cursor-pointer text-sm">单图 Skill 覆盖（可选）</summary>
-          <p className="my-2 text-xs text-xmgray-500">默认沿用上述方案。只为本次需要且有数据的图选择覆盖；未取得对应数据时会保留缺口，不能生成替代图。</p>
+          <p className="my-2 text-xs text-xmgray-500">为指定图表选择独立绘图方法。</p>
           <div className="grid gap-2 sm:grid-cols-2">{Object.entries({annual_publications:'年度发表',classification_publications:'技术分类',
             object_publications:'对象样本',source_relationships:'来源关系',technical_comparison:'技术条件比较',citation_sources:'引用来源'}).map(([key,label])=><FieldLabel key={key} title={label}>
               <select className="input-xm w-full" value={value.chartSkillIds?.[key]||''}
@@ -316,7 +311,7 @@ export default function QueryUnderstandingPanel({ value, onChange, organizationE
             chartSkillIds:(configuration.chart_skill_ids||{}) as Record<string,string>,formats:configuration.formats as string[]||['markdown']})
         }}/>
         <fieldset><legend className="text-xs text-xmgray-600">交付格式</legend><div className="mt-2 flex flex-wrap gap-3">{['markdown', 'html', 'json', 'pdf', 'pptx'].map(format => <label className="text-xs" key={format}><input type="checkbox" checked={value.formats.includes(format)} onChange={() => update({ formats: toggle(value.formats, format) })} /> {format.toUpperCase()}</label>)}</div></fieldset>
-        <p className="text-xs text-xmgray-500">报告可下载Markdown、HTML和JSON，报告PDF通过浏览器打印。选择绘图Skill后，由受信适配器生成图表SVG、PNG和图表PDF；不执行Skill自带脚本。图表绑定本次数据，缺资料时保留缺口。</p>
+        <p className="text-xs text-xmgray-500">正文支持 Markdown、HTML 和 JSON，PDF 使用打印导出；图表提供 SVG、PNG 与 PDF。</p>
       </div>
     </details>
     <button type="button" className="btn-ghost text-sm" disabled={busy || !canPreview} onClick={onPreview}>{busy ? '正在解释查询…' : '预览问题理解与约束'}</button>

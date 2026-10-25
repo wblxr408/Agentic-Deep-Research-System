@@ -145,11 +145,11 @@ function ResearchDashboard({ onBack }: ResearchDashboardProps) {
   }, [])
 
   // Fetch research result
-  const { data: result, refetch: refetchResult } = useQuery<ResearchResult>({
+  const { data: result, error: resultError, refetch: refetchResult } = useQuery<ResearchResult>({
     queryKey: ['research', activeSessionId],
     queryFn: async () => {
       const res = await fetch(`/api/v1/research/${activeSessionId}`)
-      if (!res.ok) throw new Error('Failed to fetch result')
+      if (!res.ok) throw new Error([401,403,404].includes(res.status)?'任务不存在或当前不可访问。':'任务记录读取失败，请重试。')
       return res.json()
     },
     enabled: !!activeSessionId,
@@ -359,6 +359,9 @@ function ResearchDashboard({ onBack }: ResearchDashboardProps) {
   }, [handleStart, onBack])
 
   const handleNewResearch = useCallback(() => {
+    startMutation.reset()
+    previewMutation.reset()
+    resumeSynthesis.reset()
     const url = new URL(window.location.href)
     url.searchParams.delete('session')
     window.history.replaceState(null, '', url)
@@ -427,6 +430,10 @@ function ResearchDashboard({ onBack }: ResearchDashboardProps) {
     }
   }, [result])
   const busy = isStreaming || startMutation.isPending || previewMutation.isPending
+  const stageLabels:Record<string,string>={planner:'规划研究',search:'搜索资料',browser:'读取来源',rag:'检索资料',analyst:analysisPhase,reflection:'核对来源',report:'生成报告',replan:'调整计划',dag_executor:'执行研究计划'}
+  const stageEvent=[...traceEvents].reverse().find(event=>event.type==='agent_start')
+  const currentStage=analysisProgress?.status==='running'?analysisPhase:stageLabels[String(stageEvent?.data.agent||'')]||'研究进行中'
+  if(activeSessionId&&resultError&&!result)return <div className="research-workspace"><p role="alert" className="composer-error">{resultError.message}</p><div className="flex gap-3 mt-5"><button type="button" className="btn-secondary" onClick={()=>void refetchResult()}>重新读取</button><button type="button" className="btn-ghost" onClick={handleNewResearch}>新研究</button></div></div>
 
   if (!activeSessionId) return <ResearchComposer
     query={query} onQuery={setQuery} onStart={handleStart} onPreview={() => previewMutation.mutate()} onBack={onBack}
@@ -446,7 +453,7 @@ function ResearchDashboard({ onBack }: ResearchDashboardProps) {
     </header>
     <div className="workspace-toolbar"><div className="pill-tabs" role="group" aria-label="研究视图">
       {[['workflow','研究流程'],['report','图文报告'],['records','研究记录']].map(([id,label])=><button type="button" key={id} aria-pressed={activePanel===id} onClick={()=>setActivePanel(id)}>{label}</button>)}
-    </div><div className="workspace-statistics"><StatusPill status={sessionStatus||'pending'} label={isStreaming ? analysisProgress?.status==='running'?analysisPhase:'研究中' : stoppedLabel}/>
+    </div><div className="workspace-statistics"><StatusPill status={sessionStatus||'pending'} label={isStreaming ? currentStage : stoppedLabel}/>
       <span>{planNodes ? `${completedNodes}/${planNodes.length} 取证步骤` : `${agentEvents.length} 条记录`}</span>
       {toolCallCount!==undefined&&<span>{toolCallCount} 次工具调用</span>}
     </div></div>
@@ -455,7 +462,7 @@ function ResearchDashboard({ onBack }: ResearchDashboardProps) {
     <section hidden={activePanel!=='workflow'} aria-label="研究流程视图">
       <ResearchFlow key={activeSessionId} plan={result?.plan_manifest} dag={result?.execution_plan} events={traceEvents} status={sessionStatus||'pending'} tools={toolAudit.data} analysis={analysisProgress} history={result?.plan_history}/>
       <div className="workspace-summary-row">
-        <section className="workspace-summary"><span className="eyebrow">当前阶段</span><h2>{isStreaming ? analysisProgress?.status==='running'?analysisPhase:'研究进行中' : stoppedLabel}</h2>
+        <section className="workspace-summary"><span className="eyebrow">当前阶段</span><h2>{isStreaming ? currentStage : stoppedLabel}</h2>
           {analysisProgress&&<p>{analysisPhase}{progressParts[2]==='conditions'?' · 条件补读':''}{analysisBatch?` · 第 ${analysisBatch} 组`:''} · {analysisProgress.completed_steps} 步已保存</p>}
           {result?.analysis_recovery_available&&<button type="button" className="btn-secondary" disabled={resumeSynthesis.isPending||isStreaming} onClick={()=>resumeSynthesis.mutate('analysis')}>继续分析</button>}
           {result?.report_recovery_available&&<button type="button" className="btn-secondary" disabled={resumeSynthesis.isPending||isStreaming} onClick={()=>resumeSynthesis.mutate('report')}>继续生成报告</button>}
@@ -469,10 +476,10 @@ function ResearchDashboard({ onBack }: ResearchDashboardProps) {
       </div>
     </section>
     <section hidden={activePanel!=='report'} className="reader-workspace" aria-label="图文报告视图">
-      <div className="reader-heading"><h2>研究报告</h2><div>{normalizedCitations.length>0&&<span>{normalizedCitations.length} 项来源</span>}{result?.status==='completed'&&<ReportDownloads result={result} reportElement={reportElement}/>}</div></div>
+      <div className="reader-heading"><h2>研究报告</h2><div>{normalizedCitations.length>0&&<span>{normalizedCitations.length} 条引用</span>}{result?.status==='completed'&&<ReportDownloads result={result} reportElement={reportElement}/>}</div></div>
       {activeSessionId&&<ReportHistory key={activeSessionId} sessionId={activeSessionId}/>}
-      <div ref={setReportElement}><ReportPreview report={displayReport??''} citations={normalizedCitations} sessionId={activeSessionId}
-        streaming={isStreaming} emptyTitle={isStreaming?analysisProgress?.status==='running'?`正在${analysisPhase}`:emptyReportTitle:emptyReportTitle}
+      <div ref={setReportElement}><ReportPreview key={activeSessionId} report={displayReport??''} citations={normalizedCitations} sessionId={activeSessionId}
+        streaming={isStreaming} emptyTitle={isStreaming?`正在${currentStage}`:emptyReportTitle}
         emptyDescription={emptyReportDescription} reportSummary={result?.organization_result?.report_summary}
         deliveryView={result?.delivery_view} reportEditorial={result?.report_editorial} budgetState={result?.budget_state} reportAudit={result?.report_audit}
         contextEvidence={{analyst:result?.organization_result?.analyst_context,report:result?.organization_result?.report_context}}/></div>

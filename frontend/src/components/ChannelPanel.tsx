@@ -39,35 +39,23 @@ export default function ChannelPanel({ selected, onChange }: { selected: string[
     queryKey: ['channels'],
     queryFn: ({ signal }) => fetch('/api/v1/channels', { signal }).then(responseJson),
   })
-  return <section className="mt-4 border-t border-xmgray-100 pt-4" aria-label="联网渠道">
-    <div className="flex justify-between gap-2 text-sm">
-      <span className="font-medium text-xmgray-700">联网渠道</span>
-      <span className="text-xs text-xmgray-400">已选 {selected.length}/8</span>
+  const preferred=new Set(['web','exa','github','rss'])
+  const renderChannel=(channel:Channel)=><div key={channel.name} className="channel-card">
+    <div className="channel-card-title"><label><input type="checkbox" checked={selected.includes(channel.name)}
+      disabled={!channel.config.enabled||!channel.operations.includes('search')||(!selected.includes(channel.name)&&selected.length>=8)}
+      onChange={event=>onChange(event.target.checked?[...selected,channel.name]:selected.filter(name=>name!==channel.name))}/>{channel.label}</label>
+      <button type="button" className="btn-ghost" aria-label={`配置 ${channel.label}`} onClick={()=>setEditing(editing===channel.name?null:channel.name)}>配置</button>
     </div>
-    <p className="mt-1 text-xs text-xmgray-500">未选择时使用网页搜索；平台前缀与链接会自动路由。内部资料可作为研究的补充证据。</p>
-    {channels.isPending && <p role="status" className="mt-3 text-xs">正在读取渠道配置…</p>}
-    {channels.error && <div role="alert" className="mt-3 text-sm text-red-600">{channels.error.message} <button type="button" onClick={() => channels.refetch()}>重新读取</button></div>}
-    <div className="mt-3 grid gap-2 sm:grid-cols-2">
-      {channels.data?.items.map(channel => <div key={channel.name} className="rounded-xl border border-xmgray-100 bg-xmgray-50/60 p-3">
-        <div className="flex items-center justify-between gap-2">
-          <label className="flex items-center gap-2 text-sm text-xmgray-700">
-            <input type="checkbox" className="accent-orange-500" checked={selected.includes(channel.name)}
-              disabled={!channel.config.enabled || !channel.operations.includes('search') || (!selected.includes(channel.name) && selected.length >= 8)}
-              onChange={e => onChange(e.target.checked ? [...selected, channel.name] : selected.filter(name => name !== channel.name))} />
-            {channel.label}
-          </label>
-          <button type="button" aria-label={`维护 ${channel.label}`} onClick={() => setEditing(editing === channel.name ? null : channel.name)} className="text-xs text-xm-600 underline underline-offset-4">维护</button>
-        </div>
-        <p className="mt-2 text-[11px] text-xmgray-500">
-          {!channel.config.enabled ? '已停用' : channel.last_attempt ? `${channel.last_attempt.backend} · ${channel.last_attempt.error_category || '采集成功'} · ${new Date(channel.last_attempt.timestamp).toLocaleString()}` : '尚无内容采集记录'}
-          {!channel.operations.includes('search') && ' · 支持链接读取'}
-        </p>
-      </div>)}
-    </div>
-    {channels.data?.items.filter(channel => channel.name === editing).map(channel => <ChannelEditor key={channel.name} channel={channel} onSaved={config => {
-      if (!config.enabled) onChange(selectedRef.current.filter(name => name !== channel.name))
-      client.invalidateQueries({ queryKey: ['channels'] })
-    }} onCollected={() => client.invalidateQueries({ queryKey: ['channels'] })} />)}
+    <span className="channel-kind">{!channel.config.enabled?'已停用':channel.operations.includes('search')?'搜索与链接':'链接读取'}</span>
+    {channel.last_attempt&&<details className="channel-attempt"><summary>上次记录</summary><p>{channel.last_attempt.backend} · {({budget_exceeded:'额度用完',timeout:'超时',unavailable:'不可用'} as Record<string,string>)[channel.last_attempt.error_category||'']||channel.last_attempt.error_category||channel.last_attempt.status} · {new Date(channel.last_attempt.timestamp).toLocaleString('zh-CN')}</p></details>}
+  </div>
+  return <section className="configuration-section" aria-label="联网渠道">
+    <div className="channel-panel-heading"><h3>搜索渠道</h3><span>{selected.length?`已选 ${selected.length} / 8`:'自动'}</span></div>
+    {channels.isPending&&<p role="status">读取渠道配置…</p>}
+    {channels.error&&<p role="alert" className="composer-error">{channels.error.message}<button type="button" className="btn-ghost" onClick={()=>void channels.refetch()}>重试</button></p>}
+    <div className="channel-grid">{channels.data?.items.filter(channel=>preferred.has(channel.name)).map(renderChannel)}</div>
+    <details className="more-channels"><summary>更多平台</summary><div className="channel-grid">{channels.data?.items.filter(channel=>!preferred.has(channel.name)).map(renderChannel)}</div></details>
+    {channels.data?.items.filter(channel=>channel.name===editing).map(channel=><ChannelEditor key={channel.name} channel={channel} onSaved={config=>{if(!config.enabled)onChange(selectedRef.current.filter(name=>name!==channel.name));client.invalidateQueries({queryKey:['channels']})}} onCollected={()=>client.invalidateQueries({queryKey:['channels']})}/>)}
   </section>
 }
 

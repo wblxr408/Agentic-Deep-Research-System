@@ -12,7 +12,7 @@
 
 ## Decisions
 
-1. 用 CSS 变量承载四套配色，Tailwind 原 xm/primary/xmgray 映射到变量，已有领域控件也随主题变化；使用本地字体栈中的中英文衬线展示标题和清晰正文。主题与标题语言保存在 localStorage，捕获不可写存储；跨窗口 storage 事件同步。
+1. 用 CSS 变量承载四套配色，Tailwind 原 xm/primary/xmgray 映射到变量，已有领域控件也随主题变化；使用本地字体栈中的中英文衬线展示标题和清晰正文。主题与标题语言保存在 localStorage，捕获不可写存储；跨窗口 storage 事件同步。静态首页与技术文档直接呈现，任务、资料、Skill 和设置保持原认证与 API 授权。
 2. 首页全宽背景与黑色渐变蒙版独立，桌面主标题最大 144px；工作区标题最大 96px。中文按语义分行，副标题使用独立小字号；英文同样区分层级。复用本地生成图，无外部字体或图片请求。
 3. 自行实现经用户选定的组件交互：Task Rows、Tool Chips、Context Cards、Action node、Trace loader、Hub diagram、Tab bar、Palette、Canvas toolbar。参考出处为 https://www.beautifului.dev/ 与 https://bencho.dev/blocks/ 对应页面。适配交互和样式，不声称复制网站源码或完整工作流引擎；不使用其侧边栏实现。
 4. 不新增图框架。React 节点卡片与 SVG 连线承载真实 DAG；按 depends_on 分层，有界处理无法分层的边。原计划中的独立问题才并行。当前快照是状态权威，历史与 live 事件按身份合并，终态阻止旧 running 动画。工具节点保留原用途，界面不将每个工具升级为自治 Agent。

@@ -44,7 +44,7 @@ export default function ReportHistory({sessionId}:{sessionId:string}) {
         {selected.status==='supported_report'&&<button type="button" className="btn-ghost text-xs" onClick={download}>下载该版Markdown</button>}
       </div>
       {selected.kind==='partial_response'?<pre className="whitespace-pre-wrap break-words text-xs">{selected.report}</pre>:
-        <ReportPreview report={selected.reader_report||selected.report} citations={selected.citations} reportAudit={selected.audit} sessionId={sessionId}/>}
+        <ReportPreview key={selected.report_id} report={selected.reader_report||selected.report} citations={selected.citations} reportAudit={selected.audit} sessionId={sessionId}/>}
       <details className="my-2 text-xs"><summary className="cursor-pointer">该版来源关联</summary>
         <p>该次保存的来源关联。</p>
         <ul className="list-disc space-y-1 break-all pl-5">{selected.source_versions.map(source=><li key={source.evidence_id}>{source.evidence_id} · {source.version_id} · {source.coverage}</li>)}</ul>

@@ -47,10 +47,10 @@ function ReportPreview({
   const prefix = useId().replace(/:/g,'')
   const definitions = useMemo(()=>citations.flatMap(citation=>{
     const url=safeExternalUrl(citation.source_url)
-    if(!url||!/^citation:\d+$/.test(citation.citation_id))return []
-    const target='<'+url.replace(/</g,'%3C').replace(/>/g,'%3E')+'>'
+    if(!/^citation:\d+$/.test(citation.citation_id))return []
+    const target='<'+(url?url.replace(/</g,'%3C').replace(/>/g,'%3E'):`#retained-${prefix}-${citation.citation_id.replace('citation:','')}`)+'>'
     return [`[${citation.citation_id}]: ${target}`,`[${citation.citation_id.replace('citation:','')}]: ${target}`]
-  }).join('\n'),[citations])
+  }).join('\n'),[citations,prefix])
   const headings = useMemo(()=>{
     let fence=''
     return readerReport.split('\n').flatMap(line=>{
@@ -58,7 +58,7 @@ function ReportPreview({
       if(marker){if(!fence)fence=marker[1][0];else if(fence===marker[1][0])fence='';return []}
       if(fence)return []
       const match=/^(#{1,3})\s+(.+?)(?:\s+#+)?$/.exec(line)
-      return match?[{level:match[1].length,title:match[2].replace(/[*_`]/g,'')}]:[]
+      return match?[{level:match[1].length,title:match[2].replace(/[*_`]/g,'').replace(/\\([\\#~.>+!(){}\[\]-])/g,'$1')}]:[]
     })
   },[readerReport])
   const structured=Boolean(deliveryView&&deliveryView.template!=='markdown-v1')
@@ -69,10 +69,12 @@ function ReportPreview({
     return <ReactMarkdown remarkPlugins={[remarkGfm]} components={{
       h1:({children})=>heading(1,children),h2:({children})=>heading(2,children),h3:({children})=>heading(3,children),
       a:({href,children})=>{
-        const number=/^\[?(\d+)\]?$/.exec(String(children).trim())
-        const citation=number?citations.find(item=>item.citation_id==='citation:'+number[1]):citations.find(item=>safeExternalUrl(item.source_url)===safeExternalUrl(href)&&Boolean(safeExternalUrl(href)))
+        const number=/^\[?(?:citation:)?(\d+)\]?$/.exec(String(children).trim())
+        const numbered=number?citations.find(item=>item.citation_id==='citation:'+number[1]):undefined
+        const numberedMatches=numbered&&(safeExternalUrl(numbered.source_url)===safeExternalUrl(href)&&Boolean(safeExternalUrl(href))||href===`#retained-${prefix}-${numbered.citation_id.replace('citation:','')}`)
+        const citation=numberedMatches?numbered:citations.find(item=>safeExternalUrl(item.source_url)===safeExternalUrl(href)&&Boolean(safeExternalUrl(href)))
         const url=href?.startsWith('#')?href:safeExternalUrl(href)
-        return citation?<button type="button" className="citation-button" onClick={()=>setSelectedCitation(citation)} aria-label={`查看来源：${citation.source_title}`}>{children}</button>:<a href={url} target={url?.startsWith('#')?undefined:'_blank'} rel="noopener noreferrer">{children}</a>
+        return citation?<button type="button" className="citation-button" onClick={()=>setSelectedCitation(citation)} aria-label={`查看来源：${citation.source_title}`}>{number?`[${number[1]}]`:children}</button>:<a href={url} target={url?.startsWith('#')?undefined:'_blank'} rel="noopener noreferrer">{children}</a>
       },
       img:({src,alt})=><a href={safeExternalUrl(src)} target="_blank" rel="noopener noreferrer">{alt||'查看原图'}</a>,
       code:({node:_node,className,children,...props})=>{

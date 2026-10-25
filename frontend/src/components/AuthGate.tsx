@@ -42,7 +42,7 @@ export default function AuthGate({ state, onAuthenticated }: { state: AuthState;
   return (
     <main className="min-h-screen grid place-items-center bg-xmgray-50 px-6">
       <section className="w-full max-w-sm border border-xmgray-200 bg-white p-8 shadow-xm-md" aria-labelledby="auth-title">
-        <div className="mb-8 border-l-4 border-xm-500 pl-4">
+        <a href="?view=home" className="auth-home">← 首页</a><div className="mb-8 border-l-4 border-xm-500 pl-4">
           <p className="text-xs font-semibold uppercase text-xm-500">DeepIntel</p>
           <h1 id="auth-title" className="mt-1 text-2xl font-semibold text-xmgray-900">{initialize ? '初始化管理员' : '登录工作区'}</h1>
           <p className="mt-2 text-sm leading-6 text-xmgray-500">{initialize ? '首次部署仅可创建一个管理员。密码至少 12 位。' : '登录研究工作区。'}</p>

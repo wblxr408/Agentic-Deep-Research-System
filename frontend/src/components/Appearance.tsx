@@ -45,7 +45,7 @@ export function AppearanceControls() {
       <summary aria-label="切换配色"><span className="palette-glyph" style={{ background: palettes.find(item => item.id === theme)?.color }} />
         <span className="palette-label">配色</span></summary>
       <div className="palette-options" role="group" aria-label="界面配色">
-        {palettes.map(item => <button type="button" key={item.id} aria-pressed={theme === item.id}
+        {palettes.map(item => <button type="button" key={item.id} aria-label={item.name} aria-pressed={theme === item.id}
           onClick={event => { setTheme(item.id); event.currentTarget.closest('details')?.removeAttribute('open') }}>
           <span className="palette-swatch" style={{ background: item.color }} />{item.name}<span>{theme === item.id ? '✓' : ''}</span>
         </button>)}
