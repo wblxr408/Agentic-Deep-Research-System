@@ -248,10 +248,14 @@ class RuntimePersistence:
                 review_status[key] = state[key]
         async with pool.acquire() as conn, conn.transaction():
                 execution_id = state.get("session", {}).get("execution_id")
-                binding=await conn.fetchrow('SELECT owner_id,execution_id,status FROM research_sessions WHERE id=$1::uuid FOR UPDATE',session_id)
+                binding=await conn.fetchrow('SELECT owner_id,execution_id,status,review_status FROM research_sessions WHERE id=$1::uuid FOR UPDATE',session_id)
                 if not binding:
                     return False
                 if binding['status']=='canceled' and public_status!='canceled':return False
+                if binding['status']=='paused' and public_status=='running':return False
+                retained_review=json.loads(binding['review_status']) if isinstance(binding['review_status'],str) else (binding['review_status'] or {})
+                if retained_review.get('user_control'):
+                    review_status['user_control']=retained_review['user_control']
                 actual_execution=str(binding['execution_id']) if binding['execution_id'] else None
                 if actual_execution != (str(execution_id) if execution_id else None):return False
                 actual_owner=str(binding['owner_id']) if binding['owner_id'] else None

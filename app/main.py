@@ -12,7 +12,6 @@ from contextlib import asynccontextmanager
 import structlog
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.middleware.gzip import GZipMiddleware
 
 from app.api import (
     auth_router,
@@ -27,7 +26,7 @@ from app.api import (
 from app.api.config import load_runtime_llm_config_from_db
 from app.config import get_settings
 from app.db.connection import close_db, init_db
-from app.security.middleware import SecurityHeadersMiddleware
+from app.security.middleware import SecurityHeadersMiddleware,StreamingGZipMiddleware
 from app.disclosure import install_log_redaction,structured_log_projection
 from app.skills import get_skill_registry
 
@@ -125,7 +124,7 @@ def create_app() -> FastAPI:
     )
 
     # GZip compression
-    app.add_middleware(GZipMiddleware, minimum_size=1000)
+    app.add_middleware(StreamingGZipMiddleware, minimum_size=1000)
     app.add_middleware(SecurityHeadersMiddleware)
 
     # Register routes

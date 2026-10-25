@@ -1336,6 +1336,20 @@ async def cancel_research(session_id:uuid.UUID,payload:CancellationRequest,princ
     return result
 
 
+@router.post('/{session_id}/pause')
+async def pause_research(session_id:uuid.UUID,payload:CancellationRequest,principal:Principal=principal_dependency):
+    from app.db.research_pause import request_pause
+    pool=await get_db_pool()
+    try:
+        async with pool.acquire() as conn,conn.transaction():
+            result=await request_pause(conn,session_id,_principal_id(principal),payload)
+    except ValueError as error:
+        raise HTTPException(404 if str(error)=='pause_task_not_found' else 409,str(error)) from error
+    if not result.get('replayed'):
+        await get_sse_manager().publish(str(session_id),'control_update',result)
+    return result
+
+
 @router.post('/{session_id}/feedback')
 async def retain_quality_feedback(session_id:uuid.UUID,payload:QualityFeedback,principal:Principal=principal_dependency):
     pool=await get_db_pool()
@@ -1398,6 +1412,8 @@ async def get_research_result(session_id: str, principal: Principal = principal_
         "session_id": str(row["id"]),
         'execution_id':str(row['execution_id']) if row['execution_id'] else None,
         'cancellation':review_status.get('cancellation'),
+        'user_control':review_status.get('user_control'),
+        'stop_reason':review_status.get('reason') or review_status.get('last_error_category') or workflow.get('stop_reason'),
         "query": row["user_query"],
         "status": row["status"],
         'classification_versions': review_status.get('classification_versions', []),
@@ -1673,6 +1689,85 @@ async def resume_research_analysis(session_id: str, background_tasks: Background
     return await _resume_retained_synthesis(session_id, background_tasks, principal, stage='analysis')
 
 
+@router.post('/{session_id}/resume')
+async def resume_user_paused_research(session_id:uuid.UUID,payload:CancellationRequest,
+        background_tasks:BackgroundTasks,principal:Principal=principal_dependency):
+    from app.db.research_pause import RESUME_NODES
+    from app.graph.compiler import _build_budget_state
+    from app.source_lifecycle import current_synthesis_state
+    from app.db.execution_control import task_budget
+    from datetime import UTC,datetime
+    session_id=str(session_id); owner=_principal_id(principal)
+    pool=await get_db_pool()
+    async with pool.acquire() as conn:
+        record=await conn.fetchrow('''SELECT s.status,s.execution_id,s.created_at,s.review_status,
+            s.total_tokens,s.total_cost_usd,r.state_snapshot_json,r.checkpoint_seq
+            FROM research_sessions s JOIN session_runtime_state r ON r.session_id=s.id
+            WHERE s.id=$1::uuid AND s.owner_id=$2::uuid''',session_id,owner)
+        if not record:raise HTTPException(404,'resume_task_not_found')
+        budget=await receipt_budget(conn,session_id,owner,task_budget(record))
+    state=deepcopy(_json_object(record['state_snapshot_json']))
+    root=state.get('session') or {}; review=_json_object(record['review_status'])
+    control=review.get('user_control') or {}; node=root.get('user_resume_node')
+    if str(record['execution_id'])!=str(payload.execution_id):
+        raise HTTPException(409,'resume_execution_changed_reload')
+    if (record['status']!='paused' or state.get('runtime_status')!='user_paused'
+            or control.get('state')!='paused' or node not in RESUME_NODES
+            or control.get('resume_node')!=node or state.get('pending_approvals')
+            or str(root.get('owner_id'))!=owner or str(state.get('task_id'))!=session_id
+            or str(root.get('session_id'))!=session_id
+            or str(root.get('execution_id'))!=str(record['execution_id'])):
+        raise HTTPException(409,'resume_checkpoint_not_recoverable')
+    if int(budget.get('inflight_model_requests') or 0):
+        raise HTTPException(409,'resume_receipts_pending')
+    current=await current_synthesis_state(state)
+    if current.get('collected_evidence')!=state.get('collected_evidence'):
+        raise HTTPException(409,'resume_sources_changed')
+    try:
+        started=datetime.fromisoformat(state.get('created_at') or root['created_at'])
+        if started.tzinfo:started=started.astimezone(UTC).replace(tzinfo=None)
+        database_start=record['created_at']
+        if database_start.tzinfo:database_start=database_start.astimezone(UTC).replace(tzinfo=None)
+        started=min(started,database_start)
+        if started>utc_now_naive():raise ValueError('future_start')
+    except (ValueError,TypeError,KeyError):
+        raise HTTPException(409,'resume_original_deadline_unavailable')
+    state['created_at']=started.isoformat();state['budget_state']=budget
+    budget=_build_budget_state(state)
+    if (budget.get('hard_stop_reason') or
+            int(budget.get('used_total_tokens') or 0)>=int(budget.get('max_total_tokens') or 0) or
+            (budget.get('max_cost_usd') is not None and
+             float(budget.get('used_cost_usd') or 0)>=float(budget['max_cost_usd']))):
+        raise HTTPException(409,'resume_original_allowance_exhausted')
+    execution_id=str(uuid.uuid4())
+    state.update(status='running',runtime_status='running',budget_state=budget)
+    state['session']={**root,'status':'running','execution_id':execution_id}
+    state['review_status']={**review,'runtime_status':'running','reason':None,'budget_state':budget,
+        'user_control':{**control,'state':'resumed','resumed_at':utc_now_naive().isoformat(),
+            'resume_request_id':str(payload.request_id),'execution_id':execution_id}}
+    async with pool.acquire() as conn,conn.transaction():
+        locked=await conn.fetchrow('''SELECT s.status,s.execution_id,r.checkpoint_seq
+            FROM research_sessions s JOIN session_runtime_state r ON r.session_id=s.id
+            WHERE s.id=$1::uuid AND s.owner_id=$2::uuid FOR UPDATE OF s,r''',session_id,owner)
+        if (not locked or locked['status']!='paused' or locked['execution_id']!=record['execution_id']
+                or locked['checkpoint_seq']!=record['checkpoint_seq']):
+            raise HTTPException(409,'resume_checkpoint_changed')
+        await conn.execute('''UPDATE research_sessions SET status='running',execution_id=$3::uuid,
+            review_status=$4::jsonb,completed_at=NULL,updated_at=NOW()
+            WHERE id=$1::uuid AND owner_id=$2::uuid''',session_id,owner,execution_id,dumps_json(state['review_status']))
+        await conn.execute('''UPDATE session_runtime_state SET state_snapshot_json=$2::jsonb,
+            public_status='running',runtime_status='running',last_heartbeat_at=NOW()
+            WHERE session_id=$1::uuid''',session_id,dumps_json(state))
+    await get_sse_manager().begin_run(session_id)
+    background_tasks.add_task(run_research_workflow,session_id=session_id,query=state['user_query'],
+        owner_id=owner,execution_id=execution_id,resume_state=state,resume_at='user_resume',
+        max_revision=int(root.get('max_revisions',3)),user_confirmed=bool(state.get('user_confirmed')),
+        use_internal_docs=bool(state.get('use_internal_docs')),rag_group=state.get('rag_group'),
+        output_length=state.get('output_length','medium'),skill_context=state.get('skill_context'),
+        channels=root.get('channels',[]))
+    return {'session_id':session_id,'execution_id':execution_id,'status':'running','resumed':True}
+
+
 @router.post('/{session_id}/report/resume')
 async def resume_research_report(session_id: str, background_tasks: BackgroundTasks,
                                  principal: Principal = principal_dependency):
@@ -1922,7 +2017,7 @@ async def run_research_workflow(
 
         graph_input = state
         if resume_state is not None:
-            if resume_at not in {'approval_resume','analysis_resume','report_resume'}:
+            if resume_at not in {'approval_resume','analysis_resume','report_resume','user_resume'}:
                 raise ValueError('unsupported_resume_stage')
             graph.update_state(config, state, as_node=resume_at)
             graph_input = None
@@ -1931,6 +2026,7 @@ async def run_research_workflow(
         checkpoint_seq = int(state["session"].get("checkpoint_seq", 0))
         async for mode, chunk in graph.astream(graph_input, config, stream_mode=["updates", "values"]):
             check_execution()
+            await current_control().flush_traces()
             if isinstance(chunk, dict):
                 if mode == "updates":
                     for update in _iter_state_updates(chunk):
@@ -1949,6 +2045,7 @@ async def run_research_workflow(
                 checkpoint_state = accumulated_state
                 checkpoint_batch = checkpoint_state.get("current_executing_nodes", [])
                 checkpoint_ref = None
+                snapshot = None
                 try:
                     snapshot = graph.get_state(config)
                     checkpoint_ref = getattr(snapshot, "config", None)
@@ -1966,6 +2063,18 @@ async def run_research_workflow(
                 if persisted is False:
                     return
                 await current_control().mirror_runtime(harness)
+
+                from app.db.research_pause import pause_at_boundary
+                paused=None
+                if snapshot is not None:
+                    pool=await get_db_pool()
+                    async with pool.acquire() as conn,conn.transaction():
+                        paused=await pause_at_boundary(conn,current_control().binding,
+                            getattr(snapshot,'next',()))
+                if paused:
+                    await current_control().mirror_runtime(harness)
+                    await sse.publish(session_id,'done',paused)
+                    return
 
         # Full values snapshots preserve initial context and reducer semantics.
         final_state: dict[str, Any] = accumulated_state if accumulated_state else last_chunk

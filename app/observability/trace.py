@@ -18,6 +18,15 @@ from app.observability.sse_manager import get_sse_manager
 logger = logging.getLogger(__name__)
 
 
+def publish_live_event(state:dict,event:dict) -> None:
+    """Publish from graph worker threads on the owning execution's event loop."""
+    from app.execution_control import current_control
+    control=current_control()
+    if not control or str(state.get('task_id'))!=control.binding['session_id']:
+        return
+    control.publish_trace(event)
+
+
 class EventType(str, Enum):
     """Standard event types for agent tracing."""
     AGENT_START = "agent_start"
@@ -51,7 +60,9 @@ def emit_event(state: dict, event_type: EventType, agent: str, content: str) -> 
         event_type=event_type.value,
         content=content,
     )
-    state.setdefault("agent_trace", []).append(event.model_dump())
+    value=event.model_dump()
+    state.setdefault("agent_trace", []).append(value)
+    publish_live_event(state,value)
 
 
 class AgentTracer:

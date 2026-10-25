@@ -812,9 +812,14 @@ def _append_trace_event(
     event = AgentEvent(agent=agent, event_type=event_type.value, content=content).model_dump()
     if metadata:
         event.update(metadata)
+    handoff=state.get('tool_handoff') or {}
+    if handoff.get('node_id'):
+        event.setdefault('node_id',handoff['node_id'])
     from app.disclosure import projection
     event=projection(event)
     state.setdefault("agent_trace", []).append(event)
+    from app.observability.trace import publish_live_event
+    publish_live_event(state,event)
     return event
 
 
@@ -2801,6 +2806,7 @@ def compile_research_graph() -> StateGraph:
     builder.add_node("approval_resume", lambda state: {"runtime_status": RuntimeStatus.RUNNING.value, "status": TaskStatus.RUNNING.value})
     builder.add_node("analysis_resume", lambda state: {"runtime_status": RuntimeStatus.RUNNING.value, "status": TaskStatus.RUNNING.value})
     builder.add_node("report_resume", lambda state: {"runtime_status": RuntimeStatus.RUNNING.value, "status": TaskStatus.RUNNING.value})
+    builder.add_node("user_resume", lambda state: {"runtime_status": RuntimeStatus.RUNNING.value, "status": TaskStatus.RUNNING.value})
     builder.add_node("analyst", analyst_node)
     builder.add_node("reflection", reflection_node)
     builder.add_node("replan", replan_node)
@@ -2848,6 +2854,9 @@ def compile_research_graph() -> StateGraph:
     builder.add_edge("approval_resume", "dag_executor")
     builder.add_edge("analysis_resume", "analyst")
     builder.add_edge("report_resume", "report")
+    from app.db.research_pause import RESUME_NODES
+    builder.add_conditional_edges('user_resume',lambda state:state['session']['user_resume_node'],
+        {node:node for node in RESUME_NODES})
 
     # 分析 → 反思
     builder.add_conditional_edges('analyst',lambda state:'stop' if state.get('status') == 'paused'

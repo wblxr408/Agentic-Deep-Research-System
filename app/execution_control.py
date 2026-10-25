@@ -35,6 +35,24 @@ class ExecutionControl:
         self.binding={'session_id':str(session_id),'owner_id':str(owner_id),'execution_id':str(execution_id)}
         self.loop=asyncio.get_running_loop();self.event=threading.Event();self.reason=None
         self._closers={};self._lock=threading.Lock()
+        self._trace_futures=[]
+
+    def publish_trace(self,event):
+        from app.observability.sse_manager import get_sse_manager
+        if self.event.is_set() or self.loop.is_closed():return
+        import copy
+        value=copy.deepcopy(event)
+        future=asyncio.run_coroutine_threadsafe(get_sse_manager().publish(
+            self.binding['session_id'],value.get('event_type','trace'),value),self.loop)
+        with self._lock:
+            self._trace_futures=[item for item in self._trace_futures if not item.done()]
+            self._trace_futures.append(future)
+
+    async def flush_traces(self):
+        with self._lock:
+            futures=list(self._trace_futures);self._trace_futures=[]
+        if futures:
+            await asyncio.gather(*(asyncio.wrap_future(item) for item in futures),return_exceptions=True)
 
     def local_mode(self):
         from app.config import get_settings

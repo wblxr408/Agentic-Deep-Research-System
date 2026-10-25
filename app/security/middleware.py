@@ -7,6 +7,9 @@ from collections import defaultdict, deque
 
 from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.middleware.gzip import GZipMiddleware
+
+
 from starlette.responses import JSONResponse
 
 from app.config import get_settings
@@ -30,6 +33,15 @@ class InMemoryRateLimiter:
 
 rate_limiter = InMemoryRateLimiter()
 PUBLIC_PATHS = {"/", "/api/v1/health", "/api/v1/ready", "/api/v1/auth/status", "/api/v1/auth/initialize", "/api/v1/auth/login", "/api/v1/auth/register"}
+
+
+class StreamingGZipMiddleware(GZipMiddleware):
+    """Keep event boundaries flushable on the installed Starlette runtime."""
+    async def __call__(self, scope, receive, send):
+        if scope['type']=='http' and scope.get('path','').startswith('/api/v1/research/stream/'):
+            await self.app(scope,receive,send)
+        else:
+            await super().__call__(scope,receive,send)
 
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
