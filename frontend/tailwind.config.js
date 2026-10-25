@@ -1,4 +1,5 @@
 /** @type {import('tailwindcss').Config} */
+const themedColors = family => Object.fromEntries([50,100,200,300,400,500,600,700,800,900].map(shade => [shade, `rgb(var(--${family}-${shade}) / <alpha-value>)`]))
 export default {
   content: [
     "./index.html",
@@ -46,6 +47,7 @@ export default {
           800: '#993d00',
           900: '#662600',
         },
+        ...{ xm: themedColors('accent'), primary: themedColors('accent'), xmgray: themedColors('neutral'), white: 'rgb(var(--surface-rgb) / <alpha-value>)' },
       },
       fontFamily: {
         sans: ['"Xiaomi Simple"', 'Inter', 'PingFang SC', 'Microsoft YaHei', 'system-ui', 'sans-serif'],
