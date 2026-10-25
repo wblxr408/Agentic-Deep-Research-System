@@ -16,6 +16,8 @@ A8机制总论的LoongServe／dLoRA审核输入实际选中参考文献或基线
 
 新U2资料阶段已沿本轮真实取得原文显式归档DistServe／dLoRA，在当前隔离owner下取得309／271块及14352／12182条词项posting，解析、特征及发布均返回成功，无模型／嵌入调用。尚未创建新U2付费研究，实际RAG、来源public传递、过滤、报告、反馈和回滚仍待同一完整业务旅程，不能以资料操作成功勾选OPT复合项。具体根、来源身份和事故边界见[本机接续](acceptance/local-continuation-20261024.md)。
 
+A10正文中用户资源未提供的声明被挂上论文引用，且覆盖缺口重复、出现内部归并术语。写作约束现分开事实／解释／任务方法，方法与采集限制集中附录一次，保留主文实质技术条件，来源姓名不猜译、摘要与全文分开；OpenSpec9.7只记提示词源码完成，报告读者质量及FLOW.11／12仍待实际新稿和人类反馈，见[写作准则](REPORT_WRITING_GUIDE.md)。
+
 主路径源码与选型见[实施账本](IMPLEMENTATION_LEDGER.md)及[五类执行计划／ACI](RESEARCH_EXECUTION_PLAYBOOK.md)。历史逐次输入、原始结果、实际用量和修复原因统一保存在[真实业务旅程](acceptance/unified-research-20261023.md)，下列状态不代替原始ORG／OPT／FLOW逐项完成条件。
 
 | 真实任务 | 已取得结果 | 尚未通过 |
