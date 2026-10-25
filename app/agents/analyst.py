@@ -157,6 +157,7 @@ Return a JSON object with these fields:
                 workflow.update(status='paused',stop_reason=error.reason,partial_response=self.last_partial_response)
                 failed={'attempt':workflow['attempts'][key],
                     'reason':error.reason,'raw_response':self.last_partial_response,
+                    'provider_error_type':self.last_extraction_status.get('reason') if error.reason=='analysis_provider_unavailable' else None,
                     'admission':deepcopy(getattr(error,'admission',None)),
                     'context':deepcopy(self.last_context_manifest)}
                 failures=workflow.setdefault('failed_attempts',{}).setdefault(key,[])

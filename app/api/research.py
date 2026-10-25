@@ -1373,7 +1373,9 @@ async def get_research_result(session_id: str, principal: Principal = principal_
                    (SELECT state_snapshot_json -> 'analysis_workflow' FROM session_runtime_state
                     WHERE session_id = research_sessions.id) AS analysis_workflow,
                    (SELECT state_snapshot_json -> 'session' ->> 'report_resume_attempts' FROM session_runtime_state
-                    WHERE session_id = research_sessions.id) AS report_resume_attempts
+                    WHERE session_id = research_sessions.id) AS report_resume_attempts,
+                   (SELECT state_snapshot_json -> 'session' FROM session_runtime_state
+                    WHERE session_id = research_sessions.id) AS root_session
             FROM research_sessions
             WHERE id = $1::uuid AND owner_id = $2::uuid
             """,
@@ -1402,6 +1404,11 @@ async def get_research_result(session_id: str, principal: Principal = principal_
     citations = projection([{**dict(citation),'locator':locators.get(citation['citation_id'])} for citation in citation_rows] if citation_rows else frozen_citations)
 
     review_status = _json_object(row.get("review_status"))
+    from app.research_diagnostics import diagnose_stop
+    pause_diagnosis=diagnose_stop({'status':row['status'],'runtime_status':review_status.get('runtime_status'),
+        'created_at':row['created_at'].isoformat(),'session':_json_object(row.get('root_session')),
+        'review_status':review_status,'budget_state':review_status.get('budget_state'),
+        'analysis_workflow':workflow,'pending_approvals':[{}]*min(1,int(review_status.get('pending_approval_count') or 0))})
     restart_source = _json_object(row.get('request_payload'))
     from app.research_delivery import build_delivery_view
     delivery_view = build_delivery_view(task_id=str(row['id']), execution_id=str(row['execution_id']) if row['execution_id'] else None,
@@ -1413,6 +1420,7 @@ async def get_research_result(session_id: str, principal: Principal = principal_
         'execution_id':str(row['execution_id']) if row['execution_id'] else None,
         'cancellation':review_status.get('cancellation'),
         'user_control':review_status.get('user_control'),
+        'pause_diagnosis':pause_diagnosis,
         'stop_reason':review_status.get('reason') or review_status.get('last_error_category') or workflow.get('stop_reason'),
         "query": row["user_query"],
         "status": row["status"],
@@ -2065,6 +2073,9 @@ async def run_research_workflow(
                 await current_control().mirror_runtime(harness)
 
                 from app.db.research_pause import pause_at_boundary
+                diagnosis=(checkpoint_state.get('review_status') or {}).get('pause_diagnosis')
+                if diagnosis:
+                    await sse.publish(session_id,'state_update',{'pause_diagnosis':diagnosis})
                 paused=None
                 if snapshot is not None:
                     pool=await get_db_pool()

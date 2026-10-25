@@ -157,6 +157,9 @@ async def persist_workflow_failure(conn,binding,error,category='workflow_error')
         'checkpoint_seq':event['checkpoint_seq'],'total_tokens':int(budget.get('used_total_tokens') or 0),
         'total_cost_usd':float(budget.get('used_cost_usd') or 0)}
     snapshot.setdefault('task_id',session_id)
+    from app.research_diagnostics import diagnose_stop
+    review['pause_diagnosis']=diagnose_stop(snapshot)
+    snapshot['review_status']=review
     await conn.execute('''UPDATE research_sessions SET status='failed',updated_at=NOW(),
         completed_at=COALESCE(completed_at,NOW()),review_status=$3::jsonb
         WHERE id=$1::uuid AND owner_id=$2::uuid''',session_id,owner_id,json.dumps(review,ensure_ascii=False,default=str))

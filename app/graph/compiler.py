@@ -439,6 +439,10 @@ def _model_budget_pause(state, agent, stage, error, *, report=None, citations=No
     if getattr(agent,'last_writing_plan',None):
         result['organization_result']={**(result.get('organization_result') or state.get('organization_result') or {}),
             'writing_plan':agent.last_writing_plan}
+    from app.research_diagnostics import diagnose_stop
+    diagnosis=diagnose_stop({**state,**result})
+    result['review_status']['pause_diagnosis']=diagnosis
+    if diagnosis:result['agent_trace'][0]['content']=diagnosis['summary']
     return result
 
 
@@ -2808,6 +2812,8 @@ def compile_research_graph() -> StateGraph:
     builder.add_node("report_resume", lambda state: {"runtime_status": RuntimeStatus.RUNNING.value, "status": TaskStatus.RUNNING.value})
     builder.add_node("user_resume", lambda state: {"runtime_status": RuntimeStatus.RUNNING.value, "status": TaskStatus.RUNNING.value})
     builder.add_node("analyst", analyst_node)
+    from app.research_recovery import automatic_recovery_node,recovery_eligible
+    builder.add_node('automatic_recovery',automatic_recovery_node)
     builder.add_node("reflection", reflection_node)
     builder.add_node("replan", replan_node)
     builder.add_node("report", report_node)
@@ -2859,9 +2865,11 @@ def compile_research_graph() -> StateGraph:
         {node:node for node in RESUME_NODES})
 
     # 分析 → 反思
-    builder.add_conditional_edges('analyst',lambda state:'stop' if state.get('status') == 'paused'
+    builder.add_conditional_edges('analyst',lambda state:('recover' if recovery_eligible(state) else 'stop') if state.get('status') == 'paused'
         else 'report' if (state.get('iteration_control') or {}).get('reason')=='unchanged_material_analysis_reused'
-        else 'continue', {'stop':END,'continue':'reflection','report':'report'})
+        else 'continue', {'stop':END,'continue':'reflection','report':'report','recover':'automatic_recovery'})
+    builder.add_conditional_edges('automatic_recovery',lambda state:'analyst' if state.get('status')=='running' else 'stop',
+        {'analyst':'analyst','stop':END})
 
     # 反思 → 重规划或报告（条件分支）
     builder.add_conditional_edges(

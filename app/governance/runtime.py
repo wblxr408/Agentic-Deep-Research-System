@@ -316,6 +316,8 @@ class RuntimePersistence:
                     from app.db.report_delivery import retain_report_version
                     report_version=await retain_report_version(conn,state,review_status,owner_id=actual_owner,session_id=str(session_id))
                     if report_version:review_status['report_version_id']=report_version
+                from app.research_diagnostics import diagnose_stop
+                review_status['pause_diagnosis']=diagnose_stop({**state,'status':public_status,'review_status':review_status})
                 state['review_status']=review_status
                 await conn.execute(
                     """
