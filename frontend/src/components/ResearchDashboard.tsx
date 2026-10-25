@@ -39,6 +39,7 @@ interface ResearchResult {
   analysis_recovery_available?: boolean
   report_recovery_available?: boolean
   analysis_progress?: {phase: string|null;status:string;completed_steps:number;stop_reason?:string|null;
+    phases?:Array<{phase:string;status:string;summary:string;attempts:number}>;
     last_admission?:{prompt_bound?:number|null;requested_output_tokens?:number|null;available_tokens?:number|null;selected_sources?:number|null}|null}|null
   budget_state?: {used_total_tokens?:number;max_total_tokens?:number;cost_status?:string;token_usage_estimated?:boolean;hard_stop_reason?:string|null;model_stop_reason?:string|null;inflight_model_requests?:number} | null
   report_editorial?: { note?: string } | null
@@ -493,8 +494,7 @@ function ResearchDashboard({ onBack }: ResearchDashboardProps) {
         onRefresh={async()=>{const value=await refetchResult();if(value.error)throw value.error}}
         onResumed={async execution=>{clearEvents();setStreamRunKey(execution);setSessionStatus('running');setIsStreaming(true);await refetchResult()}}
         onRestart={openRestartConfiguration} onSynthesis={stage=>resumeSynthesis.mutate(stage)} synthesisBusy={resumeSynthesis.isPending}/>}
-      <ResearchFlow key={activeSessionId} plan={result?.plan_manifest} dag={result?.execution_plan} events={traceEvents} status={sessionStatus||'pending'} tools={toolAudit.data} analysis={analysisProgress} history={result?.plan_history}/>
-      <ExecutionFeed events={traceEvents} connection={sseStatus} status={sessionStatus||'pending'}/>
+      <ResearchFlow key={activeSessionId} plan={result?.plan_manifest} dag={result?.execution_plan} events={traceEvents} status={sessionStatus||'pending'} tools={toolAudit.data} analysis={analysisProgress} history={result?.plan_history} connection={sseStatus}/>
       {resumeSynthesis.error&&<p role="alert" className="composer-error">{resumeSynthesis.error.message}</p>}
       <div className="workspace-summary-row">
         <section className="workspace-summary"><span className="eyebrow">当前阶段</span><h2>{isStreaming ? currentStage : stoppedLabel}</h2>
@@ -517,6 +517,7 @@ function ResearchDashboard({ onBack }: ResearchDashboardProps) {
         contextEvidence={{analyst:result?.organization_result?.analyst_context,report:result?.organization_result?.report_context}}/></div>
     </section>
     <section hidden={activePanel!=='records'} className="workspace-records" aria-label="研究记录视图">
+      <ExecutionFeed events={traceEvents} connection={sseStatus} status={sessionStatus||'pending'}/>
       {result&&<UnderstandingSummary value={result.query_understanding}/>}
       {result&&result.execution_id!==undefined&&<ResearchCancellation key={`cancel-${result.session_id}-${result.execution_id}`} sessionId={result.session_id} executionId={result.execution_id} status={result.status} inflight={result.budget_state?.inflight_model_requests} onRefresh={async()=>{const refreshed=await refetchResult();if(refreshed.error)throw refreshed.error}}/>}
       {result&&<ResearchPlanSummary status={result.status} plan={result.plan_manifest} dag={result.execution_plan} history={result.plan_history} control={result.iteration_control} failure={result.workflow_failure} operationalEvents={result.operational_events}/>}

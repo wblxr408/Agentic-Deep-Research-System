@@ -29,9 +29,11 @@ export interface PersistedToolCall {
   call_id: string
   tool_name: string
   agent_type: string
+  node_id?: string | null
   args_json: Record<string, unknown>
   status: string
   error_message?: string | null
+  result_summary?: string | null
   started_at?: string | null
   completed_at?: string | null
 }

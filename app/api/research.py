@@ -1448,7 +1448,11 @@ async def get_research_result(session_id: str, principal: Principal = principal_
         "execution_plan": _json_object(row.get("execution_plan")),
         'analysis_progress':{'phase':workflow.get('active_phase'),'status':workflow.get('status'),
             'stop_reason':workflow.get('stop_reason'),'last_admission':projection(phase_admission),
-            'completed_steps':len(workflow.get('completed') or {})} if workflow else None,
+            'completed_steps':len(workflow.get('completed') or {}),
+            'phases':[{'phase':phase,'status':'completed' if phase in (workflow.get('completed') or {}) else
+                'paused' if workflow.get('status')=='paused' else 'running',
+                'attempts':attempts,'summary':str(((workflow.get('completed') or {}).get(phase) or {}).get('analysis_text') or '')[:320]}
+                for phase,attempts in list((workflow.get('attempts') or {}).items())[:100]]} if workflow else None,
         'analysis_recovery_available':bool(row['status']=='paused' and workflow.get('status')=='paused'
             and workflow.get('schema_version')=='adrs-analysis-questions-v2'
             and workflow.get('stop_reason') in {'analysis_output_incomplete','analysis_provider_unavailable','model_output_limit','insufficient_context_budget'}
