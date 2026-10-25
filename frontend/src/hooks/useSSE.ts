@@ -84,7 +84,7 @@ export function useSSE(sessionId: string | null, runKey = ''): {
 
     // Listen for specific event types
     const eventTypes = [
-      'connected', 'agent_start', 'agent_complete', 'agent_end', 'thought',
+      'connected', 'agent_start', 'agent_complete', 'agent_end', 'agent_error', 'thought',
       'tool_start', 'tool_call', 'tool_complete', 'tool_result', 'tool_error',
       'state_update', 'reflection', 'report_chunk',
       'report_citation', 'done', 'workflow_error', 'workflow_start',

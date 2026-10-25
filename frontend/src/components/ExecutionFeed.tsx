@@ -5,7 +5,7 @@ import {Icon} from './Interface'
 export const agentNames:Record<string,string>={planner:'规划 Agent',dag_executor:'执行调度',search:'搜索取证',
   browser:'网页读取',rag:'资料检索',mcp:'扩展工具',analyst:'分析 Agent',reflection:'核对 Agent',
   report:'报告 Agent',replan:'重规划',approval_reviewer:'授权确认',retry_scheduler:'重试调度'}
-const verbs:Record<string,string>={agent_start:'开始执行',agent_complete:'执行结束',agent_end:'执行结束',
+const verbs:Record<string,string>={agent_start:'开始执行',agent_complete:'执行结束',agent_end:'执行结束',agent_error:'阶段停止',
   tool_start:'调用工具',tool_call:'调用工具',tool_complete:'工具返回',tool_result:'工具返回',
   tool_error:'调用失败',workflow_error:'执行错误',thought:'执行反馈',reflection:'核对结果',
   report_citation:'添加引用',control_update:'执行控制',workflow_start:'研究开始'}
@@ -29,9 +29,13 @@ export default function ExecutionFeed({events,connection,status}:{events:SSEvent
       if(event.type==='report_chunk')return [] // The report reader owns the streamed body.
       if(event.type==='state_update'){
         const progress=object(data.analysis_progress)
-        if(!progress.phase)return []
-        const parts=text(progress.phase).split(':'),name=parts[0]==='question'?parts[1]:parts[0]
-        label='分析进度';detail=`${phases[name]||name} · ${text(progress.completed_steps)} 步已保存`
+        const diagnosis=object(data.pause_diagnosis),recovery=object(data.recovery)
+        if(diagnosis.summary){label='自动诊断';detail=text(diagnosis.summary)}
+        else if(recovery.message){label='自动恢复';detail=text(recovery.message)}
+        else if(progress.phase){
+          const parts=text(progress.phase).split(':'),name=parts[0]==='question'?parts[1]:parts[0]
+          label='分析进度';detail=`${phases[name]||name} · ${text(progress.completed_steps)} 步已保存`
+        }else return []
       }
       if(!label)return []
       const query=text(args.query||args.url||data.query||data.url)

@@ -2,6 +2,8 @@ import {useRef,useState} from 'react'
 import {Icon} from './Interface'
 
 export interface RunControlState {
+  pause_diagnosis?:{summary:string;phase:string;next_step:string;action:string;action_label?:string;
+    findings:Array<{text:string;detail:string}>;blockers:string[];diagnosis_complete?:boolean;automatic_recovery:{attempts:number;limit:number;status:string;eligible:boolean}}|null
   session_id:string;execution_id?:string|null;status:string;runtime_status?:string|null;stop_reason?:string|null
   user_control?:{state?:string}|null
   analysis_recovery_available?:boolean;report_recovery_available?:boolean
@@ -53,7 +55,7 @@ export default function ResearchRunControls({value,onRefresh,onResumed,onRestart
   return <section className="run-controls" aria-label="研究执行控制">
     <div className="run-control-status" role="status">
       <Icon name={stopped?'pause':'network'} size={18}/>
-      <span>{pausing?'暂停中 · 当前步骤完成后停止':userPaused?'由你暂停':stopped?`系统停止 · ${reasons[reason]||'查看执行反馈了解原因'}`:value.status==='running'?'研究正在执行':value.status==='completed'?'研究已完成':value.status==='canceled'?'研究已终止':'等待执行'}</span>
+      <span>{pausing?'暂停中 · 当前步骤完成后停止':userPaused?'由你暂停':stopped?(value.pause_diagnosis?.summary||`系统停止 · ${reasons[reason]||'系统正在整理停止原因'}`):value.status==='running'?'研究正在执行':value.status==='completed'?'研究已完成':value.status==='canceled'?'研究已终止':'等待执行'}</span>
     </div>
     <div className="run-control-actions">
       {value.status==='running'&&<button type="button" className="btn-secondary" disabled={!!busy||pausing} onClick={()=>void act('pause')}><Icon name="pause" size={16}/>{busy==='pause'?'正在暂停…':pausing?'暂停中':'暂停'}</button>}
@@ -63,6 +65,17 @@ export default function ResearchRunControls({value,onRefresh,onResumed,onRestart
       {['pending','running','paused'].includes(value.status)&&<button type="button" className="btn-ghost" disabled={!!busy} onClick={()=>void act('cancel')}>{busy==='cancel'?'正在终止…':'终止'}</button>}
       {['paused','failed','canceled','completed'].includes(value.status)&&<button type="button" className="btn-secondary" onClick={onRestart}>调整后重新开始<Icon name="arrow" size={15}/></button>}
     </div>
+    {stopped&&!userPaused&&value.pause_diagnosis&&<div className="stop-diagnosis" aria-label="系统自动诊断">
+      <div className="stop-diagnosis-heading"><strong>{value.pause_diagnosis.diagnosis_complete===false?'排查未完成':'已自动排查'} · {value.pause_diagnosis.phase}</strong>
+        {value.pause_diagnosis.automatic_recovery.attempts>0&&<span>已尝试自动恢复 {value.pause_diagnosis.automatic_recovery.attempts} 次</span>}</div>
+      {value.pause_diagnosis.findings.length>0&&<ul>{value.pause_diagnosis.findings.slice(0,3).map((item,index)=><li key={index}><p>{item.text}</p><span>{item.detail}</span></li>)}</ul>}
+      {value.pause_diagnosis.findings.length>3&&<details><summary>其余 {value.pause_diagnosis.findings.length-3} 项问题</summary><ul>{value.pause_diagnosis.findings.slice(3).map((item,index)=><li key={index}><p>{item.text}</p><span>{item.detail}</span></li>)}</ul></details>}
+      <p>{value.pause_diagnosis.next_step}</p>
+      <div className="run-control-actions">
+        {value.pause_diagnosis.action==='settings'&&<a className="btn-secondary" href="?view=settings">设置模型</a>}
+        {value.pause_diagnosis.action==='sources'&&<a className="btn-secondary" href="?view=documents">选择资料</a>}
+      </div>
+    </div>}
     {error&&<p role="alert" className="composer-error">{error}</p>}
   </section>
 }

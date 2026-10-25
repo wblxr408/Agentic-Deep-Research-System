@@ -5,6 +5,7 @@ import type { SSEvent } from '../hooks/useSSE'
 import ResearchFlow, { mergeResearchEvents } from './ResearchFlow'
 import ExecutionFeed from './ExecutionFeed'
 import ResearchRunControls from './ResearchRunControls'
+import type {RunControlState} from './ResearchRunControls'
 import ResearchComposer from './ResearchComposer'
 import { Icon, StatusPill } from './Interface'
 import ToolTrace from './ToolTrace'
@@ -28,6 +29,7 @@ import type { PlanSummaryProps } from './ResearchPlanSummary'
 import type { DeliveryView } from './ReportDeliveryView'
 
 interface ResearchResult {
+  pause_diagnosis?:RunControlState['pause_diagnosis']
   runtime_status?:string|null
   stop_reason?:string|null
   user_control?:{state?:string}|null
@@ -297,8 +299,15 @@ function ResearchDashboard({ onBack }: ResearchDashboardProps) {
 
   const handledControl=useRef<SSEvent|null>(null)
   useEffect(()=>{
-    const update=[...events].reverse().find(event=>event.type==='control_update')
-    if(update&&handledControl.current!==update){handledControl.current=update;void refetchResult()}
+    const update=[...events].reverse().find(event=>event.type==='control_update'||
+      (event.type==='state_update'&&(event.data.pause_diagnosis||event.data.recovery)))
+    if(update&&handledControl.current!==update){
+      handledControl.current=update
+      if((update.data.recovery as {status?:string}|undefined)?.status==='running'){
+        setSessionStatus('running');setIsStreaming(true)
+      }
+      void refetchResult()
+    }
   },[events,refetchResult])
 
   useEffect(() => {
