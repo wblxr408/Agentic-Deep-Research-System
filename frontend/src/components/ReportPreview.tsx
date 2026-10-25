@@ -2,14 +2,16 @@
  * ReportPreview - Xiaomi-style report rendering with Markdown and citations.
  */
 
-import { useMemo } from 'react'
+import { createElement, useId, useMemo, useState } from 'react'
+import type { ReactNode } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import OrganizationReportSummary from './OrganizationReportSummary'
 import type { OrganizationReportSnapshot } from './OrganizationReportSummary'
-import RetainedCitations from './RetainedCitations'
+import { EvidenceCards, EvidenceDialog } from './EvidenceViewer'
+import { Icon, Modal, safeExternalUrl, TraceLoader } from './Interface'
 import type { RetainedCitation } from './RetainedCitations'
 import ReportDeliveryView from './ReportDeliveryView'
 import ContextEvidenceSummary from './ContextEvidenceSummary'
@@ -36,157 +38,82 @@ interface ReportPreviewProps {
 }
 
 function ReportPreview({
-  report,
-  citations,
-  streaming = false,
-  emptyTitle,
-  emptyDescription,
-  reportSummary,
-  sessionId,
-  deliveryView,
-  reportEditorial,
-  budgetState,
-  reportAudit,
-  contextEvidence,
+  report, citations, streaming = false, emptyTitle, emptyDescription, reportSummary, sessionId,
+  deliveryView, reportEditorial, budgetState, reportAudit, contextEvidence,
 }: ReportPreviewProps) {
   const readerReport = deliveryView?.report_markdown ?? report
-  // Standard Markdown reference definitions resolve citations outside code
-  // blocks without rewriting report text or introducing raw HTML.
-  const citedReport = useMemo(() => {
-    const references = citations.flatMap(citation => {
-      try {
-        const url = new URL(citation.source_url)
-        if (!['http:', 'https:'].includes(url.protocol) || !/^citation:\d+$/.test(citation.citation_id)) return []
-        const urlDefinition = `<${url.href.replace(/</g, '%3C').replace(/>/g, '%3E')}>`
-        return [`[${citation.citation_id}]: ${urlDefinition}`, `[${citation.citation_id.replace('citation:', '')}]: ${urlDefinition}`]
-      } catch { return [] }
+  const [selectedCitation,setSelectedCitation] = useState<RetainedCitation|null>(null)
+  const [records,setRecords] = useState(false)
+  const prefix = useId().replace(/:/g,'')
+  const definitions = useMemo(()=>citations.flatMap(citation=>{
+    const url=safeExternalUrl(citation.source_url)
+    if(!url||!/^citation:\d+$/.test(citation.citation_id))return []
+    const target='<'+url.replace(/</g,'%3C').replace(/>/g,'%3E')+'>'
+    return [`[${citation.citation_id}]: ${target}`,`[${citation.citation_id.replace('citation:','')}]: ${target}`]
+  }).join('\n'),[citations])
+  const headings = useMemo(()=>{
+    let fence=''
+    return readerReport.split('\n').flatMap(line=>{
+      const marker=/^\s*(```+|~~~+)/.exec(line)
+      if(marker){if(!fence)fence=marker[1][0];else if(fence===marker[1][0])fence='';return []}
+      if(fence)return []
+      const match=/^(#{1,3})\s+(.+?)(?:\s+#+)?$/.exec(line)
+      return match?[{level:match[1].length,title:match[2].replace(/[*_`]/g,'')}]:[]
     })
-    return readerReport + '\n\n' + references.join('\n')
-  }, [readerReport, citations])
+  },[readerReport])
+  const structured=Boolean(deliveryView&&deliveryView.template!=='markdown-v1')
 
-  if (!report) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full text-center py-16">
-        {streaming ? (
-          <>
-            <div className="relative w-10 h-10 mb-4">
-              <div className="absolute inset-0 border-2 border-xm-200 rounded-full" />
-              <div className="absolute inset-0 border-2 border-xm-500 border-t-transparent rounded-full animate-spin" />
-            </div>
-            <p className="text-sm text-xmgray-500 font-medium">正在生成研究报告...</p>
-            <p className="text-xs text-xmgray-400 mt-1">请稍候，AI 正在分析和撰写</p>
-          </>
-        ) : (
-          <>
-            <svg width="40" height="40" viewBox="0 0 40 40" fill="none" className="mb-4 text-xmgray-200">
-              <rect x="6" y="4" width="28" height="32" rx="4" stroke="currentColor" strokeWidth="1.5"/>
-              <path d="M12 12H28M12 18H28M12 24H20" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-            </svg>
-            <p className="text-sm text-xmgray-500 font-medium">
-              {emptyTitle || '输入研究主题后，报告将在此显示'}
-            </p>
-            {emptyDescription && (
-              <p className="text-xs text-xmgray-400 mt-1">{emptyDescription}</p>
-            )}
-          </>
-        )}
-      </div>
-    )
+  function renderMarkdown(text:string,withIds=false) {
+    let headingIndex=0
+    const heading=(level:number,children:ReactNode)=>createElement('h'+level,{id:withIds?`reader-${prefix}-${headingIndex++}`:undefined,tabIndex:withIds?-1:undefined},children)
+    return <ReactMarkdown remarkPlugins={[remarkGfm]} components={{
+      h1:({children})=>heading(1,children),h2:({children})=>heading(2,children),h3:({children})=>heading(3,children),
+      a:({href,children})=>{
+        const number=/^\[?(\d+)\]?$/.exec(String(children).trim())
+        const citation=number?citations.find(item=>item.citation_id==='citation:'+number[1]):citations.find(item=>safeExternalUrl(item.source_url)===safeExternalUrl(href)&&Boolean(safeExternalUrl(href)))
+        const url=href?.startsWith('#')?href:safeExternalUrl(href)
+        return citation?<button type="button" className="citation-button" onClick={()=>setSelectedCitation(citation)} aria-label={`查看来源：${citation.source_title}`}>{children}</button>:<a href={url} target={url?.startsWith('#')?undefined:'_blank'} rel="noopener noreferrer">{children}</a>
+      },
+      img:({src,alt})=><a href={safeExternalUrl(src)} target="_blank" rel="noopener noreferrer">{alt||'查看原图'}</a>,
+      code:({node:_node,className,children,...props})=>{
+        const language=/language-(\w+)/.exec(className||'')
+        return language?<SyntaxHighlighter style={oneDark} language={language[1]} PreTag="div">{String(children).replace(/\n$/,'')}</SyntaxHighlighter>:<code className={className} {...props}>{children}</code>
+      },
+    }}>{text+'\n\n'+definitions}</ReactMarkdown>
   }
 
-  return (
+  if(!readerReport&&!deliveryView?.pages.length)return <div className="reader-empty">{streaming?<TraceLoader/>:<Icon name="book" size={36}/>}<h3>{emptyTitle||'研究报告'}</h3>{emptyDescription&&<p>{emptyDescription}</p>}</div>
+  return <div className="report-reader">
+    {!structured&&headings.length>1&&<nav className="reader-toc" aria-label="报告目录">{headings.map((item,index)=><a key={index} href={`#reader-${prefix}-${index}`} data-level={item.level}>{item.title}</a>)}</nav>}
     <div className="report-content">
-      {deliveryView && deliveryView.template !== 'markdown-v1' && <ReportDeliveryView key={deliveryView.artifact_id} view={deliveryView}
-        renderMarkdown={text=><ReactMarkdown remarkPlugins={[remarkGfm]} components={{a:({href,children})=><a href={href} target="_blank" rel="noopener noreferrer">{children}</a>,
-          img:({src,alt})=><a href={src} target="_blank" rel="noopener noreferrer">来源图片：{alt||'原图'}</a>}}>{text+citedReport.slice(readerReport.length)}</ReactMarkdown>} />}
-      <details data-full-report data-print-duplicate={deliveryView && deliveryView.template !== 'markdown-v1' ? 'true' : undefined} open={!deliveryView || deliveryView.template === 'markdown-v1'}>
-      <summary className="cursor-pointer font-medium py-3">阅读全文</summary>
-      <ReactMarkdown
-        remarkPlugins={[remarkGfm]}
-        components={{
-          img: ({src,alt}) => <a href={src} target="_blank" rel="noopener noreferrer">来源图片：{alt||'原图'}</a>,
-          // Links
-          a: ({ href, children }) => (
-            <a
-              href={href}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="citation-ref"
-            >
-              {children}
-            </a>
-          ),
-          // Code blocks
-          code: ({ node: _node, className, children, ...props }) => {
-            const match = /language-(\w+)/.exec(className || '')
-            const isInline = !match
-            return isInline ? (
-              <code className={className} {...props}>
-                {children}
-              </code>
-            ) : (
-              <SyntaxHighlighter
-                style={oneDark}
-                language={match[1]}
-                PreTag="div"
-              >
-                {String(children).replace(/\n$/, '')}
-              </SyntaxHighlighter>
-            )
-          },
-        }}
-      >
-        {citedReport}
-      </ReactMarkdown>
-      </details>
-      <details data-app-only aria-label="研究记录"><summary className="cursor-pointer font-medium py-3">研究记录</summary>
-        <ContextEvidenceSummary analyst={contextEvidence?.analyst} report={contextEvidence?.report} sessionId={sessionId}/>
-        {reportAudit && <section aria-label="报告内容核对">
-          <p>陈述核对支持 {reportAudit.supported_claims ?? 0} / {reportAudit.total_claims ?? 0} 项。
-            {typeof reportAudit.source_supported_claims==='number' && <>其中原文支持 {reportAudit.source_supported_claims} 项，任务方法依据支持 {reportAudit.method_supported_claims ?? 0} 项。</>}
-            {typeof reportAudit.reused_supported_claims==='number' && <>复用相同输入的原判 {reportAudit.reused_supported_claims} 项，本轮新判 {reportAudit.newly_checked_claims ?? 0} 项。</>}
-            {reportAudit.audit_incomplete?'本轮核对尚未完成。':reportAudit.needs_review?'当前稿有需要补证或调整的陈述。':''}</p>
-          {!!reportAudit.revision_requests?.length && <details><summary>需要调整的陈述</summary>
-            <ol className="list-decimal pl-5 space-y-2">{reportAudit.revision_requests.map(item=><li key={item.claim_id}>
-              <p>{item.text}</p><p className="text-sm text-xmgray-500">{item.reason}</p>
-            </li>)}</ol>
-          </details>}
-        </section>}
-        {budgetState && <p>模型与工具 Token：{budgetState.used_total_tokens ?? '未知'} / {budgetState.max_total_tokens ?? '未知'}。
-          {budgetState.token_usage_estimated && '含未知用量的保守预占。'}
-          {budgetState.cost_status === 'unknown_price_or_usage' && '费用未知：尚无可用的完整价格或用量。'}
-          {(budgetState.model_stop_reason || budgetState.hard_stop_reason) && ` 停止原因：${budgetState.model_stop_reason || budgetState.hard_stop_reason}`}</p>}
-        {!!budgetState?.model_requests?.some(item=>item.routing) && <details><summary>实际模型路径</summary>
-          <p className="text-xs">以下为最近50次请求；配置报价是估算依据，供应商账单尚未核对。</p>
-          <ol>{budgetState.model_requests.filter(item=>item.routing).slice(-50).map((item,index)=><li key={index}>
-            {item.routing?.stage}：{item.routing?.provider} / {item.routing?.model} · {item.routing?.reason}
-            {item.cost_basis==='configured_price_estimate_not_invoice'?' · 配置报价估算':item.cost_basis==='unknown'?' · 费用未知':''}
-          </li>)}</ol>
-        </details>}
-        {!!budgetState?.routing_decisions?.length && <details><summary>能力处理记录</summary>
-          <p className="text-xs">已准备升级表示决定已保存；是否实际调用请结合模型路径查看。</p>
-          <ol>{budgetState.routing_decisions.map((item,index)=><li key={item.upgrade_id||index}>
-            {item.stage} · {item.trigger}：{item.status==='prepared'?'已准备升级':'保留原路径'} · {item.reason}
-            {item.to_model&&` · ${item.from_model} → ${item.to_model}`}
-          </li>)}</ol>
-        </details>}
-        {deliveryView && <>
-          <p>产物版本：{deliveryView.artifact_id}</p>
-          <p>陈述核对：{deliveryView.audit?.supported_claims ?? '未知'} / {deliveryView.audit?.total_claims ?? '未知'} 项；人工复核状态未确认。</p>
-          {reportEditorial?.note && <p>{reportEditorial.note}</p>}
-          {deliveryView.gaps.map((gap,index)=><p key={index}>{gap}</p>)}
-          {deliveryView.pages.filter(page=>page.gaps.length).map(page=><details key={page.page_id}><summary>{page.title}：交付记录</summary>{page.gaps.map((gap,index)=><p key={index}>{gap}</p>)}</details>)}
-          <details><summary>审核明细与结构化资料</summary><pre className="whitespace-pre-wrap break-all text-xs">{JSON.stringify({audit:deliveryView.audit,module_results:deliveryView.module_results,charts:deliveryView.charts},null,2)}</pre></details>
-        </>}
-        {reportSummary && <OrganizationReportSummary snapshot={reportSummary} />}
-        <RetainedCitations key={sessionId||'unsaved-report'} sessionId={sessionId} citations={citations} />
-        {readerReport !== report && <details><summary>保存的原始报告</summary><pre className="whitespace-pre-wrap break-all text-xs">{report}</pre></details>}
-      </details>
-      {streaming && (
-        <span className="inline-block w-1.5 h-4 bg-xm-500 ml-1 animate-pulse" />
-      )}
+      {structured&&deliveryView&&<ReportDeliveryView key={deliveryView.artifact_id} view={deliveryView} renderMarkdown={text=>renderMarkdown(text)}/>}
+      {!structured&&<article className="reader-prose">{renderMarkdown(readerReport,true)}</article>}
+      {structured&&<details className="reader-fulltext"><summary>全文</summary><article className="reader-prose">{renderMarkdown(readerReport)}</article></details>}
     </div>
-  )
+    <EvidenceCards citations={citations} onSelect={setSelectedCitation}/>
+    <EvidenceDialog key={`${sessionId||''}-${selectedCitation?.citation_id||''}`} citation={selectedCitation} sessionId={sessionId} onClose={()=>setSelectedCitation(null)}/>
+    <div data-app-only className="reader-record-link"><button type="button" className="btn-ghost" onClick={()=>setRecords(true)}><Icon name="source" size={16}/>研究记录</button></div>
+    <Modal open={records} onClose={()=>setRecords(false)} title="研究记录" wide>
+      <div className="report-records">
+        <ContextEvidenceSummary analyst={contextEvidence?.analyst} report={contextEvidence?.report} sessionId={sessionId}/>
+        {reportAudit&&<section><h3>内容核对</h3><p>{reportAudit.supported_claims??0} / {reportAudit.total_claims??0} 项支持</p>
+          {typeof reportAudit.source_supported_claims==='number'&&<p>原文支持 {reportAudit.source_supported_claims} · 方法依据 {reportAudit.method_supported_claims??0}</p>}
+          {!!reportAudit.revision_requests?.length&&<details><summary>待处理陈述</summary><ol>{reportAudit.revision_requests.map(item=><li key={item.claim_id}><p>{item.text}</p><p>{item.reason}</p></li>)}</ol></details>}
+        </section>}
+        {budgetState&&<section><h3>用量</h3><p>{budgetState.used_total_tokens?.toLocaleString()??'—'} / {budgetState.max_total_tokens?.toLocaleString()??'—'} Token</p>
+          {(budgetState.model_stop_reason||budgetState.hard_stop_reason)&&<p>停止原因：{budgetState.model_stop_reason||budgetState.hard_stop_reason}</p>}
+          {!!budgetState.model_requests?.some(item=>item.routing)&&<details><summary>模型路径</summary>{budgetState.model_requests.filter(item=>item.routing).slice(-50).map((item,index)=><p key={index}>{item.routing?.stage} · {item.routing?.provider} / {item.routing?.model} · {item.routing?.reason}</p>)}</details>}
+          {!!budgetState.routing_decisions?.length&&<details><summary>路由调整</summary>{budgetState.routing_decisions.map((item,index)=><p key={item.upgrade_id||index}>{item.stage} · {item.status} · {item.reason}{item.to_model&&` · ${item.from_model} → ${item.to_model}`}</p>)}</details>}
+        </section>}
+        {deliveryView&&<details><summary>生成与交付记录</summary><p>产物：{deliveryView.artifact_id}</p>{reportEditorial?.note&&<p>{reportEditorial.note}</p>}{deliveryView.gaps.map((gap,index)=><p key={index}>{gap}</p>)}
+          <pre>{JSON.stringify({audit:deliveryView.audit,module_results:deliveryView.module_results,drawing:deliveryView.drawing,formats:deliveryView.formats},null,2)}</pre>
+        </details>}
+        {reportSummary&&<OrganizationReportSummary snapshot={reportSummary}/>}
+        {readerReport!==report&&<details><summary>原始报告</summary><pre>{report}</pre></details>}
+      </div>
+    </Modal>
+    {streaming&&<span className="reader-stream-caret" aria-label="内容更新中"/>}
+  </div>
 }
 
 export default ReportPreview

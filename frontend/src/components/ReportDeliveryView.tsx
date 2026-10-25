@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import type { ReactNode } from 'react'
+import { Icon, Modal } from './Interface'
 
 interface Point { label: string; value: number | null; metric_id?: string | null }
 interface RelationEdge {
@@ -35,9 +36,9 @@ export interface DeliveryView {
 }
 
 const styles = `
-.adrs-delivery{--paper:#fff;--ink:#242424;--soft:#f5f5f4;--line:#ddd;--accent:#b45309;color:var(--ink);background:var(--paper);padding:20px;border-radius:12px;font:14px/1.75 system-ui,sans-serif}
-.adrs-delivery[data-theme="dark-v1"]{--paper:#17202b;--ink:#edf1f5;--soft:#243242;--line:#536170;--accent:#ffb65c}
-.adrs-delivery[data-theme="light-v1"]{--paper:#fffdf9;--soft:#fff4e5;--accent:#a94612}
+.adrs-delivery{--paper:var(--surface);--ink:rgb(var(--neutral-900));--soft:var(--accent-soft);--line:rgb(var(--neutral-200));--accent:rgb(var(--accent-500));color:var(--ink);background:var(--paper);padding:0;font:16px/1.9 'Segoe UI','Microsoft YaHei',sans-serif}
+
+
 .adrs-delivery h2{font-size:24px;line-height:1.4;margin:0 0 12px}.adrs-delivery h3{font-size:18px;margin:16px 0 10px}
 .adrs-delivery nav{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.adrs-delivery a{color:var(--accent)}
 .adrs-delivery nav a,.adrs-delivery button{border:1px solid var(--line);border-radius:8px;padding:5px 10px;color:var(--ink);background:var(--paper);cursor:pointer}
@@ -48,7 +49,7 @@ const styles = `
 .adrs-delivery table{border-collapse:collapse;width:100%;font-size:12px}.adrs-delivery th,.adrs-delivery td{padding:7px;border:1px solid var(--line);text-align:left;overflow-wrap:anywhere}
 .adrs-delivery pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px;max-height:480px;overflow:auto}
 .adrs-delivery .gap{padding:8px 12px;background:var(--soft);border-left:3px solid var(--accent)}
-.adrs-delivery .chart-frame{overflow:auto}.adrs-delivery svg{width:100%;min-width:460px;display:block}.adrs-delivery svg text{fill:var(--ink);font:12px system-ui,sans-serif}
+.adrs-delivery .chart-frame{overflow:auto}.adrs-delivery .chart-frame>svg{width:100%;min-width:460px;display:block}.adrs-delivery .chart-frame>svg text{fill:var(--ink);font:12px system-ui,sans-serif}
 .adrs-delivery:fullscreen{overflow:auto;border-radius:0;padding:32px}.adrs-delivery [hidden]{display:none}
 @media(max-width:600px){.adrs-delivery{padding:12px}.adrs-delivery h2{font-size:20px}}
 @media print{.adrs-delivery{--paper:#fff!important;--ink:#111!important;--soft:#eee!important;--line:#aaa!important;--accent:#333!important}
@@ -56,8 +57,9 @@ const styles = `
 .adrs-delivery pre{max-height:none;overflow:visible}.adrs-delivery figure{break-inside:avoid}}
 `
 
-function Chart({ chart, kind,skillId }: { chart: DeliveryChart; kind: string;skillId?:string }) {
+function Chart({ chart, kind,skillId,expanded=false }: { chart: DeliveryChart; kind: string;skillId?:string;expanded?:boolean }) {
   const [selected, setSelected] = useState('')
+  const [enlarged,setEnlarged]=useState(false)
   const points = chart.points || [], nodes = chart.nodes || [], edges = chart.edges || []
   const width = 760, plotLeft = 190, plotRight = 725
   const max = Math.max(1, ...points.map(point => point.value || 0))
@@ -68,12 +70,23 @@ function Chart({ chart, kind,skillId }: { chart: DeliveryChart; kind: string;ski
   const choose = (value: string) => setSelected(current => current === value ? '' : value)
   const selectedPoint = points.find(point => point.label === selected)
   const asset=chart.rendered_assets?.find(item=>item.presentation===kind&&item.drawing_skill_id===skillId)
-  return <figure>
-    <figcaption>{chart.title} · {chart.unit_label}</figcaption>
-    <p className="text-xs">{chart.note}</p>
+  function downloadData() {
+    const rows:unknown[][]=chart.rows
+      ? [[...(chart.columns||[]),'来源'],...chart.rows.map(row=>[...row.values,row.citation_ids.join(' ')])]
+      : points.length ? [['条目',chart.unit_label],...points.map(point=>[point.label,point.value])]
+      : [['起点','终点','关系','来源'],...edges.map(edge=>[nodes.find(node=>node.id===edge.source)?.label||edge.source,nodes.find(node=>node.id===edge.target)?.label||edge.target,edge.label,(edge.proofs||[]).map(proof=>proof.source_url).join(' ')])]
+    const cell=(value:unknown)=>{let text=value===null||value===undefined?'':String(value);if(typeof value==='string'&&/^[=+@\-\t\r]/.test(text))text="'"+text;return '"'+text.replace(/"/g,'""')+'"'}
+    const url=URL.createObjectURL(new Blob(['\ufeff'+rows.map(row=>row.map(cell).join(',')).join('\r\n')],{type:'text/csv;charset=utf-8'}))
+    const anchor=document.createElement('a');anchor.href=url;anchor.download=chart.chart_id+'.csv';anchor.click();window.setTimeout(()=>URL.revokeObjectURL(url),1000)
+  }
+  return <figure className="report-chart">
+    <figcaption>{chart.title}{chart.unit_label&&<> · {chart.unit_label}</>}</figcaption>
+    {!expanded&&<div data-app-only className="chart-actions"><button type="button" onClick={()=>setEnlarged(true)}><Icon name="fit" size={16}/>放大</button><button type="button" onClick={downloadData}><Icon name="download" size={16}/>数据 CSV</button></div>}
+    {chart.note&&<details className="chart-method"><summary>统计口径</summary><p>{chart.note}</p></details>}
+    {!expanded&&<Modal open={enlarged} onClose={()=>setEnlarged(false)} title={chart.title} wide><Chart chart={chart} kind={kind} skillId={skillId} expanded/></Modal>}
     {asset && <>
       <img src={asset.svg} alt={chart.title} style={{width:'100%',height:'auto'}} />
-      {asset.notes.map((note,index)=><p key={index} className="text-xs">{note}</p>)}
+      {!!asset.notes?.length&&<details data-app-only><summary>绘图记录</summary>{asset.notes.map((note,index)=><p key={index}>{note}</p>)}</details>}
       <div data-app-only className="flex gap-3 text-sm">
         <a href={asset.svg} download={`${chart.chart_id}-${kind}.svg`}>下载SVG</a>
         <a href={asset.png} download={`${chart.chart_id}-${kind}.png`}>下载PNG</a>
@@ -91,13 +104,13 @@ function Chart({ chart, kind,skillId }: { chart: DeliveryChart; kind: string;ski
         {edges.map((edge, index) => {
           const from = positions.get(edge.source), to = positions.get(edge.target)
           return from && to ? <line key={index} x1={from.x} y1={from.y} x2={to.x} y2={to.y}
-            stroke={selected && ![edge.source, edge.target].includes(selected) ? '#a0a0a0' : '#d2873c'} strokeWidth="1.5" opacity=".7"><title>{edge.label} · {edge.status}</title></line> : null
+            stroke={selected && ![edge.source, edge.target].includes(selected) ? '#a0a0a0' : 'var(--accent)'} strokeWidth="1.5" opacity=".7"><title>{edge.label} · {edge.status}</title></line> : null
         })}
         {nodes.map(node => {
           const position = positions.get(node.id)!
           return <g key={node.id} role="button" tabIndex={0} aria-label={node.label} aria-pressed={selected === node.id}
             onClick={() => choose(node.id)} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); choose(node.id) } }}>
-            <circle cx={position.x} cy={position.y} r={selected === node.id ? 9 : 6} fill="#d97706" />
+            <circle cx={position.x} cy={position.y} r={selected === node.id ? 9 : 6} fill="var(--accent)" />
             <text x={position.x + 10} y={position.y + 4}>{node.label.slice(0, 18)}{node.label.length > 18 ? '…' : ''}</text><title>{node.label}</title>
           </g>
         })}
@@ -108,8 +121,8 @@ function Chart({ chart, kind,skillId }: { chart: DeliveryChart; kind: string;ski
           const x = 60 + index * 670 / Math.max(1, points.length-1), y = 280 - (point.value || 0) / max * 220
           const previous = points[index-1], previousX = 60 + (index-1)*670/Math.max(1,points.length-1)
           return <g key={`${point.label}-${index}`}>
-            {point.value !== null && previous && previous.value !== null && <line x1={previousX} y1={280-previous.value/max*220} x2={x} y2={y} stroke="#d97706" strokeWidth="2" />}
-            {point.value !== null ? <circle cx={x} cy={y} r={selected === point.label ? 6 : 4} fill="#d97706" role="button" tabIndex={0} aria-label={`${point.label}: ${point.value}`}
+            {point.value !== null && previous && previous.value !== null && <line x1={previousX} y1={280-previous.value/max*220} x2={x} y2={y} stroke="var(--accent)" strokeWidth="2" />}
+            {point.value !== null ? <circle cx={x} cy={y} r={selected === point.label ? 6 : 4} fill="var(--accent)" role="button" tabIndex={0} aria-label={`${point.label}: ${point.value}`}
               onClick={() => choose(point.label)} onKeyDown={event => { if (event.key === 'Enter') choose(point.label) }}><title>{point.label}: {point.value}</title></circle>
               : <text x={x} y="266" textAnchor="middle">?</text>}
             {(index % Math.max(1, Math.ceil(points.length/10)) === 0 || index === points.length-1) && <text x={x} y="310" textAnchor="middle">{point.label}</text>}
@@ -121,7 +134,7 @@ function Chart({ chart, kind,skillId }: { chart: DeliveryChart; kind: string;ski
           aria-label={`${point.label}: ${point.value === null ? '未覆盖' : point.value}`} onClick={() => choose(point.label)}
           onKeyDown={event => { if (event.key === 'Enter') choose(point.label) }}>
           <text x={plotLeft-8} y={index*30+23} textAnchor="end">{point.label.slice(0,23)}{point.label.length>23?'…':''}</text>
-          <rect x={plotLeft} y={index*30+8} width={(point.value || 0)/max*(plotRight-plotLeft-50)} height="20" fill={selected===point.label?'#92400e':'#d97706'} />
+          <rect x={plotLeft} y={index*30+8} width={(point.value || 0)/max*(plotRight-plotLeft-50)} height="20" fill={selected===point.label?'rgb(var(--accent-700))':'var(--accent)'} />
           <text x={plotLeft+(point.value||0)/max*(plotRight-plotLeft-50)+6} y={index*30+23}>{point.value === null ? '未覆盖' : point.value}</text>
           <title>{point.label}: {point.value === null ? '未覆盖' : point.value}</title>
         </g>)}
@@ -163,15 +176,9 @@ export default function ReportDeliveryView({view,renderMarkdown}:{view:DeliveryV
     {error&&<p role="alert">{error}</p>}
     <nav aria-label="报告目录">{view.pages.map((page,index)=><a key={page.page_id} href={`#${idPrefix}-${page.page_id}`} aria-current={current===index?'page':undefined}
       onClick={()=>setCurrent(index)}>{index+1}. {page.title}</a>)}</nav>
-    <div data-app-only>
-      {view.delivery_complete === false && <p className="gap" role="alert">报告尚未满足交付要求，请在研究记录查看具体原因。</p>}
-      {!['ready','rendered'].includes(view.drawing.status) && <p className="gap" role="status">{view.drawing.reason}</p>}
-      {view.formats.filter(format=>format.status!=='ready').map(format=><p key={format.format} className="gap">{format.format.toUpperCase()} 原生导出待适配。{format.alternative==='browser_print_to_pdf'?'可先通过打印另存为PDF。':'可先下载HTML、Markdown或研究数据。'}</p>)}
-    </div>
     {view.pages.map((page,index)=><article key={page.page_id} id={`${idPrefix}-${page.page_id}`} data-report-page hidden={!all&&current!==index}>
       <p className="text-xs">{index+1} / {view.pages.length}</p><h2>{page.title}</h2>
       {page.question&&<p><strong>本页问题：</strong>{page.question}</p>}
-      {!page.markdown && <p>现有资料不足以回答本页研究问题。</p>}
       {page.markdown&&<div>{renderMarkdown(page.markdown)}</div>}
       {['ready','rendered'].includes(view.drawing.status)&&page.charts.map(reference=>{
         const chart=chartById.get(reference.chart_id)
@@ -184,8 +191,8 @@ export default function ReportDeliveryView({view,renderMarkdown}:{view:DeliveryV
     {view.appendix_markdown && <details data-report-appendix><summary>技术附录：方法、实验与资源</summary>
       {renderMarkdown(view.appendix_markdown)}
     </details>}
-    {!!view.citations?.length && <section aria-label="参考资料"><h3>参考资料</h3>
+    {!!view.citations?.length && <details aria-label="参考资料"><summary>参考资料</summary>
       {view.citations.map(citation=><p key={citation.citation_id}>[{citation.citation_id.replace('citation:','')}] {citation.source_title}<br /><SafeSource url={citation.source_url}/></p>)}
-    </section>}
+    </details>}
   </div>
 }

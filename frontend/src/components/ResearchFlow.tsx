@@ -50,8 +50,9 @@ function nodesFor(p:Props):FlowNode[] {
   const used=new Set(nodes.flatMap(n=>n.dependencies)),leaves=nodes.filter(n=>!used.has(n.id)).map(n=>n.id)
   const analysisStatus=p.analysis?.status==='completed'?'done':p.analysis?.status==='paused'?'paused':eventState('analyst')
   nodes.push({id:'$analysis',type:'analyst',label:'问题分析',query:p.analysis?.phase?`阶段：${p.analysis.phase}`:'按问题阅读与分析来源',status:analysisStatus,dependencies:leaves,x:0,y:0,root:true})
-  nodes.push({id:'$reflection',type:'reflection',label:'来源核对',query:'核对结论、原文与实验条件',status:eventState('reflection'),dependencies:['$analysis'],x:0,y:0,root:true})
-  nodes.push({id:'$report',type:'report',label:'图文报告',query:'组织正文、图表和引用',status:p.status==='completed'?'done':eventState('report'),dependencies:['$reflection'],x:0,y:0,root:true})
+  const analysisDone=['done','completed','success'].includes(analysisStatus)
+  nodes.push({id:'$reflection',type:'reflection',label:'来源核对',query:'核对结论、原文与实验条件',status:analysisDone||p.status==='completed'?eventState('reflection'):'pending',dependencies:['$analysis'],x:0,y:0,root:true})
+  nodes.push({id:'$report',type:'report',label:'图文报告',query:'组织正文、图表和引用',status:p.status==='completed'?'done':analysisDone?eventState('report'):'pending',dependencies:['$reflection'],x:0,y:0,root:true})
   const levels=new Map<string,number>(),remaining=new Set(nodes.map(n=>n.id)),ids=new Set(remaining)
   for(let pass=0;pass<nodes.length&&remaining.size;pass++){
     let changed=false
@@ -69,7 +70,7 @@ function nodesFor(p:Props):FlowNode[] {
 function readableTool(name:string) {
   if(/search/i.test(name))return '搜索'
   if(/rag|retriev/i.test(name))return '资料检索'
-  if(/browser|web|fetch|read/i.test(name))return '网页读取'
+  if(/browser|browse|web|fetch|read/i.test(name))return '网页读取'
   return name
 }
 
