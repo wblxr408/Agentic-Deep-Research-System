@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from app.recovery_policy import recovery_plan, ROOT_RECOVERY_LIMIT
 
 TRANSIENT = {'APIConnectionError', 'APITimeoutError', 'InternalServerError', 'RateLimitError'}
 PHASES = {'planner':'研究规划','analyst':'研究分析','report':'报告生成','reflection':'来源核对',
@@ -37,7 +38,7 @@ def diagnose_stop(state,*,active_execution=False):
     result={'schema_version':'adrs-stop-diagnosis-v1','reason':reason,'phase':PHASES.get(phase,'研究执行'),
         'summary':'','findings':[],'blockers':blockers,'next_step':'','action':'restart',
         'remaining_tokens':remaining,'remaining_seconds':seconds,
-        'automatic_recovery':{'attempts':attempts,'limit':1,'eligible':False,'status':'exhausted' if attempts else 'not_applicable'}}
+        'automatic_recovery':{'attempts':attempts,'limit':ROOT_RECOVERY_LIMIT,'eligible':False,'status':'exhausted' if attempts else 'not_applicable'}}
     if state.get('runtime_status')=='user_paused':
         result.update(summary='研究已按你的要求暂停',next_step='由你决定何时继续。',action='resume')
         return result
@@ -49,7 +50,15 @@ def diagnose_stop(state,*,active_execution=False):
             result['findings'].append({'text':str(item.get('text') or '')[:240],
                 'detail':str(item.get('requested_action') or item.get('reason') or '需要补充依据或调整结论')[:240]})
         revision=audit.get('revision_attempt') or {}
-        if revision.get('attempted'):
+        rounds=audit.get('repair_rounds') or []
+        if rounds:
+            result['findings'].append({'text':f'已自动修改并核对 {len(rounds)} 轮',
+                'detail':f"问题数量从 {rounds[0]['before']} 项变为 {rounds[-1]['after']} 项。"})
+            outcome=audit.get('repair_outcome')
+            result['next_step']=('本轮修订没有进一步减少问题，已停止重复请求。' if outcome=='no_progress' else
+                '已达到本类问题的修订轮数，具体未解决问题已列出。' if outcome=='round_limit' else
+                '剩余问题受原资料、修订契约或额度约束，未继续派发。')
+        elif revision.get('attempted'):
             result['next_step']='系统已尝试修订，当前仍有未解决的问题；需补充对应资料后继续。'
         elif revision.get('status')=='unmapped_paragraphs':
             result['next_step']='核对问题无法定位到可自动修改的正文段落，已保留具体主张。'
@@ -71,30 +80,15 @@ def diagnose_stop(state,*,active_execution=False):
                     next_step='需要选择更大的研究额度或缩小当前问题；更换大上下文模型不会增加本阶段份额。')
                 result['findings']=[{'text':f"本次输入与预留输出共需 {required:,} Token",
                     'detail':f"本阶段可用 {int(admission['available_tokens']):,} Token，总任务仍剩余 {remaining:,} Token。"}]
+    elif reason in {'analysis_output_incomplete','model_output_limit'}:
+        result.update(summary='当前问题的响应结构不完整' if reason=='analysis_output_incomplete' else '当前问题的模型输出被截断',
+            next_step='已保留具体阶段及响应，系统将按错误类型检查修复条件。',action='restart')
     elif reason=='analysis_provider_unavailable':
         failures=(workflow.get('failed_attempts') or {}).get(active) or []
         error_type=(failures[-1].get('provider_error_type') if failures else None)
         transient=error_type in TRANSIENT
         result.update(summary='模型服务连接或响应暂时失败' if transient else '模型服务未能完成本阶段请求',
-            next_step='系统将使用原配置尝试恢复一次。' if transient and attempts==0 else '系统已尝试自动恢复，模型服务仍未恢复。' if attempts else '系统未取得可分类的服务错误，已停止重试；可选择另一已授权模型。',
-            action='none' if transient and attempts==0 else 'settings')
-        eligible=bool(transient and attempts==0 and not blockers and seconds is not None and seconds>5 and remaining>=1024
-            and workflow.get('schema_version')=='adrs-analysis-questions-v2' and workflow.get('status')=='paused'
-            and int((workflow.get('attempts') or {}).get(active,0))<2
-            and not state.get('pending_approvals') and (review.get('user_control') or {}).get('state')!='requested')
-        if eligible and not active_execution:
-            result.update(next_step='已定位到临时模型连接故障，原分析检查点已保留。',action='none')
-        result['automatic_recovery'].update(eligible=eligible and active_execution,
-            status=('planned' if active_execution else 'available') if eligible else 'exhausted' if attempts else 'blocked')
-        if not eligible and not attempts and transient and not blockers:
-            if int((workflow.get('attempts') or {}).get(active,0))>=2:detail='当前问题已尝试两次，达到本阶段上限。'
-            elif (review.get('user_control') or {}).get('state')=='requested':detail='已收到你的暂停请求，系统没有自动继续。'
-            elif state.get('pending_approvals'):detail='下一步仍需要你的操作授权。'
-            elif seconds is None:detail='原任务的期限记录不完整，系统没有派发新请求。'
-            elif seconds<=5:detail='原任务的执行期限即将结束，系统没有派发新请求。'
-            elif remaining<1024:detail='原任务剩余额度不足以完成一次分析恢复。'
-            else:detail='当前任务没有兼容的分析恢复检查点。'
-            result.update(next_step=detail,action='restart')
+            next_step='模型服务仍未恢复。' if attempts else '系统未取得可分类的服务错误，可选择另一已授权模型。',action='settings')
         if error_type in {'AuthenticationError','PermissionDeniedError'}:
             result.update(summary='模型服务拒绝当前凭证或访问权限',next_step='需要更新本账号的模型凭证或授权。',action='settings')
     elif reason in {'final_audit_budget_exhausted','final_audit_incomplete','final_audit_reservation_not_released'}:
@@ -112,6 +106,22 @@ def diagnose_stop(state,*,active_execution=False):
         result.update(summary=f"{result['phase']}未能完成，系统已保留停止位置",next_step='系统尚未取得足以确定根因的结构化记录。',action='restart')
         if failure.get('message'):result['findings']=[{'text':'实际执行错误','detail':str(failure['message'])[:360]}]
         result['diagnosis_complete']=bool(failure.get('message'))
+    plan=recovery_plan(state)
+    if plan['kind']:
+        eligible=bool(plan['candidate'] and not blockers and seconds is not None and seconds>plan['delay_seconds']+5
+            and remaining>=1024 and workflow.get('schema_version')=='adrs-analysis-questions-v2'
+            and workflow.get('status')=='paused' and not state.get('pending_approvals')
+            and (review.get('user_control') or {}).get('state') not in {'requested','paused'})
+        result['automatic_recovery'].update(policy=plan['kind'],policy_attempts=plan['attempts'],policy_limit=plan['limit'],
+            action=plan['action'],delay_seconds=plan['delay_seconds'],eligible=eligible and active_execution,
+            status=('planned' if active_execution else 'available') if eligible else 'blocked' if blockers else 'exhausted')
+        if eligible:
+            result.update(next_step=f"系统将{plan['action']}（本类第 {plan['attempts']+1}/{plan['limit']} 次）。" if active_execution
+                else f"已保留可修复检查点：{plan['action']}。",action='none')
+        elif plan['blocked']:
+            result['next_step']=plan['blocked']+'。'
+        elif not blockers:
+            result['next_step']='原期限、检查点、剩余额度或操作授权不满足自动修复条件。'
     if blockers:
         if review.get('automatic_recovery_blocked'):
             result['next_step']='系统已检查自动恢复条件，没有派发新的模型请求。'

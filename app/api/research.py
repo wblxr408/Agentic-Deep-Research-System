@@ -1452,7 +1452,7 @@ async def get_research_result(session_id: str, principal: Principal = principal_
         'analysis_recovery_available':bool(row['status']=='paused' and workflow.get('status')=='paused'
             and workflow.get('schema_version')=='adrs-analysis-questions-v2'
             and workflow.get('stop_reason') in {'analysis_output_incomplete','analysis_provider_unavailable','model_output_limit','insufficient_context_budget'}
-            and int((workflow.get('attempts') or {}).get(workflow.get('active_phase'),2))<2),
+            and int((workflow.get('attempts') or {}).get(workflow.get('active_phase'),10))<10),
         'report_recovery_available':bool(row['status'] in {'failed','paused'} and workflow.get('status')=='completed'
             and review_status.get('output_stage')=='report' and review_status.get('report_payload_kind')=='partial_response'
             and (((review_status.get('organization_result') or {}).get('module_report') or {}).get('issues')
@@ -1827,7 +1827,7 @@ async def _resume_retained_synthesis(session_id, background_tasks, principal, *,
         raise HTTPException(409,f'{stage}_checkpoint_not_recoverable')
     if report_resume and int(root.get('report_resume_attempts') or 0)>=1:
         raise HTTPException(409,'report_resume_attempt_limit')
-    if not report_resume and int((workflow.get('attempts') or {}).get(phase,0))>=2:
+    if not report_resume and int((workflow.get('attempts') or {}).get(phase,0))>=10:
         raise HTTPException(409,'analysis_phase_attempt_limit')
     current=await current_synthesis_state(state)
     if current.get('collected_evidence')!=state.get('collected_evidence'):

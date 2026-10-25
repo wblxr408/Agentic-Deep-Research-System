@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from app.research_diagnostics import diagnose_stop
+from app.recovery_policy import recovery_plan
 
 
 def recovery_eligible(state):
@@ -11,6 +12,7 @@ def recovery_eligible(state):
 async def automatic_recovery_node(state):
     from copy import deepcopy
     import time
+    import asyncio
     from app.graph.compiler import _build_budget_state,_stage_model_budget,_synthesis_question,_skill_prompt,_agent_skill_hints
     from app.research_context import analysis_input_matches
     from app.graph.state import deserialize_evidence
@@ -22,6 +24,7 @@ async def automatic_recovery_node(state):
     from app.observability.sse_manager import get_sse_manager
     check_execution()
     if not recovery_eligible(state):return {}
+    plan=recovery_plan(state)
     review=dict(state.get('review_status') or {})
     def blocked(message):
         review['automatic_recovery_blocked']=message
@@ -45,29 +48,55 @@ async def automatic_recovery_node(state):
         if not recovery_eligible({**saved,'review_status':review}):return {}
         budget=await receipt_budget(conn,sid,owner,task_budget(row))
         restored={**deepcopy(saved),'budget_state':budget}
+        plan=recovery_plan({**restored,'review_status':review})
         budget=_build_budget_state(restored)
         allowance=_stage_model_budget({**restored,'budget_state':budget},'analyst')
         workflow=restored.get('analysis_workflow') or {}
         failures=(workflow.get('failed_attempts') or {}).get(workflow.get('active_phase')) or []
         context=(failures[-1].get('context') if failures else None) or {}
-        required=max(1024,int(context.get('prompt_bound') or 0)+8192)
+        admission=(failures[-1].get('admission') if failures else None) or {}
+        directive=plan['directive']
+        # Context repair will repack before dispatch; no claim that a truncated
+        # request already fits. The provider boundary performs exact admission.
+        output=int(directive.get('output_tokens') or context.get('requested_output_tokens') or 8192)
+        required=(output+1024 if plan['kind']=='context' else max(1024,
+            int(context.get('prompt_bound') or admission.get('prompt_bound') or 0)+output+
+            len(directive.get('instruction','').encode('utf-8'))))
         if allowance.available()<required:
             return blocked(f'自动恢复需要约 {required:,} Token，原分析份额只剩 {allowance.available():,} Token')
         if (budget.get('hard_stop_reason') not in {None,'tool_call_limit'}
-                or allowance.deadline is None or time.monotonic()>=allowance.deadline
+                or allowance.deadline is None or time.monotonic()+plan['delay_seconds']+5>=allowance.deadline
                 or int(budget.get('inflight_model_requests') or 0)):
             return blocked('原分析份额、执行期限或在途用量尚不允许自动恢复')
-        root={**restored['session'],'status':'running','automatic_recovery_attempts':1}
+        workflow=deepcopy(workflow)
+        phase=workflow['active_phase']
+        counts=workflow.setdefault('recovery_counts',{}).setdefault(phase,{})
+        counts[plan['kind']]=plan['attempts']+1
+        prior=(workflow.setdefault('repairs',{}).get(phase) or {})
+        workflow['repairs'][phase]={**prior,**directive}
+        record={key:plan[key] for key in ('kind','action','delay_seconds','limit')}
+        record.update(attempt=counts[plan['kind']],phase=phase,changes=directive)
+        workflow.setdefault('recovery_history',[]).append(record)
+        root={**restored['session'],'status':'running','automatic_recovery_attempts':plan['total_attempts']+1}
         review.update(runtime_status='running',reason=None,
-            automatic_recovery={'status':'running','attempts':1,'limit':1,'cause':'analysis_provider_unavailable'})
+            automatic_recovery={'status':'running','attempts':root['automatic_recovery_attempts'],
+                'limit':plan['total_limit'],'policy':plan['kind'],'policy_attempts':counts[plan['kind']],
+                'policy_limit':plan['limit'],'action':plan['action']})
         review.pop('automatic_recovery_blocked',None)
         budget['model_stop_reason']=None
-        restored.update(session=root,budget_state=budget,status='running',runtime_status='running',review_status=review)
+        restored.update(session=root,budget_state=budget,status='running',runtime_status='running',review_status=review,
+            analysis_workflow=workflow)
         await conn.execute('''UPDATE research_sessions SET status='running',review_status=$3::jsonb,
             completed_at=NULL,updated_at=NOW() WHERE id=$1::uuid AND owner_id=$2::uuid''',sid,owner,dumps_json(review))
         await conn.execute('''UPDATE session_runtime_state SET state_snapshot_json=$2::jsonb,
             public_status='running',runtime_status='running',checkpoint_seq=checkpoint_seq+1,last_heartbeat_at=NOW()
             WHERE session_id=$1::uuid''',sid,dumps_json(restored))
     await get_sse_manager().publish(sid,'state_update',{'agent':'analyst','recovery':{
-        'status':'running','attempts':1,'limit':1,'message':'已定位到模型连接故障，正在原额度内自动恢复一次。'}})
-    return {'session':root,'budget_state':budget,'status':'running','runtime_status':'running','review_status':review}
+        **review['automatic_recovery'],'message':f"{plan['action']} · 第 {plan['attempts']+1}/{plan['limit']} 次，等待 {plan['delay_seconds']} 秒"}})
+    until=time.monotonic()+plan['delay_seconds']
+    while time.monotonic()<until:
+        check_execution()
+        await asyncio.sleep(min(.25,max(0,until-time.monotonic())))
+    check_execution()
+    return {'session':root,'budget_state':budget,'status':'running','runtime_status':'running','review_status':review,
+        'analysis_workflow':workflow}

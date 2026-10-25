@@ -123,13 +123,16 @@ Return a JSON object with these fields:
         def phase(key, phase_config, kind, seed=None):
             if key in workflow['completed']:return workflow['completed'][key]
             attempts=workflow['attempts'].get(key,0)
-            if attempts>=2:raise TokenBudgetExceeded('analysis_phase_attempt_limit')
+            from app.recovery_policy import PHASE_ATTEMPT_LIMIT
+            if attempts>=PHASE_ATTEMPT_LIMIT:raise TokenBudgetExceeded('analysis_phase_attempt_limit')
+            self.phase_repair=(workflow.get('repairs') or {}).get(key) or {}
             workflow.update(active_phase=key,status='running')
             workflow['attempts'][key]=attempts+1
             try:
                 progress()
                 output_tokens=8192 if (kind=='extraction' or attempts
                     or 'deep_dive' in phase_config.get('modules',[])) else 4096
+                output_tokens=int(self.phase_repair.get('output_tokens') or output_tokens)
                 text=self.analyze(user_query,evidence_list,skill_prompt,analyst_hints,phase_config,
                     _phase=kind,_seed=seed,_output_tokens=output_tokens)
                 record={'analysis_text':text,'organization_data':deepcopy(self.last_organization_data or {}),
@@ -150,6 +153,9 @@ Return a JSON object with these fields:
                                 required_tokens=int(self.last_context_manifest.get('prompt_bound') or 0)+1024):
                             return phase(key,phase_config,kind,seed)
                 workflow['completed'][key]=record
+                for recovery in reversed(workflow.get('recovery_history') or []):
+                    if recovery.get('phase')==key:
+                        recovery['outcome']='resolved';break
                 workflow.pop('partial_response',None)
                 progress()
                 return record
@@ -158,6 +164,8 @@ Return a JSON object with these fields:
                 failed={'attempt':workflow['attempts'][key],
                     'reason':error.reason,'raw_response':self.last_partial_response,
                     'provider_error_type':self.last_extraction_status.get('reason') if error.reason=='analysis_provider_unavailable' else None,
+                    'retry_after_seconds':self.last_extraction_status.get('retry_after_seconds'),
+                    'provider_error_code':self.last_extraction_status.get('provider_error_code'),
                     'admission':deepcopy(getattr(error,'admission',None)),
                     'context':deepcopy(self.last_context_manifest)}
                 failures=workflow.setdefault('failed_attempts',{}).setdefault(key,[])
@@ -327,10 +335,15 @@ Return a JSON object with these fields:
             return self._analyze_workflow(user_query,evidence_list,skill_prompt,analyst_hints,
                 organization_research,resume_state,on_progress)
         logger.info(f"Analyst: analyzing {len(evidence_list)} evidence items")
+        self.last_organization_data=None
+        self.last_partial_response=None
+        self.last_extraction_status={}
         decision = build_guardrail_decision(user_query)
         # The complete frozen question is already in the user message. Keep
         # only the enforcement/profile instructions in the system message.
         system_prompt = f"{build_prompt_profile_message(decision)}\n\n{self.SYSTEM_PROMPT}"
+        repair=getattr(self,'phase_repair',{})
+        if repair.get('instruction'):system_prompt+='\n'+repair['instruction']
         if analyst_hints:
             system_prompt = (
                 f"{system_prompt}\n\n## Analyst Skill Instructions\n"
@@ -437,7 +450,7 @@ Collected Evidence:
         active_client=self.client
         if seed_manifest is not None:self.last_context_manifest={'publication_seed':seed_manifest}
         messages, self.last_context_manifest = fit_messages(build_messages, self.request_budget,
-            'research', _output_tokens, max_bytes=getattr(self,'context_expansion_bytes',36000) if organization_research else 10000,
+            'research', _output_tokens, max_bytes=int(repair.get('max_bytes') or (getattr(self,'context_expansion_bytes',36000) if organization_research else 10000)),
             request_extra={'response_format': {'type': 'json_object'}} if organization_research else None)
         if organization_research and not self.last_context_manifest.get('sources'):
             error=TokenBudgetExceeded('insufficient_context_budget')
@@ -518,7 +531,33 @@ Collected Evidence:
         except (APIError, OSError, RuntimeError, TypeError, ValueError, KeyError, AttributeError) as e:
             logger.error('Analyst error: %s', type(e).__name__)
             if organization_research:
+                if getattr(e,'code',None) in {'context_length_exceeded','max_tokens_exceeded'}:
+                    error=TokenBudgetExceeded('insufficient_context_budget')
+                    error.admission={'reason':'provider_context_limit','prompt_bound':self.last_context_manifest.get('prompt_bound'),
+                        'requested_output_tokens':_output_tokens,
+                        'available_tokens':self.request_budget.available() if self.request_budget else None}
+                    raise error from e
                 self.last_extraction_status={'status':'failed','reason':type(e).__name__}
+                code=getattr(e,'code',None)
+                if code in {'insufficient_quota','billing_hard_limit_reached','account_deactivated'}:
+                    self.last_extraction_status['provider_error_code']=code
+                import ssl
+                cause=e
+                for _ in range(6):
+                    if isinstance(cause,ssl.SSLCertVerificationError):
+                        self.last_extraction_status['provider_error_code']='tls_validation_failed';break
+                    cause=getattr(cause,'__cause__',None)
+                    if cause is None:break
+                response=getattr(e,'response',None)
+                raw=response.headers.get('retry-after') if response is not None else None
+                try:self.last_extraction_status['retry_after_seconds']=max(0,float(raw))
+                except (TypeError,ValueError):
+                    if raw:
+                        from email.utils import parsedate_to_datetime
+                        from datetime import UTC,datetime
+                        try:self.last_extraction_status['retry_after_seconds']=max(0,
+                            (parsedate_to_datetime(raw)-datetime.now(UTC)).total_seconds())
+                        except (TypeError,ValueError,OverflowError):pass
                 raise TokenBudgetExceeded('analysis_provider_unavailable') from e
             self.last_usage = None
             return self._fallback_analysis(user_query, evidence_list)

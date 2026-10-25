@@ -2218,9 +2218,12 @@ async def analyst_node(state: ResearchState) -> dict:
         from app.execution_control import current_control
         control=current_control()
         if control:await control.mirror_runtime()
+        recovered=progress.get('active_phase') in progress.get('completed',{}) and bool(
+            (progress.get('recovery_counts') or {}).get(progress.get('active_phase')))
         await get_sse_manager().publish(str(state['task_id']),EventType.STATE_UPDATE.value,{
             'agent':'analyst','status':'running','analysis_progress':{'phase':progress.get('active_phase'),
-                'status':progress['status'],'completed_steps':len(progress['completed'])}})
+                'status':progress['status'],'completed_steps':len(progress['completed'])},
+            **({'recovery':{'status':'resolved','message':'自动修复后，当前分析问题已完成。'}} if recovered else {})})
     def on_question(progress):
         future=asyncio.run_coroutine_threadsafe(save_question(progress),loop)
         try:future.result(timeout=30)
