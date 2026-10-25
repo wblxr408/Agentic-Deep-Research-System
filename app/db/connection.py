@@ -21,6 +21,7 @@ from app.db.execution_control import SCHEMA_SQL as EXECUTION_CONTROL_SCHEMA_SQL
 from app.db.retrieval_indexes import RETRIEVAL_SCHEMA_SQL
 from app.source_lifecycle import SCHEMA_SQL as LIFECYCLE_SCHEMA_SQL
 from app.db.text_search import regconfig_sql_literal, resolve_text_search_config
+from app.db.accounts import migrate_accounts
 
 if TYPE_CHECKING:
     import redis.asyncio as redis
@@ -415,8 +416,7 @@ async def init_db() -> asyncpg.Pool:
             )
         """)
 
-        # Keep a single explicit owner even in self-hosted mode. New code must
-        # always scope data by it, which makes later multi-user migration safe.
+        # Every private resource keeps its original explicit owner.
         for table in ("documents", "document_sources", "research_sessions", "tool_call_audit", "approval_requests", "system_config", "skill_meta"):
             await conn.execute(f"ALTER TABLE {table} ADD COLUMN IF NOT EXISTS owner_id UUID")
         await conn.execute("CREATE INDEX IF NOT EXISTS idx_documents_owner ON documents (owner_id)")
@@ -426,6 +426,12 @@ async def init_db() -> asyncpg.Pool:
         await conn.execute(
             "CREATE INDEX IF NOT EXISTS idx_skill_meta_owner_active ON skill_meta (owner_id, is_deleted, enabled)"
         )
+        await migrate_accounts(conn)
+        # Only legacy unowned rows are adopted; registration never claims them.
+        for table in ("documents", "document_sources", "research_sessions", "tool_call_audit", "approval_requests", "system_config", "skill_meta"):
+            await conn.execute(f"""UPDATE {table} SET owner_id=(SELECT id FROM auth_principals
+                WHERE role='admin' ORDER BY created_at,id LIMIT 1) WHERE owner_id IS NULL
+                AND EXISTS(SELECT 1 FROM auth_principals WHERE role='admin')""")
 
         await conn.execute(MATCHING_SCHEMA_SQL)
         await conn.execute(PRESET_SCHEMA_SQL)

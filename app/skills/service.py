@@ -28,6 +28,9 @@ async def ensure_skill_storage_bootstrapped() -> None:
         meta_count = await conn.fetchval("SELECT COUNT(*) FROM skill_meta")
         if int(meta_count or 0) > 0:
             return
+        legacy_owner = await conn.fetchval("SELECT id FROM auth_principals WHERE role='admin' ORDER BY created_at,id LIMIT 1")
+        if legacy_owner is None:
+            return
 
         legacy_exists = await conn.fetchval(
             """
@@ -62,13 +65,13 @@ async def ensure_skill_storage_bootstrapped() -> None:
                         id, slug, name, description, current_version, enabled, priority,
                         tags_json, keywords_json, trigger_patterns_json, allowed_tools_json,
                         agent_hints_json, domain, tenant_id, project_id, scope,
-                        coarse_terms_json, metadata_json, is_deleted, created_at, updated_at
+                        coarse_terms_json, metadata_json, is_deleted, created_at, updated_at, owner_id
                     )
                     VALUES (
                         $1::uuid, $2, $3, $4, $5, $6, $7,
                         $8::jsonb, $9::jsonb, $10::jsonb, $11::jsonb,
                         $12::jsonb, $13, $14, $15, $16,
-                        $17::jsonb, $18::jsonb, FALSE, $19, $20
+                        $17::jsonb, $18::jsonb, FALSE, $19, $20, $21::uuid
                     )
                     ON CONFLICT (id) DO NOTHING
                     """,
@@ -92,6 +95,7 @@ async def ensure_skill_storage_bootstrapped() -> None:
                     dumps_json(metadata.model_dump()),
                     row["created_at"],
                     row["updated_at"],
+                    legacy_owner,
                 )
                 await conn.execute(
                     """

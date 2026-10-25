@@ -130,6 +130,8 @@ class SecuritySettings(BaseSettings):
     secure_cookies: bool = Field(default=True)
     cookie_name: str = Field(default="deepintel_session")
     login_rate_limit: int = Field(default=10, ge=1, le=100)
+    registration_enabled: bool = Field(default=True)
+    registration_rate_limit: int = Field(default=6, ge=1, le=100)
     upload_rate_limit: int = Field(default=30, ge=1, le=500)
     upload_max_bytes: int = Field(default=25 * 1024 * 1024, ge=1024)
     upload_max_pages: int = Field(default=500, ge=1, le=10000)

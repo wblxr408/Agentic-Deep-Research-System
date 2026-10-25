@@ -8,10 +8,11 @@ Configuration is stored in database and overrides environment variables.
 from __future__ import annotations
 
 import logging
+import json
 from typing import Any, Literal
 
 import asyncpg
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field, field_validator
 
 from app.config import get_settings
@@ -20,6 +21,7 @@ from app.db.connection import get_db_pool
 from app.db.json import dumps_json
 from app.security.auth import Principal, require_principal
 from app.security.crypto import decrypt_secret, encrypt_secret
+from app.model_scope import get_scoped_config, set_scoped_config
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/config", tags=["config"], dependencies=[Depends(require_principal)])
@@ -143,7 +145,8 @@ async def get_llm_config_from_db(owner_id: str) -> dict[str, Any] | None:
                 _llm_config_key(owner_id),
             )
             if row:
-                data = dict(row["config_data"] or {})
+                raw = row['config_data'] or {}
+                data = json.loads(raw) if isinstance(raw, str) else dict(raw)
                 data["api_key"] = decrypt_secret(data.get("api_key"))
                 data["fallback_api_key"] = decrypt_secret(data.get("fallback_api_key"))
                 return {
@@ -151,7 +154,8 @@ async def get_llm_config_from_db(owner_id: str) -> dict[str, Any] | None:
                     "updated_at": row["updated_at"].isoformat() if row["updated_at"] else None,
                 }
     except (OSError, RuntimeError, ValueError, asyncpg.PostgresError) as exc:
-        logger.warning("Failed to get LLM config from DB: %s", exc)
+        logger.warning("Failed to get personal LLM config: %s", type(exc).__name__)
+        raise HTTPException(503, 'model_configuration_unavailable') from None
     return None
 
 
@@ -180,41 +184,20 @@ async def save_llm_config_to_db(config: LLMConfigRequest, owner_id: str) -> None
 
 
 # ==============================================================
-# Global Runtime Config Cache
+# Request/owned-execution configuration (never shared between users)
 # ==============================================================
 
-_runtime_llm_config: LLMConfigRequest | None = None
-
-
 def get_runtime_llm_config() -> LLMConfigRequest | None:
-    """Get the runtime LLM configuration."""
-    return _runtime_llm_config
+    return get_scoped_config()
 
 
 def set_runtime_llm_config(config: LLMConfigRequest) -> None:
-    """Set the runtime LLM configuration."""
-    global _runtime_llm_config
-    _runtime_llm_config = config
-    logger.info(f"Runtime LLM config updated: provider={config.provider}, model={config.model}")
+    set_scoped_config(config)
 
 
 async def load_runtime_llm_config_from_db() -> None:
-    """Restore encrypted administrator configuration after a process restart."""
-    pool = await get_db_pool()
-    async with pool.acquire() as conn:
-        owners = await conn.fetch("SELECT id FROM auth_principals ORDER BY created_at ASC LIMIT 2")
-    # There is exactly one supported administrator today. Do not select an
-    # arbitrary configuration if a future deployment adds more principals.
-    if len(owners) != 1:
-        return
-    db_config = await get_llm_config_from_db(str(owners[0]["id"]))
-    if not db_config:
-        return
-    try:
-        set_runtime_llm_config(LLMConfigRequest.model_validate(db_config["data"]))
-    except Exception as exc:
-        logger.error("Persisted LLM configuration is invalid or cannot be decrypted: %s", type(exc).__name__)
-        raise
+    """Compatibility startup hook: no owner's credentials enter a global cache."""
+    return None
 
 
 # ==============================================================
@@ -230,8 +213,8 @@ async def get_llm_config(principal: Principal = principal_dependency):
     Priority: Runtime config > DB config > Environment variables
     """
     # Check runtime config first
-    if _runtime_llm_config:
-        config = _runtime_llm_config
+    if get_runtime_llm_config():
+        config = get_runtime_llm_config()
         return LLMConfigResponse(
             provider=config.provider,
             model=config.model,
@@ -264,7 +247,12 @@ async def get_llm_config(principal: Principal = principal_dependency):
             routing=data.get('routing') or {},
         )
 
-    # Fallback to environment variables
+    # Deployment credentials belong to administrators, not new registrants.
+    if principal.role != 'admin':
+        return LLMConfigResponse(provider='qwen', model='qwen-plus', api_key_masked='', api_base=None,
+            temperature=0.7, max_tokens=8192, fallback_provider=None, fallback_model=None,
+            has_fallback_api_key=False, updated_at=None, routing={})
+    # Administrator fallback to environment variables
     settings = get_settings()
     return LLMConfigResponse(
         provider=settings.llm.provider,
@@ -287,7 +275,7 @@ async def update_llm_config(config: LLMConfigRequest, principal: Principal = pri
     Update LLM configuration.
 
     Configuration is saved to database and set as runtime config.
-    This affects all subsequent LLM calls.
+    This affects only this owner's subsequent research executions.
     """
     logger.info(f"Updating LLM config: provider={config.provider}, model={config.model}")
 
@@ -341,11 +329,12 @@ async def get_llm_status(principal: Principal = principal_dependency):
     has_key = False
     last_updated = None
 
-    if _runtime_llm_config:
+    if get_runtime_llm_config():
+        config = get_runtime_llm_config()
         has_config = True
-        provider = _runtime_llm_config.provider
-        model = _runtime_llm_config.model
-        has_key = bool(_runtime_llm_config.api_key)
+        provider = config.provider
+        model = config.model
+        has_key = bool(config.api_key)
     else:
         db_config = await get_llm_config_from_db(principal.id)
         if db_config:
@@ -355,7 +344,7 @@ async def get_llm_status(principal: Principal = principal_dependency):
             model = data.get("model")
             has_key = bool(data.get("api_key"))
             last_updated = db_config.get("updated_at")
-        else:
+        elif principal.role == 'admin':
             settings = get_settings()
             has_config = bool(settings.llm.api_key)
             provider = settings.llm.provider
@@ -450,21 +439,9 @@ async def reset_llm_config(principal: Principal = principal_dependency):
 
     Removes runtime and database configuration.
     """
-    global _runtime_llm_config
-    _runtime_llm_config = None
-
-    try:
-        pool = await get_db_pool()
-        async with pool.acquire() as conn:
-            await conn.execute(
-                """
-                DELETE FROM system_config
-                WHERE owner_id = $1::uuid AND config_key IN ($2, 'llm')
-                """,
-                principal.id,
-                _llm_config_key(principal.id),
-            )
-    except (OSError, RuntimeError, asyncpg.PostgresError) as exc:
-        logger.warning("Failed to delete LLM config from DB: %s", exc)
-
-    return {"message": "LLM configuration reset to environment defaults"}
+    pool = await get_db_pool()
+    async with pool.acquire() as conn:
+        await conn.execute('DELETE FROM system_config WHERE owner_id=$1::uuid AND config_key IN ($2,\'llm\')',
+            principal.id, _llm_config_key(principal.id))
+    set_scoped_config(None)
+    return {"message": "Personal LLM configuration reset"}

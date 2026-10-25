@@ -13,6 +13,7 @@ import logging
 import asyncpg
 
 from app.db.text_search import regconfig_sql_literal, resolve_text_search_config
+from app.db.accounts import migrate_accounts
 from app.db.matching import MATCHING_SCHEMA_SQL
 from app.db.presets import PRESET_SCHEMA_SQL
 from app.db.report_delivery import SCHEMA_SQL as REPORT_DELIVERY_SCHEMA_SQL
@@ -457,6 +458,8 @@ async def run_migration(
             await conn.execute(EXECUTION_CONTROL_SCHEMA_SQL)
             await conn.execute(RETRIEVAL_SCHEMA_SQL)
             await conn.execute(LIFECYCLE_SCHEMA_SQL)
+            await conn.execute('ALTER TABLE skill_meta ADD COLUMN IF NOT EXISTS owner_id UUID')
+            await migrate_accounts(conn)
             logger.info("Database migration completed successfully")
 
 

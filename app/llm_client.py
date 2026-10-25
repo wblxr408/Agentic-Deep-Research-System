@@ -53,6 +53,9 @@ def get_llm_client_config() -> dict[str, Any]:
         }
 
     # Fallback to environment variables
+    from app.model_scope import environment_model_allowed
+    if not environment_model_allowed():
+        raise ValueError('personal_model_configuration_required')
     settings = get_settings()
     return {
         "provider": settings.llm.provider,

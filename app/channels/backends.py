@@ -145,6 +145,9 @@ class Backends:
     def collect(self, request, backend, config, timeout, budget):
         channel, operation, query, limit = request.channel, request.operation, request.query, request.limit
         def command(argv, secrets=()):
+            from app.model_scope import host_credentials_allowed
+            if not host_credentials_allowed():
+                raise ChannelError('administrator_required')
             return self.commands.run(argv, timeout=budget.take(), secrets=secrets)
         def get(url):
             return self.http.get(url, timeout=budget.remaining(),on_request=budget.take)

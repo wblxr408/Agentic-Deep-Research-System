@@ -60,6 +60,7 @@ from app.research_matching import (
     WeightConfigurationPreview, WeightConfigurationRequest, load_preset_catalogue, preview_weights, score_matching_snapshot,
 )
 from app.security.auth import Principal, require_principal
+from app.model_scope import bind_owner_model, owner_model_execution
 from app.organization_runtime import OrganizationResearchRequest, freeze_organization_request
 from app.organization_taxonomy import ReclassificationRequest, freeze_taxonomy, classify_publications
 from app.organization_relationships import RelationshipPreviewRequest, build_relationship_view
@@ -760,6 +761,14 @@ async def create_research(
     Creates a research session, saves it to the database,
     and dispatches the LangGraph workflow to run in background.
     """
+    await bind_owner_model(principal.id)
+    from app.llm_client import get_llm_client_config
+    try:
+        model_config = get_llm_client_config()
+        if not model_config.get('api_key') and model_config.get('provider') != 'ollama':
+            raise ValueError('personal_model_configuration_required')
+    except ValueError:
+        raise HTTPException(409, 'personal_model_configuration_required') from None
     # Generate or use provided session ID
     session_id = request.session_id or str(uuid.uuid4())
     execution_id = str(uuid.uuid4())
@@ -1792,6 +1801,7 @@ async def _resume_retained_synthesis(session_id, background_tasks, principal, *,
     return {'session_id':session_id,'execution_id':execution_id,'status':'running','resumed':True}
 
 @controlled_execution
+@owner_model_execution
 async def run_research_workflow(
     session_id: str,
     query: str,
@@ -1825,6 +1835,7 @@ async def run_research_workflow(
     try:
         budget = get_research_budget(output_length)
         state = deepcopy(resume_state) if resume_state is not None else create_initial_state(query, session_id)
+        await bind_owner_model(owner_id)
         if resume_state is None:
             from app.model_routing import freeze_model_routing
             from app.data_governance import model_class
