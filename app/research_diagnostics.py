@@ -64,6 +64,13 @@ def diagnose_stop(state,*,active_execution=False):
             result.update(summary='当前问题没有选入可分析的原文片段',
                 next_step='系统未找到符合本问题选取条件的原文；需要补充原文或调整研究范围。',action='sources')
             result['findings']=[{'text':'本问题选入原文 0 份','detail':f'本次仍剩余 {remaining:,} Token；停止原因不是总额度用完。'}]
+        if all(isinstance(admission.get(key),(int,float)) for key in ('prompt_bound','requested_output_tokens','available_tokens')):
+            required=int(admission['prompt_bound'])+int(admission['requested_output_tokens'])
+            if required>int(admission['available_tokens']):
+                result.update(summary='原分析份额不足以同时容纳输入和输出',action='restart',
+                    next_step='需要选择更大的研究额度或缩小当前问题；更换大上下文模型不会增加本阶段份额。')
+                result['findings']=[{'text':f"本次输入与预留输出共需 {required:,} Token",
+                    'detail':f"本阶段可用 {int(admission['available_tokens']):,} Token，总任务仍剩余 {remaining:,} Token。"}]
     elif reason=='analysis_provider_unavailable':
         failures=(workflow.get('failed_attempts') or {}).get(active) or []
         error_type=(failures[-1].get('provider_error_type') if failures else None)
