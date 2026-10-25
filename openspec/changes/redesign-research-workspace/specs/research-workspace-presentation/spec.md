@@ -56,11 +56,15 @@
 
 ### Requirement: Live execution feedback stays visible
 
-系统 SHALL 在流程视图直接显示 SSE 实时事件与保留记录，包括实际角色、问题、工具输入及结果摘要。筛选及停止跟随只改变呈现，不改变任务执行；终态事件 SHALL 使用真实状态文字。
+系统 SHALL 将 SSE 实时事件与保留记录融入流程图：使用不同外形区分角色与动作，通过关联线表示归属，动作包含实际问题、工具输入、结果、修订和错误。筛选及停止跟随只改变呈现，不改变任务执行；终态事件 SHALL 使用真实状态文字。完整事件列表进入研究记录。
 
 #### Scenario: Observe an active agent
 - **WHEN** 服务端推送 Agent 和工具事件
-- **THEN** 用户无需切换研究记录即可读到对应执行反馈，流程节点显示具体任务，迟到旧执行事件不得覆盖新执行。
+- **THEN** 流程图中的动作卡片即时更新具体任务、结果和状态，点击可读完整反馈，角色节点保持独立外形；迟到旧执行事件不得覆盖新执行。
+
+#### Scenario: Inspect retained actions
+- **WHEN** 用户重开任务并点击动作或展开较早动作
+- **THEN** 在原角色下查看真实保留反馈与相关调用，终态不因旧开始事件回放而显示运行中。
 
 ### Requirement: Independent technical documentation
 
