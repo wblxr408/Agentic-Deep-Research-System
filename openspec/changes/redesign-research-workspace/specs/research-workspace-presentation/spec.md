@@ -40,7 +40,11 @@
 
 #### Scenario: A transient analyst provider failure occurs
 - **WHEN** 同一任务仍有原额度与期限，且满足既有可恢复分析契约，没有用户暂停请求
-- **THEN** 系统至多自动恢复一次并推送处理动作；相同阶段仍受原两次上限限制，失败后展示处理结果。
+- **THEN** 按错误类型选择次数和退避：连接3次、超时／服务端2次、明确限流4次；保留每阶段分类计数、原任务恢复总上限8次和原额度／期限，推送处理动作与结果。
+
+#### Scenario: Repair a recoverable input or report
+- **WHEN** 分析响应结构错误、输出截断、上下文可压缩或报告存在可定位主张问题
+- **THEN** 系统先修改纠正要求、可选片段／输出或对应段落再重新执行及核对；修改没有进展或达到分类次数／预算／期限时停止并直接解释，用户主动暂停始终优先。
 
 ### Requirement: User controls execution
 

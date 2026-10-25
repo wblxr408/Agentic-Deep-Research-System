@@ -4,7 +4,7 @@ ADRS 面向企业、高校和科研实验室的研究发展分析：从公开论
 
 ## 当前进度
 
-2026-10-26：系统停止后自动展示具体诊断、核对问题和处理结果；明确的临时分析连接故障在原额度与期限内最多自动恢复一次。用户暂停及权限／硬额度限制保留，界面不再要求用户翻日志找原因。[诊断与恢复](docs/RESEARCH_EXECUTION_CONTROLS.md) · [实际操作](docs/acceptance/stop-diagnosis-20261026.md)
+2026-10-26：系统停止后自动诊断并按原因修复：分析连接／超时／服务端／限流使用不同次数与退避，响应结构、上下文和长度问题先修改输入再试；报告按具体主张多轮修订并重新核对，无进展时停止。原任务预算、期限及用户暂停保持，动作通过 SSE 展示。[诊断与恢复](docs/RESEARCH_EXECUTION_CONTROLS.md) · [分类修复操作](docs/acceptance/adaptive-recovery-20261026.md)
 
 2026-10-25：工作流新增顶部暂停／继续／终止与停止原因、配置重启入口；恢复默认可见的 SSE Agent／工具实时反馈，节点展示具体任务。修复压缩中间件缓冲 SSE；专用浏览器和真实图检查点操作通过。[执行控制](docs/RESEARCH_EXECUTION_CONTROLS.md) · [实际操作](docs/acceptance/research-controls-sse-20261025.md)
 
