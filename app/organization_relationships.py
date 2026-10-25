@@ -168,6 +168,7 @@ def build_relationship_view(configuration, findings, evidence, proposals=None, *
     seen=set(item['relationship_id'] for item in records)
     for item in bounded('research_relationships',RelationshipObservation,200):
         try:
+            item=item.model_copy(update={'related_output_id':findings.get('publication_id_aliases',{}).get(item.related_output_id,item.related_output_id)})
             if item.relationship_id in seen or len(set(item.entity_ids))!=len(item.entity_ids):
                 raise ValueError('duplicate relation or party IDs')
             if not set(item.party_roles)<=set(item.entity_ids):

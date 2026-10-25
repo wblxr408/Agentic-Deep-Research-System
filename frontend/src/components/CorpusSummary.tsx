@@ -3,7 +3,7 @@ export interface CorpusSnapshot {
   declaration: { collection_mode: string; effective_seed_urls: string[]; search_terms: string[]; effective_search_terms: string[]
     source_policy: { groups: string[]; domains_by_group: Record<string, string[]> } | null
     inclusion: { start_date: string; end_date: string; disciplines: string[]; topic: string; output_types: string[] } }
-  counts: { source_candidates: number; accepted_publications: number; accepted_research_families: number; excluded_candidates: number
+  counts: { source_candidates: number; accepted_source_records?: number; accepted_publications: number; accepted_research_families: number; excluded_candidates: number
     pending_candidates: number; accepted_without_full_text: number; duplicate_seed_urls: number }
   records: Array<{ source_url: string; title: string | null; admission_status: 'candidate' | 'accepted' | 'excluded'
     record_kind: string; full_text_status: string; reason_code: string; reason?: string; acquisition_error?: string
@@ -25,7 +25,7 @@ export default function CorpusSummary({ corpus }: { corpus: CorpusSnapshot }) {
   return <section aria-label="样本基线与流转" className="mt-4 space-y-3 rounded-xl border border-xmgray-200 bg-white p-4 text-sm">
     <h3 className="font-semibold">样本基线与流转</h3>
     <p className="text-xs text-xmgray-600">仅声明及实际取得的样本，不是现实成果全集。候选网页数量与论文数量分别计数。</p>
-    <p>来源候选 {counts.source_candidates} · 采纳发表 {counts.accepted_publications} · 研究家族 {counts.accepted_research_families} · 排除候选 {counts.excluded_candidates} · 待核 {counts.pending_candidates}</p>
+    <p>来源候选 {counts.source_candidates}{counts.accepted_source_records !== undefined && <> · 采纳来源 {counts.accepted_source_records}</>} · 采纳发表 {counts.accepted_publications} · 家族／未链接发表单元 {counts.accepted_research_families} · 排除候选 {counts.excluded_candidates} · 待核 {counts.pending_candidates}</p>
     <p className="text-xs">采纳但未取得全文 {counts.accepted_without_full_text} · 重复种子合并 {counts.duplicate_seed_urls}</p>
     <details><summary>本次声明与覆盖</summary><div className="mt-2 space-y-2 text-xs">
       <p>范围：{declaration.inclusion.start_date} 至 {declaration.inclusion.end_date} · {declaration.inclusion.disciplines.join('、')} · {declaration.inclusion.topic}</p>

@@ -148,6 +148,17 @@ def _publication_url(value: str) -> str:
     return urlunsplit((split.scheme, split.netloc.lower(), split.path.rstrip('/'), urlencode(query), ''))
 
 
+def _publication_opening(source: dict) -> str:
+    acquisition = source.get('acquisition') or {}
+    opening_end = 3000
+    if acquisition.get('format') == 'pdf':
+        pages = acquisition.get('pages') or []
+        opening_end = min(16000, max((page.get('end', 0) for page in pages[:2]), default=3000))
+    opening = source['content'][:opening_end]
+    abstract = re.search(r'(?im)^[ \t]*(?:abstract|摘要|(?:1\.?\s+)?introduction|引言)(?:[.：:\s—–-]|$)', opening)
+    return opening[:abstract.start()] if abstract else opening
+
+
 def _literal_date_support(quote: str, value: str, *, proceedings: bool) -> tuple[str, str] | None:
     """Match a literal calendar date without requiring its ISO spelling in prose.
 
@@ -261,6 +272,10 @@ def build_organization_findings(configuration: dict | None, evidence: list[dict]
     result = organization_evidence_views(configuration, evidence)
     scope = OrganizationResearchScope.model_validate(configuration['scope'])
     sources = {item['evidence_id']: item for item in evidence if item.get('source_url')}
+    primary_documents = defaultdict(list)
+    for item in sources.values():
+        if (item.get('acquisition') or {}).get('format') == 'pdf':
+            primary_documents[_publication_url(item['source_url'])].append((item, _publication_opening(item)))
     proposed = proposed if isinstance(proposed, dict) else {}
     pending, proofs = [], []
     if not proposed:
@@ -321,14 +336,8 @@ def build_organization_findings(configuration: dict | None, evidence: list[dict]
                 # declared title in that same acquired source before accepting it.
                 check(Proof(evidence_id=publication.title_proof.evidence_id, quote=publication.title))
             acquisition=source.get('acquisition') or {}
-            opening_end=3000
-            if acquisition.get('format')=='pdf':
-                pages=acquisition.get('pages') or []
-                opening_end=min(16000,max((page.get('end',0) for page in pages[:2]),default=3000))
             title_field=source.get('source_title') or ''
-            opening=source['content'][:opening_end]
-            abstract=re.search(r'(?im)^[ \t]*(?:abstract|摘要|(?:1\.?\s+)?introduction|引言)(?:[.：:\s—–-]|$)',opening)
-            if abstract:opening=opening[:abstract.start()]
+            opening=_publication_opening(source)
             locator_title=urlsplit(title_field).scheme in {'http','https'}
             primary_fields=[title_field]
             if acquisition.get('format')=='pdf' or not title_field or locator_title:
@@ -366,7 +375,7 @@ def build_organization_findings(configuration: dict | None, evidence: list[dict]
                     raise ValueError('publication date was not present at its declared precision')
                 date_basis = supported[1]
                 date_evidence_id = publication.date_proof.evidence_id
-            from app.organization_corpus import date_membership
+            from app.organization_corpus import date_membership, PUBLICATION_ALIAS_VERSIONS
             membership = date_membership(lower, upper, scope.start_date, scope.end_date)
             if membership != 'within':
                 reason_code = 'publication_date_out_of_scope' if membership == 'outside' else 'date_precision_overlaps_scope'
@@ -399,13 +408,59 @@ def build_organization_findings(configuration: dict | None, evidence: list[dict]
                     pending.append({'kind': 'affiliation', 'output_id': publication.output_id, 'entity_id': affiliation.entity_id, 'reason': str(error)})
             if not affiliations:
                 raise ValueError('no source-supported publication affiliations')
-            key = _publication_url(source['source_url'])
+            venue = None
+            if publication.venue and publication.venue_proof:
+                check(publication.venue_proof)
+                if _contains(publication.venue_proof.quote, publication.venue):
+                    venue = publication.venue
+            source_key = _publication_url(source['source_url'])
+            key = source_key
+            alias_enabled = (configuration.get('corpus') or {}).get('rule_version') in PUBLICATION_ALIAS_VERSIONS
+            identity_links = []
+            if alias_enabled:
+                # Only literal URL tokens before the primary abstract/introduction;
+                # never follow a link or infer identity from a similar title.
+                linked = {}
+                for document, primary_opening in primary_documents.get(source_key, []):
+                    if not _contains(primary_opening, publication.title):
+                        continue
+                    if document['evidence_id'] != publication.title_proof.evidence_id and (
+                            not publication.date_proof or not _contains(primary_opening, publication.date_proof.quote)):
+                        continue
+                    opening_tokens = set(primary_opening.split())
+                    for candidate in sources.values():
+                        candidate_url = candidate['source_url']
+                        publisher = (candidate.get('acquisition') or {}).get('publisher_metadata') or {}
+                        if (candidate_url not in opening_tokens or len(candidate_url) > 600
+                                or _text(publisher.get('title', '')) != _text(publication.title)
+                                or publisher.get('published_on') != lower.isoformat()
+                                or publisher.get('published_until') != upper.isoformat()
+                                or not publisher.get('literal_fields')):
+                            continue
+                        linked[_publication_url(candidate_url)] = (candidate, document)
+                if len(linked) == 1:
+                    linked_key, (candidate, document) = next(iter(linked.items()))
+                    try:
+                        check(Proof(evidence_id=document['evidence_id'], quote=candidate['source_url']))
+                        for field in candidate['acquisition']['publisher_metadata']['literal_fields'].values():
+                            check(Proof(evidence_id=candidate['evidence_id'], quote=field['quote']))
+                    except ValueError as error:
+                        pending.append({'kind': 'publication_alias', 'output_id': publication.output_id,
+                            'source_url': source['source_url'], 'publisher_url': candidate['source_url'], 'reason': str(error)})
+                    else:
+                        key = linked_key
+                        evidence_ids.update((document['evidence_id'], candidate['evidence_id']))
+                        identity_links.append({'source_evidence_id': document['evidence_id'],
+                            'publisher_evidence_id': candidate['evidence_id'], 'publisher_url': candidate['source_url']})
+            source_urls = tuple(dict.fromkeys([source['source_url'], *(link['publisher_url'] for link in identity_links)]))
             previous = canonical.get(key)
             if previous:
                 if _text(previous.title) != _text(publication.title):
                     raise ValueError('same source page cannot stand for unrelated primary publications')
                 if (previous.published_on, previous.published_until) != (lower, upper):
                     raise ValueError('conflicting date bounds for the same publication source')
+                if alias_enabled and publication_meta[previous.output_id]['output_type'] != publication.output_type:
+                    raise ValueError('conflicting output types for the same publication source')
                 if publication.output_id in publications and publications[publication.output_id].output_id != previous.output_id:
                     raise ValueError('conflicting publication IDs')
                 merged = list(previous.affiliations)
@@ -414,31 +469,38 @@ def build_organization_findings(configuration: dict | None, evidence: list[dict]
                         merged.append(affiliation)
                 if len(merged) > 50:
                     raise ValueError('merged affiliations exceed record limit')
-                updated = previous.model_copy(update={'affiliations': tuple(merged)})
+                source_urls = tuple(dict.fromkeys([*(str(url) for url in previous.source_urls), *source_urls]))
+                updated = ResearchOutput.model_validate({**previous.model_dump(),
+                    'affiliations': tuple(merged), 'source_urls': source_urls})
                 outputs[outputs.index(previous)] = updated
                 for alias, item in list(publications.items()):
                     if item.output_id == previous.output_id:
                         publications[alias] = updated
-                canonical[key] = updated
+                for alias, item in list(canonical.items()):
+                    if item.output_id == previous.output_id:
+                        canonical[alias] = updated
+                canonical[key] = canonical[source_key] = updated
                 publications[publication.output_id] = updated
                 meta = publication_meta[previous.output_id]
                 meta['evidence_ids'] = sorted(set(meta['evidence_ids']) | evidence_ids)
+                if venue and not meta.get('venue'):
+                    meta['venue'] = venue
+                if identity_links:
+                    meta['identity_basis'] = 'explicit_primary_cover_link'
+                    meta.setdefault('identity_links', []).extend(identity_links)
                 continue
             if publication.output_id in publications:
                 raise ValueError('conflicting publication IDs')
-            venue = None
-            if publication.venue and publication.venue_proof:
-                check(publication.venue_proof)
-                if _contains(publication.venue_proof.quote, publication.venue):
-                    venue = publication.venue
             output = ResearchOutput(output_id=publication.output_id, title=publication.title,
                 published_on=lower, published_until=upper, date_precision=precision,
-                source_urls=(source['source_url'],), affiliations=tuple(affiliations))
+                source_urls=source_urls, affiliations=tuple(affiliations))
             outputs.append(output)
             publications[publication.output_id] = output
-            canonical[key] = output
+            canonical[key] = canonical[source_key] = output
             publication_meta[output.output_id] = {'output_type': publication.output_type, 'venue': venue,
-                'year': lower.year, 'evidence_ids': sorted(evidence_ids), 'identity_basis': 'primary_source_url',
+                'year': lower.year, 'evidence_ids': sorted(evidence_ids),
+                'identity_basis': 'explicit_primary_cover_link' if identity_links else 'primary_source_url',
+                'canonical_primary_url': key, 'identity_links': identity_links,
                 'date_basis': date_basis, 'proposed_publication_date': publication.publication_date}
         except ValueError as error:
             pending.append({'kind': 'publication', 'id': publication.output_id, 'title': publication.title,
@@ -504,6 +566,7 @@ def build_organization_findings(configuration: dict | None, evidence: list[dict]
         candidate_entities=tuple(candidates), outputs=tuple(outputs), research_families=tuple(families),
         relationships=tuple(relationships), output_relations=tuple(relations)))
     selected_ids = {entity.entity_id for entity in scoped.selected_entities}
+    accepted_output_ids = {output.output_id for output in scoped.outputs}
     interpretations = []
     for item in records('interpretations', Interpretation, 200):
         try:
@@ -531,6 +594,8 @@ def build_organization_findings(configuration: dict | None, evidence: list[dict]
         for key, objects in groups.items()]
     result.update({'schema_version': 'adrs-organization-findings-v1', 'scope_result': scoped.model_dump(mode='json'),
         'publication_metadata': publication_meta, 'comparison_groups': comparisons,
+        'publication_id_aliases': {alias: item.output_id for alias, item in publications.items()
+            if item.output_id in accepted_output_ids},
         'source_checks': {'status': 'source_quote_and_reference_checked_not_independent_semantic_review',
             'accepted_output_count': len(scoped.outputs), 'proofs': proofs, 'available_evidence_ids': list(sources)},
         'pending_records': pending, 'inferences': [item for item in interpretations if item['kind'] == 'inference'],

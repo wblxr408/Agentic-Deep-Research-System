@@ -6,6 +6,17 @@
 
 ## ADDED Requirements
 
+### Requirement: Publication identity preserves explicitly linked source versions
+新corpus-v3声明 SHALL 在已取得PDF的主标题区明确链接到本根已授权且已取得的出版页、完整标题及出版日期边界一致且目标唯一时，将其作为同一发表的来源别名。系统 MUST 保存来源URL、各自证明和署名，不因来源增加重复累计发表；类型／日期冲突、仅相似题名、参考文献链接及歧义不能建立别名，研究家族仍需原关系证明。旧声明和历史结果 SHALL 保留原规则。
+
+#### Scenario: Author copy and matching publication page
+- **WHEN** 已取得作者PDF封面明确包含同标题同月份的已取得出版页URL
+- **THEN** 来源记录分别保留，发表按同一output_id计一次；任一关联来源取得全文即可为该发表建立全文覆盖，引用与证据审核仍使用各自原文
+
+#### Scenario: Unproved relationship or changed publication identity
+- **WHEN** 没有明确主标题区链接，或目标未取得、题名／日期不一致、目标不唯一、类型冲突
+- **THEN** 不合并该来源身份，不追抓URL或扩权，不把相似线索当作已证实版本关系；旧根的冻结声明／额度／阶段不改
+
 ### Requirement: Assigned deep-reading works remain in the question input
 系统 SHALL 保留每个深读分组指定的全部采纳成果ID及其题名、日期、来源和证据映射，不为局部种子字节上限删除对象。完整署名证明可保留在根而不重复加入不负责归属抽取的深读阶段；实际完整请求仍 MUST 经过原预算、容量、期限及资料权限准入。
 

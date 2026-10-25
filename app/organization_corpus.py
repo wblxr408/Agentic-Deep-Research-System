@@ -18,7 +18,8 @@ from app.research_evaluation import OutputType
 from app.research_scope import ScopeRecord
 from app.research_sources import ResearchSourceScope
 
-CORPUS_VERSION = 'adrs-corpus-v2'
+CORPUS_VERSION = 'adrs-corpus-v3'
+PUBLICATION_ALIAS_VERSIONS = frozenset({'adrs-corpus-v3'})
 
 
 def date_membership(lower, upper, start, end):
@@ -357,7 +358,7 @@ def build_corpus(configuration, findings, evidence, tool_histories) -> dict | No
             row(url)['acquisition_error'] = history.get('error_category') or history.get('error') or 'source_read_failed'
     scoped = (findings or {}).get('scope_result') or {}
     for output in scoped.get('outputs', []):
-        for url in output['source_urls'][:1]:
+        for url in output['source_urls']:
             entry = row(url)
             entry.update(admission_status='accepted', record_kind='publication', reason_code='source_supported_in_scope',
                 title=output['title'], output_id=output['output_id'])
@@ -380,20 +381,26 @@ def build_corpus(configuration, findings, evidence, tool_histories) -> dict | No
         entry['stages'].append({'status': entry['admission_status'], 'at': evaluated_at, 'reason_code': entry['reason_code']})
     records = list(rows.values())
     accepted = [entry for entry in records if entry['admission_status'] == 'accepted']
-    return {'schema_version': CORPUS_VERSION, 'declaration': declaration,
+    accepted_ids = {entry['output_id'] for entry in accepted}
+    full_text_ids = {entry['output_id'] for entry in accepted if entry['full_text_status'] == 'acquired'}
+    declared_version = declaration.get('rule_version', 'adrs-corpus-v2')
+    return {'schema_version': declared_version, 'declaration': declaration,
         'request_frozen_at': configuration['evidence_cutoff'], 'evaluated_at': evaluated_at,
         'coverage': 'declared_retrieved_sample_not_real_world_census', 'records': records,
         'executed_queries': [{'requested_query': (call.get('args') or {}).get('query'),
             'executed_query': (call.get('safety_json') or {}).get('source_query', (call.get('args') or {}).get('query')),
             'status': call.get('status'), 'started_at': call.get('started_at'), 'completed_at': call.get('completed_at')}
             for call in calls if call.get('tool_name') == 'execute_search'],
-        'counts': {'source_candidates': len(records), 'accepted_publications': len(accepted),
+        'counts': {'source_candidates': len(records), 'accepted_source_records': len(accepted),
+            'accepted_publications': len(accepted_ids),
             'accepted_research_families': (scoped.get('summary') or {}).get('research_family_count', 0),
             'excluded_candidates': sum(entry['admission_status'] == 'excluded' for entry in records),
             'pending_candidates': sum(entry['admission_status'] == 'candidate' for entry in records),
-            'accepted_without_full_text': sum(entry['full_text_status'] != 'acquired' for entry in accepted),
+            'accepted_without_full_text': len(accepted_ids - full_text_ids),
             'duplicate_seed_urls': declaration['duplicate_seed_urls']},
-        'counting_unit': 'canonical_primary_source_url_for_candidates_and_publications; explicit_family_links_only',
+        'counting_unit': ('canonical_source_urls_for_candidates; explicitly_linked_publication_ids_for_publications; explicit_family_links_only'
+            if declared_version in PUBLICATION_ALIAS_VERSIONS else
+            'canonical_primary_source_url_for_candidates_and_publications; explicit_family_links_only'),
         'limits': ['检索式和纳入条件属于声明，学科／主题尚未独立分类。',
             '页面／检索线索不等于发表记录；采纳仅指通过本次原文字面、日期和归属检查。',
             '未取得全文不等于不可获得；不会自动跳转PDF或扩大来源。']}

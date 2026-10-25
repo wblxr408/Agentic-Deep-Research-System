@@ -67,6 +67,7 @@ def build_technical_cards(configuration,findings,evidence,proposals=None):
     for value in values[:20]:
         try:
             card=TechnicalCardProposal.model_validate(value)
+            card=card.model_copy(update={'output_id':findings.get('publication_id_aliases',{}).get(card.output_id,card.output_id)})
             if card.output_id not in outputs or card.output_id in proposed:raise ValueError('unknown or duplicate representative output')
             proposed[card.output_id]=card
         except ValueError as error:pending.append({'reason':str(error)[:400]})
