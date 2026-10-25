@@ -30,6 +30,18 @@
 - **WHEN** 用户打开已有暂停任务并刷新
 - **THEN** 显示已完成步骤及实际暂停阶段，节点不继续显示运行动画，不将旧事件标为当前执行。
 
+### Requirement: System diagnoses stops
+
+系统 SHALL 在停止时自动汇总停止阶段、结构化原因、具体核对问题、额度和期限及已采取动作。未知故障 SHALL 标为诊断不完整并明确系统缺失的证据，不将排查任务转交用户。历史停止任务 SHALL 在读取时得到同样诊断。
+
+#### Scenario: A report requires revision
+- **WHEN** 报告核对后停止
+- **THEN** 页面直接说明待修订数量和具体问题，以及是否已尝试修订，不要求用户查找运行日志。
+
+#### Scenario: A transient analyst provider failure occurs
+- **WHEN** 同一任务仍有原额度与期限，且满足既有可恢复分析契约，没有用户暂停请求
+- **THEN** 系统至多自动恢复一次并推送处理动作；相同阶段仍受原两次上限限制，失败后展示处理结果。
+
 ### Requirement: User controls execution
 
 系统 SHALL 在工作流顶部提供暂停与适用的继续入口，显示手动暂停或系统停止的具体原因。手动暂停 SHALL 在当前图步骤结束并持久化后停止后续调度；继续 SHALL 绑定本人任务、执行版本、检查点、原用量与期限。系统停止无法原位恢复时 SHALL 提供修改原配置再开始的入口。
