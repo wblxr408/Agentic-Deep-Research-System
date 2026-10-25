@@ -92,9 +92,12 @@ def extract_claims(text: str) -> list[dict]:
     return claims
 
 
-def _terms(text: str) -> Counter:
+def _terms(text: str, *, split_compounds: bool = False) -> Counter:
     text = _CITATION.sub("", text.lower())
     words = re.findall(r"[a-z0-9][a-z0-9_-]*", text)
+    if split_compounds:
+        words.extend(part for word in list(words) if '-' in word or '_' in word
+            for part in re.split(r'[-_]+',word) if part)
     for run in re.findall(r"[\u3400-\u9fff]+", text):
         words.extend(run[i:i+2] for i in range(max(1, len(run)-1)))
     return Counter(words)
@@ -108,7 +111,7 @@ _AUDIT_FIELDS = {
     'innovation': r'创新|贡献|novel|contribution|innovation',
     'experimental_design': r'实验设计|评估方法|experimental design|methodology|protocol',
     'baselines': r'基线|对比|比较|baseline|compar|control group',
-    'conditions': r'条件|环境|硬件|配置|参数|超参|批大小|批量大小|负载|数据集|样本|显存|内存|GPU|CPU|A100|V100|hardware|workload|dataset|configuration|sample|precision|memory|batch\s+size|(?<![a-z0-9_])rank(?![a-z0-9_])',
+    'conditions': r'条件|环境|硬件|配置|参数|超参|精度|模型|批大小|批量大小|负载|数据集|样本|显存|内存|GPU|CPU|A100|V100|hardware|workload|dataset|configuration|sample|precision|memory|batch\s+size|(?<![a-z0-9_])rank(?![a-z0-9_])',
     'results': r'结果|吞吐|延迟|倍|性能|指标|[×%]|result|throughput|latency|performance|metric|goodput',
     'limitations': r'限制|局限|limitation|caveat',
 }
@@ -117,6 +120,7 @@ _AUDIT_FIELDS = {
 def _audit_search_text(text):
     """Local location hints preserve the claim and stay inside cited bodies."""
     clean=re.sub(r'\\([/_-])',r'\1',_CITATION.sub('',text))
+    clean=re.sub(r'(?<=\d)\\+\.(?=\d)','.',clean)
     aliases={'解码':'decode decoding','预填充':'prefill',
         '最大批':'largest maximum batch size','最小批':'smallest minimum batch size',
         '批大小':'batch size','批量大小':'batch size'}
@@ -136,6 +140,13 @@ def _audit_source_anchor(claim, source, window, located_spans):
     identity = re.search(r'作者|署名|隶属|发表|出版|\b(?:authors?|affiliat\w*|published|publication date|title)\b', clean, re.I)
     if identity and meta.get('coverage') == 'full_text':
         return 0, min(len(text), window+400), 'source_opening'
+    section=re.search(r'(?:§|\b(?:section|sec\.?))\s*(\d+(?:\.\d+)+)',clean,re.I)
+    if section and meta.get('coverage')=='full_text':
+        headings=list(re.finditer(r'(?im)^[ \t]*'+re.escape(section[1])+
+            r'[ \t]+[^\W\d_][^\r\n]{1,100}',text))
+        if len(headings)==1:
+            start=headings[0].start()
+            return start,min(len(text),start+window+400),'source_section:'+section[1]
     focused = {field for field, pattern in _AUDIT_FIELDS.items() if re.search(pattern, clean, re.I)}
     measured = re.search(r'\d[\d.,]*\s*(?:×|%|倍|ms\b|s/token\b|GB\b|GPU\b)|实验|评估|基线|实验条件|参数|超参|批大小|批量大小|experiment|evaluat|baseline|batch\s+size|precision|(?<![a-z0-9_])rank(?![a-z0-9_])', clean, re.I)
     if 'mechanism' in focused and not measured:
@@ -147,7 +158,8 @@ def _audit_source_anchor(claim, source, window, located_spans):
         and 0 <= start < end <= len(text)]
     if hits:
         field, start, end = max(hits, key=lambda item: (
-            len(set(_terms(clean)) & set(_terms(text[max(0,item[1]-200):item[2]+400]))), -item[1]))
+            len(set(_terms(clean,split_compounds=True)) & set(_terms(
+                text[max(0,item[1]-200):item[2]+400],split_compounds=True))), -item[1]))
         room = max(window + 400, end-start)
         lower = max(0, start-min(200, max(0, room-(end-start))))
         return lower, min(len(text), max(end, lower+room)), 'located_field:'+field
@@ -172,7 +184,7 @@ def select_excerpts(claim: str, evidence: list[Evidence], *, cited: list[int] | 
                     audit_context: bool = False, source_spans: dict | None = None) -> list[dict]:
     """Search the full retained bodies, rather than the first N source prefixes."""
     search_text=_audit_search_text(claim) if audit_context else claim
-    query = _terms(search_text)
+    query = _terms(search_text,split_compounds=audit_context)
     markers=list(dict.fromkeys(re.findall(r'(?i)(?<![a-z0-9])[a-z][a-z0-9]*(?:[/_-][a-z0-9]+)+(?![a-z0-9])',search_text)))[:8] if audit_context else []
     ranked = []
     for number, ev in enumerate(evidence, 1):
@@ -184,7 +196,7 @@ def select_excerpts(claim: str, evidence: list[Evidence], *, cited: list[int] | 
             # the end of a window does not cut off the rest of its conditions.
             tail = 400 if windows_per_source > 1 else 0
             excerpt = ev.content[start:start+window+tail]
-            terms = _terms(excerpt)
+            terms = _terms(excerpt,split_compounds=audit_context)
             frequencies.update(terms.keys())
             candidates.append((start, excerpt, terms))
         count = len(candidates)
@@ -214,7 +226,7 @@ def select_excerpts(claim: str, evidence: list[Evidence], *, cited: list[int] | 
                     'returned_span':(ev.acquisition or {}).get('returned_span')}})
             if audit_context:
                 selected[-1]['selection_role'] = role
-            covered.update(term for term in _terms(excerpt) if term in query)
+            covered.update(term for term in _terms(excerpt,split_compounds=audit_context) if term in query)
         if audit_context and windows_per_source > 0:
             anchor = _audit_source_anchor(search_text, ev, window, (source_spans or {}).get(ev.evidence_id))
             if anchor:
