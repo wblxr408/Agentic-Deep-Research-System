@@ -36,6 +36,8 @@ def revise_report_claims(content, record, audit, *, configuration, statistics, e
         targets.append({'paragraph_id':key,'text':item['text'],'kind':item['kind'],
             'citations':item['citations'],'issues':[{'text':row['text'],'reason':row['reason'],
                 'status':row['status'],'allowed_method_ids':row.get('allowed_method_ids',[]),
+                'assessment_kind':row.get('assessment_kind'),'premise_status':row.get('premise_status'),
+                'conclusion_status':row.get('conclusion_status'),
                 'excerpt_ids':[ex['excerpt_id'] for ex in row['excerpts']]} for row in failed]})
         for row in failed:
             for ex in row['excerpts']:
@@ -66,6 +68,8 @@ def revise_report_claims(content, record, audit, *, configuration, statistics, e
         'An allowed_method_id may establish only this task\'s frozen input or retained-material coverage. '
         'It cannot establish scientific results, real-world absence, feasibility or cooperation. '
         'Keep factual premises distinct from the proposed interpretation or action. '
+        'Use assessment_kind, premise_status and conclusion_status to repair the missing premise '
+        'or overclaim; a clearly proposed next action does not require the paper author to endorse it. '
         'Return JSON {"repairs":[{"paragraph_id":"exact supplied ID","text":"corrected plain prose"}]}, '
         'exactly once for every supplied ID; no other fields.')
     def correction_messages(items):

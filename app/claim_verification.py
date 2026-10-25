@@ -17,7 +17,18 @@ from app.graph.state import Evidence
 from app.security.prompt_security import untrusted_context
 
 _CITATION = re.compile(r"\[(?:citation:)?(\d+)\](?!\()")
-AUDIT_CONTRACT_VERSION = 'adrs-claim-support-v4-source-context'
+AUDIT_CONTRACT_VERSION = 'adrs-claim-support-v5-typed-grounding'
+
+
+def _supported_assessment(record: dict, *, method: bool = False) -> bool:
+    """A positive judge must distinguish evidence from an explicitly proposed action."""
+    kind = record.get('assessment_kind')
+    expected = {'fact':'entailed', 'interpretation':'bounded_inference',
+        'proposal':'explicit_proposal', 'task_method':'frozen_task_only'}
+    return (isinstance(kind,str) and kind in expected
+        and (kind=='task_method' if method else kind!='task_method')
+        and record.get('premise_status')=='supported'
+        and record.get('conclusion_status')==expected[kind])
 
 
 def canonicalize_report_citations(text: str) -> str:
@@ -242,21 +253,35 @@ bound_statistics are server-bound task sample quantities tied to their rendered
 paragraph and unit. They establish only that task statistic, never scientific
 measurements or a real-world census. Source documents, full-text documents,
 publication records and research families are different populations.
-For an explicitly proposed interpretation or recommendation, judge its factual
-premises and conditions; do not demand that a source endorse the proposed action
-or that a potential partner has accepted it. Predictions still need source support.
+Assign assessment_kind yourself: fact, interpretation, proposal, or task_method.
 declared_kind is an untrusted writer label, not permission to skip factual checks.
-A proposed choice or comparison principle need not be a statement made by the
-paper: judge its cited factual premises and whether its stated conditions support
-the reasoning. Every asserted measurement, relationship and scientific result
-still needs source entailment. Never require an author to endorse the recommendation.
+Separate a cited empirical premise from the writer's inference or proposed next action.
+Every asserted measurement, relationship, scientific result, existing resource and
+real-world commitment must still be entailed by the permitted passages.
+For a fact, supported requires premise_status=supported and conclusion_status=entailed.
+For an interpretation, supported requires source-supported factual premises and a
+bounded inference under the stated conditions: conclusion_status=bounded_inference.
+For an explicit proposal, supported means a grounded proposal, NOT an observed result:
+require source-supported factual premises and conclusion_status=explicit_proposal.
+An author need not have proposed the same procedure or endorsed the action. A
+potential partner need not have accepted a clearly proposed contact or experiment.
+For example, recommending that a reproduction use a paper's reported SLO metric
+may be grounded in its metrics and setup; do not reject merely because the paper
+does not call that procedure an acceptance deliverable. Similarly a proposed
+materials experiment may use a source's reported temperature and strength metric.
+In contrast, claiming the procedure WILL isolate every confounder, guarantee a
+performance gain, or establish feasibility without the necessary resources is an
+empirical overclaim. Do not label it an explicit proposal to excuse it.
+If the factual premise is absent, the inference is too strong, or the proposal
+asserts an unverified outcome, return unsupported or unverifiable, not supported.
 For a claim with allowed_method_ids, task_method contains the frozen research
 request and retained-material coverage. These can establish only what was supplied
 or acquired in this task, never real-world absence, feasibility or a scientific result.
 Judge every clause; a gap label cannot excuse an embedded external claim.
-If a task-only gap is supported, return method_id from allowed_method_ids instead
-of passage_numbers. Otherwise return unsupported or unverifiable. Do not
-invent a citation to a paper to prove what the user did not supply.
+If a task-only gap is supported, use assessment_kind=task_method,
+premise_status=supported, conclusion_status=frozen_task_only, and return method_id
+from allowed_method_ids instead of passage_numbers. A failed task-method check
+cannot be rescued by inventing a paper citation for what the user did not supply.
 Coverage labels describe retained documents, not the absence of a section, code,
 licence or affiliation inside them. metadata_or_page_text may contain the complete
 article body. Do not infer those absences from the coverage label alone.
@@ -268,6 +293,9 @@ Judge only what the claim actually asserts. A correct scoped subclaim (such as a
 need not restate every other result or the upper bound; do not invent extra completeness requirements.
 For compound claims every asserted factual detail must follow from the supplied passages.
 Return JSON {"verdicts":[{"claim_id":"claim:1", "status":"supported|contradicted|unsupported|unverifiable",
+"assessment_kind":"fact|interpretation|proposal|task_method",
+"premise_status":"supported|unsupported|insufficient",
+"conclusion_status":"entailed|bounded_inference|explicit_proposal|frozen_task_only|overclaim|insufficient",
 "passage_numbers":[1,2],
 "reason":"explain scope/conditions", "confidence":0.0}]}.
 passage_numbers are LOCAL to that claim's passages array, not shared fragment references.
@@ -276,6 +304,7 @@ papers for a cross-paper comparison. A single related passage does not support
 other clauses. All listed numbers must belong to this claim. The server derives evidence identity,
 original quote and offsets; never invent or return evidence IDs or character offsets.
 For a task-method claim use {"claim_id":"claim:2","status":"supported",
+"assessment_kind":"task_method","premise_status":"supported","conclusion_status":"frozen_task_only",
 "method_id":"task-input:request","reason":"what the frozen request establishes"}.
 Evaluate every asserted clause using all of this claim's passages. Selected
 passages anchor the judgement and are not themselves proof of entailment.
@@ -431,7 +460,8 @@ def audit_report(report: str, evidence: list[Evidence], *, client: Any, model: s
     reusable = {}
     if (previous_audit or {}).get('audit_contract_version')==AUDIT_CONTRACT_VERSION and previous_audit.get('audit_model')==model:
         for old in previous_audit.get('claims', []):
-            if old.get('status')=='supported' and old.get('model_verdict')=='supported':
+            if (old.get('status')=='supported' and old.get('model_verdict')=='supported'
+                    and _supported_assessment(old,method=old.get('support_basis')=='task_method')):
                 reusable.setdefault(reuse_key(old), []).append(old)
     for i, claim in enumerate(claims):
         ids = claim["citation_ids"]
@@ -468,7 +498,8 @@ def audit_report(report: str, evidence: list[Evidence], *, client: Any, model: s
                         by_id[check['evidence_id']].content[check['quote_start']:check['quote_end']]==check.get('source_quote')
                         for check in checks)
                 if not valid:continue
-                for key in ('status','model_verdict','model_confidence','reason','support_basis','source_checks','method_checks'):
+                for key in ('status','model_verdict','model_confidence','reason','support_basis','source_checks','method_checks',
+                        'assessment_kind','premise_status','conclusion_status'):
                     if key in old:row[key]=deepcopy(old[key])
                 row['verification_reused']=True
                 row['reused_from_claim_id']=old['claim_id']
@@ -570,11 +601,19 @@ def audit_report(report: str, evidence: list[Evidence], *, client: Any, model: s
                 status = verdict.get("status")
                 if status not in {"supported", "contradicted", "unsupported", "unverifiable"}:
                     continue
+                for key, allowed in (
+                    ('assessment_kind',('fact','interpretation','proposal','task_method')),
+                    ('premise_status',('supported','unsupported','insufficient')),
+                    ('conclusion_status',('entailed','bounded_inference','explicit_proposal','frozen_task_only','overclaim','insufficient'))):
+                    value=verdict.get(key)
+                    row[key]=value if isinstance(value,str) and value in allowed else None
                 method_id = verdict.get('method_id')
                 if method_id in row.get('allowed_method_ids', []):
-                    row.update(status=status, model_verdict=status, support_basis='task_method',
+                    accepted = status!='supported' or _supported_assessment(row,method=True)
+                    row.update(status=status if accepted else 'unverifiable', model_verdict=status, support_basis='task_method',
                         reason=str(verdict.get('reason', ''))[:1200],
                         method_checks=[{'method_id': method_id, 'value': task_context[method_id]}])
+                    if not accepted:row['reason']='Missing or incompatible task-method grounding assessment; '+row['reason']
                     continue
                 numbers = verdict.get('passage_numbers')
                 if numbers is None and 'passage_number' in verdict:
@@ -605,9 +644,12 @@ def audit_report(report: str, evidence: list[Evidence], *, client: Any, model: s
                 row['support_basis'] = 'source_excerpt'
                 row["reason"] = str(verdict.get("reason", ""))[:1200]
                 anchors_valid = valid_numbers and all(check['quote_valid'] for check in checks)
-                row["status"] = status if anchors_valid else "unverifiable"
+                assessed = status!='supported' or _supported_assessment(row)
+                row["status"] = status if anchors_valid and assessed else "unverifiable"
                 if not anchors_valid:
                     row["reason"] = "Source anchors are absent or invalid in this claim's selected cited passages; " + row["reason"]
+                if not assessed:
+                    row['reason']='Missing or incompatible factual/inference/proposal grounding assessment; '+row['reason']
         except TokenBudgetExceeded as exc:
             record.update(status='budget_blocked',reason=exc.reason)
             errors.append(exc.reason)
@@ -642,6 +684,9 @@ def audit_report(report: str, evidence: list[Evidence], *, client: Any, model: s
             "human_review_status": "not_reviewed", "total_claims": len(rows),
             "checked_claims": sum(row['model_verdict'] is not None for row in rows),
             'method_supported_claims':method_supported, 'source_supported_claims':supported-method_supported,
+            'fact_supported_claims':sum(row['status']=='supported' and row.get('assessment_kind')=='fact' for row in rows),
+            'inference_supported_claims':sum(row['status']=='supported' and row.get('assessment_kind')=='interpretation' for row in rows),
+            'proposal_supported_claims':sum(row['status']=='supported' and row.get('assessment_kind')=='proposal' for row in rows),
             'screened_claims':sum(row['status'] != 'not_checked' for row in rows),"supported_claims": supported,
             'budget_incomplete':any(row['status'] == 'not_checked' for row in rows),
             'audit_incomplete':bool(unfinished),'unfinished_claim_ids':[row['claim_id'] for row in unfinished],

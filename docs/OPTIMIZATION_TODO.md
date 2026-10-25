@@ -22,6 +22,8 @@ A10正文中用户资源未提供的声明被挂上论文引用，且覆盖缺�
 
 部署`646f552`后，同范围U2b根`2db67121-a810-49bc-b031-5733ce5955e6`已正常登录／预览／创建200，仍用原归档来源、组与过滤及原240000／2700秒／24工具。预先补入原要求的[DistServe出版页](https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin)和[dLoRA出版页](https://www.usenix.org/conference/osdi24/presentation/wu-bingyang)作为明确种子，由应用重新取证；没有把旧结论注入模型或放宽内部上下文外传策略。原U2的失败与已用恢复次数保留，U2b仍需完整审核／成图／历史／反馈，不替代U1。
 
+U2b随后实际完成9阶段，初审119／119、86支持，6调用／71992 Token；20段修订后重审复用50项，但最终105中仅57有判定、56支持、48未核，231920／240000 Token暂停，8964字符稿，无正常图文。9.9仅接入v5结构化事实／推断／明确建议依据，拒绝缺分类或无原文支持的正判，不让建议背书要求和科学结果混在一起；原预算、窗口、全部主张及旧判保留，效果和全复合验收待后续完整旅程。见[审核契约](report-evidence-semantics.md)。
+
 主路径源码与选型见[实施账本](IMPLEMENTATION_LEDGER.md)及[五类执行计划／ACI](RESEARCH_EXECUTION_PLAYBOOK.md)。历史逐次输入、原始结果、实际用量和修复原因统一保存在[真实业务旅程](acceptance/unified-research-20261023.md)，下列状态不代替原始ORG／OPT／FLOW逐项完成条件。
 
 | 真实任务 | 已取得结果 | 尚未通过 |
