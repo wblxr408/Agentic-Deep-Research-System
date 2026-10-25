@@ -30,6 +30,22 @@
 - **WHEN** 用户打开已有暂停任务并刷新
 - **THEN** 显示已完成步骤及实际暂停阶段，节点不继续显示运行动画，不将旧事件标为当前执行。
 
+### Requirement: User controls execution
+
+系统 SHALL 在工作流顶部提供暂停与适用的继续入口，显示手动暂停或系统停止的具体原因。手动暂停 SHALL 在当前图步骤结束并持久化后停止后续调度；继续 SHALL 绑定本人任务、执行版本、检查点、原用量与期限。系统停止无法原位恢复时 SHALL 提供修改原配置再开始的入口。
+
+#### Scenario: Pause and continue
+- **WHEN** 用户请求暂停正在运行的本人任务，再继续该暂停任务
+- **THEN** 界面先显示暂停中，安全保存后显示用户暂停；继续从保存的下一节点执行，已完成结果、用量与起始期限保留，旧执行请求不能影响新执行。
+
+### Requirement: Live execution feedback stays visible
+
+系统 SHALL 在流程视图直接显示 SSE 实时事件与保留记录，包括实际角色、问题、工具输入及结果摘要。筛选及停止跟随只改变呈现，不改变任务执行；终态事件 SHALL 使用真实状态文字。
+
+#### Scenario: Observe an active agent
+- **WHEN** 服务端推送 Agent 和工具事件
+- **THEN** 用户无需切换研究记录即可读到对应执行反馈，流程节点显示具体任务，迟到旧执行事件不得覆盖新执行。
+
 ### Requirement: Independent technical documentation
 
 系统 SHALL 提供独立技术文档窗口及顶部主题导航，以分层卡片、数据方向连线和可控动画解释现有研究过程、ACI、证据与检索、Skill、模型路由、预算、恢复及图文交付。
