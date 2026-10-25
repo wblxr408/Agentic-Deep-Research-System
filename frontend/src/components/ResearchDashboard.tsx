@@ -3,6 +3,8 @@ import { useMutation, useQuery } from '@tanstack/react-query'
 import { useSSE } from '../hooks/useSSE'
 import type { SSEvent } from '../hooks/useSSE'
 import ResearchFlow, { mergeResearchEvents } from './ResearchFlow'
+import ExecutionFeed from './ExecutionFeed'
+import ResearchRunControls from './ResearchRunControls'
 import ResearchComposer from './ResearchComposer'
 import { Icon, StatusPill } from './Interface'
 import ToolTrace from './ToolTrace'
@@ -26,6 +28,9 @@ import type { PlanSummaryProps } from './ResearchPlanSummary'
 import type { DeliveryView } from './ReportDeliveryView'
 
 interface ResearchResult {
+  runtime_status?:string|null
+  stop_reason?:string|null
+  user_control?:{state?:string}|null
   execution_id?:string|null
   report_audit?: {needs_review?:boolean;audit_incomplete?:boolean;total_claims?:number;supported_claims?:number;
     revision_requests?:Array<{claim_id:string;text:string;reason:string;requested_action:string}>}|null
@@ -280,7 +285,7 @@ function ResearchDashboard({ onBack }: ResearchDashboardProps) {
     if (doneEvent&&handledTerminal.current!==doneEvent) {
       handledTerminal.current=doneEvent
       setIsStreaming(false)
-      setSessionStatus(doneEvent.type === 'done' ? String(doneEvent.data.status||'completed') : 'failed')
+      setSessionStatus(String(doneEvent.data.status||(doneEvent.type==='done'?'completed':'failed')))
       void refetchResult()
     }
   }, [events,refetchResult])
@@ -288,6 +293,12 @@ function ResearchDashboard({ onBack }: ResearchDashboardProps) {
   useEffect(()=>{
     const gap=[...events].reverse().find(event=>event.data.delivery_gap===true)
     if(gap&&handledGap.current!==gap){handledGap.current=gap;void refetchResult()}
+  },[events,refetchResult])
+
+  const handledControl=useRef<SSEvent|null>(null)
+  useEffect(()=>{
+    const update=[...events].reverse().find(event=>event.type==='control_update')
+    if(update&&handledControl.current!==update){handledControl.current=update;void refetchResult()}
   },[events,refetchResult])
 
   useEffect(() => {
@@ -422,6 +433,14 @@ function ResearchDashboard({ onBack }: ResearchDashboardProps) {
   const [reportElement, setReportElement] = useState<HTMLDivElement | null>(null)
 
   const [activePanel, setActivePanel] = useState('workflow')
+  const configuration=useRef<HTMLDivElement>(null)
+  const openRestartConfiguration=()=>{
+    setActivePanel('records')
+    requestAnimationFrame(()=>{
+      const details=configuration.current?.querySelector('details')
+      if(details){details.open=true;details.scrollIntoView({behavior:'smooth',block:'center'});details.querySelector('textarea')?.focus({preventScroll:true})}
+    })
+  }
   const selectedSession = useRef<string | null>(null)
   useEffect(() => {
     if (result && selectedSession.current !== result.session_id) {
@@ -460,13 +479,16 @@ function ResearchDashboard({ onBack }: ResearchDashboardProps) {
     {showConfirmationState&&<p className="workspace-notice" role="status">等待确认</p>}
     {sseError&&<p className="workspace-notice" role="status">实时连接中断<button type="button" className="btn-ghost" disabled={!canRefetchResult} onClick={()=>void refetchResult()}>刷新记录</button></p>}
     <section hidden={activePanel!=='workflow'} aria-label="研究流程视图">
+      {result&&<ResearchRunControls key={`run-${result.session_id}-${result.execution_id}`} value={result}
+        onRefresh={async()=>{const value=await refetchResult();if(value.error)throw value.error}}
+        onResumed={async execution=>{clearEvents();setStreamRunKey(execution);setSessionStatus('running');setIsStreaming(true);await refetchResult()}}
+        onRestart={openRestartConfiguration} onSynthesis={stage=>resumeSynthesis.mutate(stage)} synthesisBusy={resumeSynthesis.isPending}/>}
       <ResearchFlow key={activeSessionId} plan={result?.plan_manifest} dag={result?.execution_plan} events={traceEvents} status={sessionStatus||'pending'} tools={toolAudit.data} analysis={analysisProgress} history={result?.plan_history}/>
+      <ExecutionFeed events={traceEvents} connection={sseStatus} status={sessionStatus||'pending'}/>
+      {resumeSynthesis.error&&<p role="alert" className="composer-error">{resumeSynthesis.error.message}</p>}
       <div className="workspace-summary-row">
         <section className="workspace-summary"><span className="eyebrow">当前阶段</span><h2>{isStreaming ? currentStage : stoppedLabel}</h2>
           {analysisProgress&&<p>{analysisPhase}{progressParts[2]==='conditions'?' · 条件补读':''}{analysisBatch?` · 第 ${analysisBatch} 组`:''} · {analysisProgress.completed_steps} 步已保存</p>}
-          {result?.analysis_recovery_available&&<button type="button" className="btn-secondary" disabled={resumeSynthesis.isPending||isStreaming} onClick={()=>resumeSynthesis.mutate('analysis')}>继续分析</button>}
-          {result?.report_recovery_available&&<button type="button" className="btn-secondary" disabled={resumeSynthesis.isPending||isStreaming} onClick={()=>resumeSynthesis.mutate('report')}>继续生成报告</button>}
-          {resumeSynthesis.error&&<p role="alert" className="composer-error">{resumeSynthesis.error.message}</p>}
           {analysisProgress?.stop_reason==='insufficient_context_budget'&&<p className="text-sm">本阶段剩余上下文额度不足。</p>}
         </section>
         <section className="workspace-summary"><span className="eyebrow">Token 额度</span><h2>{result?.budget_state?.used_total_tokens?.toLocaleString()??'—'}<small> / {result?.budget_state?.max_total_tokens?.toLocaleString()??'—'}</small></h2>
@@ -488,7 +510,7 @@ function ResearchDashboard({ onBack }: ResearchDashboardProps) {
       {result&&<UnderstandingSummary value={result.query_understanding}/>}
       {result&&result.execution_id!==undefined&&<ResearchCancellation key={`cancel-${result.session_id}-${result.execution_id}`} sessionId={result.session_id} executionId={result.execution_id} status={result.status} inflight={result.budget_state?.inflight_model_requests} onRefresh={async()=>{const refreshed=await refetchResult();if(refreshed.error)throw refreshed.error}}/>}
       {result&&<ResearchPlanSummary status={result.status} plan={result.plan_manifest} dag={result.execution_plan} history={result.plan_history} control={result.iteration_control} failure={result.workflow_failure} operationalEvents={result.operational_events}/>}
-      {result&&['completed','paused','failed','canceled'].includes(result.status)&&<ResearchConfigurationEditor key={`configure-${result.session_id}`} query={typeof result.restart_parameters?.query==='string'?result.restart_parameters.query:result.query} parameters={result.restart_parameters} onStarted={handleRestartedResearch}/>}
+      {result&&['completed','paused','failed','canceled'].includes(result.status)&&<div ref={configuration}><ResearchConfigurationEditor key={`configure-${result.session_id}`} query={typeof result.restart_parameters?.query==='string'?result.restart_parameters.query:result.query} parameters={result.restart_parameters} onStarted={handleRestartedResearch}/></div>}
       {result?.organization_research&&<section className="card p-5"><h3>研究范围</h3><p className="mt-3">{result.organization_research.scope.entities.map(entity=>entity.name).join('、')||'候选发现'} · {result.organization_research.scope.disciplines.join('、')}</p><p className="text-sm text-xmgray-600 mt-2">{result.organization_research.scope.start_date} — {result.organization_research.scope.end_date}</p>{typeof result.organization_result?.evidence_count==='number'&&<p className="text-sm mt-2">{result.organization_result.evidence_count} 条证据</p>}</section>}
       {result?.status==='completed'&&result.organization_research&&<ResearchMatchingPanel key={result.session_id} sessionId={result.session_id} query={typeof result.restart_parameters?.query==='string'?result.restart_parameters.query:result.query} scope={result.organization_research.scope} disciplines={result.organization_research.scope.disciplines} restartParameters={result.restart_parameters} purpose={result.organization_research.purpose} modules={result.organization_research.modules} corpus={result.organization_research.corpus} taxonomy={result.organization_research.taxonomy?.request} actionRequirements={result.organization_research.action_requirements} onStarted={handleRestartedResearch}/>}
       {result?.status==='completed'&&result.organization_research&&<ClassificationPanel key={`classification-${result.session_id}`} sessionId={result.session_id}/>}

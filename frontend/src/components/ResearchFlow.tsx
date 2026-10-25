@@ -23,7 +23,7 @@ function currentFlowNode(nodes:FlowNode[]):FlowNode|undefined {
 }
 function evidenceLabel(type:string,purpose:string,query:string):string {
   if(type==='browser')try { const url=new URL(query),file=decodeURIComponent(url.pathname.split('/').filter(Boolean).pop()||'');return /\.pdf$/i.test(file)?file.replace(/^OSDI\d+_/,''):url.hostname.replace(/^www\./,'')+' · '+file.slice(0,28) } catch { /* Use the public plan label. */ }
-  return purpose||labels[type]||'取证'
+  return query||purpose||labels[type]||'取证'
 }
 interface Props {
   plan:PlanSummaryProps['plan'];dag?:{nodes:DagNode[]};events:SSEvent[];status:string;tools?:PersistedToolCall[]
@@ -45,6 +45,14 @@ function nodesFor(p:Props):FlowNode[] {
   const nodes:FlowNode[]=steps.filter(s=>!['analyst','report','reflection'].includes(s.node_type||'')).map(step=>{
     const current=persisted.get(step.node_id)
     let status=current?.status||'pending'
+    const activity=[...p.events].reverse().find(event=>{
+      const args=event.data.args as Record<string,unknown>|undefined
+      return ['tool_start','tool_call','tool_complete','tool_result','tool_error'].includes(event.type)&&(
+        event.data.node_id===step.node_id||Boolean(step.query&&(args?.query===step.query||args?.url===step.query)))
+    })
+    if(activity&&!['done','completed','skipped'].includes(status)){
+      status=['tool_start','tool_call'].includes(activity.type)?'running':activity.type==='tool_error'||activity.data.status==='error'?'failed':'done'
+    }
     if(status==='running'&&terminal)status=p.status==='completed'?'unknown':p.status
     const type=step.node_type||current?.node_type||'search'
     return {id:step.node_id,type,label:evidenceLabel(type,step.purpose,step.query),query:step.query,status,dependencies:step.depends_on||[],x:0,y:0,error:current?.last_error}
@@ -107,7 +115,7 @@ export default function ResearchFlow(p:Props) {
         </svg>
         {nodes.map((node,index)=><button key={node.id} className="flow-node" data-status={node.status} style={{left:node.x,top:node.y}} type="button" onClick={()=>setSelected(node.id)} aria-label={`${node.label}，${statusLabels[node.status]||node.status}`}>
           <span className="flow-node-top"><span className="flow-node-icon"><Icon name={node.type==='analyst'?'layers':node.type==='report'?'chart':node.type==='reflection'?'target':node.type==='browser'?'book':'search'} size={18}/></span><span className="flow-node-kind">{labels[node.type]||node.type}</span><span className="flow-node-sequence">{String(index+1).padStart(2,'0')}</span></span>
-          <strong>{node.label}</strong><span className="flow-node-status"><StatusPill status={node.status}/></span>
+          <strong title={node.label}>{node.label}</strong><span className="flow-node-status"><StatusPill status={node.status}/></span>
         </button>)}
       </div>
     </div>

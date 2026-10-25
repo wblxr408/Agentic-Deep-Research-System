@@ -88,6 +88,7 @@ export function useSSE(sessionId: string | null, runKey = ''): {
       'tool_start', 'tool_call', 'tool_complete', 'tool_result', 'tool_error',
       'state_update', 'reflection', 'report_chunk',
       'report_citation', 'done', 'workflow_error', 'workflow_start',
+      'control_update',
     ]
 
     eventTypes.forEach(type => {
@@ -103,7 +104,9 @@ export function useSSE(sessionId: string | null, runKey = ''): {
             eventSourceRef.current = null
             setStatus('disconnected')
           }
-          append({ type, data, timestamp: new Date().toISOString() })
+          const retainedTime=typeof data.timestamp==='string'?data.timestamp:undefined
+          const timestamp=retainedTime&&!/(?:Z|[+-]\d{2}:\d{2})$/i.test(retainedTime)?`${retainedTime}Z`:retainedTime
+          append({ type, data, timestamp: timestamp||new Date().toISOString() })
         } catch {
           append({ type, data: { raw: event.data }, timestamp: new Date().toISOString() })
         }
