@@ -1,5 +1,11 @@
 # 云端源码交接后的本机完整旅程（2026-10-24）
 
+## U2c当前结论：分析完成，报告结构失败
+
+根64e27e48-73a9-4400-b105-bdda62906240沿原范围与2e42529业务部署运行。第5阶段63737 Token时出现4096真实输出截断，原页面分析恢复execution9e7002d8-e78b-41c9-9c29-6b4b7566d607完成9阶段。首次报告124634 Token结构失败，实际唯一报告恢复按钮309生成execution ff15658c-e9e9-48af-84ac-fd05e250b7f4后仍failed／retryable_failed，141798 Token、8工具、0在途，report_recovery_available=false；没有v5审核／图文交付。原u2-deep2-output-limit.json、u2-report-failure-before-resume.json、u2-final-report-failure.json保存在outputs/unified-research-20261025-u2c/，不覆盖／延长旧根。
+
+真实拒绝为未绑定“两篇”及observation缺有效引用。9.11据此修正错误类型与修订能力不匹配：原局部修订只能改text并锁kind／citations，无法处理缺引用，现在此类错误回原完整修订，仍仅一轮且严格重组；不相关统计不因传入快照而强插。9.10 fc913c3还将后续深读首次响应预留提高到8192，总额度不变；U2c进程未加载该增量，不能把原有第二次8192当作新首轮策略验收。两项仅源码／文档审阅，未运行非E2E检查，U1—U4原全部范围、实际人类反馈与复合验收继续待办。
+
 继续原全部ORG／OPT-01—18／FLOW和[统一真实研究端到端范围](unified-research-20261023.md)，没有将源码审阅或环境准备记为通过。原任务、预算、费用、暂停原因和历史产物保留。用户已明确授权：自行处理云端问题，确实无法继续时回到本机实现。
 
 ## 实际交接与执行地点

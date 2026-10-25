@@ -116,6 +116,8 @@ def module_report_instructions(configuration: dict) -> str:
         'if necessary put it once in appendix as kind=gap with citations=[]. Never append paper citations to it. '
         'Keep author and institution names exactly as supplied by sources; do not invent Chinese characters from romanized names. '
         'Consolidate sample coverage and acquisition limitations once in appendix. In main prose mention a limitation only where it changes a technical choice. '
+        'Include corpus-size or annual-statistics paragraphs only when the selected research questions need them. '
+        'For comparisons of named works, state scope through their names; do not add sample counts, research-family counts or yearly coverage merely because computed_statistics is available. '
         'Distinguish an acquired abstract from an acquired full text; missing full text does not establish that a paper does not exist. '
         'Use natural paper names and research questions, not internal grouping terms such as research family or unlinked publication unit. '
         'The summary answers the actual research question, rather than listing chapter names. Never fill missing evidence with invented facts. '

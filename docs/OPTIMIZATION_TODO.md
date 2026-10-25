@@ -28,6 +28,8 @@ U2b随后实际完成9阶段，初审119／119、86支持，6调用／71992 Toke
 
 U2c在5阶段／63737 Token时，deep_dive:2实际completion_tokens=output_cap=4096，按model_output_limit暂停；原根已有重试会给8192输出，已从页面继续。9.10仅把后续深读阶段首次响应预留也设为8192，避免可预见的大结构化内容先截断再重做；整根额度、原期限、模型、上下文拟合和每阶段两次上限不变，其他普通问题仍4096。当前在途进程未重启，源码增量效果待后续完整旅程。
 
+U2c分析恢复后完成9阶段；首次报告在124634 Token因未绑定“两篇”失配，唯一实际GUI报告恢复execution ff15658c-e9e9-48af-84ac-fd05e250b7f4后仍failed／retryable_failed，141798 Token、8工具、0在途，最终unbound_sample_aggregate及invalid_source_numbers，未进入v5证据审核或图文。完整前后快照已保存，报告恢复已耗尽，旧根不续命。9.11修局部修订路由：原先所有无schema错误的拒绝行都送只改text且锁引用的路径，无法修observation缺有效引用；现在只有可用文字修正的统计错误走此路径，其他回到原有完整契约修订，仍仅一轮并重新严格组装。技术比较也不因存在统计快照而强插无关样本／家族／年度统计。源码／内容审阅完成，未做非E2E检查；须后续同完整范围旅程验证，不能称v5已奏效或U2通过。
+
 主路径源码与选型见[实施账本](IMPLEMENTATION_LEDGER.md)及[五类执行计划／ACI](RESEARCH_EXECUTION_PLAYBOOK.md)。历史逐次输入、原始结果、实际用量和修复原因统一保存在[真实业务旅程](acceptance/unified-research-20261023.md)，下列状态不代替原始ORG／OPT／FLOW逐项完成条件。
 
 | 真实任务 | 已取得结果 | 尚未通过 |

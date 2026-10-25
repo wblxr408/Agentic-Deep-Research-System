@@ -333,7 +333,12 @@ Evidence Sources:
                     first_raw = normalized_raw
                     from app.research_context import encoded
                     rejected = first_record['rejected_paragraphs']
-                    local_repair = bool(rejected) and not first_record['validation_errors']
+                    text_repair_reasons = {'unbound_sample_aggregate', 'unbound_source_aggregate',
+                        'unbound_sample_ratio', 'unknown_statistical_metric', 'statistics_snapshot_unavailable',
+                        'invalid_statistical_placeholder', 'statistical_population_mismatch',
+                        'statistical_measure_mismatch', 'duplicate_percentage_unit'}
+                    local_repair = (bool(rejected) and not first_record['validation_errors']
+                        and all(row['reason'] in text_repair_reasons for row in rejected))
                     repair_context = encoded({'draft': None if local_repair else first_raw, 'issues': first_record['issues'],
                         'validation_errors': first_record['validation_errors'],
                         'rejected_paragraphs': [{'paragraph_id':f'rejected:{index+1}', **row} for index,row in enumerate(rejected)], 'computed_statistics': computed_statistics})
