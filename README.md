@@ -8,7 +8,7 @@ ADRS 面向企业、高校和科研实验室的研究发展分析：从公开论
 
 [主TODO](docs/OPTIMIZATION_TODO.md) · [实施账本与选型](docs/IMPLEMENTATION_LEDGER.md) · [统一真实旅程及失败记录](docs/acceptance/unified-research-20261023.md) · [当前使用说明](docs/organization-research-guide.md)
 
-原云端执行点已停写，当前按用户授权回到本机继续，并逐模块推送同一任务分支。最新U2d完成111项初审、90支持，修订后核对99／107项、88支持，在230160／240000 Token处暂停，尚无正常图文交付。发表别名、完整JSON格式恢复和原文定位／审核校准增量已写入源码，效果待后续完整旅程。[本机实际记录](docs/acceptance/local-continuation-20261024.md)保留原结果；[云端交接](docs/CLOUD_CONTINUATION_20261024.md)为历史，本机数据库、密钥、会话和依赖不随Git迁移。
+原云端执行点已停写，当前按用户授权回到本机继续，并逐模块推送同一任务分支。U2e已实际完成7阶段分析，四个论文／出版页来源归并为两项发表并保留各自证明，正在写作；恢复过程发现并修复证据重排序与旧输入顺序兼容问题，仍用原额度与截止时间。原U2d在230160／240000 Token处暂停的结果保留。完整图文、审核、导出和读者质量尚未通过。[本机实际记录](docs/acceptance/local-continuation-20261024.md)保留原结果；[云端交接](docs/CLOUD_CONTINUATION_20261024.md)为历史，本机数据库、密钥、会话和依赖不随Git迁移。
 
 | 能力 | 当前状态与依据 |
 | --- | --- |
