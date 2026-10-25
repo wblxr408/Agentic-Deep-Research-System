@@ -153,13 +153,16 @@ def reading_source_spans(reading, evidence, analysis_workflow=None):
                     if not source.source_url or (source.acquisition or {}).get('coverage')=='discovery_only':continue
                     # Layout tolerance locates actual text, never accepts the
                     # candidate summary or substitutes normalized source bytes.
+                    literal_pattern=r'\s+'.join(re.escape(word) for word in quote.split())
                     parts=[]
                     for word in quote.split():
                         parts.append(r'(?:-\s*\r?\n\s*)?'.join(re.escape(char) for char in word)
-                            if re.fullmatch(r'[A-Za-z]{4,}',word) else re.escape(word))
+                            if re.fullmatch(r'[A-Za-z]{4,64}',word) else re.escape(word).replace(r'\-',r'-\s*'))
                     pattern=r'\s+'.join(parts)
                     for current in by_url.get(_publication_url(source.source_url),[]):
-                        match=re.search(pattern,current.content,re.I)
+                        match=re.search(literal_pattern,current.content,re.I)
+                        if not match and (current.acquisition or {}).get('format')=='pdf':
+                            match=re.search(pattern,current.content,re.I)
                         if match:
                             item=(field,match.start(),match.end())
                             if item not in spans.setdefault(current.evidence_id,[]):spans[current.evidence_id].append(item)
