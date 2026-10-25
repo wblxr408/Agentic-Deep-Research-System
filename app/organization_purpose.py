@@ -134,12 +134,22 @@ def module_report_instructions(configuration: dict) -> str:
         + analysis_instructions(configuration))
 
 
+def _sample_counting_text(text: str) -> str:
+    """Mask work references only in the guard copy, never in report prose.
+
+    Another/the same paper and an ordinal paper identify a work; they do not
+    state the size of the corpus. Literal cardinal counts still need binding.
+    """
+    reference=r'(?:另一|同一|第(?:\d+|[零〇一二两三四五六七八九十百千万]+))\s*篇(?!全文|完整正文|文档)'
+    return re.sub(reference,'[work reference]',text)
+
+
 def paragraph_repair_messages(rejected: list[dict]) -> list[dict]:
     from app.security.prompt_security import untrusted_context
     number=r'(?:\d+(?:[.,]\d+)*|[零〇一二两三四五六七八九十百千万]+)'
     quantities=number+r'\s*(?:篇(?:论文|全文|成果)?|份(?:全文|来源|文档)?|个研究家族|项成果|条发表)'
     payload = json.dumps([{'paragraph_id': f'rejected:{index+1}', **row,
-        'quantity_phrases_to_rewrite':re.findall(quantities,row['paragraph']['text'])}
+        'quantity_phrases_to_rewrite':re.findall(quantities,_sample_counting_text(row['paragraph']['text']))}
         for index, row in enumerate(rejected)], ensure_ascii=False)
     return [{'role': 'system', 'content':
         'Correct only the rejected research paragraphs. Return JSON {"repairs":[{"paragraph_id":"rejected:1","text":"corrected prose"}]}. '
@@ -266,7 +276,7 @@ def assemble_module_report(raw: str, configuration: dict, citation_count: int, *
         document_units=r'(?:篇|份|个)\s*(?:全文|完整正文|来源文档|文档版本|来源|证据条目|证据片段)'
         if re.search(number+r'\s*'+document_units,remainder,re.I):raise ValueError('unbound_source_aggregate')
         units=r'(?:篇(?!全文|完整正文|文档)(?:论文|成果|发表)?|条发表|项成果|个?(?:研究家族|发表记录|分类标签|采纳样本)|publications?\b|papers?\b|families\b)'
-        if re.search(number+r'\s*'+units,remainder,re.I):raise ValueError('unbound_sample_aggregate')
+        if re.search(number+r'\s*'+units,_sample_counting_text(remainder),re.I):raise ValueError('unbound_sample_aggregate')
         for clause in re.split(r'[。；;\n]',remainder):
             aggregate=re.search(r'样本|采纳|发表|家族|分类|标签|占比|占总|sample|publication|families|percentage',clause,re.I)
             if aggregate and re.search(number+r'\s*(?:[%％]|/\s*'+number+r')',clause):
