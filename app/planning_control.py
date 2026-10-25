@@ -238,9 +238,19 @@ def retained_evidence_version(state: dict) -> str:
     records = []
     for item in state.get('collected_evidence', []):
         metadata = item.get('metadata') or {}
-        records.append({'source_url': item.get('source_url'), 'source_document_id': metadata.get('source_document_id'),
-            'parse_version_id': metadata.get('parse_version_id'), 'content': item.get('content', '')})
-    return identity(sorted({identity(record) for record in records}))
+        acquisition = item.get('acquisition') or {}
+        records.append({'source_url': item.get('source_url'), 'source_type':item.get('source_type'),
+            'source_document_id': acquisition.get('source_document_id',metadata.get('source_document_id')),
+            'parse_version_id': acquisition.get('parse_version_id',metadata.get('parse_version_id')),
+            'source_access_revision':acquisition.get('source_access_revision'),
+            'source_content_version':acquisition.get('source_content_version'),
+            'index_generation_id':acquisition.get('index_generation_id'),
+            'source_etag':acquisition.get('source_etag'),
+            'source_last_modified':acquisition.get('source_last_modified'),
+            'parse_profile':acquisition.get('parse_profile'),
+            'data_class':(acquisition.get('data_governance') or {}).get('data_class'),
+            'coverage':acquisition.get('coverage'), 'content': item.get('content', '')})
+    return identity({'version':'adrs-retained-material-v2','records':sorted({identity(record) for record in records})})
 
 
 def iteration_decision(state: dict, policy: PlanningPolicy) -> dict:

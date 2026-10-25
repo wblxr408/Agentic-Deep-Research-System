@@ -37,6 +37,101 @@ def analysis_binding(query, configuration, skills, hints, evidence):
             for item in evidence]})
 
 
+RETAINED_SYNTHESIS_VERSION = 'adrs-retained-synthesis-v1'
+
+
+def _synthesis_identity(state):
+    root=state.get('session') or {}
+    return {key:str(value) if value is not None else None for key,value in {
+        'owner_id':root.get('owner_id'),'task_id':state.get('task_id'),
+        'execution_id':root.get('execution_id')}.items()}
+
+
+def _bound_evidence_subset(evidence, identifiers):
+    if (not isinstance(identifiers,list) or not identifiers
+            or not all(isinstance(item,str) for item in identifiers)
+            or len(set(identifiers))!=len(identifiers)):
+        return None
+    by_id={item.evidence_id:item for item in evidence}
+    if len(by_id)!=len(evidence) or any(item not in by_id for item in identifiers):
+        return None
+    return [by_id[item] for item in identifiers]
+
+
+def capture_retained_synthesis(state, query, skills, hints):
+    """Keep the completed input/result before a bounded acquisition round."""
+    from app.graph.state import deserialize_evidence
+    from app.planning_control import retained_evidence_version
+    workflow=state.get('analysis_workflow') or {}
+    identity=_synthesis_identity(state)
+    if (not all(identity.values()) or not state.get('analysis')
+            or workflow.get('status')!='completed'
+            or workflow.get('question_seed_version')!=QUESTION_SEED_VERSION
+            or state.get('evidence_access_gaps')):
+        return None
+    evidence=[deserialize_evidence(item) for item in state.get('collected_evidence',[])]
+    identifiers=[item.evidence_id for item in evidence]
+    if (_bound_evidence_subset(evidence,identifiers) is None
+            or workflow.get('binding')!=analysis_binding(query,state.get('organization_research'),skills,hints,evidence)):
+        return None
+    return deepcopy({'version':RETAINED_SYNTHESIS_VERSION,**identity,
+        'material_version':retained_evidence_version(state),'evidence_ids':identifiers,
+        'analysis':state['analysis'],'workflow':workflow,
+        'organization_result':state.get('organization_result'),
+        'verification':state.get('verification')})
+
+
+def reuse_retained_synthesis(state, query, skills, hints):
+    """Reuse only after current access checks and exact original-input checks."""
+    from app.graph.state import deserialize_evidence
+    from app.planning_control import retained_evidence_version
+    frame=state.get('retained_synthesis') or {}
+    identity=_synthesis_identity(state)
+    if (frame.get('version')!=RETAINED_SYNTHESIS_VERSION or not all(identity.values())
+            or any(frame.get(key)!=value for key,value in identity.items())
+            or state.get('evidence_access_gaps')
+            or frame.get('material_version')!=retained_evidence_version(state)):
+        return None
+    workflow=frame.get('workflow') or {}
+    if (not frame.get('analysis') or workflow.get('status')!='completed'
+            or workflow.get('question_seed_version')!=QUESTION_SEED_VERSION):
+        return None
+    evidence=[deserialize_evidence(item) for item in state.get('collected_evidence',[])]
+    subset=_bound_evidence_subset(evidence,frame.get('evidence_ids'))
+    if (subset is None or workflow.get('binding')!=analysis_binding(
+            query,state.get('organization_research'),skills,hints,subset)):
+        return None
+    workflow=deepcopy(workflow)
+    workflow['retained_material_reuse']={'version':RETAINED_SYNTHESIS_VERSION,**identity,
+        'original_binding':workflow['binding'],'evidence_ids':list(frame['evidence_ids']),
+        'material_version':frame['material_version'],
+        'current_binding':analysis_binding(query,state.get('organization_research'),skills,hints,evidence)}
+    return {'analysis':frame['analysis'],'analysis_workflow':workflow,
+        'organization_result':deepcopy(frame.get('organization_result')),
+        'verification':deepcopy(frame.get('verification'))}
+
+
+def analysis_input_matches(state, query, skills, hints, evidence):
+    """A report continuation retains both the original and extended bindings."""
+    from app.planning_control import retained_evidence_version
+    workflow=state.get('analysis_workflow') or {}
+    expected=analysis_binding(query,state.get('organization_research'),skills,hints,evidence)
+    if workflow.get('binding')==expected:
+        return True
+    reuse=workflow.get('retained_material_reuse') or {}
+    identity=_synthesis_identity(state)
+    if (reuse.get('version')!=RETAINED_SYNTHESIS_VERSION or not all(identity.values())
+            or any(reuse.get(key)!=value for key,value in identity.items())
+            or state.get('evidence_access_gaps')
+            or reuse.get('current_binding')!=expected
+            or reuse.get('original_binding')!=workflow.get('binding')
+            or reuse.get('material_version')!=retained_evidence_version(state)):
+        return False
+    subset=_bound_evidence_subset(evidence,reuse.get('evidence_ids'))
+    return subset is not None and workflow['binding']==analysis_binding(
+        query,state.get('organization_research'),skills,hints,subset)
+
+
 def identity_batches(evidence):
     """Keep acquired full text with retained publisher links, two groups/call.
 

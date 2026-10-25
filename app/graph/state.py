@@ -647,6 +647,7 @@ class ResearchState(TypedDict):
     # ===== 输出 =====
     analysis: str
     analysis_workflow: dict | None  # Root-bound question checkpoints; never an independent allowance
+    retained_synthesis: dict | None  # Completed same-root inputs/results before bounded supplementary collection
     model_routing: dict | None
     final_report: str
     citations: list[dict]
@@ -752,6 +753,7 @@ def create_initial_state(
         revision_count=0,
 
         analysis="",
+        retained_synthesis=None,
         final_report="",
         citations=[],
         guardrail_decision=None,

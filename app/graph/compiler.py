@@ -2134,6 +2134,21 @@ async def analyst_node(state: ResearchState) -> dict:
     from app.graph.state import AgentEvent, deserialize_evidence
     from app.observability.trace import EventType
 
+    from app.research_context import reuse_retained_synthesis
+    reused=reuse_retained_synthesis(state,_synthesis_question(state),
+        _skill_prompt(state,'analyst') or None,_agent_skill_hints(state,'analyst'))
+    if reused is not None:
+        control={**(state.get('iteration_control') or {}),'action':'report',
+            'reason':'unchanged_material_analysis_reused',
+            'no_gain_rounds':int((state.get('iteration_control') or {}).get('no_gain_rounds') or 0)+1,
+            'semantic_review':'final_report_claim_audit_still_required'}
+        return {**reused,'runtime_status':RuntimeStatus.RUNNING.value,
+            'evidence_access_gaps':state.get('evidence_access_gaps',[]),
+            'revision_needed':False,'iteration_control':control,
+            'agent_trace':[_append_trace_event(state,EventType.AGENT_COMPLETE,'analyst',
+                '补证未增加正文或资料版本，保留已完成分析并进入正文审核；不代表原结论已核实。',
+                {'reason':control['reason'],'model_calls':0})]}
+
     evidence_list = [deserialize_evidence(e) for e in state.get("collected_evidence", [])]
     organization_result = build_organization_findings(state.get("organization_research"), state.get("collected_evidence", []), None)
     evidence_gate = build_evidence_gate(evidence_list)
@@ -2368,6 +2383,9 @@ def replan_node(state: ResearchState) -> dict:
     主题 5: 重新调用 Planner Agent 生成新的 DAG
     主题 1: 自主工作流的迭代循环
     """
+    from app.research_context import capture_retained_synthesis
+    retained=capture_retained_synthesis(state,_synthesis_question(state),
+        _skill_prompt(state,'analyst') or None,_agent_skill_hints(state,'analyst'))
     revision_count = state.get("revision_count", 0) + 1
 
     session = state.get("session", {})
@@ -2390,7 +2408,7 @@ def replan_node(state: ResearchState) -> dict:
             planner_hints=_agent_skill_hints(state, "planner"),use_internal_docs=bool(state.get("use_internal_docs", False)),
             rag_group=state.get("rag_group"),organization_research=state.get("organization_research"))
     except TokenBudgetExceeded as error:
-        return _model_budget_pause(state,agent,'replan',error)
+        return {**_model_budget_pause(state,agent,'replan',error),'retained_synthesis':retained}
     dag = apply_source_policy(dag, state["user_query"], use_internal_docs=bool(state.get("use_internal_docs", False)))
     session, budget_state = _apply_llm_usage_to_state(state, "replan", _agent_model_usage(agent))
     dag = seed_organization_sources(dag, state.get("organization_research"))
@@ -2404,6 +2422,7 @@ def replan_node(state: ResearchState) -> dict:
 
     return {
         "revision_count": revision_count,
+        'retained_synthesis':retained,
         'plan_manifest': manifest,
         'plan_history': [*(state.get('plan_history') or []), {key: manifest[key] for key in ('plan_version','revision','reason','strategy','adjustments')}][-32:],
         'agent_trace': [_append_trace_event(state, EventType.AGENT_COMPLETE, 'replan',
@@ -2831,8 +2850,9 @@ def compile_research_graph() -> StateGraph:
     builder.add_edge("report_resume", "report")
 
     # 分析 → 反思
-    builder.add_conditional_edges('analyst',lambda state:'stop' if state.get('status') == 'paused' else 'continue',
-        {'stop':END,'continue':'reflection'})
+    builder.add_conditional_edges('analyst',lambda state:'stop' if state.get('status') == 'paused'
+        else 'report' if (state.get('iteration_control') or {}).get('reason')=='unchanged_material_analysis_reused'
+        else 'continue', {'stop':END,'continue':'reflection','report':'report'})
 
     # 反思 → 重规划或报告（条件分支）
     builder.add_conditional_edges(
