@@ -1724,7 +1724,23 @@ async def _resume_retained_synthesis(session_id, background_tasks, principal, *,
         _skill_prompt(state,'analyst') or None,_agent_skill_hints(state,'analyst'),
         [deserialize_evidence(item) for item in state.get('collected_evidence',[])])
     if workflow.get('binding')!=expected:
-        raise HTTPException(409,'analysis_inputs_changed')
+        # Older synthesis filtered into public-then-private order locally,
+        # while the graph retained acquisition order. Recover only that exact
+        # historical view when its complete input binding still matches.
+        retained=state.get('collected_evidence',[])
+        legacy_order=[item for item in retained if item.get('source_type')!='knowledge_base']+[
+            item for item in retained if item.get('source_type')=='knowledge_base']
+        legacy_expected=analysis_binding(_synthesis_question(state),state.get('organization_research'),
+            _skill_prompt(state,'analyst') or None,_agent_skill_hints(state,'analyst'),
+            [deserialize_evidence(item) for item in legacy_order])
+        if workflow.get('binding')!=legacy_expected:
+            raise HTTPException(409,'analysis_inputs_changed')
+        state['collected_evidence']=legacy_order
+        workflow['input_order_recovery']={
+            'version':'adrs-retained-synthesis-order-v1',
+            'reason':'exact_legacy_public_then_private_binding',
+            'evidence_ids':[item.get('evidence_id') for item in legacy_order],
+        }
     # Reject missing/future clock identities; never establish a fresh start time.
     try:
         started=datetime.fromisoformat(state.get('created_at') or root['created_at'])

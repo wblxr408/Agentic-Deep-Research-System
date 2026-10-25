@@ -106,3 +106,5 @@ U2b第二个身份提取阶段在22562 Token因不完整响应暂停，保存现
 fbd4fb7部署后，U2e根23c96214-683b-4f69-a51a-e1d12780918f、execution43d58033-6b86-4f14-9939-01be2d3d093d实际创建200，冻结corpus-v3。06:34:51Z已完成6阶段，行动阶段model_output_limit暂停，74784／240000 Token、9工具、0在途，无报告。现场保存u2-actions-output-limit.json；原页面继续返回409／analysis_sources_changed，没有创建新执行或调用。
 
 两份当前来源仍active／retained／revision1、组复用且lexical头有效。现场25条顺序为四公开＋20内部＋一公开，原current_synthesis_state重新分组造成全列表不等；9.15改为原位置保留，权限／生命周期／版本／缺口及原绑定／次数／额度均不放宽。仅源码与实际数据审阅，待同根完整业务继续；无局部检查，不将它计作U2／U4完成。
+
+9.15兼容补充：顺序保持部署后，原U2e恢复越过来源检查，但实际409／analysis_inputs_changed。旧Analyst本地曾按公开后内部计算完整binding，根图却保留采集顺序。因此仅在当前全部证据通过原检查、原完整binding精确等于历史公开后内部视图时，恢复该已绑定顺序并记录input_order_recovery；不重写原binding，不替换内容／身份／元数据，其他输入差异仍409。新根默认保持采集顺序，原期限、尝试和用量不变。效果仍待同根真实继续，无局部函数运行。
