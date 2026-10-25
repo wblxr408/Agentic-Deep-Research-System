@@ -21,7 +21,7 @@ CONDITION_QUERIES = {
 }
 
 IDENTITY_CONTEXT_VERSION = 'adrs-publication-identity-v2'
-QUESTION_SEED_VERSION = 'adrs-question-publication-seed-v2'
+QUESTION_SEED_VERSION = 'adrs-question-publication-seed-v3'
 
 
 def analysis_binding(query, configuration, skills, hints, evidence):

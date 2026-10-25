@@ -373,6 +373,11 @@ Return a JSON object with these fields:
                 'Keep analysis_text a compact question-led synthesis; source proofs belong in organization_data, '
                 'not repeated copies in findings/data_points/conflicts. Prefer a few concise, complete technical '
                 'fields with literal proofs over an unfinished large response. The report stage receives source passages itself.')
+            if _phase=='question':
+                system_prompt += ('\nFor this selected-question phase, analysis_text is a lead of one to four sentences, '
+                    'not a report or a nested JSON document. Put the complete requested field details, '
+                    'conditions, evidence and action records in organization_data. Do not repeat prior chapters '
+                    'or answer other modules in the lead; the final report owns the full narrative.')
             system_prompt += '\nSelected scope: ' + json.dumps(organization_research['scope'], ensure_ascii=False)
             from app.organization_purpose import analysis_instructions
             if _phase!='extraction':system_prompt += analysis_instructions(organization_research)
@@ -393,6 +398,13 @@ Return a JSON object with these fields:
             if 'actions' in organization_research.get('modules',[]):
                 system_prompt += '\nUser action requirements (do not invent missing values): ' + json.dumps(organization_research.get('action_requirements') or {},ensure_ascii=False)
         from app.research_context import evidence_context, fit_messages
+        phase_request = (
+            'Answer only the currently selected module question. Return the short analysis_text lead and complete '
+            'organization_data with literal source proofs; do not draft the final report.' if _phase=='question' else
+            'Extract only the publication identities, dates and affiliations selected for this batch, with literal proofs. '
+            'Return analysis_text and organization_data; do not draft technical analysis or a report.' if _phase=='extraction' else
+            'Please provide a comprehensive analysis addressing the research question. Use [citation:N] format to '
+            'attribute claims to evidence items (e.g., [citation:1] for the first evidence item). Also provide the structured JSON output.')
         def build_messages(allowance):
             preferred=[]
             preferred.extend(context_seed.get('identity_evidence_ids',[]))
@@ -414,9 +426,7 @@ Return a JSON object with these fields:
 Collected Evidence:
 {formatted_evidence}
 
-Please provide a comprehensive analysis addressing the research question. Use [citation:N] format to attribute claims to evidence items (e.g., [citation:1] for the first evidence item).
-
-Also provide the structured JSON output."""
+{phase_request}"""
             },
             ]
             if seed_manifest is not None:manifest['publication_seed']=seed_manifest
