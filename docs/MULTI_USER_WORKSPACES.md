@@ -54,4 +54,6 @@
 
 本轮[端到端操作记录](acceptance/multi-user-workspaces-20261025.md)覆盖注册、角色、资源及配置隔离；通过不等于所有历史研究流程重新验收。邮件找回／验证、组织共享及每用户外部平台登录态尚未提供；本轮没有为这些功能添加假入口。
 
+用户追加的[浏览器双账号和弱网试用](acceptance/accounts-browser-network-20261025.md)已完成九个场景。认证超时后隐藏私有页面，可点击重新连接；退出请求断网时仍显示操作未完成，恢复连接后重新点击退出。切换账号后，旧身份及资料请求迟到返回不会覆盖当前账号；同一身份正常导航继续保留未提交草稿。
+
 授权设计采用 [OWASP Authorization Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html) 的最小权限、每请求授权与资源归属核验；注册节流和认证错误参考 [OWASP Authentication Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html)。本轮没有改变 Agent/A2A 架构。
