@@ -3,7 +3,7 @@ import {Icon} from './Interface'
 
 export interface RunControlState {
   pause_diagnosis?:{summary:string;phase:string;next_step:string;action:string;action_label?:string;
-    findings:Array<{text:string;detail:string}>;blockers:string[];diagnosis_complete?:boolean;automatic_recovery:{attempts:number;limit:number;status:string;eligible:boolean}}|null
+    findings:Array<{text:string;detail:string}>;blockers:string[];diagnosis_complete?:boolean;automatic_recovery:{attempts:number;limit:number;status:string;eligible:boolean;policy_attempts?:number;policy_limit?:number;action?:string}}|null
   session_id:string;execution_id?:string|null;status:string;runtime_status?:string|null;stop_reason?:string|null
   user_control?:{state?:string}|null
   analysis_recovery_available?:boolean;report_recovery_available?:boolean
@@ -68,6 +68,7 @@ export default function ResearchRunControls({value,onRefresh,onResumed,onRestart
     {stopped&&!userPaused&&value.pause_diagnosis&&<div className="stop-diagnosis" aria-label="系统自动诊断">
       <div className="stop-diagnosis-heading"><strong>{value.pause_diagnosis.diagnosis_complete===false?'排查未完成':'已自动排查'} · {value.pause_diagnosis.phase}</strong>
         {value.pause_diagnosis.automatic_recovery.attempts>0&&<span>已尝试自动恢复 {value.pause_diagnosis.automatic_recovery.attempts} 次</span>}</div>
+      {(value.pause_diagnosis.automatic_recovery.policy_attempts??0)>0&&<p>{value.pause_diagnosis.automatic_recovery.action} · 本类已尝试 {value.pause_diagnosis.automatic_recovery.policy_attempts}/{value.pause_diagnosis.automatic_recovery.policy_limit} 次</p>}
       {value.pause_diagnosis.findings.length>0&&<ul>{value.pause_diagnosis.findings.slice(0,3).map((item,index)=><li key={index}><p>{item.text}</p><span>{item.detail}</span></li>)}</ul>}
       {value.pause_diagnosis.findings.length>3&&<details><summary>其余 {value.pause_diagnosis.findings.length-3} 项问题</summary><ul>{value.pause_diagnosis.findings.slice(3).map((item,index)=><li key={index}><p>{item.text}</p><span>{item.detail}</span></li>)}</ul></details>}
       <p>{value.pause_diagnosis.next_step}</p>

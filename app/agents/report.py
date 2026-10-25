@@ -113,6 +113,7 @@ class ReportAgent:
         self.last_citations: list = []
         self.last_context_manifest: dict = {}
         self.last_writing_plan:dict={}
+        self.recovery_events:list[dict]=[]
 
     @property
     def client(self) -> OpenAI:
@@ -420,11 +421,15 @@ Evidence Sources:
                             details=details,required_tokens=required_tokens):
                         return self.client,self.model
                     return None
+                def retain_correction(draft,record,audit):
+                    self.last_draft=draft
+                    self.last_module_report=record
+                    self.last_audit=audit
                 content,self.last_module_report,self.last_audit=revise_report_claims(content,self.last_module_report,self.last_audit,
                     configuration=organization_research,statistics=organization_statistics,evidence=evidence_list,
                     client=self.client,model=active_model,budget=self.request_budget,deadline=verification_deadline,
                     citation_count=len(citations),upgrade_callback=upgrade_correction, task_context=method_context,
-                    source_spans=located_spans)
+                    source_spans=located_spans,on_round=retain_correction,on_event=self.recovery_events.append)
                 self.last_audit['module_contract'] = self.last_module_report
                 self._emit_fallback_chunks(content,on_chunk)
             # Append references section if not present

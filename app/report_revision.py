@@ -1,4 +1,4 @@
-"""One bounded content correction; retain the original report and its audit."""
+"""Bounded content corrections; retain each report and its source audit."""
 from __future__ import annotations
 
 import json
@@ -13,7 +13,51 @@ from app.organization_purpose import ModuleReportDraft, assemble_module_report, 
 from app.security.prompt_security import untrusted_context
 
 
-def revise_report_claims(content, record, audit, *, configuration, statistics, evidence,
+def revise_report_claims(content, record, audit, *, on_round=None, on_event=None, **kwargs):
+    """Repair actual failed paragraphs until progress stops or the class cap wins."""
+    from app.recovery_policy import report_issue_keys, report_repair_limit
+    from app.execution_control import check_execution, current_control
+    limit=report_repair_limit(audit)
+    history=list(record.get('repair_rounds') or [])
+    def emit(data):
+        from app.graph.state import AgentEvent
+        event=AgentEvent(agent='report',event_type='state_update',content=data['message']).model_dump()
+        event['recovery']=data
+        if on_event:on_event(event)
+        control=current_control()
+        if control:control.publish_trace(event)
+    while audit.get('needs_review') and len(history)<limit:
+        check_execution()
+        before=report_issue_keys(audit)
+        if not before or audit.get('audit_incomplete') or audit.get('budget_incomplete'):break
+        round_number=len(history)+1
+        emit({
+            'status':'running','attempts':round_number,'limit':limit,
+            'message':f'正在修订 {len(before)} 项报告问题 · 第 {round_number}/{limit} 轮'})
+        new_content,new_record,new_audit=_revise_report_once(content,record,audit,**kwargs)
+        attempt=new_audit.get('revision_attempt') or {}
+        after=report_issue_keys(new_audit)
+        history.append({'round':round_number,'limit':limit,'before':len(before),'after':len(after),
+            'status':attempt.get('status'),'changed':new_content!=content})
+        changed=new_content!=content
+        content,record,audit=new_content,new_record,new_audit
+        record['repair_rounds']=list(history)
+        audit['repair_rounds']=list(history)
+        if on_round:on_round(content,record,audit)
+        if not audit.get('needs_review'):
+            audit['repair_outcome']='resolved';break
+        if not changed or len(after)>=len(before):
+            audit['repair_outcome']='no_progress' if attempt.get('status')=='reaudited' else attempt.get('status','blocked')
+            break
+    if history:
+        audit.setdefault('repair_outcome','round_limit' if len(history)>=limit else 'blocked')
+        emit({
+            'status':audit['repair_outcome'],'attempts':len(history),'limit':limit,
+            'message':f"报告修订已执行 {len(history)} 轮，剩余 {len(report_issue_keys(audit))} 项核对问题"})
+    return content,record,audit
+
+
+def _revise_report_once(content, record, audit, *, configuration, statistics, evidence,
                          client, model, budget, deadline, citation_count, upgrade_callback=None, task_context=None,
                          source_spans=None):
     """Only change mapped paragraph text, then audit the whole resulting report."""
@@ -93,7 +137,7 @@ def revise_report_claims(content, record, audit, *, configuration, statistics, e
     def next_batch_messages():
         # Full issue/excerpt payloads, rather than paragraph bytes alone,
         # determine whether a batch fits. Split before dispatch, never retry
-        # a paragraph which has already consumed its one correction attempt.
+        # a paragraph which already consumed its correction attempt this round.
         while True:
             messages=correction_messages(batches[0])
             required=request_token_bound(messages,response_format={'type':'json_object'})+1024

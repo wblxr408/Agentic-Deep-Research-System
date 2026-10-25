@@ -418,7 +418,7 @@ def _model_budget_pause(state, agent, stage, error, *, report=None, citations=No
             'last_error_category':'data_governance' if data_error else 'model_routing' if route_error else 'budget_exceeded' if budget_stop else 'report_quality' if stage=='report' else 'analysis_incomplete',
             'final_report_audit':getattr(agent,'last_audit',None),
             'partial_model_response':redact_text(getattr(agent,'last_partial_response',None))},
-        'agent_trace':[{'agent':stage,'event_type':'agent_error',
+        'agent_trace':[*getattr(agent,'recovery_events',[]),{'agent':stage,'event_type':'agent_error',
             'content':'资料外传范围或访问凭据校验未满足，原材料和用量已保留；请查看研究记录。' if data_error
                 else '当前阶段没有满足配置与资料许可的模型，已保留任务；请查看模型配置及研究记录。' if route_error
                 else '分析响应未完成，已保留阶段结果，可在原额度与期限内继续。' if recoverable
@@ -442,7 +442,7 @@ def _model_budget_pause(state, agent, stage, error, *, report=None, citations=No
     from app.research_diagnostics import diagnose_stop
     diagnosis=diagnose_stop({**state,**result})
     result['review_status']['pause_diagnosis']=diagnosis
-    if diagnosis:result['agent_trace'][0]['content']=diagnosis['summary']
+    if diagnosis:result['agent_trace'][-1]['content']=diagnosis['summary']
     return result
 
 
@@ -2567,7 +2567,8 @@ async def report_node(state: ResearchState) -> dict:
         if agent.last_module_report is not None:record['module_report']=agent.last_module_report
         if agent.last_audit is not None:record['audit_before_upgrade']=agent.last_audit
         sequence=await RuntimePersistence().persist_model_checkpoint(str(session_id),{
-            **state,'organization_result':record,'session':session,'budget_state':budget})
+            **state,'organization_result':record,'session':session,'budget_state':budget,
+            'agent_trace':[*state.get('agent_trace',[]),*agent.recovery_events]})
         if sequence is None:raise TokenBudgetExceeded('model_upgrade_checkpoint_unavailable')
         state['session']['checkpoint_seq']=sequence
         await sse.publish(session_id,EventType.STATE_UPDATE.value,{'model_upgrade':decision,'status':'running'})
@@ -2745,7 +2746,7 @@ async def report_node(state: ResearchState) -> dict:
 
     complete_event = _append_trace_event(state, EventType.AGENT_COMPLETE, "report", f"Report generated: {len(report)} chars")
 
-    trace = [start_event, *rendering_trace, complete_event, AgentEvent(
+    trace = [start_event, *agent.recovery_events, *rendering_trace, complete_event, AgentEvent(
         agent="report",
         event_type="agent_complete",
         content=f"Report: {len(report)} chars, {len(citations)} citations"

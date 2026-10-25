@@ -303,12 +303,13 @@ function ResearchDashboard({ onBack }: ResearchDashboardProps) {
       (event.type==='state_update'&&(event.data.pause_diagnosis||event.data.recovery)))
     if(update&&handledControl.current!==update){
       handledControl.current=update
-      if((update.data.recovery as {status?:string}|undefined)?.status==='running'){
+      if((update.data.recovery as {status?:string}|undefined)?.status==='running'&&
+        !['completed','failed','canceled'].includes(result?.status||'')){
         setSessionStatus('running');setIsStreaming(true)
       }
       void refetchResult()
     }
-  },[events,refetchResult])
+  },[events,refetchResult,result?.status])
 
   useEffect(() => {
     if (result?.status && result.session_id === activeSessionId) {

@@ -86,17 +86,22 @@ async def automatic_recovery_node(state):
         budget['model_stop_reason']=None
         restored.update(session=root,budget_state=budget,status='running',runtime_status='running',review_status=review,
             analysis_workflow=workflow)
+        from app.graph.state import AgentEvent
+        recovery={**review['automatic_recovery'],
+            'message':f"{plan['action']} · 第 {plan['attempts']+1}/{plan['limit']} 次，等待 {plan['delay_seconds']} 秒"}
+        event=AgentEvent(agent='analyst',event_type='state_update',content=recovery['message']).model_dump()
+        event['recovery']=recovery
+        restored.setdefault('agent_trace',[]).append(event)
         await conn.execute('''UPDATE research_sessions SET status='running',review_status=$3::jsonb,
             completed_at=NULL,updated_at=NOW() WHERE id=$1::uuid AND owner_id=$2::uuid''',sid,owner,dumps_json(review))
         await conn.execute('''UPDATE session_runtime_state SET state_snapshot_json=$2::jsonb,
             public_status='running',runtime_status='running',checkpoint_seq=checkpoint_seq+1,last_heartbeat_at=NOW()
             WHERE session_id=$1::uuid''',sid,dumps_json(restored))
-    await get_sse_manager().publish(sid,'state_update',{'agent':'analyst','recovery':{
-        **review['automatic_recovery'],'message':f"{plan['action']} · 第 {plan['attempts']+1}/{plan['limit']} 次，等待 {plan['delay_seconds']} 秒"}})
+    await get_sse_manager().publish(sid,'state_update',event)
     until=time.monotonic()+plan['delay_seconds']
     while time.monotonic()<until:
         check_execution()
         await asyncio.sleep(min(.25,max(0,until-time.monotonic())))
     check_execution()
     return {'session':root,'budget_state':budget,'status':'running','runtime_status':'running','review_status':review,
-        'analysis_workflow':workflow}
+        'analysis_workflow':workflow,'agent_trace':[event]}
