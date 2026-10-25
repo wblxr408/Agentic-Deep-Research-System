@@ -17,7 +17,7 @@ from app.graph.state import Evidence
 from app.security.prompt_security import untrusted_context
 
 _CITATION = re.compile(r"\[(?:citation:)?(\d+)\](?!\()")
-AUDIT_CONTRACT_VERSION = 'adrs-claim-support-v6-located-research-grounding'
+AUDIT_CONTRACT_VERSION = 'adrs-claim-support-v7-premise-action-grounding'
 
 
 def _supported_assessment(record: dict, *, method: bool = False) -> bool:
@@ -278,6 +278,17 @@ For an explicit proposal, supported means a grounded proposal, NOT an observed r
 require source-supported factual premises and conclusion_status=explicit_proposal.
 An author need not have proposed the same procedure or endorsed the action. A
 potential partner need not have accepted a clearly proposed contact or experiment.
+Separate what is empirically asserted from what is proposed before judging the
+premise. An instruction to measure or compare a variable is not a claim that
+the source prescribed that instruction. For example, when a source reports
+bandwidth-sensitive placement, proposing to measure bandwidth before a trial
+can be grounded in that reported dependency; the paper need not prescribe
+the enterprise workflow. The same applies to recording a study's temperature,
+sample characteristics or evaluation metric before a proposed replication.
+Check the actual dependency and any claimed prerequisites; a merely related
+variable, a necessary/sufficient-condition assertion, a guaranteed benefit,
+or an asserted absence of research still requires its own factual support.
+Do not replace the premise check with whether authors endorsed the proposal.
 An open question plus a proposed test is a proposal: asking whether two described
 methods can be combined and what their joint costs/benefits would be does not
 assert that combination is feasible or beneficial. Ground the identified methods
@@ -314,21 +325,28 @@ For factual assertions and the factual premises of reasoning, the cited passages
 must entail those facts to mark supported; a related topic or matching words is insufficient.
 Judge only what the claim actually asserts. A correct scoped subclaim (such as a theorem's lower bound)
 need not restate every other result or the upper bound; do not invent extra completeness requirements.
+Likewise, a list explicitly scoped to one institution's authors need not list
+coauthors from other institutions. An unqualified complete-author claim does.
+Markdown backslashes escape punctuation; compare the rendered identifiers and
+version numbers, not the formatting escape characters.
 For compound claims every asserted factual detail must follow from the supplied passages.
-Return JSON {"verdicts":[{"claim_id":"claim:1", "status":"supported|contradicted|unsupported|unverifiable",
+Give a concise evidence justification first, then set the final assessment and
+status consistently with it. A justification that confirms every asserted
+detail must not end with a contradicted status from an earlier impression.
+Return JSON {"verdicts":[{"claim_id":"claim:1", "reason":"decisive source premise and scope",
+"passage_numbers":[1,2],
 "assessment_kind":"fact|interpretation|proposal|task_method",
 "premise_status":"supported|unsupported|insufficient",
 "conclusion_status":"entailed|bounded_inference|explicit_proposal|frozen_task_only|overclaim|insufficient",
-"passage_numbers":[1,2],
-"reason":"explain scope/conditions", "confidence":0.0}]}.
+"status":"supported|contradicted|unsupported|unverifiable", "confidence":0.0}]}.
 passage_numbers are LOCAL to that claim's passages array, not shared fragment references.
 List every passage used to support the factual clauses, including different
 papers for a cross-paper comparison. A single related passage does not support
 other clauses. All listed numbers must belong to this claim. The server derives evidence identity,
 original quote and offsets; never invent or return evidence IDs or character offsets.
-For a task-method claim use {"claim_id":"claim:2","status":"supported",
+For a task-method claim use {"claim_id":"claim:2","reason":"what the frozen request establishes",
 "assessment_kind":"task_method","premise_status":"supported","conclusion_status":"frozen_task_only",
-"method_id":"task-input:request","reason":"what the frozen request establishes"}.
+"method_id":"task-input:request","status":"supported"}.
 Evaluate every asserted clause using all of this claim's passages. Selected
 passages anchor the judgement and are not themselves proof of entailment.
 Keep reasons concise, stating the decisive support or missing condition.
