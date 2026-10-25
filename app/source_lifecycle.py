@@ -362,37 +362,41 @@ async def current_synthesis_state(state):
     import asyncpg
     from app.db.connection import get_db_pool
     gaps=list(state.get('evidence_access_gaps') or [])
-    blocked={gap['evidence_id'] for gap in gaps};accepted=[];new_gap=False
+    blocked={gap['evidence_id'] for gap in gaps};new_gap=False
+    # Access checks may be batched by source type, but their result must keep
+    # the retained citation order used by the analysis/recovery binding.
+    retained=state.get('collected_evidence',[])
+    accepted=[None]*len(retained)
     candidates=[]
-    for evidence in state.get('collected_evidence',[]):
+    for position,evidence in enumerate(retained):
         if evidence.get('evidence_id') in blocked:continue
-        if evidence.get('source_type')=='knowledge_base':candidates.append(evidence)
+        if evidence.get('source_type')=='knowledge_base':candidates.append((position,evidence))
         else:
             from app.external_evidence import public_synthesis_gap
             reason=public_synthesis_gap(evidence,state)
             if reason:
                 gaps.append({'evidence_id':evidence.get('evidence_id'),'reason':reason});new_gap=True
-            else:accepted.append(evidence)
+            else:accepted[position]=evidence
     if not candidates:
-        result={**state,'collected_evidence':accepted,'evidence_access_gaps':gaps}
+        result={**state,'collected_evidence':[item for item in accepted if item is not None],'evidence_access_gaps':gaps}
         if new_gap:result.update(analysis='',verification=None,organization_result=None)
         return result
     session=state.get('session') or {};memo={}
     try:
         pool=await get_db_pool()
         async with asyncio.timeout(10),pool.acquire() as conn,conn.transaction(readonly=True):
-            for evidence in candidates:
+            for _,evidence in candidates:
                 acquisition=evidence.get('acquisition') or {};source_id=acquisition.get('source_document_id')
                 key=(source_id,acquisition.get('source_access_revision'))
                 if key not in memo:
                     memo[key]=bool(source_id and session.get('owner_id') and await current_access(conn,source_id,session['owner_id'],session.get('session_id'),state.get('rag_group'),key[1]))
     except (asyncpg.PostgresError,TimeoutError,OSError,ValueError):memo={}
-    for evidence in candidates:
+    for position,evidence in candidates:
         acquisition=evidence.get('acquisition') or {};key=(acquisition.get('source_document_id'),acquisition.get('source_access_revision'))
-        if memo.get(key):accepted.append(evidence)
+        if memo.get(key):accepted[position]=evidence
         else:
             gaps.append({'evidence_id':evidence.get('evidence_id'),'source_id':key[0],'reason':'current_internal_source_access_not_established'})
             new_gap=True
-    result={**state,'collected_evidence':accepted,'evidence_access_gaps':gaps}
+    result={**state,'collected_evidence':[item for item in accepted if item is not None],'evidence_access_gaps':gaps}
     if new_gap:result.update(analysis='',verification=None,organization_result=None)
     return result

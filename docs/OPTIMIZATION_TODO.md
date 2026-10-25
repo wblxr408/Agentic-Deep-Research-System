@@ -737,3 +737,9 @@ U3实际冻结的科研绘图Skill已装入constraints和stage:render，选用�
 - [x] X.5 源码实施期间按模块回写TODO、ACI、设计与OpenSpec并提交推送，统一验收前的运行状态明确为未运行；[实施账本](IMPLEMENTATION_LEDGER.md#状态维护规则)固化后续证据回写要求。各模块真正验收仍单列未完成。
 - [x] X.6 文档与契约分解交付：[六项讨论落位](IMPLEMENTATION_LEDGER.md#六项讨论如何落位)对照现有根、取证、阶段Skill、边界、路由和按需检索，区分源码／候选／验收／读者；保留组织29/34历史复合基线和SDK独立证明范围。
 - [x] X.7 文档交付：已同步完整流程、阶段 Agent／工具／Skill 分工及已有／改造／新增清单到设计文档和 README，未将设计完成计作功能完成。
+
+### U2e原根恢复顺序问题
+
+fbd4fb7部署后，U2e根23c96214-683b-4f69-a51a-e1d12780918f、execution43d58033-6b86-4f14-9939-01be2d3d093d实际创建200，冻结corpus-v3。06:34:51Z已完成6阶段，行动阶段model_output_limit暂停，74784／240000 Token、9工具、0在途，无报告。现场保存u2-actions-output-limit.json；原页面继续返回409／analysis_sources_changed，没有创建新执行或调用。
+
+两份当前来源仍active／retained／revision1、组复用且lexical头有效。现场25条顺序为四公开＋20内部＋一公开，原current_synthesis_state重新分组造成全列表不等；9.15改为原位置保留，权限／生命周期／版本／缺口及原绑定／次数／额度均不放宽。仅源码与实际数据审阅，待同根完整业务继续；无局部检查，不将它计作U2／U4完成。
