@@ -72,3 +72,11 @@ A10于02:30Z实际paused／budget_exhausted：12阶段完成，232364 Token、24
 实际归档、解析、切片、特征及direct到lexical发布均成功；两个来源分别309／271块、14352／12182词项posting，revision2，没有遗漏或截断，发布回执为零模型／零嵌入调用且不改原文或旧报告。请求身份先保存，后续继续复用这些来源及已经保存的新U2根意图。目前没有创建新U2付费研究，也没有实际RAG、过滤、来源public与任务internal交接、图文报告、反馈或索引回滚的完整结论，不勾选OPT-01—06等复合项。
 
 资料阶段之后部署`84ed8c1`：原8009无在途付费调用时保存旧日志并停止对应API进程；首次WMI入口不能解析裸pwsh路径，改绝对入口后启动成功。首个真实U2登录在应用尚未接受连接时失败，沿原账号和根意图重试，随后登录／问题理解／创建均200；没有做启动／健康探针。新根`d4d7d56e-5d97-45e4-995d-14ab38bd9ae3`、execution `40e62f0f-387f-4d83-b63e-cef036b82447`于02:46Z运行，仍240000 Token／2700秒／24工具。请求限定已归档两论文与对应公开出版资料，选择hybrid及真实组、两个source_id的业务过滤，保留全景／深读／交叉验证／行动、technology-comparison-v1和本人受信绘图Skill。U1仍按原完整范围未通过，本旅程不替代U1或缩减总目标。实际RAG、最终审核／图文和反馈尚无结论。
+
+### 首轮U2实际结果及修复后的U2b
+
+首轮U2实际两次RAG各返回10块：580块当前本人范围均符合所选组／两source_id，FTS和BM25实际完成并融合，dense、literal、structure、reranker分别保留未启用或未配置记录；不将“hybrid”说成所有通道都运行。两次搜索在已冻结internal任务中被`private_context_network_query_not_authorized`拒绝，没有放宽权限补量。浏览器已取得两份原文，合计22条证据进入分析。
+
+实验条件补读在44394 Token因真实JSON中间结构错误暂停，现场完整保存；同根execution `ea6f9a91-558c-497b-bfd5-cf1ccdbc0fa9`有界续作越过该阶段。后续阶段再次遇不完整输出，第二次同根续作execution `a700743b-db32-44a1-b716-f201ff82e847`最终完成6阶段，未重新取证或改原额度／期限。首次报告结构校验失败；使用页面提供的唯一报告恢复，execution `9bfadfd6-60a6-409c-88f7-4c49d1d3401d`仍失败，最终136414 Token、6工具、零在途、无正常报告。最后只剩“再叠加另一篇的机制”被误报`unbound_sample_aggregate`。原完整模块稿、修订记录与拒因在`organization_result.module_report`保留，不能只看为空的顶层report_audit就说诊断丢失。
+
+`646f552`只修统计检测副本中的作品指代误拦截，不改真实计数或语义标准；旧根的报告恢复次数不增加。部署后使用独立、预先保存的新U2b身份`2db67121-a810-49bc-b031-5733ce5955e6`继续相同两论文完整旅程，保留同一已归档原文／索引／组／过滤／Skill和同额度。将原已要求的[DistServe官方出版页](https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin)、[dLoRA官方出版页](https://www.usenix.org/conference/osdi24/presentation/wu-bingyang)预先作为明确种子，与作者PDF一同由应用取证，不在内部上下文取得后追加外网许可。输入只有链接及原问题，不注入旧分析／判定。Windows路径拼接的首次准备未指向新目录，原创建回执保护使其仅读取旧创建结果、未创建付费根；修正任务脚本后仍复用已保存的新UUID，随后登录／理解／创建均200。新原件在本机`outputs/unified-research-20261025-u2b/`。新U2b还没有完整审核、图文与反馈结论；所有旧失败和U1—U4完整目标保留。
