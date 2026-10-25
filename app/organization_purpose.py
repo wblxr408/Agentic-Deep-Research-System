@@ -162,6 +162,9 @@ def paragraph_repair_messages(rejected: list[dict]) -> list[dict]:
         'For example: “取得A与B两篇全文” -> “取得A与B的全文”; “三篇论文覆盖不同层次” -> “A、B与C覆盖不同层次”; '
         '“分别对应三个研究家族” -> “分别研究不同系统问题”. Use only names already present in that paragraph. '
         'Rewrite every listed quantity phrase; if names are absent, remove only the count and keep a qualitative statement. '
+        'A literal publication count remains invalid even when it is correct or used as a reference: '
+        'rewrite EVERY occurrence, including “两篇论文的完整PDF” and repeated counts later in the same paragraph. '
+        'Use “所讨论论文的完整PDF” when the names are absent; keep already present names when available. '
         'Do not add facts or inline citation markers; citation arrays are locked by the server.'},
         {'role': 'user', 'content': untrusted_context('rejected_report_paragraphs', payload, limit=len(payload))}]
 
@@ -279,7 +282,10 @@ def assemble_module_report(raw: str, configuration: dict, citation_count: int, *
         if re.search(number+r'\s*'+document_units,remainder,re.I):raise ValueError('unbound_source_aggregate')
         units=r'(?:篇(?!全文|完整正文|文档)(?:论文|成果|发表)?|条发表|项成果|个?(?:研究家族|发表记录|分类标签|采纳样本)|publications?\b|papers?\b|families\b)'
         if re.search(number+r'\s*'+units,_sample_counting_text(remainder),re.I):raise ValueError('unbound_sample_aggregate')
-        for clause in re.split(r'[。；;\n]',remainder):
+        # A later comma-separated metric must not change the population of an
+        # earlier experimental percentage (e.g. SLO target, then overhead share).
+        # Keep numeric commas together; source measurements still face audit.
+        for clause in re.split(r'[，。；;\n]|,(?!\d)',remainder):
             aggregate=re.search(r'样本|采纳|发表|家族|分类|标签|占比|占总|sample|publication|families|percentage',clause,re.I)
             if aggregate and re.search(number+r'\s*(?:[%％]|/\s*'+number+r')',clause):
                 raise ValueError('unbound_sample_ratio')
