@@ -156,6 +156,7 @@ class ReportAgent:
         organization_statistics: dict | None = None,
         query_understanding:dict|None=None,
         technical_reading: dict | None = None,
+        analysis_workflow: dict | None = None,
     ) -> tuple[str, list[Citation]]:
         """
         Generate the final research report.
@@ -225,7 +226,7 @@ class ReportAgent:
         citation_note = self._citation_range_note(len(citations))
 
         from app.research_context import analysis_context, evidence_context, fit_messages, encoded, reading_source_spans
-        located_spans=reading_source_spans(technical_reading,evidence_list)
+        located_spans=reading_source_spans(technical_reading,evidence_list,analysis_workflow)
         def build_messages(allowance):
             selected_analysis, omitted = analysis_context(analysis, int(allowance*.18))
             formatted_evidence, manifest = evidence_context(evidence_list, user_query,

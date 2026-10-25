@@ -111,7 +111,7 @@ def _paragraph_window(text, start, end):
     return lower,upper
 
 
-def reading_source_spans(reading, evidence):
+def reading_source_spans(reading, evidence, analysis_workflow=None):
     """Use located technical proofs as retrieval hints, never as verdicts.
 
     Recheck exact retained text before carrying an old card's location into a
@@ -128,6 +128,41 @@ def reading_source_spans(reading, evidence):
                 if source is None or type(start) is not int or type(end) is not int:continue
                 if not 0<=start<end<=len(source.content) or source.content[start:end]!=proof.get('quote'):continue
                 spans.setdefault(source.evidence_id,[]).append((field,start,end))
+    if not analysis_workflow:
+        return spans
+    from app.organization_deep_dive import FIELDS
+    from app.organization_findings import _publication_url
+    by_url={}
+    for source in evidence:
+        if source.source_url and (source.acquisition or {}).get('coverage')!='discovery_only':
+            by_url.setdefault(_publication_url(source.source_url),[]).append(source)
+    for record in (analysis_workflow.get('completed') or {}).values():
+        if not isinstance(record,dict):continue
+        data=record.get('organization_data')
+        if not isinstance(data,dict) or not isinstance(data.get('technical_cards'),list):continue
+        for card in data['technical_cards'][:20]:
+            if not isinstance(card,dict) or not isinstance(card.get('fields'),dict):continue
+            for field,statement in card['fields'].items():
+                if field not in FIELDS or not isinstance(statement,dict):continue
+                if not isinstance(statement.get('proofs'),list):continue
+                for proof in statement['proofs'][:5]:
+                    if not isinstance(proof,dict):continue
+                    if not isinstance(proof.get('evidence_id'),str):continue
+                    source=sources.get(proof['evidence_id']);quote=proof.get('quote')
+                    if source is None or not isinstance(quote,str) or len(quote)>2400 or len(quote.strip())<12:continue
+                    if not source.source_url or (source.acquisition or {}).get('coverage')=='discovery_only':continue
+                    # Layout tolerance locates actual text, never accepts the
+                    # candidate summary or substitutes normalized source bytes.
+                    parts=[]
+                    for word in quote.split():
+                        parts.append(r'(?:-\s*\r?\n\s*)?'.join(re.escape(char) for char in word)
+                            if re.fullmatch(r'[A-Za-z]{4,}',word) else re.escape(word))
+                    pattern=r'\s+'.join(parts)
+                    for current in by_url.get(_publication_url(source.source_url),[]):
+                        match=re.search(pattern,current.content,re.I)
+                        if match:
+                            item=(field,match.start(),match.end())
+                            if item not in spans.setdefault(current.evidence_id,[]):spans[current.evidence_id].append(item)
     return spans
 
 

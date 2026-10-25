@@ -6,6 +6,20 @@
 
 ## ADDED Requirements
 
+### Requirement: Verified source locations survive unaccepted technical summaries
+系统 SHALL 将本根已保存技术提案中能在当前已授权原文重新定位的引文作为检索线索，即使其字段摘要因数值／覆盖不足未采纳；不得因此提升该摘要。未知来源ID、发现片段、不支持字段、无可核原文的提案 MUST NOT 成为线索。系统 SHALL 保存阶段字段拒收原因，正文不展示内部状态。
+
+#### Scenario: Literal hardware proof and broader unsupported field summary
+- **WHEN** 字段摘要列出模型或负载等未被所列引用覆盖的细节，但其中硬件引文在本根当前原文中可核
+- **THEN** 原字段接纳限制保留，引用在当前来源中重新定位、用实际字符范围供写作与审核查找，不复制提案摘要作事实；同规范源URL的其他当前保留版本也必须逐一原文定位
+
+### Requirement: Research questions and source attribution retain their proper scope
+v6审核 SHALL 区分拟议研究问题、原稿件的作者报告归因与实测或效果保证。数值、科学条件、真实资源及结果仍 MUST 从所引用原文得到支持；不得凭未见片段推断整个作品没有研究。系统 SHALL 保留所有原引用来源、双窗口／原预算和字符锚点约束，不复用旧v5正判。
+
+#### Scenario: Asking about a proposed combination experiment
+- **WHEN** 主张提出检验两种已描述方法能否结合及其代价的开放问题，没有宣告可行或保证收益
+- **THEN** 审核按明确建议核其事实前提，不要求原文先声明这一新问题需要实验；宣称不存在组合研究或承诺成功仍分别需要依据
+
 ### Requirement: Literal complete analysis objects survive a single redundant final close
 系统 SHALL 在标准JSON解码报Extra data且剩余文字恰为单个右括号、前缀全部文字解码为完整对象时，保留该原对象及原响应、记录内部格式恢复。系统 MUST 保持全部字段值与原组织字段／正文／proof校验，长度截断先停止；不能补内部结构、提取后续对象、接受尾随文字或以此重置尝试／预算。
 

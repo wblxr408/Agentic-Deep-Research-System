@@ -228,6 +228,10 @@ Return a JSON object with these fields:
             from app.organization_deep_dive import build_technical_cards
             permitted={item['output_id'] for item in batch['outputs']}
             view=build_technical_cards(configuration,accepted,retained_evidence,record['organization_data'])
+            record['context']['technical_field_checks']=[{'output_id':card['output_id'],'field':key,
+                'status':field['status'],'reason':field.get('reason')}
+                for card in view['cards'] if card['output_id'] in permitted for key,field in card['fields'].items()]
+            record['context']['technical_card_pending_records']=view.get('pending_records',[])
             for card in view['cards']:
                 if card['output_id'] not in permitted:continue
                 target=technical_by_output.setdefault(card['output_id'],{'output_id':card['output_id'],'fields':{},'figure_references':[]})
@@ -253,6 +257,8 @@ Return a JSON object with these fields:
                 contexts.append({'module':module,'phase_id':phase_id,**record['context']})
                 if module=='deep_dive':
                     retain_technical(record,batch)
+                    contexts[-1]['technical_field_checks']=record['context']['technical_field_checks']
+                    contexts[-1]['technical_card_pending_records']=record['context']['technical_card_pending_records']
                     condition_fields=('experimental_design','baselines','conditions','results')
                     missing={item['output_id']:[field for field in condition_fields if field not in
                         technical_by_output.get(item['output_id'],{}).get('fields',{})] for item in batch['outputs']}

@@ -17,7 +17,7 @@ from app.graph.state import Evidence
 from app.security.prompt_security import untrusted_context
 
 _CITATION = re.compile(r"\[(?:citation:)?(\d+)\](?!\()")
-AUDIT_CONTRACT_VERSION = 'adrs-claim-support-v5-typed-grounding'
+AUDIT_CONTRACT_VERSION = 'adrs-claim-support-v6-located-research-grounding'
 
 
 def _supported_assessment(record: dict, *, method: bool = False) -> bool:
@@ -104,14 +104,23 @@ _AUDIT_FIELDS = {
     'problem': r'问题|瓶颈|挑战|problem|bottleneck|challenge',
     'prior_limitations': r'已有方法|现有方法|先前|prior work|existing approach',
     'method_overview': r'方法|主线|方案|method|approach|design',
-    'mechanism': r'机制|架构|主线|解耦|调度|编排|并行|mechanism|architecture|design|schedul|parallel|disaggregat',
+    'mechanism': r'机制|架构|主线|解耦|解码|预填充|批处理|调度|编排|并行|mechanism|architecture|design|schedul|parallel|disaggregat|decod|prefill|batch',
     'innovation': r'创新|贡献|novel|contribution|innovation',
     'experimental_design': r'实验设计|评估方法|experimental design|methodology|protocol',
     'baselines': r'基线|对比|比较|baseline|compar|control group',
-    'conditions': r'条件|环境|硬件|配置|负载|数据集|样本|GPU|A100|V100|hardware|workload|dataset|configuration|sample',
+    'conditions': r'条件|环境|硬件|配置|参数|超参|批大小|批量大小|负载|数据集|样本|显存|内存|GPU|CPU|A100|V100|hardware|workload|dataset|configuration|sample|precision|memory|batch\s+size|(?<![a-z0-9_])rank(?![a-z0-9_])',
     'results': r'结果|吞吐|延迟|倍|性能|指标|[×%]|result|throughput|latency|performance|metric|goodput',
     'limitations': r'限制|局限|limitation|caveat',
 }
+
+
+def _audit_search_text(text):
+    """Local location hints preserve the claim and stay inside cited bodies."""
+    clean=re.sub(r'\\([/_-])',r'\1',_CITATION.sub('',text))
+    aliases={'解码':'decode decoding','预填充':'prefill',
+        '最大批':'largest maximum batch size','最小批':'smallest minimum batch size',
+        '批大小':'batch size','批量大小':'batch size'}
+    return clean+' '+' '.join(value for term,value in aliases.items() if term in clean)
 
 
 def _audit_source_anchor(claim, source, window, located_spans):
@@ -128,7 +137,7 @@ def _audit_source_anchor(claim, source, window, located_spans):
     if identity and meta.get('coverage') == 'full_text':
         return 0, min(len(text), window+400), 'source_opening'
     focused = {field for field, pattern in _AUDIT_FIELDS.items() if re.search(pattern, clean, re.I)}
-    measured = re.search(r'\d[\d.,]*\s*(?:×|%|倍|ms\b|s/token\b|GB\b|GPU\b)|实验|评估|基线|实验条件|experiment|evaluat|baseline', clean, re.I)
+    measured = re.search(r'\d[\d.,]*\s*(?:×|%|倍|ms\b|s/token\b|GB\b|GPU\b)|实验|评估|基线|实验条件|参数|超参|批大小|批量大小|experiment|evaluat|baseline|batch\s+size|precision|(?<![a-z0-9_])rank(?![a-z0-9_])', clean, re.I)
     if 'mechanism' in focused and not measured:
         focused = {'mechanism', 'method_overview'}
     # A located experimental field is more useful than an abstract for a
@@ -162,7 +171,9 @@ def select_excerpts(claim: str, evidence: list[Evidence], *, cited: list[int] | 
                     max_sources: int = 3, window: int = 1000, windows_per_source: int = 1,
                     audit_context: bool = False, source_spans: dict | None = None) -> list[dict]:
     """Search the full retained bodies, rather than the first N source prefixes."""
-    query = _terms(claim)
+    search_text=_audit_search_text(claim) if audit_context else claim
+    query = _terms(search_text)
+    markers=list(dict.fromkeys(re.findall(r'(?i)(?<![a-z0-9])[a-z][a-z0-9]*(?:[/_-][a-z0-9]+)+(?![a-z0-9])',search_text)))[:8] if audit_context else []
     ranked = []
     for number, ev in enumerate(evidence, 1):
         if cited is not None and number not in cited:
@@ -177,13 +188,15 @@ def select_excerpts(claim: str, evidence: list[Evidence], *, cited: list[int] | 
             frequencies.update(terms.keys())
             candidates.append((start, excerpt, terms))
         count = len(candidates)
-        scored, weights_by_start = [], {}
+        scored, weights_by_start, marker_scores = [], {}, {}
         for start, excerpt, terms in candidates:
             weights = {t: min(terms[t], 2) * math.log1p((count-frequencies[t]+0.5)/(frequencies[t]+0.5))
                         * (2 if any(c.isdigit() for c in t) else 1)
                         / max(1, len(query)) for t in query if t in terms}
             weights_by_start[start] = weights
-            score = sum(weights.values())
+            literal=re.sub(r'(?<=-)\s+(?=[a-z0-9])','',excerpt.lower())
+            marker_scores[start]=2*sum(marker.lower() in literal for marker in markers)
+            score = sum(weights.values())+marker_scores[start]
             scored.append((score, start, excerpt))
         candidates = scored
         candidates.sort(key=lambda item: (-item[0], item[1]))
@@ -203,7 +216,7 @@ def select_excerpts(claim: str, evidence: list[Evidence], *, cited: list[int] | 
                 selected[-1]['selection_role'] = role
             covered.update(term for term in _terms(excerpt) if term in query)
         if audit_context and windows_per_source > 0:
-            anchor = _audit_source_anchor(claim, ev, window, (source_spans or {}).get(ev.evidence_id))
+            anchor = _audit_source_anchor(search_text, ev, window, (source_spans or {}).get(ev.evidence_id))
             if anchor:
                 retain(*anchor)
         bibliographic = re.search(r'参考文献|引用关系|引证|被引|\b(?:cites?|citations?|references|bibliograph\w*)\b', _CITATION.sub('',claim), re.I)
@@ -216,7 +229,7 @@ def select_excerpts(claim: str, evidence: list[Evidence], *, cited: list[int] | 
                 # Reference lists are still retained candidates. Their names
                 # must not outrank scientific exposition for a mechanism.
                 not (audit_context and not bibliographic and len(re.findall(r'(?m)^\s*\[\d{1,4}\]\s+', item[2])) >= 2),
-                sum(weight for term, weight in weights_by_start[item[1]].items() if term not in covered)
+                marker_scores[item[1]]+sum(weight for term, weight in weights_by_start[item[1]].items() if term not in covered)
                 + 0.05*item[0], -item[1]))
             retain(start, start+len(excerpt), 'lexical_question')
         if selected:
@@ -265,6 +278,16 @@ For an explicit proposal, supported means a grounded proposal, NOT an observed r
 require source-supported factual premises and conclusion_status=explicit_proposal.
 An author need not have proposed the same procedure or endorsed the action. A
 potential partner need not have accepted a clearly proposed contact or experiment.
+An open question plus a proposed test is a proposal: asking whether two described
+methods can be combined and what their joint costs/benefits would be does not
+assert that combination is feasible or beneficial. Ground the identified methods
+and any asserted empirical premises; do not require a paper to declare that this
+research question needs an experiment. A claim that the papers contain NO such
+evaluation is a separate factual absence claim and still needs evidence.
+When supplied primary-work passages present authors' own result reports, saying
+that those cited results are author-reported is source attribution; it need not
+contain the literal label "self-report". It establishes no independent reproduction
+or validation. Do not assume primary authorship for secondary-source passages.
 For example, recommending that a reproduction use a paper's reported SLO metric
 may be grounded in its metrics and setup; do not reject merely because the paper
 does not call that procedure an acceptance deliverable. Similarly a proposed
@@ -480,6 +503,7 @@ def audit_report(report: str, evidence: list[Evidence], *, client: Any, model: s
         row = {**claim, "status": status, "model_verdict": None, "model_confidence": None,
                "human_review_status": "not_reviewed", "source_checks": [], "excerpts": excerpts,
                "retrieval_query": retrieval_query,
+               "local_retrieval_query": _audit_search_text(claim['text']+' '+retrieval_query),
                "declared_kind": declared_kind, 'allowed_method_ids': method_ids,
                'statistic_context':paragraph_statistics(claim['paragraph_context']),
                "reason": "Explicit claim limit" if i >= claim_limit else "Awaiting source support judgement"}
