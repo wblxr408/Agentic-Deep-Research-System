@@ -39,3 +39,5 @@
 .technical-notes { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 30px; margin-top: 34px; }
 .technical-notes p { display: flex; gap: 12px; font-size: 14px; line-height: 1.9; color: var(--muted); }.technical-notes span { font-size: 12px; color: var(--accent); }
 @media(max-width:700px) { .technical-header { padding: 18px 22px; }.technical-header>span { display: none; }.technical-main { padding: 40px 20px; }.technical-tabs { margin: 30px 0; }.technical-tabs button { padding: 10px; font-size: 13px; }.technical-topic-title { display: block; }.technical-topic-title p { margin-top: 14px; }.technical-notes { grid-template-columns: 1fr; gap: 0; }.technical-boundary { gap: 16px; }.technical-page .site-footer { flex-direction: column; gap: 12px; } }
+
+.technical-diagram[data-compact="true"]{min-width:0}.technical-diagram[data-compact="true"] .technical-node{padding:16px}.technical-diagram[data-compact="true"] .technical-node strong{font-size:16px}

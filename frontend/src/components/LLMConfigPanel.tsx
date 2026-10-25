@@ -262,7 +262,7 @@ function LLMConfigPanel({ onClose }: LLMConfigPanelProps) {
       {loadError && (
         <div className="mb-4 p-4 rounded-xl bg-red-50 border border-red-100">
           <p className="text-sm text-red-700">
-            配置接口当前不可用，前后端连接可能尚未就绪：{loadError.message}
+            读取配置失败：{loadError.message}
           </p>
           <button
             type="button"
@@ -322,7 +322,7 @@ function LLMConfigPanel({ onClose }: LLMConfigPanelProps) {
         <div className="flex items-start justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 mb-2">
-              <span className="text-sm font-medium text-xmgray-700">当前正在使用的 AI</span>
+              <span className="text-sm font-medium text-xmgray-700">当前模型</span>
               <span className={`text-[10px] px-2 py-0.5 rounded-full ${
                 status?.is_configured ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
               }`}>
@@ -332,7 +332,7 @@ function LLMConfigPanel({ onClose }: LLMConfigPanelProps) {
             <p className="text-sm text-xmgray-500">
               {status?.provider && status?.model
                 ? `${status.provider} / ${status.model}`
-                : '尚未加载到可用配置'}
+                : '未取得配置'}
             </p>
           </div>
           <div className="text-right">

@@ -25,19 +25,28 @@ export function useSSE(sessionId: string | null, runKey = ''): {
   error: string | null
   clearEvents: () => void
 } {
-  const [events, setEvents] = useState<SSEvent[]>([])
+  const feedKey = `${sessionId || ''}|${runKey}`
+  const [feed, setFeed] = useState<{ key: string; events: SSEvent[] }>({ key: feedKey, events: [] })
+  const events = feed.key === feedKey ? feed.events : []
   const [status, setStatus] = useState<string>('disconnected')
   const [error, setError] = useState<string | null>(null)
   const eventSourceRef = useRef<EventSource | null>(null)
   const completedRef = useRef(false)
 
   const clearEvents = useCallback(() => {
-    setEvents([])
+    setFeed({ key: feedKey, events: [] })
     setError(null)
     completedRef.current = false
-  }, [])
+  }, [feedKey])
 
   useEffect(() => {
+    let active = true
+    const append = (event: SSEvent) => {
+      if (!active) return
+      if (typeof event.data.session_id === 'string' && event.data.session_id !== sessionId) return
+      if (runKey && typeof event.data.execution_id === 'string' && event.data.execution_id !== runKey) return
+      setFeed(previous => ({ key: feedKey, events: [...(previous.key === feedKey ? previous.events : []), event] }))
+    }
     if (!sessionId) {
       setStatus('disconnected')
       setError(null)
@@ -58,17 +67,16 @@ export function useSSE(sessionId: string | null, runKey = ''): {
     eventSourceRef.current = eventSource
 
     eventSource.onopen = () => {
+      if (!active) return
       setStatus('connected')
       setError(null)
     }
 
     eventSource.onmessage = (event) => {
+      if (!active) return
       try {
         const data = JSON.parse(event.data)
-        setEvents(prev => [
-          ...prev,
-          { type: 'message', data, timestamp: new Date().toISOString() }
-        ])
+        append({ type: 'message', data, timestamp: new Date().toISOString() })
       } catch {
         // Ignore parse errors
       }
@@ -84,29 +92,26 @@ export function useSSE(sessionId: string | null, runKey = ''): {
 
     eventTypes.forEach(type => {
       eventSource.addEventListener(type, (event: MessageEvent) => {
+        if (!active) return
         try {
           const data = JSON.parse(event.data)
+          if (typeof data.session_id === 'string' && data.session_id !== sessionId) return
+          if (runKey && typeof data.execution_id === 'string' && data.execution_id !== runKey) return
           if (type === 'done' || type === 'workflow_error') {
             completedRef.current = true
             eventSource.close()
             eventSourceRef.current = null
             setStatus('disconnected')
           }
-          setEvents(prev => [
-            ...prev,
-            { type, data, timestamp: new Date().toISOString() }
-          ])
+          append({ type, data, timestamp: new Date().toISOString() })
         } catch {
-          setEvents(prev => [
-            ...prev,
-            { type, data: { raw: event.data }, timestamp: new Date().toISOString() }
-          ])
+          append({ type, data: { raw: event.data }, timestamp: new Date().toISOString() })
         }
       })
     })
 
     eventSource.onerror = () => {
-      if (completedRef.current) {
+      if (!active || completedRef.current) {
         return
       }
       setStatus('error')
@@ -115,12 +120,13 @@ export function useSSE(sessionId: string | null, runKey = ''): {
     }
 
     return () => {
+      active = false
       eventSource.close()
       eventSourceRef.current = null
       completedRef.current = false
       setStatus('disconnected')
     }
-  }, [sessionId, runKey])
+  }, [sessionId, runKey, feedKey])
 
   return { events, status, error, clearEvents }
 }

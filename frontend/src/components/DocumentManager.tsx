@@ -297,7 +297,7 @@ function DocumentManager() {
               <input className="input-xm w-full" value={name} onChange={e => setName(e.target.value)} placeholder="名称" />
               <input className="input-xm w-full" value={groupName} onChange={e => setGroupName(e.target.value)} placeholder="分组" />
               <input type="file" className="input-xm w-full" onChange={e => setSelectedFile(e.target.files?.[0] || null)} accept=".json,.md,.docx,.pdf,.txt" />
-              <label className="flex items-start gap-2 text-sm"><input type="checkbox" checked={allowOcr} onChange={event=>setAllowOcr(event.target.checked)} />对无文本PDF页启用本机OCR（需服务端配置及对应语言包）</label>
+              <label className="flex items-start gap-2 text-sm"><input type="checkbox" checked={allowOcr} onChange={event=>setAllowOcr(event.target.checked)} />扫描页文字识别（OCR）</label>
               <div className="grid grid-cols-2 gap-3">
                 <label className="text-xs">文件块长度<input aria-label="文件块长度" type="number" min={100} max={4000} className="input-xm w-full" value={chunkSize} onChange={e => setChunkSize(Number(e.target.value))} /></label>
                 <label className="text-xs">文件块重叠<input aria-label="文件块重叠" type="number" min={0} max={1000} className="input-xm w-full" value={chunkOverlap} onChange={e => setChunkOverlap(Number(e.target.value))} /></label>
@@ -317,7 +317,7 @@ function DocumentManager() {
       <div className="grid gap-6 lg:grid-cols-2">
           <div className="card p-0 overflow-hidden">
             <div className="px-5 py-4 border-b border-xmgray-100 flex items-center justify-between">
-              <h3 className="font-medium">知识源列表</h3>
+              <h3 className="font-medium">资料列表</h3>
               <span className="text-xs text-xmgray-400">{isLoading ? '加载中...' : `${sources?.items.length || 0} 项`}</span>
             </div>
             <div className="max-h-[620px] overflow-y-auto p-4 space-y-2">
@@ -365,12 +365,12 @@ function DocumentManager() {
                 <SourceLifecyclePanel key={`lifecycle-${selectedSource.id}`} sourceId={selectedSource.id} onChanged={async()=>{await queryClient.invalidateQueries({queryKey:['document-sources']});await queryClient.invalidateQueries({queryKey:['document-chunks']});await queryClient.invalidateQueries({queryKey:['source-index',selectedSource.id]})}}/>
               </div>
             ) : (
-              <p className="text-sm text-xmgray-400">请选择一个知识源。</p>
+              <p className="text-sm text-xmgray-400">选择资料查看详情。</p>
             )}
           </div>
 
           <div className="card p-6">
-            <h3 className="font-semibold mb-4">Chunks</h3>
+            <h3 className="font-semibold mb-4">资料片段</h3>
             <div className="max-h-[320px] overflow-y-auto space-y-3">
               {chunks?.items?.map(chunk => (
                 <div key={chunk.id} className="rounded-xl border border-xmgray-100 p-3">

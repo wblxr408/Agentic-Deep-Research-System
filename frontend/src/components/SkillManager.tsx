@@ -216,12 +216,12 @@ Add explicit tool or reasoning constraints here.
                     <div>
                       <div className="font-medium text-xmgray-800">{skill.name}</div>
                       <div className="text-xs text-xmgray-400 mt-1">
-                        {skill.slug} · v{skill.version} · priority {skill.priority}
+                        {skill.slug} · v{skill.version} · 优先级 {skill.priority}
                       </div>
                       <p className="mt-2 text-sm text-xmgray-500">{skill.description}</p>
                     </div>
                     <span className={`tag text-[11px] ${skill.enabled ? '' : 'opacity-60'}`}>
-                      {skill.enabled ? 'enabled' : 'disabled'}
+                      {skill.enabled ? '启用' : '禁用'}
                     </span>
                   </div>
                   <div className="mt-3 flex flex-wrap gap-2">
@@ -266,7 +266,7 @@ Add explicit tool or reasoning constraints here.
                 </div>
               </>
             ) : (
-              <p className="text-sm text-xmgray-400">请选择一个 skill 进行编辑。</p>
+              <p className="text-sm text-xmgray-400">选择 Skill 查看与编辑。</p>
             )}
           </div>
         </div>

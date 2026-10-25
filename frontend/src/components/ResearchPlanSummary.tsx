@@ -10,7 +10,7 @@ export interface PlanSummaryProps {
   operationalEvents?: Array<{message:string;error_type:string;at:string;effect:string}>
 }
 const reasons:Record<string,string>={single_pass_selected:'按选择完成单轮研究',revision_limit:'已到补证轮次上限',no_new_retained_material:'连续补证未保留新材料',
-  no_requested_revision_not_a_truth_certificate:'审核未请求继续修订，仍需按报告支持状态阅读',specific_evidence_gap:'有具体证据缺口，继续有限补证',
+  no_requested_revision_not_a_truth_certificate:'本轮核对结束',specific_evidence_gap:'有具体证据缺口，继续有限补证',
   no_structured_evidence_gap_manual_review_available:'没有可执行的结构化补证问题，保留人工复核入口',human_authorization_required:'等待所需操作审批',
   no_accessible_evidence:'没有可用于报告的授权证据',tool_not_allowed:'当前工具未获许可',condition_not_met:'分支条件不满足',dependency_failed:'前置步骤失败',
   mcp_serial_until_trusted_resource_independence_is_declared:'该工具请求按串行执行',synthesis_review_and_rendering_owned_by_root_workflow:'综合、审核与交付由根流程执行'}
@@ -24,7 +24,7 @@ export default function ResearchPlanSummary({plan,dag,history,control,status,fai
       <p>研究执行中断：{failure.message||failure.category}</p>
       {!!failure.interrupted_batch?.length&&<p>中断步骤：{failure.interrupted_batch.join('、')}</p>}
       <p className="text-xs">最后保存进度：{failure.checkpoint_seq} · {failure.at} · {failure.error_type}</p>
-      <p className="text-xs">已保存的材料、分析与用量可在工作区查看；可复制研究条件新建任务。</p>
+      <p className="text-xs">材料、分析与用量已保存。</p>
     </div>}
     {!!operationalEvents?.length&&<details><summary>运行通知（{operationalEvents.length}）</summary>
       <p className="text-xs">研究结果已保存，以下事件保留在运行记录中。</p>
@@ -41,7 +41,7 @@ export default function ResearchPlanSummary({plan,dag,history,control,status,fai
       </li>
     })}</ol>
     {!!plan?.adjustments?.length&&<details><summary>计划调整及约束原因</summary>{plan.adjustments.map((item,index)=><p key={index}>{item.node_id} · {reasons[item.reason]||item.reason}</p>)}</details>}
-    {control&&<p className="rounded bg-xmgray-50 p-3">{control.action==='replan'?'继续补证':control.action==='pause'?'等待处理':'本轮停止'}：{reasons[control.reason]||control.reason}。已补证{control.revision_count}/{control.revision_limit}轮；无新材料{control.no_gain_rounds}轮。停止不代表事实全部核实。</p>}
+    {control&&<p className="rounded bg-xmgray-50 p-3">{control.action==='replan'?'继续补证':control.action==='pause'?'等待处理':'本轮停止'}：{reasons[control.reason]||control.reason}。已补证{control.revision_count}/{control.revision_limit}轮；无新材料{control.no_gain_rounds}轮。</p>}
     {!!history?.length&&<details><summary>计划历史（{history.length}版）</summary>{history.map(item=><p key={item.plan_version}>第{item.revision}版 · {item.strategy} · {item.reason}</p>)}</details>}
   </section>
 }

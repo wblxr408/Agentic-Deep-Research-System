@@ -3,6 +3,8 @@ import ReactDOM from 'react-dom/client'
 import App from './App'
 import './index.css'
 import './workspace.css'
+import './research-workspace.css'
+import './report-reader.css'
 
 // Existing components use native fetch. Make every API request carry the
 // HttpOnly administrator session without duplicating credentials options.

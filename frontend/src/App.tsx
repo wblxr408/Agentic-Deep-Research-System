@@ -45,7 +45,7 @@ function Home({ navigate }: { navigate: (view: View) => void }) {
         <div className="hero-actions"><button type="button" className="hero-button" onClick={() => navigate('research')}>{en ? 'Start researching' : '开始研究'}<Icon name="arrow" /></button>
           <a href="?view=technology" target="_blank" rel="noopener noreferrer" className="hero-link">{en ? 'How it works' : '了解技术原理'}<Icon name="external" size={16} /></a></div>
       </div>
-      <div className="hero-bottom"><span>DeepIntel / Research workspace</span><span aria-hidden="true">↓</span></div>
+      <div className="hero-bottom" aria-hidden="true"><span></span><span>↓</span></div>
     </section>
     <section className="home-index" aria-label="工作区入口">
       {[
@@ -100,13 +100,13 @@ function Workspace() {
   }, [])
 
   if (view === 'technology') return <TechnicalDocs />
-  if (!auth) return <main className="connection-screen">{authError ? <><p role="alert">{authError}</p><button className="btn-primary" onClick={() => void refreshAuth()}>重新连接</button></> : <p role="status"><TraceLoader />连接研究工作区</p>}</main>
-  if (!auth.authenticated) return <AuthGate state={auth} onAuthenticated={() => void refreshAuth()} />
+  if (!auth && view !== 'home') return <main className="connection-screen">{authError ? <><p role="alert">{authError}</p><button className="btn-primary" onClick={() => void refreshAuth()}>重新连接</button></> : <p role="status"><TraceLoader />连接研究工作区</p>}</main>
+  if (auth && !auth.authenticated && view !== 'home') return <AuthGate state={auth} onAuthenticated={() => void refreshAuth()} />
 
   return <div className="app-shell"><a href="#main-content" className="skip-link">跳到内容</a><Header view={view} navigate={navigate} />
     <main id="main-content">
       {view === 'home' && <Home navigate={navigate} />}
-      {(researchVisited || view === 'research') && <div hidden={view !== 'research'} className="research-surface"><ResearchDashboard onBack={() => navigate('home')} /></div>}
+      {auth?.authenticated && (researchVisited || view === 'research') && <div hidden={view !== 'research'} className="research-surface"><ResearchDashboard onBack={() => navigate('home')} /></div>}
       {view === 'settings' && <section className="management-surface"><LLMConfigPanel /></section>}
       {view === 'documents' && <section className="management-surface"><DocumentManager /></section>}
       {view === 'skills' && <section className="management-surface"><SkillManager /></section>}
