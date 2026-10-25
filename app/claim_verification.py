@@ -495,11 +495,23 @@ def audit_report(report: str, evidence: list[Evidence], *, client: Any, model: s
             'bound_statistics':statistics,
             'task_method':task_context if any(row.get('allowed_method_ids') for row in batch) else None}
 
-    batches, waiting = [], []
+    waiting, batch_records = [], []
+    max_payload_chars, max_batch_claims = 64000, 20
+
+    def batch_request(batch):
+        serialized = json.dumps(compact_payload(batch), ensure_ascii=False)
+        messages = [
+            {"role": "system", "content": AUDIT_PROMPT},
+            {"role": "user", "content": untrusted_context("claim_source_pairs",
+                serialized, limit=len(serialized))}]
+        output_cap = min(8000, max(384, len(batch)*400))
+        bound = request_token_bound(messages, response_format={"type":"json_object"}) + output_cap
+        return serialized, messages, output_cap, bound
+
     standalone_sizes = {}
     for row in pending:
         size = len(json.dumps(compact_payload([row]), ensure_ascii=False)) + 2
-        if size > 22000:
+        if size > max_payload_chars:
             row.update(status="not_checked", reason="Claim/excerpts exceed verification context budget")
             continue
         waiting.append(row)
@@ -510,11 +522,13 @@ def audit_report(report: str, evidence: list[Evidence], *, client: Any, model: s
         # the claims. Keep the report-order rows and every verdict unchanged.
         batch = [waiting.pop(0)]
         size = len(json.dumps(compact_payload(batch), ensure_ascii=False))
-        while waiting and len(batch) < 10:
+        available = client.budget.available('audit') if isinstance(client,BudgetedClient) else (remaining_tokens or 0)
+        while waiting and len(batch) < max_batch_claims:
             candidates = []
             for index, row in enumerate(waiting):
-                joined_size = len(json.dumps(compact_payload([*batch, row]), ensure_ascii=False))
-                if joined_size <= 22000:
+                serialized, _, _, bound = batch_request([*batch, row])
+                joined_size = len(serialized)
+                if joined_size <= max_payload_chars and bound <= available:
                     added = joined_size-size
                     saved = standalone_sizes[row['claim_id']]-added
                     candidates.append((saved, -added, -index, joined_size))
@@ -522,25 +536,16 @@ def audit_report(report: str, evidence: list[Evidence], *, client: Any, model: s
                 break
             _, _, negative_index, size = max(candidates)
             batch.append(waiting.pop(-negative_index))
-        batches.append(batch)
-    while batches:
-        batch = batches.pop(0)
+        record = {'claim_ids':[row['claim_id'] for row in batch], 'status':'prepared'}
+        batch_records.append(record)
         try:
-            payload = compact_payload(batch)
-            serialized = json.dumps(payload, ensure_ascii=False)
-            messages = [
-                    {"role": "system", "content": AUDIT_PROMPT},
-                    {"role": "user", "content": untrusted_context("claim_source_pairs",
-                        serialized, limit=len(serialized))}]
+            serialized, messages, output_cap, reservation = batch_request(batch)
             from app.llm_client import collect_usage_metrics
             available = client.budget.available('audit') if isinstance(client,BudgetedClient) else (remaining_tokens or 0)
-            output_cap = min(4000,max(384,len(batch)*400))
-            reservation = request_token_bound(messages,response_format={"type":"json_object"}) + output_cap
-            if reservation > available and len(batch) > 1:
-                middle = len(batch)//2
-                batches[:0] = [batch[:middle],batch[middle:]]
-                continue
+            record.update(payload_characters=len(serialized), reserved_tokens=reservation,
+                available_tokens=available, output_cap=output_cap)
             if reservation > available or (deadline is not None and time.monotonic() >= deadline):
+                record.update(status='not_dispatched', reason='original_token_or_time_allowance')
                 for row in batch:
                     row.update(status="not_checked", reason="Verification token/time budget exhausted")
                 continue
@@ -549,6 +554,7 @@ def audit_report(report: str, evidence: list[Evidence], *, client: Any, model: s
                 active_client = client.with_options(timeout=max(0.1, deadline-time.monotonic()), max_retries=0)
             response = active_client.chat.completions.create(model=model, temperature=0,
                 max_tokens=output_cap, response_format={"type": "json_object"}, messages=messages)
+            record['status'] = 'response_received'
             usage.append(collect_usage_metrics(response=response, model=model, messages=messages,
                                                completion_text=response.choices[0].message.content))
             data = json.loads(response.choices[0].message.content)
@@ -603,10 +609,12 @@ def audit_report(report: str, evidence: list[Evidence], *, client: Any, model: s
                 if not anchors_valid:
                     row["reason"] = "Source anchors are absent or invalid in this claim's selected cited passages; " + row["reason"]
         except TokenBudgetExceeded as exc:
+            record.update(status='budget_blocked',reason=exc.reason)
             errors.append(exc.reason)
             for row in batch:
                 row.update(status='not_checked',reason='Verification token/time budget exhausted')
         except Exception as exc:
+            record.update(status='response_unavailable_or_invalid',reason=type(exc).__name__)
             errors.append(type(exc).__name__)
             for row in batch:
                 row["reason"] = "Verification unavailable: " + type(exc).__name__
@@ -624,6 +632,10 @@ def audit_report(report: str, evidence: list[Evidence], *, client: Any, model: s
     source_claims = sum(not row.get('allowed_method_ids') for row in rows)
     return {"schema_version": "2", "verification_kind": "model_judgement_with_source_or_frozen_task_provenance",
             'audit_contract_version':AUDIT_CONTRACT_VERSION,'audit_model':model,
+            'batching':{'version':'adrs-shared-audit-packing-v2',
+                'max_payload_characters':max_payload_chars,'max_batch_claims':max_batch_claims,
+                'admission':'full_request_byte_bound_and_original_remaining_allowance',
+                'batches':batch_records},
             'task_method_context':deepcopy(task_context) if any(row.get('allowed_method_ids') for row in rows) else None,
             'reused_supported_claims':sum(bool(row.get('verification_reused')) for row in rows),
             'newly_checked_claims':sum(row['model_verdict'] is not None and not row.get('verification_reused') for row in rows),
