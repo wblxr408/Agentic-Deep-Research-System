@@ -120,8 +120,10 @@ Return a JSON object with these fields:
             workflow['attempts'][key]=attempts+1
             try:
                 progress()
+                output_tokens=8192 if (kind=='extraction' or attempts
+                    or 'deep_dive' in phase_config.get('modules',[])) else 4096
                 text=self.analyze(user_query,evidence_list,skill_prompt,analyst_hints,phase_config,
-                    _phase=kind,_seed=seed,_output_tokens=8192 if kind=='extraction' or attempts else 4096)
+                    _phase=kind,_seed=seed,_output_tokens=output_tokens)
                 record={'analysis_text':text,'organization_data':deepcopy(self.last_organization_data or {}),
                     'context':deepcopy(self.last_context_manifest),'extraction':deepcopy(self.last_extraction_status)}
                 workflow.setdefault('attempt_records',{}).setdefault(key,[]).append({
