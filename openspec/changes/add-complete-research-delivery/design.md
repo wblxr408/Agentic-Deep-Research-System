@@ -1,5 +1,9 @@
 # Design
 
+## 2026-10-25：完整对象尾部单个冗余右括号
+
+U2d实际完整7850字符响应在7849处被标准JSON解码器以Extra data拒绝，余串仅为单个右括号，造成同阶段付费重做。Analyst保留标准解码优先；只有已strip／外层json fence后的标准Extra data位置到末尾恰为单个“}”、之前全体文字可解成完整dict时，恢复该原对象。字段和所有字符串值不改，原字面控制字符值保真路径保留；不寻找其他对象、不补内部结构、不接受第二对象或尾随文字。finish_reason=length仍先于解码停止，组织字段／analysis_text和全部原证明／阶段／额度校验继续。原始响应及格式恢复种类／cleaned offset写内部extraction记录，与控制字符修复计数分开，不进入报告正文。无额外模型、恢复次数或额度；完整旅程验证前仅记源码。
+
 ## 2026-10-25：明确封面链接关联同一发表
 
 U2c实际scope_result把DistServe及dLoRA各自的作者PDF／USENIX页形成独立output_id，标题、月份、署名一致，sample:publications与sample:families均为4；作者PDF封面保留对应USENIX原文URL。新声明corpus-v3在现有Findings普通函数中使用该原文链接：仅PDF已校验的主标题区（摘要／引言之前）可提供链接，目标必须已在本根授权证据内、带服务器提取的主出版元数据，完整标题及日期边界均一致；只有一个规范目标才采用。URL及目标元数据继续经原字面proof校验，歧义保持独立，不能只凭题名相近、同作者或参考文献合并。

@@ -31,16 +31,24 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-def _decode_response_object(content: str) -> tuple[object, int]:
+def _decode_response_object(content: str, *, normalizations: list | None = None) -> tuple[object, int]:
     """Recover literal LF/CR/tab inside JSON strings, retaining their value.
 
-    No object extraction, delimiter completion, key invention or prose repair.
+    A complete object with one redundant final close retains the whole object.
+    No arbitrary object search, delimiter completion, key invention or prose repair.
     Other malformed JSON is still rejected by the standard decoder.
     """
     text=content.strip()
     if text.startswith('```json') and text.endswith('```'):text=text[7:-3].strip()
     try:return json.loads(text),0
     except json.JSONDecodeError as error:
+        if error.msg == 'Extra data' and text[error.pos:] == '}':
+            complete = json.loads(text[:error.pos])
+            if isinstance(complete, dict):
+                if normalizations is not None:
+                    normalizations.append({'kind':'single_redundant_final_object_close',
+                        'cleaned_response_offset':error.pos})
+                return complete,0
         if not error.msg.startswith('Invalid control character'):raise
     quoted=False;escaped=False;repairs=0;parts=[]
     for char in text:
@@ -454,7 +462,8 @@ Also provide the structured JSON output."""
 
             # Try to parse structured output
             try:
-                structured,control_repairs = _decode_response_object(content)
+                normalizations = []
+                structured,control_repairs = _decode_response_object(content,normalizations=normalizations)
                 if not isinstance(structured, dict):
                     structured = {}
                 if isinstance(structured.get('organization_data'), dict):
@@ -467,6 +476,9 @@ Also provide the structured JSON output."""
                 }
                 if control_repairs:
                     self.last_extraction_status['raw_response_before_control_repair']=content
+                if normalizations:
+                    self.last_extraction_status['json_envelope_normalizations']=normalizations
+                    self.last_extraction_status['raw_response_before_envelope_normalization']=content
             except json.JSONDecodeError as error:
                 structured = {}
                 self.last_extraction_status = {'status': 'invalid_json', 'reason': str(error),

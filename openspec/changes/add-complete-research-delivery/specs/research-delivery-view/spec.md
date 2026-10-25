@@ -6,6 +6,17 @@
 
 ## ADDED Requirements
 
+### Requirement: Literal complete analysis objects survive a single redundant final close
+系统 SHALL 在标准JSON解码报Extra data且剩余文字恰为单个右括号、前缀全部文字解码为完整对象时，保留该原对象及原响应、记录内部格式恢复。系统 MUST 保持全部字段值与原组织字段／正文／proof校验，长度截断先停止；不能补内部结构、提取后续对象、接受尾随文字或以此重置尝试／预算。
+
+#### Scenario: One redundant final object delimiter
+- **WHEN** 正常结束的分析响应是完整对象后多单个右括号
+- **THEN** 保留原完整数据和原始响应，继续原阶段校验，格式恢复独立于控制字符修复计数
+
+#### Scenario: Interrupted or ambiguous malformed response
+- **WHEN** 模型长度截断、内部JSON损坏、第二对象、尾随文字或多个多余符号
+- **THEN** 原停止／拒绝行为生效，不通过删改数据或新增额度恢复
+
 ### Requirement: Publication identity preserves explicitly linked source versions
 新corpus-v3声明 SHALL 在已取得PDF的主标题区明确链接到本根已授权且已取得的出版页、完整标题及出版日期边界一致且目标唯一时，将其作为同一发表的来源别名。系统 MUST 保存来源URL、各自证明和署名，不因来源增加重复累计发表；类型／日期冲突、仅相似题名、参考文献链接及歧义不能建立别名，研究家族仍需原关系证明。旧声明和历史结果 SHALL 保留原规则。
 
