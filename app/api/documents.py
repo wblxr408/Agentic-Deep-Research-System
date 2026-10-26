@@ -336,30 +336,19 @@ async def _persist_ingested_source(
 async def list_sources(group_name: str | None = None,summary:bool=False, principal: PrincipalDep = None):
     pool = await get_db_pool()
     async with pool.acquire() as conn:
-        if group_name:
-            rows = await conn.fetch(
-                """
-                SELECT id, name, group_name, source_type, file_name, file_ext, status,
-                       CASE WHEN $3::boolean THEN NULL ELSE original_text END AS original_text, chunk_size, chunk_overlap,
-                       CASE WHEN $3::boolean THEN metadata - ARRAY['document_parse','chunk_plan','feature_plan']::text[] ELSE metadata END AS metadata,
-                       created_at, updated_at
-                FROM document_sources
-                WHERE group_name = $1 AND owner_id = $2::uuid
-                ORDER BY created_at DESC
-                """,
-                group_name, principal.id,summary,
-            )
-        else:
-            rows = await conn.fetch(
-                """
-                SELECT id, name, group_name, source_type, file_name, file_ext, status,
-                       CASE WHEN $2::boolean THEN NULL ELSE original_text END AS original_text, chunk_size, chunk_overlap,
-                       CASE WHEN $2::boolean THEN metadata - ARRAY['document_parse','chunk_plan','feature_plan']::text[] ELSE metadata END AS metadata,
-                       created_at, updated_at
-                FROM document_sources
-                WHERE owner_id = $1::uuid ORDER BY created_at DESC
-                """, principal.id,summary
-            )
+        rows = await conn.fetch(
+            """
+            SELECT s.id,s.name,s.group_name,s.source_type,s.file_name,s.file_ext,s.status,
+                   CASE WHEN $2::boolean THEN NULL ELSE s.original_text END AS original_text,
+                   s.chunk_size,s.chunk_overlap,
+                   CASE WHEN $2::boolean THEN s.metadata - ARRAY['document_parse','chunk_plan','feature_plan']::text[] ELSE s.metadata END AS metadata,
+                   s.created_at,s.updated_at,l.state AS lifecycle_state,l.is_current
+            FROM document_sources s
+            LEFT JOIN document_source_lifecycle l ON l.source_id=s.id AND l.owner_id=s.owner_id
+            WHERE s.owner_id=$1::uuid AND ($3::text IS NULL OR s.group_name=$3)
+            ORDER BY s.created_at DESC
+            """,principal.id,summary,group_name or None,
+        )
     return {"items": [{**dict(row),'metadata':_metadata(row['metadata'])} for row in rows]}
 
 
