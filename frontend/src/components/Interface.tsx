@@ -19,6 +19,7 @@ export function Icon({ name, size = 20 }: { name: string; size?: number }) {
     step: <><path d="m5 5 10 7-10 7zM19 5v14" /></>,
     network: <><circle cx="12" cy="12" r="3" /><circle cx="4" cy="4" r="2" /><circle cx="20" cy="5" r="2" /><circle cx="6" cy="21" r="2" /><path d="m6 6 4 4m5 0 4-4m-8 9-4 4" /></>,
     source: <><rect x="5" y="3" width="14" height="18" rx="2" /><path d="M9 8h6m-6 4h6m-6 4h3" /></>,
+    database: <><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 4 16 4 16 0V5M4 12c0 4 16 4 16 0"/></>,
     chart: <><path d="M4 3v17h17M8 15l4-5 4 2 5-7" /></>,
     download: <><path d="M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5" /></>,
     external: <><path d="M14 3h7v7m0-7-11 11M10 5H4v16h16v-6" /></>,
