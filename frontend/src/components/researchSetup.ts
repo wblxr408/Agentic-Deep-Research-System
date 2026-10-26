@@ -1,4 +1,4 @@
-import {uiDefinition,t} from '../i18n'
+import {uiDefinition,t,joinLabels} from '../i18n'
 import {defaultQueryDraft,queryDraftRequest} from './QueryUnderstandingPanel'
 import type {QueryDraft} from './QueryUnderstandingPanel'
 import {defaultOrganizationDraft,organizationRequest} from './OrganizationResearchPanel'
@@ -28,7 +28,7 @@ export const templateName=(id:string)=>templateChoices.find(item=>item.id===id)?
 export const splitValues=(value:string)=>value.split(/[,，\n]/).map(item=>item.trim()).filter(Boolean)
 export function setupSummary(value:ResearchSetup) {
   const organization=value.organizationDraft,draft=value.queryDraft
-  const types=organization.enabled?organization.types.map(type=>({company:t("企业"),university:t("高校"),laboratory:t("实验室")})[type]).join('、'):t("围绕问题")
+  const types=organization.enabled?joinLabels(organization.types.map(type=>({company:t("企业"),university:t("高校"),laboratory:t("实验室")})[type])):t("围绕问题")
   const from=organization.enabled?organization.startDate:draft.startDate,to=organization.enabled?organization.endDate:draft.endDate
   return {focus:purposeNames[organization.enabled?organization.purpose||'research_development':draft.purpose]||t("按问题研究"),
     scope:types,time:from&&to?`${from.slice(0,4)}—${to.slice(0,4)}`:t("按问题确定"),

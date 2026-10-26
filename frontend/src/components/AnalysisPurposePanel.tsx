@@ -34,15 +34,15 @@ export default function AnalysisPurposePanel({ purpose = 'research_development',
     <label className="block text-xs text-xmgray-600">{t("研究目的")}<select aria-label={t("研究目的")} className="input-xm mt-1 text-sm" value={purpose} onChange={event => {
         const next = data.purposes.find(item => item.id === event.target.value)
         if (next) onChange(next.id, next.default_modules)
-      }}>{data.purposes.map(item => <option key={item.id} value={item.id}>{item.label}</option>)}</select>
+      }}>{data.purposes.map(item => <option key={item.id} value={item.id}>{t(item.label)}</option>)}</select>
     </label>
     <fieldset><legend className="text-xs text-xmgray-600">{t("研究模块")}</legend>
       <div className="mt-2 grid gap-3 sm:grid-cols-2">{data.modules.map(item => <label key={item.id} className="text-sm text-xmgray-700">
-        <span className="flex items-center gap-2"><input type="checkbox" aria-label={t("研究模块 {0}", item.label)} className="accent-orange-500" checked={!!modules?.includes(item.id)} onChange={event => onChange(purpose, event.target.checked ? [...(modules || []), item.id] : (modules || []).filter(key => key !== item.id))} />{item.label}</span>
-        <span className="mt-1 block text-xs leading-5 text-xmgray-500">{item.question}</span>
+        <span className="flex items-center gap-2"><input type="checkbox" aria-label={t("研究模块 {0}", t(item.label))} className="accent-orange-500" checked={!!modules?.includes(item.id)} onChange={event => onChange(purpose, event.target.checked ? [...(modules || []), item.id] : (modules || []).filter(key => key !== item.id))} />{t(item.label)}</span>
+        <span className="mt-1 block text-xs leading-5 text-xmgray-500">{t(item.question)}</span>
       </label>)}</div>
     </fieldset>
     <p className="text-xs leading-5 text-xmgray-500">{t("更改目的会选用对应推荐模块，仍可逐项调整；至少选择一个。目的与模块独立于匹配权重和报告模板。")}</p>
-    <p className="text-xs leading-5 text-xmgray-500">{data.capability_note}</p>
+    <p className="text-xs leading-5 text-xmgray-500">{t(data.capability_note)}</p>
   </div>
 }

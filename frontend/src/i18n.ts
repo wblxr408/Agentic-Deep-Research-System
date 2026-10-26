@@ -8,6 +8,7 @@ const listeners=new Set<()=>void>()
 export function setLocale(next:Locale){if(next===language)return;language=next;for(const notify of listeners)notify()}
 function subscribe(notify:()=>void){listeners.add(notify);return()=>{listeners.delete(notify)}}
 export function useLocale(){return useSyncExternalStore(subscribe,()=>language,()=>language)}
+export const joinLabels=(values:readonly string[])=>values.join(language==='en'?', ':'、')
 export const localeCode=()=>language==='en'?'en-US':'zh-CN'
 const renderedMessages=new Map<string,{source:string;values:unknown[]}>()
 const singular:Record<string,string>={sources:'source',actions:'action',subjects:'subject',methods:'method',skills:'skill',items:'item',records:'record',versions:'version',steps:'step',pages:'page',users:'user',documents:'document'}
@@ -30,10 +31,12 @@ export function uiDefinition<T>(definition:T):T{
  const proxy=new Proxy(definition as object,{get(target,property,receiver){const value=Reflect.get(target,property,receiver);return typeof value==='string'?t(value):value&&typeof value==='object'?uiDefinition(value):value}})
  proxyCache.set(definition as object,proxy);return proxy as T
 }
+const transportMessages:Record<string,string>={'Failed to fetch':'网络连接失败，请重试。','NetworkError when attempting to fetch resource.':'网络连接失败，请重试。','Network request failed':'网络连接失败，请重试。'}
 let reverse:Map<string,string>|undefined
 /** Re-render system feedback created before a language switch. Not for API/user content. */
 export function uiMessage<T>(message:T):T{
  if(typeof message!=='string')return message
+ if(transportMessages[message])return t(transportMessages[message]) as T
  const saved=renderedMessages.get(message)
  if(saved)return t(saved.source,...saved.values) as T
  if(Object.prototype.hasOwnProperty.call(english,message))return t(message) as T
