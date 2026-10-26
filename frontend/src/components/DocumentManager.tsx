@@ -1,392 +1,83 @@
-import { useEffect, useMemo, useState } from 'react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import {useEffect,useState} from 'react'
+import {useQuery,useQueryClient} from '@tanstack/react-query'
+import {Icon,Modal} from './Interface'
+import {CollectionHeader,CollectionTabs,CollectionEmpty,ActionFooter,collectionRequest,jsonOptions,useCollectionAction} from './CollectionUI'
 import DocumentBatchIntake from './DocumentBatchIntake'
 import DocumentParsingPanel from './DocumentParsingPanel'
-import ChunkPolicyPanel, {defaultChunkDraft,chunkPolicyRequest} from './ChunkPolicyPanel'
+import ChunkPolicyPanel,{defaultChunkDraft,chunkPolicyRequest} from './ChunkPolicyPanel'
 import ChunkPlanPanel from './ChunkPlanPanel'
 import FeaturePolicyPanel,{defaultFeatureDraft,featurePolicyRequest,indexPolicyRequest} from './FeaturePolicyPanel'
 import type {IndexMode} from './FeaturePolicyPanel'
 import FeatureViewPanel from './FeatureViewPanel'
 import SourceIndexPanel from './SourceIndexPanel'
-import RetentionPolicyPanel,{defaultRetentionDraft,retentionPolicyRequest} from './RetentionPolicyPanel'
+import {defaultRetentionDraft,retentionPolicyRequest} from './RetentionPolicyPanel'
 import SourceLifecyclePanel from './SourceLifecyclePanel'
 import SourceBatchPublication from './SourceBatchPublication'
 
-interface DocumentSource {
-  id: string
-  name: string
-  group_name: string
-  source_type: string
-  file_name: string | null
-  file_ext: string | null
-  status: string
-  original_text: string | null
-  chunk_size: number
-  chunk_overlap: number
-  metadata: Record<string, unknown>
-  created_at: string
-  updated_at: string
+interface Source {id:string;name:string;group_name:string;file_name:string|null;file_ext:string|null;status:string;metadata:Record<string,any>;updated_at:string}
+const states:Record<string,string>={active:'使用中',archived:'已归档',deleted:'已隐藏'}
+const format=(source:Source)=>(source.file_ext||'TXT').replace(/^\./,'').toUpperCase()
+const protectedMetadata=new Set(['content_hash','source_version','owner_scope','chunking_version','document_parse','parse_profile','parse_version_id','parsing_reviews','chunk_plan','chunking_profile','feature_plan','feature_profile','dense_profile','index_policy','retention_policy','revision_intake_key'])
+const editableAttributes=(source:Source)=>Object.entries(source.metadata).filter(([key,value])=>!protectedMetadata.has(key)&&['string','number','boolean'].includes(typeof value)).map(([key,value])=>({key,value:String(value),kind:typeof value}))
+const attributeIdentity=(rows:ReturnType<typeof editableAttributes>)=>JSON.stringify(rows.map(item=>[item.key.trim(),item.kind==='number'?Number(item.value):item.kind==='boolean'?item.value==='true':item.value]).sort((a,b)=>String(a[0]).localeCompare(String(b[0]))))
+const date=(value:string)=>new Date(value).toLocaleDateString('zh-CN',{month:'short',day:'numeric'})
+export default function DocumentManager(){
+ const client=useQueryClient(),action=useCollectionAction(),[search,setSearch]=useState(''),[group,setGroup]=useState(''),[state,setState]=useState('visible'),[order,setOrder]=useState('recent'),[adding,setAdding]=useState(false),[intakeBusy,setIntakeBusy]=useState(false),[selected,setSelected]=useState<string|null>(null),[batch,setBatch]=useState(false),[checked,setChecked]=useState<string[]>([]),[notice,setNotice]=useState('')
+ const query=useQuery<{items:Source[]}>({queryKey:['document-sources','collection'],queryFn:({signal})=>collectionRequest('/api/v1/documents/sources?summary=true',{signal})})
+ const items=query.data?.items||[],groups=[...new Set(items.map(source=>source.group_name))].sort((a,b)=>a.localeCompare(b,'zh-CN'))
+ const selectedSource=items.find(source=>source.id===selected)
+ const filtered=items.filter(source=>(!group||source.group_name===group)&&(state==='all'||state==='visible'&&source.status!=='deleted'||source.status===state)&&[source.name,source.group_name,source.file_name].join(' ').toLowerCase().includes(search.trim().toLowerCase())).sort((a,b)=>order==='name'?a.name.localeCompare(b.name,'zh-CN'):b.updated_at.localeCompare(a.updated_at))
+ const refresh=async()=>{await client.invalidateQueries({queryKey:['document-sources']});await client.invalidateQueries({queryKey:['document-chunks']});await client.invalidateQueries({queryKey:['library-reading']})}
+ return <div className="collection-workspace"><CollectionHeader title="资料库" count={`${items.filter(source=>source.status!=='deleted').length} 份资料`} action={<button type="button" className="btn-primary" onClick={()=>{action.setError('');setAdding(true)}}><Icon name="plus" size={17}/>添加资料</button>}/>
+  {notice&&<div role="status" className="collection-notice">{notice}<button type="button" className="icon-button" aria-label="关闭提示" onClick={()=>setNotice('')}><Icon name="close" size={13}/></button></div>}
+  <div className="collection-toolbar"><label className="collection-search"><Icon name="search" size={17}/><input type="search" aria-label="搜索资料" placeholder="搜索名称或分组" value={search} onChange={event=>setSearch(event.target.value)}/></label><select aria-label="资料分组筛选" value={group} onChange={event=>setGroup(event.target.value)}><option value="">全部分组</option>{groups.map(name=><option key={name} value={name}>{name}</option>)}</select><select aria-label="资料状态筛选" value={state} onChange={event=>setState(event.target.value)}>{Object.entries({visible:'可见资料',active:'使用中',archived:'已归档',deleted:'已隐藏',all:'全部状态'}).map(([id,label])=><option key={id} value={id}>{label}</option>)}</select><select aria-label="资料排序" value={order} onChange={event=>setOrder(event.target.value)}><option value="recent">最近更新</option><option value="name">按名称</option></select></div>
+  <div className="collection-list-heading"><p className="collection-results">{query.isPending?'正在读取资料…':`${filtered.length} 份资料`}</p><button type="button" className="btn-ghost" onClick={()=>{setBatch(!batch);setChecked([])}}>{batch?'结束选择':'批量操作'}</button></div>
+  {batch&&<div className="collection-batch"><SourceBatchPublication sourceIds={checked} sourceNames={Object.fromEntries(items.map(item=>[item.id,item.name]))} onChanged={refresh}/></div>}
+  {query.error?<CollectionEmpty title="暂时无法读取资料" action={<button type="button" className="btn-ghost" onClick={()=>void query.refetch()}>重新读取</button>}/>:!query.isPending&&!filtered.length?<CollectionEmpty title={items.length?'没有符合条件的资料':'把研究材料放在一起'} action={items.length?<button type="button" className="btn-ghost" onClick={()=>{setSearch('');setGroup('');setState('visible')}}>清除筛选</button>:<button type="button" className="btn-primary" onClick={()=>setAdding(true)}>添加资料</button>}/>:<div className="collection-list">{filtered.map(source=><div className="collection-row" key={source.id}>{batch&&<input type="checkbox" aria-label={'选择资料 '+source.name} checked={checked.includes(source.id)} disabled={!checked.includes(source.id)&&checked.length>=20} onChange={event=>setChecked(event.target.checked?[...checked,source.id]:checked.filter(id=>id!==source.id))}/>}<button type="button" className="collection-row-main" aria-label={'阅读资料 '+source.name} onClick={()=>{action.setError('');setSelected(source.id)}}><span className="collection-file-icon">{format(source)}</span><span className="collection-row-copy"><strong>{source.name}</strong><small>{source.group_name}{source.file_name&&source.file_name!==source.name?' · '+source.file_name:''}</small></span><span className="collection-status" data-state={source.status}>{states[source.status]||'已保存'}</span><span className="collection-row-date">{date(source.updated_at)}</span><Icon name="arrow" size={16}/></button></div>)}</div>}
+  <Modal open={adding} onClose={()=>{if(!action.busy&&!intakeBusy)setAdding(false)}} title="添加资料" wide>{adding&&<DocumentIntake group={group} groups={groups} action={action} onBusyChange={setIntakeBusy} onClose={()=>setAdding(false)} onSaved={async()=>{await refresh();setNotice('资料已保存')}}/>}</Modal>
+  <Modal open={!!selectedSource} onClose={()=>{if(!action.busy)setSelected(null)}} title={selectedSource?.name||'资料'} wide>{selectedSource&&<DocumentDetail key={selectedSource.id} source={selectedSource} groups={groups} action={action} onChanged={refresh}/>}</Modal>
+ </div>
 }
-
-interface DocumentChunk {
-  id: string
-  source_id: string | null
-  source_name: string | null
-  source_type: string
-  chunk_index: number
-  chunk_count: number
-  content: string
-  metadata: Record<string, unknown>
-  created_at: string
-  updated_at: string
-}
-
-type Mode = 'list' | 'create'
-
-const supportedFormats = ['json', 'md', 'docx', 'pdf', 'txt']
-
-async function readErrorMessage(res: Response, fallback: string) {
-  const text = await res.text()
-  try {
-    const data = JSON.parse(text) as { detail?: string }
-    return data.detail || fallback
-  } catch {
-    return text || fallback
+function DocumentIntake({group,groups,action,onClose,onSaved,onBusyChange}:{group:string;groups:string[];action:ReturnType<typeof useCollectionAction>;onClose:()=>void;onSaved:()=>Promise<void>;onBusyChange:(busy:boolean)=>void}){
+ const [mode,setMode]=useState('file'),[name,setName]=useState(''),[groupName,setGroupName]=useState(group||'我的资料'),[text,setText]=useState(''),[file,setFile]=useState<File|null>(null),[textFormat,setTextFormat]=useState('txt'),[ocr,setOcr]=useState(false),[chunk,setChunk]=useState(()=>structuredClone(defaultChunkDraft)),[feature,setFeature]=useState(()=>structuredClone(defaultFeatureDraft)),[index,setIndex]=useState<IndexMode>('lexical'),[retention,setRetention]=useState(()=>structuredClone(defaultRetentionDraft)),[size,setSize]=useState(400),[overlap,setOverlap]=useState(80),[link,setLink]=useState(''),[validation,setValidation]=useState(''),[batchBusy,setBatchBusy]=useState(false)
+ useEffect(()=>{onBusyChange(batchBusy);return ()=>onBusyChange(false)},[batchBusy,onBusyChange])
+ const busy=action.busy||batchBusy
+ function options(){
+  if(!groupName.trim())throw new Error('请填写资料分组')
+  if(!Number.isInteger(size)||size<100||size>4000||!Number.isInteger(overlap)||overlap<0||overlap>1000||overlap>=size)throw new Error('片段长度为 100—4000，重叠应小于片段长度')
+  let task=retention.task_id
+  if(retention.reuse_scope==='task'&&link.trim()){let url:URL;try{url=new URL(link)}catch{throw new Error('请粘贴研究工作区的完整链接')}task=url.searchParams.get('session')||'';if(!task)throw new Error('请从研究工作区复制链接')}
+  return {chunk_policy:chunkPolicyRequest(chunk),feature_policy:featurePolicyRequest(feature),index_policy:indexPolicyRequest(index),retention_policy:retentionPolicyRequest({...retention,task_id:task})}
+ }
+ const batchRetention=(()=>{try{return {...retention,task_id:link?new URL(link).searchParams.get('session')||'':retention.task_id}}catch{return retention}})()
+ async function save(){await action.run(async()=>{
+  const policy=options();let result
+  if(mode==='text'){
+   if(!name.trim()||!text.trim())throw new Error('请填写资料名称和内容')
+   result=await collectionRequest('/api/v1/documents/sources',jsonOptions({name:name.trim(),group_name:groupName.trim(),content:text,file_ext:textFormat,metadata:{},chunk_size:size,chunk_overlap:overlap,...policy}))
+  }else{
+   if(!file)throw new Error('请选择文件')
+   if(!/\.(pdf|docx|txt|md|json)$/i.test(file.name))throw new Error('请选择 PDF、Word、TXT、Markdown 或 JSON 文件')
+   const form=new FormData();form.append('file',file);form.append('name',name.trim()||file.name);form.append('group_name',groupName.trim());form.append('chunk_size',String(size));form.append('chunk_overlap',String(overlap));form.append('allow_ocr',String(ocr))
+   for(const [key,value]of Object.entries(policy))form.append(key+'_json',JSON.stringify(value))
+   result=await collectionRequest('/api/v1/documents/upload',{method:'POST',body:form})
   }
+  if(!result.source_id)throw new Error('暂未取得保存结果，请保留当前内容重试')
+  await onSaved();onClose()
+ })}
+ return <div className="collection-dialog collection-form"><CollectionTabs value={mode} items={{file:'上传文件',text:'粘贴内容',batch:'批量导入'}} disabled={busy} onChange={next=>{setMode(next);setValidation('');action.setError('')}}/><fieldset disabled={busy}>
+  <div className="collection-columns">{mode!=='batch'&&<label className="collection-field">资料名称<input aria-label="资料名称" maxLength={200} value={name} placeholder={mode==='file'?'默认使用文件名称':'给这份资料起个名字'} onChange={event=>{setName(event.target.value);action.setError('')}}/></label>}<label className="collection-field">放入分组<input aria-label="资料分组" list="library-groups" maxLength={100} value={groupName} onChange={event=>{setGroupName(event.target.value);action.setError('')}}/><datalist id="library-groups">{groups.map(value=><option key={value} value={value}/>)}</datalist></label></div>
+  {mode==='file'?<label className="collection-drop" onDragOver={event=>event.preventDefault()} onDrop={event=>{event.preventDefault();if(!busy)setFile(event.dataTransfer.files[0]||null)}}><Icon name="source" size={29}/><strong>{file?.name||'选择文件，或拖到这里'}</strong><span>PDF · Word · TXT · Markdown · JSON</span><input type="file" aria-label="上传资料文件" accept=".pdf,.docx,.txt,.md,.json" onChange={event=>{setFile(event.target.files?.[0]||null);action.setError('')}}/></label>:mode==='text'&&<><label className="collection-field">资料内容<textarea aria-label="资料内容" rows={7} value={text} placeholder="粘贴需要在研究中参考的内容" onChange={event=>{setText(event.target.value);action.setError('')}}/></label><label className="collection-field">内容格式<select aria-label="资料内容格式" value={textFormat} onChange={event=>setTextFormat(event.target.value)}><option value="txt">纯文本</option><option value="md">Markdown</option><option value="json">JSON</option></select></label></>}
+  <label className="collection-field">哪些研究可以使用<select aria-label="资料使用范围" value={retention.reuse_scope} onChange={event=>{setRetention({...retention,reuse_scope:event.target.value as typeof retention.reuse_scope,task_id:''});setLink('');action.setError('')}}><option value="task">仅指定的研究</option><option value="group">选择这个分组的研究</option><option value="owner">我的全部研究</option></select></label>
+  {retention.reuse_scope==='task'&&<label className="collection-field">研究链接<input type="url" aria-label="资料关联研究链接" value={link} placeholder="粘贴研究工作区链接，也可以稍后绑定" onChange={event=>{setLink(event.target.value);action.setError('')}}/>{!link&&<small>未绑定时，仅可直接阅读。</small>}</label>}
+  <details className="collection-advanced"><summary>阅读与处理设置</summary><div><label className="collection-field">资料用途<select aria-label="资料用途" value={index} onChange={event=>{setIndex(event.target.value as IndexMode);if(event.target.value==='direct')setFeature({...feature,dense:false})}}><option value="lexical">研究时可检索</option><option value="direct">仅保存与阅读</option></select></label><label className="collection-checks"><input type="checkbox" checked={ocr} onChange={event=>setOcr(event.target.checked)}/>识别扫描页文字</label><div className="collection-columns"><label className="collection-field">每个片段长度<input aria-label="片段长度" type="number" min={100} max={4000} value={size} onChange={event=>setSize(Number(event.target.value))}/></label><label className="collection-field">相邻片段重叠<input aria-label="片段重叠" type="number" min={0} max={1000} value={overlap} onChange={event=>setOverlap(Number(event.target.value))}/></label></div><details className="collection-advanced"><summary>进一步设置</summary><div><ChunkPolicyPanel value={chunk} onChange={setChunk}/><FeaturePolicyPanel value={feature} onChange={setFeature} indexMode={index} onIndexChange={next=>{setIndex(next);if(next==='direct')setFeature({...feature,dense:false})}}/><div className="collection-columns">{(['valid_from','valid_until','purge_after'] as const).map((key,i)=><label className="collection-field" key={key}>{['生效时间','失效时间','旧版本清理时间'][i]}<input type="datetime-local" aria-label={['资料生效时间','资料失效时间','旧版本清理时间'][i]} value={retention[key]} onChange={event=>setRetention({...retention,[key]:event.target.value})}/></label>)}</div></div></details></div></details>
+ </fieldset>{mode==='batch'&&<DocumentBatchIntake groupName={groupName} chunkSize={size} chunkOverlap={overlap} chunkDraft={chunk} featureDraft={feature} indexMode={index} retentionDraft={batchRetention} allowOcr={ocr} onRunningChange={setBatchBusy} validateBeforeStart={options} onSaved={onSaved}/>}
+ <ActionFooter busy={busy} error={validation||action.error} onCancel={onClose} label={mode==='text'?'保存资料':'上传资料'} onSave={mode==='batch'?undefined:()=>void save()} disabled={mode==='file'&&!file}/></div>
 }
-
-function DocumentManager() {
-  const queryClient = useQueryClient()
-  const [mode, setMode] = useState<Mode>('create')
-  const [groupMode, setGroupMode] = useState<'all' | 'manage'>('manage')
-  const [groupFilter, setGroupFilter] = useState('')
-  const [name, setName] = useState('')
-  const [groupName, setGroupName] = useState('')
-  const [content, setContent] = useState('')
-  const [textFormat,setTextFormat]=useState<'txt'|'md'|'json'>('txt')
-  const [chunkSize, setChunkSize] = useState(400)
-  const [chunkOverlap, setChunkOverlap] = useState(80)
-  const [selectedFile, setSelectedFile] = useState<File | null>(null)
-  const [allowOcr,setAllowOcr]=useState(false)
-  const [chunkDraft,setChunkDraft]=useState(defaultChunkDraft)
-  const [featureDraft,setFeatureDraft]=useState(defaultFeatureDraft)
-  const [retentionDraft,setRetentionDraft]=useState(defaultRetentionDraft)
-  const [publicationIds,setPublicationIds]=useState<string[]>([])
-  const [indexMode,setIndexMode]=useState<IndexMode>('lexical')
-  const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null)
-  const [editName, setEditName] = useState('')
-  const [editGroupName, setEditGroupName] = useState('')
-  const [editStatus, setEditStatus] = useState('active')
-  const [editMetadataText, setEditMetadataText] = useState('{}')
-
-  const { data: sources, isLoading } = useQuery<{ items: DocumentSource[] }>({
-    queryKey: ['document-sources', groupFilter],
-    queryFn: async () => {
-      const url = groupFilter ? `/api/v1/documents/sources?summary=true&group_name=${encodeURIComponent(groupFilter)}` : '/api/v1/documents/sources?summary=true'
-      const res = await fetch(url)
-      if (!res.ok) throw new Error('Failed to fetch sources')
-      return res.json()
-    },
-  })
-
-  const { data: chunks } = useQuery<{ items: DocumentChunk[] }>({
-    queryKey: ['document-chunks', selectedSourceId, groupFilter],
-    queryFn: async () => {
-      const url = selectedSourceId
-        ? `/api/v1/documents/chunks?source_id=${encodeURIComponent(selectedSourceId)}`
-        : groupFilter
-          ? `/api/v1/documents/chunks?group_name=${encodeURIComponent(groupFilter)}`
-          : '/api/v1/documents/chunks'
-      const res = await fetch(url)
-      if (!res.ok) throw new Error('Failed to fetch chunks')
-      return res.json()
-    },
-  })
-
-  useEffect(() => {
-    if (!selectedSourceId && sources?.items?.length) {
-      const first = sources.items[0]
-      setSelectedSourceId(first.id)
-    }
-  }, [sources, selectedSourceId])
-
-  const selectedSource = useMemo(
-    () => sources?.items.find(item => item.id === selectedSourceId) || null,
-    [sources, selectedSourceId],
-  )
-
-  useEffect(() => {
-    if (selectedSource) {
-      setEditName(selectedSource.name)
-      setEditGroupName(selectedSource.group_name)
-      setEditStatus(selectedSource.status)
-      const protectedFields=new Set(['content_hash','source_version','owner_scope','chunking_version','document_parse','parse_profile','parse_version_id','parsing_reviews','chunk_plan','chunking_profile','feature_plan','feature_profile','dense_profile','index_policy','retention_policy','revision_intake_key'])
-      setEditMetadataText(JSON.stringify(Object.fromEntries(Object.entries(selectedSource.metadata || {}).filter(([key])=>!protectedFields.has(key))), null, 2))
-    }
-  }, [selectedSource])
-
-  const createMutation = useMutation({
-    mutationFn: async () => {
-      const payload = {
-        name,
-        group_name: groupName,
-        content,
-        file_ext:textFormat,
-        metadata: {},
-        chunk_size: chunkSize,
-        chunk_overlap: chunkOverlap,
-        chunk_policy: chunkPolicyRequest(chunkDraft),
-        feature_policy:featurePolicyRequest(featureDraft),
-        index_policy:indexPolicyRequest(indexMode),
-        retention_policy:retentionPolicyRequest(retentionDraft),
-      }
-      const res = await fetch('/api/v1/documents/sources', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      })
-      if (!res.ok) throw new Error(await readErrorMessage(res, 'Failed to create source'))
-      return res.json()
-    },
-    onSuccess: async (result) => {
-      setName('')
-      setGroupName('')
-      setContent('')
-      setSelectedFile(null)
-      setSelectedSourceId(result.source_id)
-      await queryClient.invalidateQueries({ queryKey: ['document-sources'] })
-      await queryClient.invalidateQueries({ queryKey: ['document-chunks'] })
-      setMode('list')
-    },
-  })
-
-  const uploadMutation = useMutation({
-    mutationFn: async () => {
-      if (!selectedFile) throw new Error('请选择文件')
-      const form = new FormData()
-      form.append('file', selectedFile)
-      form.append('name', name || selectedFile.name)
-      form.append('group_name', groupName)
-      form.append('chunk_size', String(chunkSize))
-      form.append('chunk_overlap', String(chunkOverlap))
-      form.append('allow_ocr',String(allowOcr))
-      form.append('chunk_policy_json',JSON.stringify(chunkPolicyRequest(chunkDraft)))
-      form.append('feature_policy_json',JSON.stringify(featurePolicyRequest(featureDraft)))
-      form.append('index_policy_json',JSON.stringify(indexPolicyRequest(indexMode)))
-      form.append('retention_policy_json',JSON.stringify(retentionPolicyRequest(retentionDraft)))
-      const res = await fetch('/api/v1/documents/upload', {
-        method: 'POST',
-        body: form,
-      })
-      if (!res.ok) throw new Error(await readErrorMessage(res, 'Failed to upload source'))
-      return res.json()
-    },
-    onSuccess: async (result) => {
-      setName('')
-      setGroupName('')
-      setContent('')
-      setSelectedFile(null)
-      setSelectedSourceId(result.source_id)
-      await queryClient.invalidateQueries({ queryKey: ['document-sources'] })
-      await queryClient.invalidateQueries({ queryKey: ['document-chunks'] })
-      setMode('list')
-    },
-  })
-
-  const updateMutation = useMutation({
-    mutationFn: async () => {
-      if (!selectedSource) throw new Error('未选择知识源')
-      const metadata = JSON.parse(editMetadataText || '{}')
-      const res = await fetch(`/api/v1/documents/sources/${selectedSource.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: editName,
-          group_name: editGroupName,
-          status: editStatus,
-          metadata,
-        }),
-      })
-      if (!res.ok) throw new Error(await readErrorMessage(res, 'Failed to update source'))
-      return res.json()
-    },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['document-sources'] })
-      await queryClient.invalidateQueries({ queryKey: ['document-chunks'] })
-    },
-  })
-
-  const deleteMutation = useMutation({
-    mutationFn: async (sourceId: string) => {
-      const res = await fetch(`/api/v1/documents/sources/${sourceId}`, { method: 'DELETE' })
-      if (!res.ok) throw new Error(await readErrorMessage(res, 'Failed to delete source'))
-      return res.json()
-    },
-    onSuccess: async () => {
-      setSelectedSourceId(null)
-      await queryClient.invalidateQueries({ queryKey: ['document-sources'] })
-      await queryClient.invalidateQueries({ queryKey: ['document-chunks'] })
-    },
-  })
-
-  return (
-    <div className="max-w-7xl mx-auto px-6 py-8">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-2xl font-bold text-xmgray-900">内部资料库</h2>
-          <p className="text-sm text-xmgray-500">支持 {supportedFormats.join(' / ')}，可维护分组、上传、编辑与删除。研究时启用“补充检索内部资料”即可使用。</p>
-        </div>
-        <div className="flex gap-2">
-          <button className={`btn-secondary ${mode === 'list' ? 'bg-xm-50' : ''}`} onClick={() => setMode('list')}>列表</button>
-          <button className={`btn-primary`} onClick={() => setMode('create')}>上传 / 新增</button>
-        </div>
-      </div>
-
-      <div className="mb-6 flex flex-wrap items-center gap-3">
-        <input
-          value={groupFilter}
-          onChange={e => setGroupFilter(e.target.value)}
-          placeholder="按分组筛选"
-          className="input-xm max-w-xs"
-        />
-        <button className="btn-secondary text-sm" onClick={() => setGroupFilter('')}>清除筛选</button>
-        <button className="btn-secondary text-sm" onClick={() => setGroupMode('all')}>全部组</button>
-        <button className="btn-secondary text-sm" onClick={() => setGroupMode('manage')}>管理组</button>
-      </div>
-
-      {groupMode === 'manage' && (
-        <div className="card p-5 mb-6">
-          <h3 className="font-semibold mb-3">知识库组管理</h3>
-          <div className="flex flex-wrap items-center gap-3">
-            <input
-              className="input-xm max-w-xs"
-              value={groupName}
-              onChange={e => setGroupName(e.target.value)}
-              placeholder="新建 / 修改组名"
-            />
-            <button className="btn-primary" onClick={() => setMode('create')}>进入新增</button>
-          </div>
-        </div>
-      )}
-
-      {mode === 'create' && (
-        <div className="mb-8 space-y-4">
-          <ChunkPolicyPanel value={chunkDraft} onChange={setChunkDraft} />
-          <FeaturePolicyPanel value={featureDraft} onChange={setFeatureDraft} indexMode={indexMode} onIndexChange={mode=>{setIndexMode(mode);if(mode==='direct')setFeatureDraft(previous=>({...previous,dense:false}))}} />
-          <RetentionPolicyPanel value={retentionDraft} onChange={setRetentionDraft}/>
-          <div className="grid gap-4 lg:grid-cols-2">
-          <div className="card p-6">
-            <h3 className="font-semibold mb-4">新增文本源</h3>
-            <div className="space-y-3">
-              <input className="input-xm w-full" value={name} onChange={e => setName(e.target.value)} placeholder="名称" />
-              <input className="input-xm w-full" value={groupName} onChange={e => setGroupName(e.target.value)} placeholder="分组" />
-              <label className="block text-xs">粘贴内容格式<select aria-label="粘贴内容格式" className="input-xm mt-1" value={textFormat} onChange={event=>setTextFormat(event.target.value as typeof textFormat)}><option value="txt">纯文本</option><option value="md">Markdown</option><option value="json">JSON</option></select></label>
-              <textarea className="input-xm w-full min-h-48" value={content} onChange={e => setContent(e.target.value)} placeholder="粘贴 JSON / MD / TXT 内容，或切换到文件上传" />
-              <div className="grid grid-cols-2 gap-3">
-                <label className="text-xs">文本块长度<input aria-label="文本块长度" type="number" min={100} max={4000} className="input-xm w-full" value={chunkSize} onChange={e => setChunkSize(Number(e.target.value))} /></label>
-                <label className="text-xs">文本块重叠<input aria-label="文本块重叠" type="number" min={0} max={1000} className="input-xm w-full" value={chunkOverlap} onChange={e => setChunkOverlap(Number(e.target.value))} /></label>
-              </div>
-              <button className="btn-primary" onClick={() => createMutation.mutate()} disabled={createMutation.isPending}>保存文本源</button>
-              {createMutation.error&&<p role="alert" className="text-sm text-red-700">{createMutation.error.message}</p>}
-            </div>
-          </div>
-
-          <div className="card p-6">
-            <h3 className="font-semibold mb-4">上传文件</h3>
-            <div className="space-y-3">
-              <input className="input-xm w-full" value={name} onChange={e => setName(e.target.value)} placeholder="名称" />
-              <input className="input-xm w-full" value={groupName} onChange={e => setGroupName(e.target.value)} placeholder="分组" />
-              <input type="file" className="input-xm w-full" onChange={e => setSelectedFile(e.target.files?.[0] || null)} accept=".json,.md,.docx,.pdf,.txt" />
-              <label className="flex items-start gap-2 text-sm"><input type="checkbox" checked={allowOcr} onChange={event=>setAllowOcr(event.target.checked)} />扫描页文字识别（OCR）</label>
-              <div className="grid grid-cols-2 gap-3">
-                <label className="text-xs">文件块长度<input aria-label="文件块长度" type="number" min={100} max={4000} className="input-xm w-full" value={chunkSize} onChange={e => setChunkSize(Number(e.target.value))} /></label>
-                <label className="text-xs">文件块重叠<input aria-label="文件块重叠" type="number" min={0} max={1000} className="input-xm w-full" value={chunkOverlap} onChange={e => setChunkOverlap(Number(e.target.value))} /></label>
-              </div>
-              <button className="btn-primary" onClick={() => uploadMutation.mutate()} disabled={uploadMutation.isPending || !selectedFile}>上传并入库</button>
-              {uploadMutation.error&&<p role="alert" className="text-sm text-red-700">{uploadMutation.error.message}</p>}
-              <DocumentBatchIntake groupName={groupName} chunkSize={chunkSize} chunkOverlap={chunkOverlap} chunkDraft={chunkDraft} featureDraft={featureDraft} indexMode={indexMode} retentionDraft={retentionDraft} allowOcr={allowOcr} onSaved={async () => {
-                await queryClient.invalidateQueries({queryKey:['document-sources']})
-                await queryClient.invalidateQueries({queryKey:['document-chunks']})
-              }} />
-            </div>
-          </div>
-          </div>
-        </div>
-      )}
-
-      <div className="grid gap-6 lg:grid-cols-2">
-          <div className="card p-0 overflow-hidden">
-            <div className="px-5 py-4 border-b border-xmgray-100 flex items-center justify-between">
-              <h3 className="font-medium">资料列表</h3>
-              <span className="text-xs text-xmgray-400">{isLoading ? '加载中...' : `${sources?.items.length || 0} 项`}</span>
-            </div>
-            <div className="max-h-[620px] overflow-y-auto p-4 space-y-2">
-            <SourceBatchPublication sourceIds={publicationIds} onChanged={async()=>{await queryClient.invalidateQueries({queryKey:['document-sources']});await queryClient.invalidateQueries({queryKey:['source-lifecycle']});await queryClient.invalidateQueries({queryKey:['document-chunks']})}}/>
-            {sources?.items?.map(source => (
-              <div
-                key={source.id}
-                className={`w-full text-left p-4 rounded-xl border transition-colors ${selectedSourceId === source.id ? 'border-xm-400 bg-xm-50' : 'border-xmgray-100 hover:border-xmgray-200'}`}
-              >
-                <button type="button" className="flex w-full items-center justify-between gap-3 text-left" onClick={()=>setSelectedSourceId(source.id)}>
-                  <div>
-                    <div className="font-medium text-xmgray-800">{source.name}</div>
-                    <div className="text-xs text-xmgray-400">{source.group_name} · {source.source_type} · {source.file_ext || 'manual'}</div>
-                  </div>
-                  <span className="text-[11px] text-xmgray-400">{source.status}</span>
-                </button>
-                <div className="mt-2 flex gap-2">
-                  <label className="text-xs"><input type="checkbox" aria-label={`选择发布 ${source.name}`} checked={publicationIds.includes(source.id)} disabled={publicationIds.length>=20&&!publicationIds.includes(source.id)} onChange={event=>setPublicationIds(previous=>event.target.checked?[...previous,source.id]:previous.filter(id=>id!==source.id))}/>加入发布批次</label>
-                  <button className="text-xs text-xm-600" onClick={(e) => { e.stopPropagation(); setMode('create'); setSelectedSourceId(source.id) }}>修改</button>
-                  <button className="text-xs text-red-500" onClick={(e) => { e.stopPropagation(); deleteMutation.mutate(source.id) }}>隐藏（可恢复）</button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="space-y-4">
-          <div className="card p-6">
-            <h3 className="font-semibold mb-4">编辑知识源</h3>
-            {selectedSource ? (
-              <div className="space-y-3">
-                <input className="input-xm w-full" value={editName} onChange={e => setEditName(e.target.value)} />
-                <input className="input-xm w-full" value={editGroupName} onChange={e => setEditGroupName(e.target.value)} />
-                <select className="input-xm w-full" value={editStatus} onChange={e => setEditStatus(e.target.value)}>
-                  <option value="active">active</option>
-                  <option value="archived">archived</option>
-                </select>
-                <textarea className="input-xm w-full min-h-32 font-mono text-xs" value={editMetadataText} onChange={e => setEditMetadataText(e.target.value)} />
-                <button className="btn-primary" onClick={() => updateMutation.mutate()} disabled={updateMutation.isPending}>保存修改</button>
-                {updateMutation.error&&<p role="alert" className="text-sm text-red-700">{updateMutation.error.message}</p>}
-                <DocumentParsingPanel key={selectedSource.id} sourceId={selectedSource.id} />
-                <ChunkPlanPanel key={`chunk-${selectedSource.id}:${selectedSource.updated_at}`} sourceId={selectedSource.id} groupName={selectedSource.group_name} />
-                <FeatureViewPanel key={`feature-${selectedSource.id}:${selectedSource.updated_at}`} sourceId={selectedSource.id} />
-                <SourceIndexPanel key={`index-${selectedSource.id}:${selectedSource.updated_at}`} sourceId={selectedSource.id} />
-                <SourceLifecyclePanel key={`lifecycle-${selectedSource.id}`} sourceId={selectedSource.id} onChanged={async()=>{await queryClient.invalidateQueries({queryKey:['document-sources']});await queryClient.invalidateQueries({queryKey:['document-chunks']});await queryClient.invalidateQueries({queryKey:['source-index',selectedSource.id]})}}/>
-              </div>
-            ) : (
-              <p className="text-sm text-xmgray-400">选择资料查看详情。</p>
-            )}
-          </div>
-
-          <div className="card p-6">
-            <h3 className="font-semibold mb-4">资料片段</h3>
-            <div className="max-h-[320px] overflow-y-auto space-y-3">
-              {chunks?.items?.map(chunk => (
-                <div key={chunk.id} className="rounded-xl border border-xmgray-100 p-3">
-                  <div className="flex items-center justify-between text-xs text-xmgray-400">
-                    <span>{chunk.source_name || 'unknown'}</span>
-                    <span>{chunk.chunk_index + 1}/{chunk.chunk_count}</span>
-                  </div>
-                  <p className="mt-2 text-sm text-xmgray-700 whitespace-pre-wrap line-clamp-6">{chunk.content}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
+function DocumentDetail({source,groups,action,onChanged}:{source:Source;groups:string[];action:ReturnType<typeof useCollectionAction>;onChanged:()=>Promise<void>}){
+ const [tab,setTab]=useState('read'),[name,setName]=useState(source.name),[group,setGroup]=useState(source.group_name),[state,setState]=useState(source.status),[saved,setSaved]=useState(false),[attributes,setAttributes]=useState(()=>editableAttributes(source))
+ const attributesChanged=attributeIdentity(attributes)!==attributeIdentity(editableAttributes(source))
+ const content=useQuery<{text:string|null}>({queryKey:['library-reading',source.id,source.updated_at],enabled:tab==='read',queryFn:({signal})=>collectionRequest(`/api/v1/documents/sources/${source.id}/parsing?include_content=true`,{signal})})
+ return <div className="collection-dialog collection-form"><div className="collection-detail-heading"><p>{source.group_name} · {format(source)}</p><span className="collection-status" data-state={source.status}>{states[source.status]||'已保存'}</span></div><CollectionTabs value={tab} items={{read:'阅读',settings:'资料设置',records:'处理与维护'}} disabled={action.busy} onChange={next=>{setTab(next);setSaved(false);action.setError('')}}/>
+ {tab==='read'?<>{content.isPending?<p role="status">读取原文…</p>:content.error?<CollectionEmpty title="暂时无法读取原文" action={<button type="button" className="btn-ghost" onClick={()=>void content.refetch()}>重新读取</button>}/>:content.data?.text?<div className="collection-reading" aria-label="资料原文">{content.data.text}</div>:<CollectionEmpty title="这份资料没有可展示的原文"/>}</>:tab==='settings'?<><fieldset disabled={action.busy||source.status==='deleted'}><div className="collection-columns"><label className="collection-field">名称<input aria-label="编辑资料名称" maxLength={200} value={name} onChange={event=>{setName(event.target.value);setSaved(false)}}/></label><label className="collection-field">分组<input aria-label="编辑资料分组" list="edit-library-groups" maxLength={100} value={group} onChange={event=>{setGroup(event.target.value);setSaved(false)}}/><datalist id="edit-library-groups">{groups.map(value=><option key={value} value={value}/>)}</datalist></label></div><label className="collection-field">状态<select aria-label="编辑资料状态" value={state} onChange={event=>{setState(event.target.value);setSaved(false)}}><option value="active">供研究使用</option><option value="archived">归档保存</option>{source.status==='deleted'&&<option value="deleted">已隐藏</option>}</select></label><details className="collection-advanced"><summary>其他资料信息</summary><div>{attributes.map((attribute,index)=><div className="collection-attribute" key={index}><input aria-label={`属性${index+1}名称`} placeholder="例如：作者" value={attribute.key} onChange={event=>{setAttributes(attributes.map((item,i)=>i===index?{...item,key:event.target.value}:item));setSaved(false);action.setError('')}}/>{attribute.kind==='boolean'?<select aria-label={`属性${index+1}内容`} value={attribute.value} onChange={event=>setAttributes(attributes.map((item,i)=>i===index?{...item,value:event.target.value}:item))}><option value="true">是</option><option value="false">否</option></select>:<input aria-label={`属性${index+1}内容`} type={attribute.kind==='number'?'number':'text'} placeholder="填写内容" value={attribute.value} onChange={event=>{setAttributes(attributes.map((item,i)=>i===index?{...item,value:event.target.value}:item));setSaved(false);action.setError('')}}/>}<button type="button" className="icon-button" aria-label={`移除属性${index+1}`} onClick={()=>setAttributes(attributes.filter((_,i)=>i!==index))}><Icon name="close" size={15}/></button></div>)}<button type="button" className="btn-ghost" onClick={()=>setAttributes([...attributes,{key:'',value:'',kind:'string'}])}>添加信息</button></div></details></fieldset><div className="collection-detail-actions"><button type="button" className="btn-primary" disabled={action.busy||source.status==='deleted'||!name.trim()||!group.trim()||name===source.name&&group===source.group_name&&state===source.status&&!attributesChanged} onClick={()=>void action.run(async()=>{if(attributes.some(item=>!item.key.trim()||protectedMetadata.has(item.key.trim())||item.kind==='number'&&!Number.isFinite(Number(item.value)))||new Set(attributes.map(item=>item.key.trim())).size!==attributes.length)throw new Error('请填写不重复的属性名称及有效内容');const oldKeys=new Set(editableAttributes(source).map(item=>item.key));const metadata=Object.fromEntries([...Object.entries(source.metadata).filter(([key])=>!protectedMetadata.has(key)&&!oldKeys.has(key)),...attributes.map(item=>[item.key.trim(),item.kind==='number'?Number(item.value):item.kind==='boolean'?item.value==='true':item.value])]);await collectionRequest('/api/v1/documents/sources/'+source.id,jsonOptions({name:name.trim(),group_name:group.trim(),status:state,...(attributesChanged?{metadata}:{})},'PUT'));await onChanged();setSaved(true)})}>保存修改</button><button type="button" className="btn-ghost" onClick={()=>setTab('records')}>{source.status==='deleted'?'管理与恢复':'更多资料管理'}</button></div>{saved&&<p role="status" className="collection-note">已保存修改</p>}{action.error&&<p role="alert">{action.error}</p>}</>:<div className="collection-records"><details className="collection-advanced"><summary>解析与原文定位</summary><DocumentParsingPanel sourceId={source.id}/></details><details className="collection-advanced"><summary>资料片段</summary><ChunkPlanPanel key={source.updated_at} sourceId={source.id} groupName={source.group_name}/></details><details className="collection-advanced"><summary>检索设置</summary><SourceIndexPanel key={'index-'+source.updated_at} sourceId={source.id}/></details><details className="collection-advanced"><summary>内容特征</summary><FeatureViewPanel key={'features-'+source.updated_at} sourceId={source.id}/></details><details className="collection-advanced"><summary>保存范围、版本与恢复</summary><SourceLifecyclePanel sourceId={source.id} onChanged={onChanged}/></details></div>}</div>
 }
-
-export default DocumentManager

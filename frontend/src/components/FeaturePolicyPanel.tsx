@@ -11,14 +11,14 @@ export type IndexMode='direct'|'lexical'
 export function indexPolicyRequest(mode:IndexMode) {return {mode,reason:mode==='direct'?'user_selected_direct_citation_only':'user_selected_cross_document_lexical_retrieval'}}
 export default function FeaturePolicyPanel({value,onChange,indexMode,onIndexChange}:{value:FeatureDraft;onChange:(value:FeatureDraft)=>void;indexMode:IndexMode;onIndexChange:(value:IndexMode)=>void}) {
   const update=(patch:Partial<FeatureDraft>)=>onChange({...value,...patch})
-  return <fieldset className="space-y-3 rounded-xl border border-xmgray-200 p-3 text-sm"><legend>检索特征与编码成本</legend>
+  return <fieldset className="space-y-3 rounded-xl border border-xmgray-200 p-3 text-sm"><legend>检索细节</legend>
     <label className="block text-xs">资料用途<select aria-label="资料索引用途" className="input-xm mt-1" value={indexMode} onChange={event=>onIndexChange(event.target.value as IndexMode)}><option value="lexical">加入内部资料检索</option><option value="direct">仅保存与直接定位引用</option></select></label>
     {indexMode==='direct'&&<p className="text-xs text-xmgray-500">可按来源和原位置查看；跨资料检索不召回此来源。之后可在详情显式建立词汇索引。</p>}
-    <label className="flex items-start gap-2"><input type="checkbox" disabled={indexMode==='direct'} checked={value.dense} onChange={event=>update({dense:event.target.checked})} />生成稠密向量（需要本机模型及服务端固定模型版本，会增加编码耗时）</label>
-    <p className="text-xs text-xmgray-500">默认仅保存词汇特征，无需模型调用。词项位置、实体提及和文字图注不等于语义核实或图像编码；检索通道由服务器配置选择。</p>
+    <label className="flex items-start gap-2"><input type="checkbox" disabled={indexMode==='direct'} checked={value.dense} onChange={event=>update({dense:event.target.checked})} />语义检索（需要本机模型）</label>
+    <p className="text-xs text-xmgray-500"></p>
     <div className="grid gap-3 sm:grid-cols-2"><label className="text-xs">中文词项方式<select aria-label="中文词项方式" className="input-xm mt-1" value={value.cjkMode} onChange={event=>update({cjkMode:event.target.value as FeatureDraft['cjkMode']})}><option value="both">字符与相邻二元组</option><option value="characters">单字符</option><option value="bigrams">相邻二元组</option></select></label>
       <label className="text-xs">每块词项事件上限<input aria-label="每块词项事件上限" className="input-xm mt-1" type="number" min={128} max={2048} value={value.maxTokenEvents} onChange={event=>update({maxTokenEvents:Number(event.target.value)})} /></label></div>
-    <details><summary className="cursor-pointer text-xs">可选来源日期与时间视图</summary><p className="my-2 text-xs text-xmgray-500">请依据来源填写；这是用户声明，系统不会从正文日期猜测发表时间。留空保持未知；未来日期不加分。</p>
+    <details><summary className="cursor-pointer text-xs">可选来源日期与时间视图</summary><p className="my-2 text-xs text-xmgray-500"></p>
       <div className="grid gap-3 sm:grid-cols-2"><label className="text-xs">声明的来源日期<input aria-label="声明的来源日期" type="date" className="input-xm mt-1" value={value.sourceDate} onChange={event=>update({sourceDate:event.target.value})} /></label>
         <label className="text-xs">时间计算时点<input aria-label="时间计算时点" type="date" className="input-xm mt-1" value={value.asOf} onChange={event=>update({asOf:event.target.value})} /></label>
         <label className="text-xs">时间窗口起点<input aria-label="特征时间窗口起点" type="date" className="input-xm mt-1" value={value.windowStart} onChange={event=>update({windowStart:event.target.value})} /></label>

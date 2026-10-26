@@ -22,7 +22,7 @@ export default function FeatureViewPanel({sourceId}:{sourceId:string}) {
   const view=query.data?.view
   return <section aria-label="特征视图与编码依据" className="mt-5 space-y-3 border-t pt-4 text-sm"><h4 className="font-medium">特征视图与编码依据</h4>
     {query.isPending&&<p role="status">正在读取已保存特征…</p>}{query.error&&<p role="alert" className="text-red-700">{query.error.message}</p>}
-    {query.data?.legacy_gap&&<p>旧资料没有保存本版本的特征，编码身份及词项覆盖未知。查看不会触发模型或重建。</p>}
+    {query.data?.legacy_gap&&<p>暂无内容特征记录。</p>}
     {view&&<><p className="break-all text-xs">{view.schema_version} · {view.profile_id}</p><p className="text-xs text-xmgray-500">统计范围为本来源保留的小块；重叠块分别计数，不能当作论文数量或全库IDF。未知日期、未编码图像及未采用候选分别列示。</p>
       {Object.entries({词项统计:view.statistics,稠密编码:view.dense,时间依据:view.temporal,模态覆盖:view.modality,候选与未采用原因:view.candidate_decisions,冻结策略:view.profile}).map(([label,value])=><details key={label}><summary className="cursor-pointer">{label}</summary><pre className="max-h-72 overflow-auto whitespace-pre-wrap break-words text-xs">{JSON.stringify(value,null,2)}</pre></details>)}
       <details><summary className="cursor-pointer">小块词项、位置与未知（页面最多20项）</summary><div className="max-h-96 space-y-3 overflow-auto">{view.children.map(chunk=><article key={chunk.logical_chunk_id} className="rounded bg-xmgray-50 p-2"><p className="break-all text-xs">{chunk.logical_chunk_id} · {chunk.start}–{chunk.end} · {chunk.status||'已保留'}</p><pre className="max-h-60 overflow-auto whitespace-pre-wrap break-words text-xs">{JSON.stringify(chunk,null,2)}</pre></article>)}</div></details>

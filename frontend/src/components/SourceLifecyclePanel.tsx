@@ -43,7 +43,7 @@ export default function SourceLifecyclePanel({sourceId,onChanged}:{sourceId:stri
   const view=query.data
   return <section aria-label="资料版本与生命周期" className="mt-5 space-y-3 border-t pt-4 text-sm"><h4 className="font-medium">资料版本与生命周期</h4>
     {query.isPending&&<p role="status">正在读取版本…</p>}{query.error&&<p role="alert">{query.error.message}</p>}
-    {view&&<><p>{view.current.is_current?'当前版本':view.current.is_current===null?'旧资料，尚无版本族记录':'保留的旧版本'} · {view.current.state} · 状态版本 {view.current.revision}</p>
+    {view&&<><p>{view.current.is_current?'当前版本':view.current.is_current===null?'旧资料，尚无版本族记录':'保留的旧版本'} · {({active:'使用中',archived:'已归档',tombstone:'已隐藏',candidate:'候选版本'} as Record<string,string>)[view.current.state]||'已保存'}</p>
       <p>使用范围：{view.current.reuse_scope==='task'?(view.current.task_id?`仅任务 ${view.current.task_id}`:'任务尚未绑定，暂仅本人定位'):view.current.reuse_scope==='owner'?'本人明确跨任务复用':'明确选择同组的研究'}。</p>
       <p className="text-xs text-xmgray-500">仅当前、未隐藏且在有效期内的版本可供获准研究检索。事实纠正建立独立版本；旧报告保留当时证据和修订关联。</p>
       <label className="block">操作原因<textarea aria-label="资料维护原因" className="input-xm mt-1 w-full" value={reason} onChange={event=>setReason(event.target.value)} maxLength={2000}/></label>
@@ -68,7 +68,7 @@ export default function SourceLifecyclePanel({sourceId,onChanged}:{sourceId:stri
       {operation.isPending&&<p role="status">正在提交资料操作…</p>}{operation.error&&<p role="alert" className="text-red-700">{operation.error.message}</p>}{error&&<p role="alert" className="text-red-700">{error}</p>}
       {operation.error&&pending.current&&<button type="button" className="btn-secondary" onClick={()=>{if(pending.current)operation.mutate(pending.current)}} disabled={operation.isPending}>用同一请求重试</button>}
       {operation.data!=null&&<details open><summary>实际提交结果与受影响报告</summary><pre className="max-h-64 overflow-auto whitespace-pre-wrap break-words text-xs">{JSON.stringify(operation.data,null,2)}</pre></details>}
-      <details><summary>同族保留版本（最近50项）</summary><ul>{view.versions.map(version=><li key={version.source_id} className="my-2 break-all">{version.name} · {version.is_current?'当前':'旧版本'} · {version.state} · {version.source_id} · 状态版本{version.revision}</li>)}</ul>{view.has_more_versions&&<p>还有更早版本，未自动删除。</p>}</details>
+      <details><summary>同族保留版本（最近50项）</summary><ul>{view.versions.map(version=><li key={version.source_id} className="my-2 break-all">{version.name} · {version.is_current?'当前':'旧版本'} · {({active:'使用中',tombstone:'已隐藏',candidate:'候选'} as Record<string,string>)[version.state]||'已保存'}</li>)}</ul>{view.has_more_versions&&<p>还有更早版本，未自动删除。</p>}</details>
       <details><summary>修订记录与维护方式</summary><pre className="max-h-64 overflow-auto whitespace-pre-wrap break-words text-xs">{JSON.stringify({events:view.events,maintenance:view.maintenance,access_epoch:view.access_epoch},null,2)}</pre></details>
     </>}
   </section>

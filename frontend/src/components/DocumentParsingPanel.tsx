@@ -39,7 +39,7 @@ export default function DocumentParsingPanel({sourceId}:{sourceId:string}) {
     <h4 className="font-medium">解析结构与质量</h4>
     {query.isPending&&<p role="status">正在读取已保存解析记录…</p>}
     {query.error&&<p role="alert" className="text-red-700">{query.error.message}</p>}
-    {data&&!structure&&<p>旧资料未保留结构化解析；没有追认布局或OCR。可显式重新上传生成独立版本。</p>}
+    {data&&!structure&&<p>暂无结构化解析记录。</p>}
     {data&&structure&&<>
       <p className="break-all text-xs">{structure.format} · {structure.parser_engine} · {data.parse_version_id}</p>
       <p className="text-xs">{data.semantics} 图像指针、OCR识别分数和解析成功都不代表事实审核通过。</p>

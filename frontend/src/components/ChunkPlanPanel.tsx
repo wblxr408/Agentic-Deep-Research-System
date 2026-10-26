@@ -34,7 +34,7 @@ export default function ChunkPlanPanel({sourceId,groupName}:{sourceId:string;gro
     <h4 className="font-medium">分块层级与原文定位</h4>
     {query.isPending&&<p role="status">正在读取已保存分块…</p>}
     {query.error&&<p role="alert" className="text-red-700">{query.error.message}</p>}
-    {query.data?.legacy_gap&&<p>旧资料没有版本化分块计划，原文件位置和父级未知。重新上传可生成独立版本。</p>}
+    {query.data?.legacy_gap&&<p>暂无片段结构记录。</p>}
     {plan&&<>
       <p className="break-all text-xs">{plan.schema_version} · {query.data?.parse_version_id}</p>
       <p>{plan.parents.length} 个父级范围，{plan.children.length} 个计划小块；是否发布检索见索引状态。字符范围采用规范原文的起点（含）至终点（不含）。</p>
