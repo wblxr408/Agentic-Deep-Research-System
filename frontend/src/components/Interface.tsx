@@ -1,7 +1,9 @@
+import {useLocale,uiDefinition,t} from '../i18n'
 import { useEffect, useRef } from 'react'
 import type { ReactNode } from 'react'
 
 export function Icon({ name, size = 20 }: { name: string; size?: number }) {
+
   const paths: Record<string, ReactNode> = {
     search: <><circle cx="10.5" cy="10.5" r="6.5" /><path d="m16 16 5 5" /></>,
     arrow: <path d="M4 12h16m-6-6 6 6-6 6" />,
@@ -30,18 +32,24 @@ export function Icon({ name, size = 20 }: { name: string; size?: number }) {
 }
 
 export function TraceLoader() {
+  useLocale()
+
   return <svg className="trace-loader" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
     <rect className="trace-loader-track" x="3" y="3" width="18" height="18" rx="6" fill="none" stroke="currentColor" strokeWidth="1.6" />
     <rect className="trace-loader-dash" x="3" y="3" width="18" height="18" rx="6" pathLength="100" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
   </svg>
 }
 
-export const statusLabels: Record<string, string> = { pending: '等待', waiting: '等待', running: '进行中', started: '进行中', done: '完成', completed: '完成', success: '完成', paused: '已暂停', failed: '失败', error: '失败', canceled: '已取消', skipped: '跳过', unknown: '未记录', pending_confirmation: '待确认' }
+export const statusLabels: Record<string, string> = uiDefinition({ pending: '等待', waiting: '等待', running: '进行中', started: '进行中', done: '完成', completed: '完成', success: '完成', paused: '已暂停', failed: '失败', error: '失败', canceled: '已取消', skipped: '跳过', unknown: '未记录', pending_confirmation: '待确认' })
 export function StatusPill({ status, label }: { status: string; label?: string }) {
+  useLocale()
+
   return <span className="state-pill" data-status={status}>{status === 'running' && <TraceLoader />}<span>{label || statusLabels[status] || status}</span></span>
 }
 
 export function Modal({ open, onClose, title, children, wide = false }: { open: boolean; onClose: () => void; title: string; children: ReactNode; wide?: boolean }) {
+  useLocale()
+
   const ref = useRef<HTMLDialogElement>(null)
   const heading = useRef<HTMLHeadingElement>(null)
   useEffect(() => {
@@ -55,7 +63,7 @@ export function Modal({ open, onClose, title, children, wide = false }: { open: 
   return <dialog ref={ref} className={`interface-dialog ${wide ? 'interface-dialog--wide' : ''}`} aria-label={title}
     onCancel={event => { event.preventDefault(); onClose() }}
     onClick={event => { if (event.target === event.currentTarget) { const rect = event.currentTarget.getBoundingClientRect(); if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) onClose() } }}>
-    <div className="dialog-heading"><h2 ref={heading} tabIndex={-1}>{title}</h2><button className="icon-button" type="button" aria-label="关闭窗口" onClick={onClose}><Icon name="close" /></button></div>
+    <div className="dialog-heading"><h2 ref={heading} tabIndex={-1}>{title}</h2><button className="icon-button" type="button" aria-label={t("关闭窗口")} onClick={onClose}><Icon name="close" /></button></div>
     <div className="dialog-content">{children}</div>
   </dialog>
 }

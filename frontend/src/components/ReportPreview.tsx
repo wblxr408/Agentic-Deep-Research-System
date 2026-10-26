@@ -1,3 +1,4 @@
+import {useLocale,t} from '../i18n'
 /**
  * ReportPreview - Xiaomi-style report rendering with Markdown and citations.
  */
@@ -41,6 +42,8 @@ function ReportPreview({
   report, citations, streaming = false, emptyTitle, emptyDescription, reportSummary, sessionId,
   deliveryView, reportEditorial, budgetState, reportAudit, contextEvidence,
 }: ReportPreviewProps) {
+  useLocale()
+
   const readerReport = deliveryView?.report_markdown ?? report
   const [selectedCitation,setSelectedCitation] = useState<RetainedCitation|null>(null)
   const [records,setRecords] = useState(false)
@@ -74,9 +77,9 @@ function ReportPreview({
         const numberedMatches=numbered&&(safeExternalUrl(numbered.source_url)===safeExternalUrl(href)&&Boolean(safeExternalUrl(href))||href===`#retained-${prefix}-${numbered.citation_id.replace('citation:','')}`)
         const citation=numberedMatches?numbered:citations.find(item=>safeExternalUrl(item.source_url)===safeExternalUrl(href)&&Boolean(safeExternalUrl(href)))
         const url=href?.startsWith('#')?href:safeExternalUrl(href)
-        return citation?<button type="button" className="citation-button" onClick={()=>setSelectedCitation(citation)} aria-label={`查看来源：${citation.source_title}`}>{number?`[${number[1]}]`:children}</button>:<a href={url} target={url?.startsWith('#')?undefined:'_blank'} rel="noopener noreferrer">{children}</a>
+        return citation?<button type="button" className="citation-button" onClick={()=>setSelectedCitation(citation)} aria-label={t("查看来源：{0}", citation.source_title)}>{number?`[${number[1]}]`:children}</button>:<a href={url} target={url?.startsWith('#')?undefined:'_blank'} rel="noopener noreferrer">{children}</a>
       },
-      img:({src,alt})=><a href={safeExternalUrl(src)} target="_blank" rel="noopener noreferrer">{alt||'查看原图'}</a>,
+      img:({src,alt})=><a href={safeExternalUrl(src)} target="_blank" rel="noopener noreferrer">{alt||t("查看原图")}</a>,
       code:({node:_node,className,children,...props})=>{
         const language=/language-(\w+)/.exec(className||'')
         return language?<SyntaxHighlighter style={oneDark} language={language[1]} PreTag="div">{String(children).replace(/\n$/,'')}</SyntaxHighlighter>:<code className={className} {...props}>{children}</code>
@@ -84,37 +87,37 @@ function ReportPreview({
     }}>{text+'\n\n'+definitions}</ReactMarkdown>
   }
 
-  if(!readerReport&&!deliveryView?.pages.length)return <div className="reader-empty">{streaming?<TraceLoader/>:<Icon name="book" size={36}/>}<h3>{emptyTitle||'研究报告'}</h3>{emptyDescription&&<p>{emptyDescription}</p>}</div>
+  if(!readerReport&&!deliveryView?.pages.length)return <div className="reader-empty">{streaming?<TraceLoader/>:<Icon name="book" size={36}/>}<h3>{emptyTitle||t("研究报告")}</h3>{emptyDescription&&<p>{emptyDescription}</p>}</div>
   return <div className="report-reader">
-    {!structured&&headings.length>1&&<nav className="reader-toc" aria-label="报告目录">{headings.map((item,index)=><a key={index} href={`#reader-${prefix}-${index}`} data-level={item.level}>{item.title}</a>)}</nav>}
+    {!structured&&headings.length>1&&<nav className="reader-toc" aria-label={t("报告目录")}>{headings.map((item,index)=><a key={index} href={`#reader-${prefix}-${index}`} data-level={item.level}>{item.title}</a>)}</nav>}
     <div className="report-content">
       {structured&&deliveryView&&<ReportDeliveryView key={deliveryView.artifact_id} view={deliveryView} renderMarkdown={text=>renderMarkdown(text)}/>}
       {!structured&&<article className="reader-prose">{renderMarkdown(readerReport,true)}</article>}
-      {structured&&<details className="reader-fulltext"><summary>全文</summary><article className="reader-prose">{renderMarkdown(readerReport)}</article></details>}
+      {structured&&<details className="reader-fulltext"><summary>{t("全文")}</summary><article className="reader-prose">{renderMarkdown(readerReport)}</article></details>}
     </div>
     <EvidenceCards citations={citations} onSelect={setSelectedCitation}/>
     <EvidenceDialog key={`${sessionId||''}-${selectedCitation?.citation_id||''}`} citation={selectedCitation} sessionId={sessionId} onClose={()=>setSelectedCitation(null)}/>
-    <div data-app-only className="reader-record-link"><button type="button" className="btn-ghost" onClick={()=>setRecords(true)}><Icon name="source" size={16}/>研究记录</button></div>
-    <Modal open={records} onClose={()=>setRecords(false)} title="研究记录" wide>
+    <div data-app-only className="reader-record-link"><button type="button" className="btn-ghost" onClick={()=>setRecords(true)}><Icon name="source" size={16}/>{t("研究记录")}</button></div>
+    <Modal open={records} onClose={()=>setRecords(false)} title={t("研究记录")} wide>
       <div className="report-records">
         <ContextEvidenceSummary analyst={contextEvidence?.analyst} report={contextEvidence?.report} sessionId={sessionId}/>
-        {reportAudit&&<section><h3>内容核对</h3><p>{reportAudit.supported_claims??0} / {reportAudit.total_claims??0} 项支持</p>
-          {typeof reportAudit.source_supported_claims==='number'&&<p>原文支持 {reportAudit.source_supported_claims} · 方法依据 {reportAudit.method_supported_claims??0}</p>}
-          {!!reportAudit.revision_requests?.length&&<details><summary>待处理陈述</summary><ol>{reportAudit.revision_requests.map(item=><li key={item.claim_id}><p>{item.text}</p><p>{item.reason}</p></li>)}</ol></details>}
+        {reportAudit&&<section><h3>{t("内容核对")}</h3><p>{reportAudit.supported_claims??0} / {reportAudit.total_claims??0} {t(" 项支持")}</p>
+          {typeof reportAudit.source_supported_claims==='number'&&<p>{t("原文支持 ")}{reportAudit.source_supported_claims} {t(" · 方法依据 ")}{reportAudit.method_supported_claims??0}</p>}
+          {!!reportAudit.revision_requests?.length&&<details><summary>{t("待处理陈述")}</summary><ol>{reportAudit.revision_requests.map(item=><li key={item.claim_id}><p>{item.text}</p><p>{item.reason}</p></li>)}</ol></details>}
         </section>}
-        {budgetState&&<section><h3>用量</h3><p>{budgetState.used_total_tokens?.toLocaleString()??'—'} / {budgetState.max_total_tokens?.toLocaleString()??'—'} Token</p>
-          {(budgetState.model_stop_reason||budgetState.hard_stop_reason)&&<p>停止原因：{budgetState.model_stop_reason||budgetState.hard_stop_reason}</p>}
-          {!!budgetState.model_requests?.some(item=>item.routing)&&<details><summary>模型路径</summary>{budgetState.model_requests.filter(item=>item.routing).slice(-50).map((item,index)=><p key={index}>{item.routing?.stage} · {item.routing?.provider} / {item.routing?.model} · {item.routing?.reason}</p>)}</details>}
-          {!!budgetState.routing_decisions?.length&&<details><summary>路由调整</summary>{budgetState.routing_decisions.map((item,index)=><p key={item.upgrade_id||index}>{item.stage} · {item.status} · {item.reason}{item.to_model&&` · ${item.from_model} → ${item.to_model}`}</p>)}</details>}
+        {budgetState&&<section><h3>{t("用量")}</h3><p>{budgetState.used_total_tokens?.toLocaleString()??'—'} / {budgetState.max_total_tokens?.toLocaleString()??'—'} Token</p>
+          {(budgetState.model_stop_reason||budgetState.hard_stop_reason)&&<p>{t("停止原因：")}{budgetState.model_stop_reason||budgetState.hard_stop_reason}</p>}
+          {!!budgetState.model_requests?.some(item=>item.routing)&&<details><summary>{t("模型路径")}</summary>{budgetState.model_requests.filter(item=>item.routing).slice(-50).map((item,index)=><p key={index}>{item.routing?.stage} · {item.routing?.provider} / {item.routing?.model} · {item.routing?.reason}</p>)}</details>}
+          {!!budgetState.routing_decisions?.length&&<details><summary>{t("路由调整")}</summary>{budgetState.routing_decisions.map((item,index)=><p key={item.upgrade_id||index}>{item.stage} · {item.status} · {item.reason}{item.to_model&&` · ${item.from_model} → ${item.to_model}`}</p>)}</details>}
         </section>}
-        {deliveryView&&<details><summary>生成与交付记录</summary><p>产物：{deliveryView.artifact_id}</p>{reportEditorial?.note&&<p>{reportEditorial.note}</p>}{deliveryView.gaps.map((gap,index)=><p key={index}>{gap}</p>)}
+        {deliveryView&&<details><summary>{t("生成与交付记录")}</summary><p>{t("产物：")}{deliveryView.artifact_id}</p>{reportEditorial?.note&&<p>{reportEditorial.note}</p>}{deliveryView.gaps.map((gap,index)=><p key={index}>{gap}</p>)}
           <pre>{JSON.stringify({audit:deliveryView.audit,module_results:deliveryView.module_results,drawing:deliveryView.drawing,formats:deliveryView.formats},null,2)}</pre>
         </details>}
         {reportSummary&&<OrganizationReportSummary snapshot={reportSummary}/>}
-        {readerReport!==report&&<details><summary>原始报告</summary><pre>{report}</pre></details>}
+        {readerReport!==report&&<details><summary>{t("原始报告")}</summary><pre>{report}</pre></details>}
       </div>
     </Modal>
-    {streaming&&<span className="reader-stream-caret" aria-label="内容更新中"/>}
+    {streaming&&<span className="reader-stream-caret" aria-label={t("内容更新中")}/>}
   </div>
 }
 

@@ -1,3 +1,4 @@
+import {uiDefinition,t} from '../i18n'
 import {defaultQueryDraft,queryDraftRequest} from './QueryUnderstandingPanel'
 import type {QueryDraft} from './QueryUnderstandingPanel'
 import {defaultOrganizationDraft,organizationRequest} from './OrganizationResearchPanel'
@@ -9,11 +10,11 @@ export interface ResearchSetup {
   outputLength:'short'|'medium'|'long';useInternal:boolean;group:string;channels:string[];enabled:string[];disabled:string[]
   original?:Record<string,unknown>
 }
-export const disciplineNames:Record<string,string>={computer_science:'计算机科学',materials_science:'材料科学',electrical_engineering:'电子与电气',mechanical_engineering:'机械工程',physics:'物理学',chemistry:'化学',biology:'生命科学',medicine:'医学',mathematics:'数学',environmental_science:'环境科学',business:'商科',economics:'经济学',multidisciplinary:'跨学科'}
-export const moduleNames:Record<string,string>={landscape:'研究全景',evolution:'近年演进',relationships:'团队与合作',deep_dive:'关键技术',validation:'来源核对',actions:'合作建议'}
-export const purposeNames:Record<string,string>={research_development:'了解布局与演进',cooperation_discovery:'寻找合作机会',comprehensive:'综合研究'}
-export const depthNames:Record<string,string>={auto:'按问题选择',brief:'快速了解',standard:'标准研究',deep:'深入研究'}
-export const templateChoices=[
+export const disciplineNames:Record<string,string>=uiDefinition({computer_science:'计算机科学',materials_science:'材料科学',electrical_engineering:'电子与电气',mechanical_engineering:'机械工程',physics:'物理学',chemistry:'化学',biology:'生命科学',medicine:'医学',mathematics:'数学',environmental_science:'环境科学',business:'商科',economics:'经济学',multidisciplinary:'跨学科'})
+export const moduleNames:Record<string,string>=uiDefinition({landscape:'研究全景',evolution:'近年演进',relationships:'团队与合作',deep_dive:'关键技术',validation:'来源核对',actions:'合作建议'})
+export const purposeNames:Record<string,string>=uiDefinition({research_development:'了解布局与演进',cooperation_discovery:'寻找合作机会',comprehensive:'综合研究'})
+export const depthNames:Record<string,string>=uiDefinition({auto:'按问题选择',brief:'快速了解',standard:'标准研究',deep:'深入研究'})
+export const templateChoices=uiDefinition([
   {id:'markdown-v1',name:'简洁长文',description:'结论与分析，清楚展开',kind:'text'},
   {id:'visual-brief-v1',name:'图文简报',description:'重点图表与简短判断',kind:'brief'},
   {id:'technology-comparison-v1',name:'技术对比',description:'方案、条件和差异',kind:'comparison'},
@@ -22,17 +23,17 @@ export const templateChoices=[
   {id:'cooperation-matching-v1',name:'合作资源',description:'团队、课题与合作切入点',kind:'network'},
   {id:'field-trends-v1',name:'领域趋势',description:'研究方向与时间变化',kind:'trend'},
   {id:'custom',name:'自定义',description:'自己安排章节与配图',kind:'custom'},
-]
-export const templateName=(id:string)=>templateChoices.find(item=>item.id===id)?.name||'已保存的样式'
+])
+export const templateName=(id:string)=>templateChoices.find(item=>item.id===id)?.name||t("已保存的样式")
 export const splitValues=(value:string)=>value.split(/[,，\n]/).map(item=>item.trim()).filter(Boolean)
 export function setupSummary(value:ResearchSetup) {
   const organization=value.organizationDraft,draft=value.queryDraft
-  const types=organization.enabled?organization.types.map(type=>({company:'企业',university:'高校',laboratory:'实验室'})[type]).join('、'):'围绕问题'
+  const types=organization.enabled?organization.types.map(type=>({company:t("企业"),university:t("高校"),laboratory:t("实验室")})[type]).join('、'):t("围绕问题")
   const from=organization.enabled?organization.startDate:draft.startDate,to=organization.enabled?organization.endDate:draft.endDate
-  return {focus:purposeNames[organization.enabled?organization.purpose||'research_development':draft.purpose]||'按问题研究',
-    scope:types,time:from&&to?`${from.slice(0,4)}—${to.slice(0,4)}`:'按问题确定',
-    depth:depthNames[draft.depth]||'按问题选择',report:templateName(draft.template),sources:value.useInternal?'公开网络 + 我的资料':'公开网络',
-    methods:value.enabled.length||value.disabled.length?'已调整研究方法':'自动匹配'}
+  return {focus:purposeNames[organization.enabled?organization.purpose||'research_development':draft.purpose]||t("按问题研究"),
+    scope:types,time:from&&to?`${from.slice(0,4)}—${to.slice(0,4)}`:t("按问题确定"),
+    depth:depthNames[draft.depth]||t("按问题选择"),report:templateName(draft.template),sources:value.useInternal?t("公开网络 + 我的资料"):t("公开网络"),
+    methods:value.enabled.length||value.disabled.length?t("已调整研究方法"):t("自动匹配")}
 }
 export function chooseDepth(value:ResearchSetup,depth:string):ResearchSetup {
   return {...value,queryDraft:{...value.queryDraft,depth},outputLength:depth==='brief'?'short':depth==='deep'?'long':'medium'}
@@ -75,7 +76,7 @@ export function setupFromRequest(parameters:Record<string,unknown>={},query=''):
 }
 export function setupRequest(value:ResearchSetup) {
   const draft=value.queryDraft,drawingIds=draft.drawingMode==='builtin'?[]:[...(draft.drawingMode==='manual_skill'?draft.drawingSkillIds:[]),...Object.values(draft.chartSkillIds).filter(Boolean)]
-  if(drawingIds.some(id=>value.disabled.includes(id)))throw new Error('所选绘图方法已设为不使用，请重新选择。')
+  if(drawingIds.some(id=>value.disabled.includes(id)))throw new Error(t("所选绘图方法已设为不使用，请重新选择。"))
   const old=value.original||{},parts=queryDraftRequest(draft,value.organizationDraft.enabled)
   const org=organizationRequest(value.organizationDraft,value.query.trim(),value.weights),previous=object(old.organization_research)
   let organization:Record<string,any>|null=org?{...previous,...org,scope:{...object(previous.scope),...org.scope}}:null

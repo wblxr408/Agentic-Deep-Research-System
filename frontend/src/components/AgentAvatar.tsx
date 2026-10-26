@@ -1,11 +1,14 @@
+import {uiDefinition,useLocale} from '../i18n'
 import '../agent-avatar.css'
 import type {CSSProperties} from 'react'
 
 export type AgentExpression='waiting'|'working'|'recovering'|'paused'|'failed'|'completed'|'resting'|'unknown'
-const names:Record<AgentExpression,string>={waiting:'等待表情',working:'执行表情',recovering:'修复表情',paused:'暂停表情',failed:'受阻表情',completed:'完成表情',resting:'休息表情',unknown:'未知状态表情'}
+const names:Record<AgentExpression,string>=uiDefinition({waiting:'等待表情',working:'执行表情',recovering:'修复表情',paused:'暂停表情',failed:'受阻表情',completed:'完成表情',resting:'休息表情',unknown:'未知状态表情'})
 
 /** Original SVG character. State is supplied by the execution, never a timer. */
 export default function AgentAvatar({name,expression,role}:{name:string;expression:AgentExpression;role:string}) {
+  useLocale()
+
   const delay=({planner:0,analyst:1.1,reflection:2.3,report:.6} as Record<string,number>)[role]||0
   return <svg className={`agent-bot bot-${expression}`} viewBox="0 0 112 112" role="img" aria-label={`${name}：${names[expression]}`} style={{'--bot-delay':`${delay}s`} as CSSProperties}>
     <ellipse className="bot-shadow" cx="56" cy="96" rx="29" ry="5"/>

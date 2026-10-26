@@ -1,3 +1,4 @@
+import {useLocale,t,uiMessage} from '../i18n'
 import { useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { Icon, Modal } from './Interface'
@@ -58,6 +59,8 @@ const styles = `
 `
 
 function Chart({ chart, kind,skillId,expanded=false }: { chart: DeliveryChart; kind: string;skillId?:string;expanded?:boolean }) {
+  useLocale()
+
   const [selected, setSelected] = useState('')
   const [enlarged,setEnlarged]=useState(false)
   const points = chart.points || [], nodes = chart.nodes || [], edges = chart.edges || []
@@ -72,33 +75,33 @@ function Chart({ chart, kind,skillId,expanded=false }: { chart: DeliveryChart; k
   const asset=chart.rendered_assets?.find(item=>item.presentation===kind&&item.drawing_skill_id===skillId)
   function downloadData() {
     const rows:unknown[][]=chart.rows
-      ? [[...(chart.columns||[]),'来源'],...chart.rows.map(row=>[...row.values,row.citation_ids.join(' ')])]
-      : points.length ? [['条目',chart.unit_label],...points.map(point=>[point.label,point.value])]
-      : [['起点','终点','关系','来源'],...edges.map(edge=>[nodes.find(node=>node.id===edge.source)?.label||edge.source,nodes.find(node=>node.id===edge.target)?.label||edge.target,edge.label,(edge.proofs||[]).map(proof=>proof.source_url).join(' ')])]
+      ? [[...(chart.columns||[]),t("来源")],...chart.rows.map(row=>[...row.values,row.citation_ids.join(' ')])]
+      : points.length ? [[t("条目"),chart.unit_label],...points.map(point=>[point.label,point.value])]
+      : [[t("起点"),t("终点"),t("关系"),t("来源")],...edges.map(edge=>[nodes.find(node=>node.id===edge.source)?.label||edge.source,nodes.find(node=>node.id===edge.target)?.label||edge.target,edge.label,(edge.proofs||[]).map(proof=>proof.source_url).join(' ')])]
     const cell=(value:unknown)=>{let text=value===null||value===undefined?'':String(value);if(typeof value==='string'&&/^[=+@\-\t\r]/.test(text))text="'"+text;return '"'+text.replace(/"/g,'""')+'"'}
     const url=URL.createObjectURL(new Blob(['\ufeff'+rows.map(row=>row.map(cell).join(',')).join('\r\n')],{type:'text/csv;charset=utf-8'}))
     const anchor=document.createElement('a');anchor.href=url;anchor.download=chart.chart_id+'.csv';anchor.click();window.setTimeout(()=>URL.revokeObjectURL(url),1000)
   }
   return <figure className="report-chart">
     <figcaption>{chart.title}{chart.unit_label&&<> · {chart.unit_label}</>}</figcaption>
-    {!expanded&&<div data-app-only className="chart-actions"><button type="button" onClick={()=>setEnlarged(true)}><Icon name="fit" size={16}/>放大</button><button type="button" onClick={downloadData}><Icon name="download" size={16}/>数据 CSV</button></div>}
-    {chart.note&&<details className="chart-method"><summary>统计口径</summary><p>{chart.note}</p></details>}
+    {!expanded&&<div data-app-only className="chart-actions"><button type="button" onClick={()=>setEnlarged(true)}><Icon name="fit" size={16}/>{t("放大")}</button><button type="button" onClick={downloadData}><Icon name="download" size={16}/>{t("数据 CSV")}</button></div>}
+    {chart.note&&<details className="chart-method"><summary>{t("统计口径")}</summary><p>{chart.note}</p></details>}
     {!expanded&&<Modal open={enlarged} onClose={()=>setEnlarged(false)} title={chart.title} wide><Chart chart={chart} kind={kind} skillId={skillId} expanded/></Modal>}
     {asset && <>
       <img src={asset.svg} alt={chart.title} style={{width:'100%',height:'auto'}} />
-      {!!asset.notes?.length&&<details data-app-only><summary>绘图记录</summary>{asset.notes.map((note,index)=><p key={index}>{note}</p>)}</details>}
+      {!!asset.notes?.length&&<details data-app-only><summary>{t("绘图记录")}</summary>{asset.notes.map((note,index)=><p key={index}>{note}</p>)}</details>}
       <div data-app-only className="flex gap-3 text-sm">
-        <a href={asset.svg} download={`${chart.chart_id}-${kind}.svg`}>下载SVG</a>
-        <a href={asset.png} download={`${chart.chart_id}-${kind}.png`}>下载PNG</a>
-        {asset.pdf && <a href={asset.pdf} download={`${chart.chart_id}-${kind}.pdf`}>下载图表PDF</a>}
+        <a href={asset.svg} download={`${chart.chart_id}-${kind}.svg`}>{t("下载SVG")}</a>
+        <a href={asset.png} download={`${chart.chart_id}-${kind}.png`}>{t("下载PNG")}</a>
+        {asset.pdf && <a href={asset.pdf} download={`${chart.chart_id}-${kind}.pdf`}>{t("下载图表PDF")}</a>}
       </div>
     </>}
     {chart.rows && <div className="chart-frame"><table>
-      <thead><tr>{chart.columns?.map(column=><th key={column}>{column}</th>)}<th>来源</th></tr></thead>
+      <thead><tr>{chart.columns?.map(column=><th key={column}>{column}</th>)}<th>{t("来源")}</th></tr></thead>
       <tbody>{chart.rows.map((row,index)=><tr key={index}>{row.values.map((value,column)=><td key={column}>{value}</td>)}
         <td>{row.citation_ids.map(id=>`[${id.replace('citation:','')}]`).join(' ')}</td></tr>)}</tbody>
     </table></div>}
-    {chart.truncated && <p>图中展示前{points.length || edges.length}项，共{chart.total_points || chart.total_edges}项。</p>}
+    {chart.truncated && <p>{t("图中展示前")}{points.length || edges.length}{t("项，共")}{chart.total_points || chart.total_edges}{t("项。")}</p>}
     {!asset && kind !== 'table' && !chart.rows && <div className="chart-frame">
       {kind === 'network' ? <svg viewBox="0 0 760 450" role="img" aria-label={chart.title}>
         {edges.map((edge, index) => {
@@ -131,23 +134,23 @@ function Chart({ chart, kind,skillId,expanded=false }: { chart: DeliveryChart; k
       </svg> : <svg viewBox={`0 0 ${width} ${Math.max(90,Math.min(points.length,30)*30+35)}`} role="img" aria-label={chart.title}>
         <line x1={plotLeft} x2={plotLeft} y1="5" y2={Math.min(points.length,30)*30+10} stroke="#999" />
         {points.slice(0,30).map((point, index) => <g key={`${point.label}-${index}`} role="button" tabIndex={0}
-          aria-label={`${point.label}: ${point.value === null ? '未覆盖' : point.value}`} onClick={() => choose(point.label)}
+          aria-label={`${point.label}: ${point.value === null ? t("未覆盖") : point.value}`} onClick={() => choose(point.label)}
           onKeyDown={event => { if (event.key === 'Enter') choose(point.label) }}>
           <text x={plotLeft-8} y={index*30+23} textAnchor="end">{point.label.slice(0,23)}{point.label.length>23?'…':''}</text>
           <rect x={plotLeft} y={index*30+8} width={(point.value || 0)/max*(plotRight-plotLeft-50)} height="20" fill={selected===point.label?'rgb(var(--accent-700))':'var(--accent)'} />
-          <text x={plotLeft+(point.value||0)/max*(plotRight-plotLeft-50)+6} y={index*30+23}>{point.value === null ? '未覆盖' : point.value}</text>
-          <title>{point.label}: {point.value === null ? '未覆盖' : point.value}</title>
+          <text x={plotLeft+(point.value||0)/max*(plotRight-plotLeft-50)+6} y={index*30+23}>{point.value === null ? t("未覆盖") : point.value}</text>
+          <title>{point.label}: {point.value === null ? t("未覆盖") : point.value}</title>
         </g>)}
       </svg>}
     </div>}
-    {points.length > 30 && kind === 'bar' && <p>条形图展示前30项，数据表保留本视图全部条目。</p>}
+    {points.length > 30 && kind === 'bar' && <p>{t("条形图展示前30项，数据表保留本视图全部条目。")}</p>}
     {selected && <p role="status">{nodes.find(node => node.id === selected)?.label || selected}
-      {selectedPoint && `：${selectedPoint.value === null ? '未覆盖' : selectedPoint.value}`}</p>}
-    {!chart.rows && <details open={kind === 'table'}><summary>查看图表数据</summary>
-      {points.length > 0 && <div style={{overflowX:'auto'}}><table><thead><tr><th>条目</th><th>{chart.unit_label}</th></tr></thead><tbody>
-        {points.map((point,index) => <tr key={index}><td>{point.label}</td><td>{point.value === null ? '未覆盖' : point.value}</td></tr>)}
+      {selectedPoint && `：${selectedPoint.value === null ? t("未覆盖") : selectedPoint.value}`}</p>}
+    {!chart.rows && <details open={kind === 'table'}><summary>{t("查看图表数据")}</summary>
+      {points.length > 0 && <div style={{overflowX:'auto'}}><table><thead><tr><th>{t("条目")}</th><th>{chart.unit_label}</th></tr></thead><tbody>
+        {points.map((point,index) => <tr key={index}><td>{point.label}</td><td>{point.value === null ? t("未覆盖") : point.value}</td></tr>)}
       </tbody></table></div>}
-      {edges.length > 0 && <table><thead><tr><th>关系观察</th><th>参与方</th><th>状态与依据</th></tr></thead><tbody>{edges.map((edge,index)=><tr key={index}>
+      {edges.length > 0 && <table><thead><tr><th>{t("关系观察")}</th><th>{t("参与方")}</th><th>{t("状态与依据")}</th></tr></thead><tbody>{edges.map((edge,index)=><tr key={index}>
         <td>{edge.label}<br />{edge.kind}</td><td>{nodes.find(node=>node.id===edge.source)?.label} → {nodes.find(node=>node.id===edge.target)?.label}</td>
         <td>{edge.proofs?.map((proof, i)=><p key={i}>{proof.quote}<br /><SafeSource url={proof.source_url} /></p>)}</td>
       </tr>)}</tbody></table>}
@@ -156,29 +159,33 @@ function Chart({ chart, kind,skillId,expanded=false }: { chart: DeliveryChart; k
 }
 
 function SafeSource({url}:{url:string}) {
-  try { const link = new URL(url); if (['http:','https:'].includes(link.protocol)) return <a href={link.href} target="_blank" rel="noopener noreferrer">查看来源</a> } catch { /* retained label only */ }
+  useLocale()
+
+  try { const link = new URL(url); if (['http:','https:'].includes(link.protocol)) return <a href={link.href} target="_blank" rel="noopener noreferrer">{t("查看来源")}</a> } catch { /* retained label only */ }
   return <span>{url}</span>
 }
 
 export default function ReportDeliveryView({view,renderMarkdown}:{view:DeliveryView;renderMarkdown:(text:string)=>ReactNode}) {
+  useLocale()
+
   const [current,setCurrent]=useState(0), [all,setAll]=useState(false), [error,setError]=useState('')
   const root=useRef<HTMLDivElement>(null)
   const idPrefix=`delivery-${view.artifact_id.slice(0,12)}`
   const chartById=new Map(view.charts.map(chart=>[chart.chart_id,chart]))
   async function fullscreen() {
     try { if (document.fullscreenElement) await document.exitFullscreen(); else await root.current?.requestFullscreen(); setError('') }
-    catch { setError('当前浏览器未允许全屏；可使用全部页面阅读或下载HTML。') }
+    catch { setError(t("当前浏览器未允许全屏；可使用全部页面阅读或下载HTML。")) }
   }
-  return <div ref={root} className="adrs-delivery" data-theme={view.theme} aria-label="图文研究报告">
+  return <div ref={root} className="adrs-delivery" data-theme={view.theme} aria-label={t("图文研究报告")}>
     <style>{styles}</style>
     <h2>{view.title}</h2>
-    <div data-app-only className="flex flex-wrap gap-2"><button type="button" onClick={()=>setAll(value=>!value)}>{all?'逐页阅读':'显示全部页面'}</button><button type="button" onClick={()=>void fullscreen()}>全屏 / 退出</button></div>
-    {error&&<p role="alert">{error}</p>}
-    <nav aria-label="报告目录">{view.pages.map((page,index)=><a key={page.page_id} href={`#${idPrefix}-${page.page_id}`} aria-current={current===index?'page':undefined}
+    <div data-app-only className="flex flex-wrap gap-2"><button type="button" onClick={()=>setAll(value=>!value)}>{all?t("逐页阅读"):t("显示全部页面")}</button><button type="button" onClick={()=>void fullscreen()}>{t("全屏 / 退出")}</button></div>
+    {error&&<p role="alert">{uiMessage(error)}</p>}
+    <nav aria-label={t("报告目录")}>{view.pages.map((page,index)=><a key={page.page_id} href={`#${idPrefix}-${page.page_id}`} aria-current={current===index?'page':undefined}
       onClick={()=>setCurrent(index)}>{index+1}. {page.title}</a>)}</nav>
     {view.pages.map((page,index)=><article key={page.page_id} id={`${idPrefix}-${page.page_id}`} data-report-page hidden={!all&&current!==index}>
       <p className="text-xs">{index+1} / {view.pages.length}</p><h2>{page.title}</h2>
-      {page.question&&<p><strong>本页问题：</strong>{page.question}</p>}
+      {page.question&&<p><strong>{t("本页问题：")}</strong>{page.question}</p>}
       {page.markdown&&<div>{renderMarkdown(page.markdown)}</div>}
       {['ready','rendered'].includes(view.drawing.status)&&page.charts.map(reference=>{
         const chart=chartById.get(reference.chart_id)
@@ -186,12 +193,12 @@ export default function ReportDeliveryView({view,renderMarkdown}:{view:DeliveryV
           chart={chart} kind={reference.kind} skillId={reference.drawing_skill_id}/>:null
       })}
     </article>)}
-    {!all&&view.pages.length>1&&<div data-app-only className="mt-4 flex items-center gap-3"><button type="button" disabled={current===0} onClick={()=>setCurrent(value=>Math.max(0,value-1))}>上一页</button>
-      <span>{current+1} / {view.pages.length}</span><button type="button" disabled={current>=view.pages.length-1} onClick={()=>setCurrent(value=>Math.min(view.pages.length-1,value+1))}>下一页</button></div>}
-    {view.appendix_markdown && <details data-report-appendix><summary>技术附录：方法、实验与资源</summary>
+    {!all&&view.pages.length>1&&<div data-app-only className="mt-4 flex items-center gap-3"><button type="button" disabled={current===0} onClick={()=>setCurrent(value=>Math.max(0,value-1))}>{t("上一页")}</button>
+      <span>{current+1} / {view.pages.length}</span><button type="button" disabled={current>=view.pages.length-1} onClick={()=>setCurrent(value=>Math.min(view.pages.length-1,value+1))}>{t("下一页")}</button></div>}
+    {view.appendix_markdown && <details data-report-appendix><summary>{t("技术附录：方法、实验与资源")}</summary>
       {renderMarkdown(view.appendix_markdown)}
     </details>}
-    {!!view.citations?.length && <details aria-label="参考资料"><summary>参考资料</summary>
+    {!!view.citations?.length && <details aria-label={t("参考资料")}><summary>{t("参考资料")}</summary>
       {view.citations.map(citation=><p key={citation.citation_id}>[{citation.citation_id.replace('citation:','')}] {citation.source_title}<br /><SafeSource url={citation.source_url}/></p>)}
     </details>}
   </div>

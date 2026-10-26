@@ -1,15 +1,16 @@
+import {uiDefinition,t,uiMessage,useLocale} from '../i18n'
 import {useRef,useState} from 'react'
 import type {ReactNode} from 'react'
 import {Icon,TraceLoader} from './Interface'
 import '../collections.css'
 
-export const stageNames:Record<string,string>={planner:'规划',search:'搜索',browser:'网页阅读',rag:'内部资料',mcp:'外部工具',analyst:'分析',reflection:'核对',reporter:'写作',render:'绘图'}
+export const stageNames:Record<string,string>=uiDefinition({planner:'规划',search:'搜索',browser:'网页阅读',rag:'内部资料',mcp:'外部工具',analyst:'分析',reflection:'核对',reporter:'写作',render:'绘图'})
 export async function collectionRequest(path:string,options:RequestInit={}) {
   const response=await fetch(path,options),body=await response.json().catch(()=>({}))
   if(!response.ok){
     const detail=body.detail
-    const known:Record<string,string>={source_not_found:'这份资料暂时无法读取',retention_task_not_owned_or_missing:'请选择自己的研究链接',invalid_skill_document:'请检查方法的阶段、工具和指令内容'}
-    const message=typeof detail==='string'?(known[detail]||(detail.startsWith('invalid_skill_document:')?known.invalid_skill_document:detail)):response.status===422?'请检查必填项和所选范围':response.status===403?'当前账号无法修改这项内容':'暂时无法完成，请重试'
+    const known:Record<string,string>={source_not_found:t("这份资料暂时无法读取"),retention_task_not_owned_or_missing:t("请选择自己的研究链接"),invalid_skill_document:t("请检查方法的阶段、工具和指令内容")}
+    const message=typeof detail==='string'?(known[detail]||(detail.startsWith('invalid_skill_document:')?known.invalid_skill_document:detail)):response.status===422?t("请检查必填项和所选范围"):response.status===403?t("当前账号无法修改这项内容"):t("暂时无法完成，请重试")
     throw new Error(message)
   }
   return body
@@ -17,16 +18,26 @@ export async function collectionRequest(path:string,options:RequestInit={}) {
 export const jsonOptions=(body:unknown,method='POST'):RequestInit=>({method,headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
 export function useCollectionAction(){
   const lock=useRef(false),[busy,setBusy]=useState(false),[error,setError]=useState('')
-  async function run(action:()=>Promise<void>){if(lock.current)return;lock.current=true;setBusy(true);setError('');try{await action()}catch(error){setError(error instanceof Error?error.message:'暂时无法完成，请重试')}finally{lock.current=false;setBusy(false)}}
+  async function run(action:()=>Promise<void>){if(lock.current)return;lock.current=true;setBusy(true);setError('');try{await action()}catch(error){setError(error instanceof Error?uiMessage(error.message):t("暂时无法完成，请重试"))}finally{lock.current=false;setBusy(false)}}
   return {busy,error,setError,run}
 }
-export function CollectionHeader({title,count,action,children}:{title:string;count:string;action:ReactNode;children?:ReactNode}){return <header className="collection-header"><div><span className="collection-eyebrow">{count}</span><h1>{title}</h1>{children}</div><div className="collection-header-actions">{action}</div></header>}
-export function CollectionTabs({value,items,onChange,disabled=false}:{value:string;items:Record<string,string>;onChange:(value:string)=>void;disabled?:boolean}){return <div className="collection-tabs" role="tablist">{Object.entries(items).map(([id,label])=><button key={id} type="button" role="tab" aria-selected={value===id} tabIndex={value===id?0:-1} disabled={disabled} onClick={()=>onChange(id)} onKeyDown={event=>{const keys=Object.keys(items),index=keys.indexOf(id);let next=index;if(event.key==='ArrowRight')next=(index+1)%keys.length;else if(event.key==='ArrowLeft')next=(index-1+keys.length)%keys.length;else if(event.key==='Home')next=0;else if(event.key==='End')next=keys.length-1;else return;event.preventDefault();onChange(keys[next]);(event.currentTarget.parentElement?.querySelectorAll('button')[next] as HTMLButtonElement)?.focus()}}>{label}</button>)}</div>}
+export function CollectionHeader({title,count,action,children}:{title:string;count:string;action:ReactNode;children?:ReactNode}){
+  useLocale()
+return <header className="collection-header"><div><span className="collection-eyebrow">{count}</span><h1>{title}</h1>{children}</div><div className="collection-header-actions">{action}</div></header>}
+export function CollectionTabs({value,items,onChange,disabled=false}:{value:string;items:Record<string,string>;onChange:(value:string)=>void;disabled?:boolean}){
+  useLocale()
+return <div className="collection-tabs" role="tablist">{Object.entries(items).map(([id,label])=><button key={id} type="button" role="tab" aria-selected={value===id} tabIndex={value===id?0:-1} disabled={disabled} onClick={()=>onChange(id)} onKeyDown={event=>{const keys=Object.keys(items),index=keys.indexOf(id);let next=index;if(event.key==='ArrowRight')next=(index+1)%keys.length;else if(event.key==='ArrowLeft')next=(index-1+keys.length)%keys.length;else if(event.key==='Home')next=0;else if(event.key==='End')next=keys.length-1;else return;event.preventDefault();onChange(keys[next]);(event.currentTarget.parentElement?.querySelectorAll('button')[next] as HTMLButtonElement)?.focus()}}>{label}</button>)}</div>}
 export function CollectionTags({label,values,onChange}:{label:string;values:string[];onChange:(values:string[])=>void}){
+  useLocale()
+
  const [text,setText]=useState('')
  const add=()=>{const next=text.trim();if(next){onChange([...new Set([...values,next])].slice(0,20));setText('')}}
- return <div className="collection-field"><span>{label}</span>{!!values.length&&<div className="collection-tags">{values.map(value=><span key={value}>{value}<button type="button" aria-label={'移除话题 '+value} onClick={()=>onChange(values.filter(item=>item!==value))}><Icon name="close" size={12}/></button></span>)}</div>}<div className="collection-tag-entry"><input aria-label={'添加'+label} placeholder="填写一个话题后回车" value={text} disabled={values.length>=20} onChange={event=>setText(event.target.value)} onBlur={add} onKeyDown={event=>{if(event.key==='Enter'){event.preventDefault();add()}}}/><button type="button" className="btn-ghost" onClick={add} disabled={!text.trim()||values.length>=20}>添加</button></div></div>
+ return <div className="collection-field"><span>{label}</span>{!!values.length&&<div className="collection-tags">{values.map(value=><span key={value}>{value}<button type="button" aria-label={t("移除话题 {0}", value)} onClick={()=>onChange(values.filter(item=>item!==value))}><Icon name="close" size={12}/></button></span>)}</div>}<div className="collection-tag-entry"><input aria-label={t("添加{0}", label)} placeholder={t("填写一个话题后回车")} value={text} disabled={values.length>=20} onChange={event=>setText(event.target.value)} onBlur={add} onKeyDown={event=>{if(event.key==='Enter'){event.preventDefault();add()}}}/><button type="button" className="btn-ghost" onClick={add} disabled={!text.trim()||values.length>=20}>{t("添加")}</button></div></div>
 }
 
-export function CollectionEmpty({title,children,action}:{title:string;children?:ReactNode;action?:ReactNode}){return <div className="collection-empty"><Icon name="book" size={28}/><h3>{title}</h3>{children&&<p>{children}</p>}{action}</div>}
-export function ActionFooter({busy,error,onCancel,label,onSave,disabled=false}:{busy:boolean;error?:string;onCancel:()=>void;label:string;onSave?:()=>void;disabled?:boolean}){return <><div className="collection-feedback" aria-live="polite">{error&&<p role="alert">{error}</p>}</div><footer className="collection-footer"><button type="button" className="btn-ghost" disabled={busy} onClick={onCancel}>取消</button>{onSave&&<button type="button" className="btn-primary" disabled={busy||disabled} onClick={onSave}>{busy?<TraceLoader/>:<Icon name="check" size={16}/>} {busy?'保存中…':label}</button>}</footer></>}
+export function CollectionEmpty({title,children,action}:{title:string;children?:ReactNode;action?:ReactNode}){
+  useLocale()
+return <div className="collection-empty"><Icon name="book" size={28}/><h3>{title}</h3>{children&&<p>{children}</p>}{action}</div>}
+export function ActionFooter({busy,error,onCancel,label,onSave,disabled=false}:{busy:boolean;error?:string;onCancel:()=>void;label:string;onSave?:()=>void;disabled?:boolean}){
+  useLocale()
+return <><div className="collection-feedback" aria-live="polite">{error&&<p role="alert">{uiMessage(error)}</p>}</div><footer className="collection-footer"><button type="button" className="btn-ghost" disabled={busy} onClick={onCancel}>{t("取消")}</button>{onSave&&<button type="button" className="btn-primary" disabled={busy||disabled} onClick={onSave}>{busy?<TraceLoader/>:<Icon name="check" size={16}/>} {busy?t("保存中…"):label}</button>}</footer></>}

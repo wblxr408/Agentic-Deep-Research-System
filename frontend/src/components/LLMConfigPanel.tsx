@@ -1,5 +1,6 @@
+import {t,useLocale,localeCode,uiMessage} from '../i18n'
 /**
- * LLMConfigPanel - Xiaomi-style LLM configuration interface.
+ * LLMConfigPanel - Personal model configuration interface.
  *
  * Design: Clean, minimal settings panel
  * - Provider selection with descriptions
@@ -59,7 +60,7 @@ async function readErrorMessage(res: Response, fallback: string) {
   try {
     const data = JSON.parse(text) as { detail?: string|Array<{msg?:string;loc?:Array<string|number>}> }
     if (typeof data.detail==='string') return data.detail
-    if (Array.isArray(data.detail)) return data.detail.map(item=>`${item.loc?.join('.') || '配置'}：${item.msg || '格式无效'}`).join('；')
+    if (Array.isArray(data.detail)) return data.detail.map(item=>`${item.loc?.join('.') || t("配置")}：${item.msg || t("格式无效")}`).join('；')
     return fallback
   } catch {
     return text || fallback
@@ -71,6 +72,8 @@ interface LLMConfigPanelProps {
 }
 
 function LLMConfigPanel({ onClose }: LLMConfigPanelProps) {
+  useLocale()
+
   const queryClient = useQueryClient()
 
   // Form state
@@ -94,7 +97,7 @@ function LLMConfigPanel({ onClose }: LLMConfigPanelProps) {
     queryKey: ['llm-config'],
     queryFn: async () => {
       const res = await fetch('/api/v1/config/llm')
-      if (!res.ok) throw new Error('Failed to fetch config')
+      if (!res.ok) throw new Error(t("无法读取模型配置"))
       return res.json()
     },
   })
@@ -103,7 +106,7 @@ function LLMConfigPanel({ onClose }: LLMConfigPanelProps) {
     queryKey: ['llm-status'],
     queryFn: async () => {
       const res = await fetch('/api/v1/config/llm/status')
-      if (!res.ok) throw new Error('Failed to fetch LLM status')
+      if (!res.ok) throw new Error(t("无法读取模型状态"))
       return res.json()
     },
   })
@@ -118,7 +121,7 @@ function LLMConfigPanel({ onClose }: LLMConfigPanelProps) {
     queryKey: ['llm-providers'],
     queryFn: async () => {
       const res = await fetch('/api/v1/config/llm/providers')
-      if (!res.ok) throw new Error('Failed to fetch providers')
+      if (!res.ok) throw new Error(t("无法读取模型提供商"))
       return res.json()
     },
   })
@@ -143,7 +146,7 @@ function LLMConfigPanel({ onClose }: LLMConfigPanelProps) {
         body: JSON.stringify(data),
       })
       if (!res.ok) {
-        throw new Error(await readErrorMessage(res, 'Failed to update config'))
+        throw new Error(await readErrorMessage(res, t("无法保存模型配置")))
       }
       return res.json()
     },
@@ -157,7 +160,7 @@ function LLMConfigPanel({ onClose }: LLMConfigPanelProps) {
   const resetMutation = useMutation({
     mutationFn: async () => {
       const res = await fetch('/api/v1/config/llm', { method: 'DELETE' })
-      if (!res.ok) throw new Error(await readErrorMessage(res, 'Failed to reset config'))
+      if (!res.ok) throw new Error(await readErrorMessage(res, t("无法重置模型配置")))
       return res.json()
     },
     onSuccess: () => {
@@ -194,17 +197,17 @@ function LLMConfigPanel({ onClose }: LLMConfigPanelProps) {
   // Handle save
   const handleSave = useCallback(() => {
     if (!apiKey.trim()) {
-      alert('请输入 API Key')
+      alert(t("请输入 API Key"))
       return
     }
     let routing:Record<string,unknown>
     try {
-      if (routingText.length>65536) throw new Error('配置过长')
+      if (routingText.length>65536) throw new Error(t("配置过长"))
       const parsed:unknown=JSON.parse(routingText)
-      if (!parsed || typeof parsed!=='object' || Array.isArray(parsed)) throw new Error('需要JSON对象')
+      if (!parsed || typeof parsed!=='object' || Array.isArray(parsed)) throw new Error(t("需要JSON对象"))
       routing=parsed as Record<string,unknown>
     } catch {
-      alert('模型路由配置应为有效JSON对象；可以填写 {} 使用当前主模型。')
+      alert(t("模型路由配置应为有效JSON对象；可以填写 {} 使用当前主模型。"))
       return
     }
 
@@ -228,7 +231,7 @@ function LLMConfigPanel({ onClose }: LLMConfigPanelProps) {
 
   // Handle reset
   const handleReset = useCallback(() => {
-    if (confirm('重置你的模型配置？')) {
+    if (confirm(t("重置你的模型配置？"))) {
       resetMutation.mutate()
     }
   }, [resetMutation])
@@ -247,14 +250,12 @@ function LLMConfigPanel({ onClose }: LLMConfigPanelProps) {
       {/* Header */}
       <div className="mb-8">
         <h2 className="text-2xl font-bold text-xmgray-900 tracking-tight">
-          我的模型
-        </h2>
+          {t("我的模型")}</h2>
         <p className="mt-2 text-sm text-xmgray-500">
-          设置你的研究模型与 API 密钥。
-        </p>
+          {t("设置你的研究模型与 API 密钥。")}</p>
         {config?.updated_at && (
           <p className="mt-1 text-xs text-xmgray-400">
-            上次更新：{new Date(config.updated_at).toLocaleString('zh-CN')}
+            {t("上次更新：")}{new Date(config.updated_at).toLocaleString(localeCode())}
           </p>
         )}
       </div>
@@ -262,7 +263,7 @@ function LLMConfigPanel({ onClose }: LLMConfigPanelProps) {
       {loadError && (
         <div className="mb-4 p-4 rounded-xl bg-red-50 border border-red-100">
           <p className="text-sm text-red-700">
-            读取配置失败：{loadError.message}
+            {t("读取配置失败：")}{uiMessage(loadError.message)}
           </p>
           <button
             type="button"
@@ -272,16 +273,14 @@ function LLMConfigPanel({ onClose }: LLMConfigPanelProps) {
             }}
             className="mt-3 btn-secondary text-sm"
           >
-            重新加载
-          </button>
+            {t("重新加载")}</button>
         </div>
       )}
 
       {/* Provider Selection */}
       <div className="card p-6 mb-4">
         <label className="block text-sm font-medium text-xmgray-700 mb-3">
-          选择提供商
-        </label>
+          {t("选择提供商")}</label>
         {providersLoading ? (
           <div className="flex items-center justify-center py-8">
             <div className="w-5 h-5 border-2 border-xmgray-200 border-t-xm-500 rounded-full animate-spin" />
@@ -303,17 +302,17 @@ function LLMConfigPanel({ onClose }: LLMConfigPanelProps) {
                 }`}
               >
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="text-sm font-semibold text-xmgray-900">{p.name}</span>
+                  <span className="text-sm font-semibold text-xmgray-900">{t(p.name)}</span>
                   {p.recommended && (
-                    <span className="tag-orange text-[10px]">推荐</span>
+                    <span className="tag-orange text-[10px]">{t("推荐")}</span>
                   )}
                 </div>
-                <p className="text-xs text-xmgray-500 line-clamp-2">{p.description}</p>
+                <p className="text-xs text-xmgray-500 line-clamp-2">{t(p.description)}</p>
               </button>
             ))}
           </div>
         ) : (
-          <p className="text-sm text-xmgray-400">暂无可用提供商数据。</p>
+          <p className="text-sm text-xmgray-400">{t("暂无可用提供商数据。")}</p>
         )}
       </div>
 
@@ -322,43 +321,43 @@ function LLMConfigPanel({ onClose }: LLMConfigPanelProps) {
         <div className="flex items-start justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 mb-2">
-              <span className="text-sm font-medium text-xmgray-700">当前模型</span>
+              <span className="text-sm font-medium text-xmgray-700">{t("当前模型")}</span>
               <span className={`text-[10px] px-2 py-0.5 rounded-full ${
                 status?.is_configured ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
               }`}>
-                {status?.is_configured ? '已配置' : '未配置'}
+                {status?.is_configured ? t("已配置") : t("未配置")}
               </span>
             </div>
             <p className="text-sm text-xmgray-500">
               {status?.provider && status?.model
                 ? `${status.provider} / ${status.model}`
-                : '未取得配置'}
+                : t("未取得配置")}
             </p>
           </div>
           <div className="text-right">
             <p className="text-xs text-xmgray-400">API Key</p>
             <p className="text-sm font-medium text-xmgray-700">
-              {config?.api_key_masked || '未提供'}
+              {config?.api_key_masked || t("未提供")}
             </p>
           </div>
         </div>
         <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
           <div className="rounded-xl bg-white/80 border border-xmgray-100 p-3">
             <p className="text-xs text-xmgray-400">API Base</p>
-            <p className="mt-1 text-xmgray-700 break-all">{config?.api_base || '默认地址'}</p>
+            <p className="mt-1 text-xmgray-700 break-all">{config?.api_base || t("默认地址")}</p>
           </div>
           <div className="rounded-xl bg-white/80 border border-xmgray-100 p-3">
-            <p className="text-xs text-xmgray-400">温度 / Token</p>
+            <p className="text-xs text-xmgray-400">{t("温度 / Token")}</p>
             <p className="mt-1 text-xmgray-700">
               {config ? `${config.temperature.toFixed(1)} / ${config.max_tokens}` : '-'}
             </p>
           </div>
           <div className="rounded-xl bg-white/80 border border-xmgray-100 p-3">
-            <p className="text-xs text-xmgray-400">最近更新时间</p>
+            <p className="text-xs text-xmgray-400">{t("最近更新时间")}</p>
             <p className="mt-1 text-xmgray-700">
               {status?.last_updated || config?.updated_at
-                ? new Date(status?.last_updated || config?.updated_at || '').toLocaleString('zh-CN')
-                : '暂无'}
+                ? new Date(status?.last_updated || config?.updated_at || '').toLocaleString(localeCode())
+                : t("暂无")}
             </p>
           </div>
         </div>
@@ -367,8 +366,7 @@ function LLMConfigPanel({ onClose }: LLMConfigPanelProps) {
       {/* Model Selection */}
       <div className="card p-6 mb-4">
         <label className="block text-sm font-medium text-xmgray-700 mb-3">
-          选择模型
-        </label>
+          {t("选择模型")}</label>
         <select
           value={model}
           onChange={e => setModel(e.target.value)}
@@ -380,7 +378,7 @@ function LLMConfigPanel({ onClose }: LLMConfigPanelProps) {
           )}
           {currentProvider?.models.map(m => (
             <option key={m.id} value={m.id}>
-              {m.name} - {m.description}
+              {m.name} - {t(m.description)}
             </option>
           ))}
         </select>
@@ -389,14 +387,14 @@ function LLMConfigPanel({ onClose }: LLMConfigPanelProps) {
       {/* API Key */}
       <div className="card p-6 mb-4">
         <label className="block text-sm font-medium text-xmgray-700 mb-3">
-          API Key {config?.api_key_masked && <span className="text-xmgray-400">(当前: {config.api_key_masked})</span>}
+          API Key {config?.api_key_masked && <span className="text-xmgray-400">{t("(当前: ")}{config.api_key_masked})</span>}
         </label>
         <div className="relative">
           <input
             type={showApiKey ? 'text' : 'password'}
             value={apiKey}
             onChange={e => setApiKey(e.target.value)}
-            placeholder="输入 API Key"
+            placeholder={t("输入 API Key")}
             className="input-xm w-full pr-20"
           />
           <button
@@ -404,19 +402,18 @@ function LLMConfigPanel({ onClose }: LLMConfigPanelProps) {
             onClick={() => setShowApiKey(!showApiKey)}
             className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-xmgray-400 hover:text-xmgray-600"
           >
-            {showApiKey ? '隐藏' : '显示'}
+            {showApiKey ? t("隐藏") : t("显示")}
           </button>
         </div>
         <p className="mt-2 text-xs text-xmgray-400">
-          API Key 加密存储于数据库，不会明文显示
-        </p>
+          {t("API Key 加密存储于数据库，不会明文显示")}</p>
       </div>
 
       {/* Advanced Settings */}
       <div className="card p-6 mb-4">
         <details className="group">
           <summary className="flex items-center justify-between cursor-pointer">
-            <span className="text-sm font-medium text-xmgray-700">高级设置</span>
+            <span className="text-sm font-medium text-xmgray-700">{t("高级设置")}</span>
             <svg
               width="16"
               height="16"
@@ -432,7 +429,7 @@ function LLMConfigPanel({ onClose }: LLMConfigPanelProps) {
             {/* API Base */}
             <div>
               <label className="block text-sm text-xmgray-600 mb-2">
-                API Base URL <span className="text-xmgray-400">(可选，用于代理或私有部署)</span>
+                API Base URL <span className="text-xmgray-400">{t("(可选，用于代理或私有部署)")}</span>
               </label>
               <input
                 type="text"
@@ -458,8 +455,8 @@ function LLMConfigPanel({ onClose }: LLMConfigPanelProps) {
                 className="w-full accent-xm-500"
               />
               <div className="flex justify-between text-xs text-xmgray-400 mt-1">
-                <span>精确</span>
-                <span>创造性</span>
+                <span>{t("精确")}</span>
+                <span>{t("创造性")}</span>
               </div>
             </div>
 
@@ -483,13 +480,12 @@ function LLMConfigPanel({ onClose }: LLMConfigPanelProps) {
       </div>
 
       <details className="card mb-6">
-        <summary className="cursor-pointer text-sm font-medium">按阶段选择模型与成本策略</summary>
-        <p className="mt-3 text-xs text-xmgray-500">默认使用当前主模型。高级路由只选择已配置服务内的候选，先检查阶段、能力、质量档位、资料许可与上下文容量，再比较有来源的配置报价；未知价格不会当作免费。</p>
-        <label className="block mt-3 text-sm">路由配置
-          <textarea className="input-xm w-full mt-2 font-mono text-xs" rows={12} value={routingText}
+        <summary className="cursor-pointer text-sm font-medium">{t("按阶段选择模型与成本策略")}</summary>
+        <p className="mt-3 text-xs text-xmgray-500">{t("默认使用当前主模型。高级路由只选择已配置服务内的候选，先检查阶段、能力、质量档位、资料许可与上下文容量，再比较有来源的配置报价；未知价格不会当作免费。")}</p>
+        <label className="block mt-3 text-sm">{t("路由配置")}<textarea className="input-xm w-full mt-2 font-mono text-xs" rows={12} value={routingText}
             maxLength={65536} spellCheck={false} onChange={event=>setRoutingText(event.target.value)} />
         </label>
-        <p className="mt-2 text-xs text-xmgray-500">私有资料默认不转发备用服务。服务故障回退和研究内容补证分别处理；运行中的任务发现配置变化会停止下一次模型请求。</p>
+        <p className="mt-2 text-xs text-xmgray-500">{t("私有资料默认不转发备用服务。服务故障回退和研究内容补证分别处理；运行中的任务发现配置变化会停止下一次模型请求。")}</p>
       </details>
 
       {/* Fallback Settings */}
@@ -497,8 +493,8 @@ function LLMConfigPanel({ onClose }: LLMConfigPanelProps) {
         <details className="group">
           <summary className="flex items-center justify-between cursor-pointer">
             <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-xmgray-700">备用模型</span>
-              <span className="tag text-[10px]">可选</span>
+              <span className="text-sm font-medium text-xmgray-700">{t("备用模型")}</span>
+              <span className="tag text-[10px]">{t("可选")}</span>
             </div>
             <svg
               width="16"
@@ -519,13 +515,13 @@ function LLMConfigPanel({ onClose }: LLMConfigPanelProps) {
                 onChange={e => setEnableFallback(e.target.checked)}
                 className="w-4 h-4 accent-xm-500"
               />
-              <span className="text-sm text-xmgray-600">启用备用模型（当主模型失败时自动切换）</span>
+              <span className="text-sm text-xmgray-600">{t("启用备用模型（当主模型失败时自动切换）")}</span>
             </label>
 
             {enableFallback && (
               <div className="pl-7 space-y-3 border-l-2 border-xmgray-100 ml-2">
                 <div>
-                  <label className="block text-sm text-xmgray-600 mb-2">备用提供商</label>
+                  <label className="block text-sm text-xmgray-600 mb-2">{t("备用提供商")}</label>
                   <select
                     value={fallbackProvider || ''}
                     onChange={e => {
@@ -535,11 +531,11 @@ function LLMConfigPanel({ onClose }: LLMConfigPanelProps) {
                     }}
                     className="input-xm w-full"
                   >
-                    <option value="">选择...</option>
+                    <option value="">{t("选择...")}</option>
                     {providers?.providers
                       .filter(p => p.id !== provider)
                       .map(p => (
-                        <option key={p.id} value={p.id}>{p.name}</option>
+                        <option key={p.id} value={p.id}>{t(p.name)}</option>
                       ))}
                   </select>
                 </div>
@@ -547,7 +543,7 @@ function LLMConfigPanel({ onClose }: LLMConfigPanelProps) {
                 {fallbackProvider && (
                   <>
                     <div>
-                      <label className="block text-sm text-xmgray-600 mb-2">备用模型</label>
+                      <label className="block text-sm text-xmgray-600 mb-2">{t("备用模型")}</label>
                       <select
                         value={fallbackModel || ''}
                         onChange={e => setFallbackModel(e.target.value || null)}
@@ -559,12 +555,12 @@ function LLMConfigPanel({ onClose }: LLMConfigPanelProps) {
                       </select>
                     </div>
                     <div>
-                      <label className="block text-sm text-xmgray-600 mb-2">备用 API Key</label>
+                      <label className="block text-sm text-xmgray-600 mb-2">{t("备用 API Key")}</label>
                       <input
                         type="password"
                         value={fallbackApiKey}
                         onChange={e => setFallbackApiKey(e.target.value)}
-                        placeholder="输入备用 API Key"
+                        placeholder={t("输入备用 API Key")}
                         className="input-xm w-full"
                       />
                     </div>
@@ -583,13 +579,11 @@ function LLMConfigPanel({ onClose }: LLMConfigPanelProps) {
           disabled={resetMutation.isPending}
           className="btn-ghost text-sm"
         >
-          重置为默认
-        </button>
+          {t("重置为默认")}</button>
         <div className="flex items-center gap-3">
           {onClose && (
             <button onClick={onClose} className="btn-secondary">
-              取消
-            </button>
+              {t("取消")}</button>
           )}
           <button
             onClick={handleSave}
@@ -599,10 +593,9 @@ function LLMConfigPanel({ onClose }: LLMConfigPanelProps) {
             {updateMutation.isPending ? (
               <>
                 <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                保存中
-              </>
+                {t("保存中")}</>
             ) : (
-              '保存配置'
+              t("保存配置")
             )}
           </button>
         </div>
@@ -611,13 +604,13 @@ function LLMConfigPanel({ onClose }: LLMConfigPanelProps) {
       {/* Success/Error Messages */}
       {updateMutation.isSuccess && (
         <div className="mt-4 p-3 rounded-xl bg-emerald-50 border border-emerald-100">
-          <p className="text-sm text-emerald-700">✓ 配置已保存并立即生效</p>
+          <p className="text-sm text-emerald-700">{t("✓ 配置已保存并立即生效")}</p>
         </div>
       )}
       {updateMutation.isError && (
         <div className="mt-4 p-3 rounded-xl bg-red-50 border border-red-100">
           <p className="text-sm text-red-700">
-            ✗ 保存失败：{updateMutation.error?.message || '未知错误'}
+            {t("✗ 保存失败：")}{uiMessage(updateMutation.error?.message) || t("未知错误")}
           </p>
         </div>
       )}

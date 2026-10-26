@@ -164,3 +164,7 @@
 .choice-category{display:grid;gap:15px;padding:16px;border:1px solid var(--line);border-radius:10px;background:var(--paper)}
 .choice-weight-section section[aria-label="研究偏好与评价"]{background:var(--surface);border-color:var(--line)}
 .choice-weight-section section[aria-label="研究偏好与评价"] :is(input,select){background:var(--surface);color:var(--ink);border-color:var(--line)}
+
+/* English option labels need room for complete words on narrow screens. */
+html[lang=en] .choice-buttons>button{overflow-wrap:normal;word-break:normal}
+@media(max-width:640px){html[lang=en] .choice-buttons>button{flex-basis:calc(50% - 8px);min-width:0}html[lang=en] .choice-buttons>button>span{max-width:100%;padding-right:12px}}

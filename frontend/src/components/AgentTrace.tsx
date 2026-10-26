@@ -1,3 +1,4 @@
+import {uiDefinition,useLocale,t,localeCode} from '../i18n'
 /**
  * AgentTrace - Xiaomi-style agent execution trace.
  *
@@ -18,7 +19,7 @@ interface AgentTraceProps {
 // Agent display config
 type AgentConfig = { label: string; color: string; bg: string }
 
-const AGENT_CONFIG: Record<string, AgentConfig> = {
+const AGENT_CONFIG: Record<string, AgentConfig> = uiDefinition({
   planner:  { label: '规划器', color: 'text-violet-600',  bg: 'bg-violet-50' },
   search:    { label: '搜索',   color: 'text-blue-600',    bg: 'bg-blue-50' },
   browser:   { label: '浏览器', color: 'text-emerald-600', bg: 'bg-emerald-50' },
@@ -28,7 +29,7 @@ const AGENT_CONFIG: Record<string, AgentConfig> = {
   report:    { label: '报告',   color: 'text-xm-600',    bg: 'bg-xm-50' },
   replan:    { label: '重规划', color: 'text-orange-600', bg: 'bg-orange-50' },
   dag_executor: { label: '执行器', color: 'text-cyan-600', bg: 'bg-cyan-50' },
-}
+})
 
 const DEFAULT_AGENT_COLOR = 'text-xmgray-500'
 const DEFAULT_AGENT_BG = 'bg-xmgray-50'
@@ -54,6 +55,8 @@ function getAgentConfig(agent: string): AgentConfig {
 }
 
 function AgentIcon({ agent }: { agent: string }) {
+  useLocale()
+
   const cfg = getAgentConfig(agent)
   return (
     <span className={`inline-flex items-center justify-center w-5 h-5 rounded-md text-[10px] font-semibold ${cfg.bg} ${cfg.color}`}>
@@ -63,6 +66,8 @@ function AgentIcon({ agent }: { agent: string }) {
 }
 
 function AgentTrace({ events }: AgentTraceProps) {
+  const locale=useLocale()
+
   const bottomRef = useRef<HTMLDivElement>(null)
 
   // Auto-scroll to bottom
@@ -82,13 +87,13 @@ function AgentTrace({ events }: AgentTraceProps) {
         switch (e.type) {
           case 'agent_start':
             agent = String(e.data.agent || 'agent')
-            content = String(e.data.content || `${agent} 开始执行`)
+            content = String(e.data.content || t("{0} 开始执行", agent))
             eventClass = 'agent_start'
             break
           case 'agent_end':
           case 'agent_complete':
             agent = String(e.data.agent || 'agent')
-            content = String(e.data.content || e.data.summary || `${agent} 执行完成`)
+            content = String(e.data.content || e.data.summary || t("{0} 执行完成", agent))
             eventClass = 'agent_complete'
             break
           case 'tool_call':
@@ -99,22 +104,22 @@ function AgentTrace({ events }: AgentTraceProps) {
             break
           case 'tool_result':
           case 'tool_complete':
-            content = `${String(e.data.tool_name || e.data.tool || 'tool')} 完成`
+            content = t("{0} 完成", String(e.data.tool_name || e.data.tool || 'tool'))
             if (e.data.result_summary) {
               content += ` · ${String(e.data.result_summary).slice(0, 40)}`
             }
             eventClass = e.data.status === 'error' ? 'tool_error' : 'tool_complete'
             break
           case 'tool_error':
-            content = `错误: ${e.data.error || '未知错误'}`
+            content = t("错误: {0}", e.data.error || t("未知错误"))
             eventClass = 'tool_error'
             break
           case 'workflow_error':
-            content = String(e.data.message || e.data.content || '发生错误')
+            content = String(e.data.message || e.data.content || t("发生错误"))
             eventClass = 'error'
             break
           case 'done':
-            content = '研究完成'
+            content = t("研究完成")
             eventClass = 'done'
             break
           default:
@@ -141,7 +146,7 @@ function AgentTrace({ events }: AgentTraceProps) {
           timestamp: e.timestamp,
         }
       })
-  }, [events])
+  }, [events,locale])
 
   if (items.length === 0) {
     return (
@@ -150,7 +155,7 @@ function AgentTrace({ events }: AgentTraceProps) {
           <circle cx="16" cy="16" r="14" stroke="currentColor" strokeWidth="1.5"/>
           <path d="M16 10V16L20 18" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
         </svg>
-        <p className="text-sm text-xmgray-400">等待 Agent 活动...</p>
+        <p className="text-sm text-xmgray-400">{t("等待 Agent 活动...")}</p>
       </div>
     )
   }
@@ -171,7 +176,7 @@ function AgentTrace({ events }: AgentTraceProps) {
                 : ''}
             </span>
             <span className="text-[10px] text-xmgray-400 ml-auto">
-              {item.timestamp ? new Date(item.timestamp).toLocaleTimeString('zh-CN', { hour12: false }) : '时间未记录'}
+              {item.timestamp ? new Date(item.timestamp).toLocaleTimeString(localeCode(), { hour12: false }) : t("时间未记录")}
             </span>
           </div>
           {/* Content */}

@@ -1,3 +1,4 @@
+import {messageSource,uiDefinition,t,useLocale} from '../i18n'
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import type { SSEvent } from '../hooks/useSSE'
 import type { PlanSummaryProps } from './ResearchPlanSummary'
@@ -8,7 +9,7 @@ import type {FlowAction} from './researchExecution'
 import AgentAvatar from './AgentAvatar'
 import type {AgentExpression} from './AgentAvatar'
 
-const labels:Record<string,string>={planner:'研究规划',search:'搜索取证',browser:'网页读取',rag:'资料检索',mcp:'扩展工具',analyst:'问题分析',reflection:'来源核对',report:'图文报告',replan:'调整计划',dag_executor:'计划执行'}
+const labels:Record<string,string>=uiDefinition({planner:'研究规划',search:'搜索取证',browser:'网页读取',rag:'资料检索',mcp:'扩展工具',analyst:'问题分析',reflection:'来源核对',report:'图文报告',replan:'调整计划',dag_executor:'计划执行'})
 export function mergeResearchEvents(history:SSEvent[],live:SSEvent[],execution?:string|null):SSEvent[] {
   const seen=new Set<string>()
   return [...history,...live].filter(event=>{
@@ -24,7 +25,7 @@ interface DagNode {node_id:string;node_type?:string;query?:string;status:string;
 interface FlowNode {id:string;type:string;label:string;query:string;status:string;dependencies:string[];x:number;y:number;error?:string|null;root?:boolean;actions?:FlowAction[]}
 function evidenceLabel(type:string,purpose:string,query:string):string {
   if(type==='browser')try { const url=new URL(query),file=decodeURIComponent(url.pathname.split('/').filter(Boolean).pop()||'');return /\.pdf$/i.test(file)?file.replace(/^OSDI\d+_/,''):url.hostname.replace(/^www\./,'')+(file?' · '+file.slice(0,28):'') } catch { /* Use the public plan label. */ }
-  return query||purpose||labels[type]||'取证'
+  return query||purpose||labels[type]||t("取证")
 }
 interface Props {
   plan:PlanSummaryProps['plan'];dag?:{nodes:DagNode[]};events:SSEvent[];status:string;tools?:PersistedToolCall[]
@@ -34,7 +35,7 @@ interface Props {
 }
 function nodesFor(p:Props):FlowNode[] {
   const persisted=new Map((p.dag?.nodes||[]).map(node=>[node.node_id,node]))
-  const steps=p.plan?.steps||p.dag?.nodes?.map(node=>({node_id:node.node_id,node_type:node.node_type,purpose:labels[node.node_type||'']||'取证步骤',query:node.query||'',depends_on:node.depends_on||[]}))||[]
+  const steps=p.plan?.steps||p.dag?.nodes?.map(node=>({node_id:node.node_id,node_type:node.node_type,purpose:labels[node.node_type||'']||t("取证步骤"),query:node.query||'',depends_on:node.depends_on||[]}))||[]
   const terminal=['completed','paused','canceled','failed'].includes(p.status)
   let analysisStart=-1
   p.events.forEach((event,index)=>{if(event.type==='agent_start'&&event.data.agent==='analyst')analysisStart=index})
@@ -68,12 +69,12 @@ function nodesFor(p:Props):FlowNode[] {
     ['agent_start','agent_complete','agent_error'].includes(event.type)||Boolean(event.data.recovery)))
   const recovering=p.status==='running'&&(lastAnalysis?.data.recovery as {status?:string}|undefined)?.status==='running'
   const analysisStatus=p.analysis?.status==='completed'?'done':recovering?'running':p.analysis?.status==='paused'?'paused':p.analysis?.status==='running'?(terminal?(p.status==='completed'?'unknown':p.status):'running'):eventState('analyst')
-  nodes.push({id:'$analysis',type:'analyst',label:'问题分析',query:p.analysis?.phase?`当前问题阶段 · 已保存 ${p.analysis.completed_steps} 步`:'按问题阅读与分析来源',status:analysisStatus,dependencies:leaves,x:0,y:0,root:true})
+  nodes.push({id:'$analysis',type:'analyst',label:t("问题分析"),query:p.analysis?.phase?t("当前问题阶段 · 已保存 {0} 步", p.analysis.completed_steps):t("按问题阅读与分析来源"),status:analysisStatus,dependencies:leaves,x:0,y:0,root:true})
   const analysisDone=['done','completed','success'].includes(analysisStatus)
-  nodes.push({id:'$reflection',type:'reflection',label:'来源核对',query:'核对结论、原文与实验条件',status:analysisDone||p.status==='completed'?eventState('reflection'):'pending',dependencies:['$analysis'],x:0,y:0,root:true})
-  nodes.push({id:'$report',type:'report',label:'图文报告',query:'组织正文、图表和引用',status:p.status==='completed'?'done':analysisDone?eventState('report'):'pending',dependencies:['$reflection'],x:0,y:0,root:true})
+  nodes.push({id:'$reflection',type:'reflection',label:t("来源核对"),query:t("核对结论、原文与实验条件"),status:analysisDone||p.status==='completed'?eventState('reflection'):'pending',dependencies:['$analysis'],x:0,y:0,root:true})
+  nodes.push({id:'$report',type:'report',label:t("图文报告"),query:t("组织正文、图表和引用"),status:p.status==='completed'?'done':analysisDone?eventState('report'):'pending',dependencies:['$reflection'],x:0,y:0,root:true})
   if(p.events.some(event=>event.data.agent==='planner')){
-    const planner:FlowNode={id:'$planner',type:'planner',label:'研究规划',query:'形成研究计划',status:eventState('planner'),dependencies:[],x:0,y:0,root:true}
+    const planner:FlowNode={id:'$planner',type:'planner',label:t("研究规划"),query:t("形成研究计划"),status:eventState('planner'),dependencies:[],x:0,y:0,root:true}
     for(const node of nodes)if(!node.dependencies.length)node.dependencies=[planner.id]
     nodes.unshift(planner)
   }
@@ -89,7 +90,7 @@ function nodesFor(p:Props):FlowNode[] {
     if(node.type==='analyst')for(const phase of p.analysis?.phases||[]){
       const existing=node.actions.find(action=>action.items.some(item=>item.phase===phase.phase))
       if(existing){if(phase.status==='completed'){existing.state='done';existing.detail=phase.summary||existing.detail}}
-      else node.actions.push({id:`phase:${phase.phase}`,label:phaseName(phase.phase),detail:phase.summary||`已尝试 ${phase.attempts} 次`,
+      else node.actions.push({id:`phase:${phase.phase}`,label:phaseName(phase.phase),detail:phase.summary||t("已尝试 {0} 次", phase.attempts),
         query:'',state:phase.status==='completed'?'done':terminal?p.status:phase.status,time:'',items:[]})
     }
     if(!node.root)for(const tool of p.tools||[]){
@@ -97,7 +98,7 @@ function nodesFor(p:Props):FlowNode[] {
       const nodeId=tool.node_id||tool.args_json?.node_id
       if(nodeId?nodeId!==node.id:!query||query!==node.query)continue
       if(node.actions.some(action=>action.items.some(item=>item.callId===tool.call_id)))continue
-      node.actions.push({id:`call:${tool.call_id}`,label:readableTool(tool.tool_name),detail:tool.error_message||tool.result_summary||'调用结果已保存',
+      node.actions.push({id:`call:${tool.call_id}`,label:readableTool(tool.tool_name),detail:tool.error_message||tool.result_summary||t("调用结果已保存"),
         query,state:tool.status==='running'&&terminal?p.status:tool.status,time:tool.completed_at||tool.started_at||'',items:[]})
     }
   }
@@ -115,9 +116,9 @@ function nodesFor(p:Props):FlowNode[] {
   return nodes
 }
 function readableTool(name:string) {
-  if(/search/i.test(name))return '搜索'
-  if(/rag|retriev/i.test(name))return '资料检索'
-  if(/browser|browse|web|fetch|read/i.test(name))return '网页读取'
+  if(/search/i.test(name))return t("搜索")
+  if(/rag|retriev/i.test(name))return t("资料检索")
+  if(/browser|browse|web|fetch|read/i.test(name))return t("网页读取")
   return name
 }
 
@@ -138,7 +139,7 @@ function stationsFor(nodes:FlowNode[]):FlowStation[] {
   if(tools.length){
     const active=tools.some(node=>node.status==='running'),failed=tools.some(node=>['failed','error'].includes(node.status))
     const complete=tools.every(node=>['done','completed','success','skipped'].includes(node.status))
-    result.push({id:'$tools',type:'tools',label:'取证工具',status:active?'running':complete?'done':failed?'failed':
+    result.push({id:'$tools',type:'tools',label:t("取证工具"),status:active?'running':complete?'done':failed?'failed':
       tools.some(node=>node.status==='paused')?'paused':'pending',actor:false,nodes:tools,x:0,y:20,
       actions:tools.flatMap(node=>(node.actions?.length?node.actions:[{id:`planned:${node.id}`,label:labels[node.type]||node.type,
         detail:node.error||'',query:node.query,state:node.status,time:'',items:[]}]).map(action=>({
@@ -156,7 +157,7 @@ function stationExpression(station:FlowStation,p:Props):AgentExpression {
   if(p.runtimeStatus==='user_paused'&&['pending','waiting','paused','running'].includes(station.status))return 'paused'
   if(station.status==='running'){
     const recent=executionItems(p.events).filter(item=>item.role===station.type),latest=recent[recent.length-1]
-    return latest?.state==='running'&&latest.label==='自动修复'?'recovering':'working'
+    return latest?.state==='running'&&messageSource(latest.label)==='自动修复'?'recovering':'working'
   }
   if(['failed','error'].includes(station.status))return 'failed'
   if(station.status==='paused')return 'failed'
@@ -165,7 +166,9 @@ function stationExpression(station:FlowStation,p:Props):AgentExpression {
 }
 
 export default function ResearchFlow(p:Props) {
-  const nodes=useMemo(()=>nodesFor(p),[p.plan,p.dag,p.events,p.status,p.analysis,p.tools])
+  const locale=useLocale()
+
+  const nodes=useMemo(()=>nodesFor(p),[p.plan,p.dag,p.events,p.status,p.analysis,p.tools,locale])
   const stations=useMemo(()=>stationsFor(nodes),[nodes])
   const viewport=useRef<HTMLDivElement>(null),drag=useRef<{x:number;y:number;left:number;top:number}|null>(null),initialized=useRef(false)
   const [camera,setCamera]=useState({x:24,y:24,zoom:.9})
@@ -201,24 +204,24 @@ export default function ResearchFlow(p:Props) {
   const openAction=(station:FlowStation,item:StationAction)=>setSelected({station:station.id,action:item.id})
   const actionButton=(station:FlowStation,item:StationAction,compact=false)=><button key={item.id} type="button"
     className={`station-action ${compact?'station-action--compact':''}`} data-status={item.state}
-    aria-label={`动作：${item.label}，${statusLabels[item.state]||item.state}`} onClick={()=>openAction(station,item)}>
-      <span className="station-action-heading"><Icon name={item.label.includes('修复')?'settings':item.label.includes('核对')?'target':'source'} size={15}/><strong>{item.label}</strong><StatusPill status={item.state}/></span>
-      <span className="station-action-content">{briefFeedback(item.query||item.detail)||'等待执行'}</span>
+    aria-label={t("动作：{0}，{1}", item.label, statusLabels[item.state]||item.state)} onClick={()=>openAction(station,item)}>
+      <span className="station-action-heading"><Icon name={messageSource(item.label).includes('修复')?'settings':messageSource(item.label).includes('核对')?'target':'source'} size={15}/><strong>{item.label}</strong><StatusPill status={item.state}/></span>
+      <span className="station-action-content">{briefFeedback(item.query||item.detail)||t("等待执行")}</span>
       {!compact&&item.query&&item.detail&&<span className="station-action-result">{briefFeedback(item.detail)}</span>}
     </button>
-  if(!stations.length)return <div className="flow-empty"><Icon name="network" size={36}/><p>正在取得研究计划</p></div>
-  return <section className="flow-panel station-flow-panel" aria-label="研究工作流">
-    <div className="flow-heading"><div><Icon name="network"/><strong>研究工作流</strong><StatusPill status={p.status}/><span className="flow-stream-status">{['running','pending'].includes(p.status)?p.connection==='connected'?'SSE 实时推送':p.connection==='error'?'正在重连':'连接中':'执行记录'}</span></div>
-      <div className="canvas-toolbar" role="group" aria-label="画布操作">
-        <label className="flow-role-filter">角色<select aria-label="画布角色" value={role} onChange={event=>{setRole(event.target.value);setFollowing(false);const station=stations.find(item=>item.type===event.target.value);if(station)focusStation(station)}}><option value="all">全部</option>{stations.map(station=><option key={station.id} value={station.type}>{station.label}</option>)}</select></label>
-        <button type="button" className="btn-ghost" aria-pressed={following} onClick={()=>{setFollowing(value=>!value);if(!following){const station=currentStation();if(station)focusStation(station)}}}>{following?'停止跟随':'跟随当前'}</button>
-        <button type="button" className="icon-button" aria-label="缩小流程图" onClick={()=>zoomBy(1/1.2)}><Icon name="minus" size={17}/></button><span>{Math.round(camera.zoom*100)}%</span>
-        <button type="button" className="icon-button" aria-label="放大流程图" onClick={()=>zoomBy(1.2)}><Icon name="plus" size={17}/></button>
-        <button type="button" className="icon-button" aria-label="适应画布" onClick={()=>{setFollowing(false);fit()}}><Icon name="fit" size={18}/></button>
-        <button type="button" className="icon-button" aria-label="定位当前步骤" onClick={()=>{const station=currentStation();if(station)focusStation(station);setFollowing(true)}}><Icon name="target" size={18}/></button>
+  if(!stations.length)return <div className="flow-empty"><Icon name="network" size={36}/><p>{t("正在取得研究计划")}</p></div>
+  return <section className="flow-panel station-flow-panel" aria-label={t("研究工作流")}>
+    <div className="flow-heading"><div><Icon name="network"/><strong>{t("研究工作流")}</strong><StatusPill status={p.status}/><span className="flow-stream-status">{['running','pending'].includes(p.status)?p.connection==='connected'?t("SSE 实时推送"):p.connection==='error'?t("正在重连"):t("连接中"):t("执行记录")}</span></div>
+      <div className="canvas-toolbar" role="group" aria-label={t("画布操作")}>
+        <label className="flow-role-filter">{t("角色")}<select aria-label={t("画布角色")} value={role} onChange={event=>{setRole(event.target.value);setFollowing(false);const station=stations.find(item=>item.type===event.target.value);if(station)focusStation(station)}}><option value="all">{t("全部")}</option>{stations.map(station=><option key={station.id} value={station.type}>{station.label}</option>)}</select></label>
+        <button type="button" className="btn-ghost" aria-pressed={following} onClick={()=>{setFollowing(value=>!value);if(!following){const station=currentStation();if(station)focusStation(station)}}}>{following?t("停止跟随"):t("跟随当前")}</button>
+        <button type="button" className="icon-button" aria-label={t("缩小流程图")} onClick={()=>zoomBy(1/1.2)}><Icon name="minus" size={17}/></button><span>{Math.round(camera.zoom*100)}%</span>
+        <button type="button" className="icon-button" aria-label={t("放大流程图")} onClick={()=>zoomBy(1.2)}><Icon name="plus" size={17}/></button>
+        <button type="button" className="icon-button" aria-label={t("适应画布")} onClick={()=>{setFollowing(false);fit()}}><Icon name="fit" size={18}/></button>
+        <button type="button" className="icon-button" aria-label={t("定位当前步骤")} onClick={()=>{const station=currentStation();if(station)focusStation(station);setFollowing(true)}}><Icon name="target" size={18}/></button>
       </div>
     </div>
-    <div ref={viewport} className="flow-viewport station-viewport" tabIndex={0} role="region" aria-label="可拖动研究流程图，方向键平移，加减号缩放，Home 适应画布"
+    <div ref={viewport} className="flow-viewport station-viewport" tabIndex={0} role="region" aria-label={t("可拖动研究流程图，方向键平移，加减号缩放，Home 适应画布")}
       onKeyDown={event=>{if(event.target!==event.currentTarget)return;const moves:Record<string,[number,number]>={ArrowLeft:[40,0],ArrowRight:[-40,0],ArrowUp:[0,40],ArrowDown:[0,-40]};if(moves[event.key]){event.preventDefault();setFollowing(false);const [x,y]=moves[event.key];setCamera(c=>({...c,x:c.x+x,y:c.y+y}))}else if(['+','=','-'].includes(event.key)){event.preventDefault();zoomBy(event.key==='-'?1/1.2:1.2)}else if(event.key==='Home'){event.preventDefault();fit()}}}
       onPointerDown={event=>{if((event.target as Element).closest('button,summary,details'))return;setFollowing(false);drag.current={x:event.clientX,y:event.clientY,left:camera.x,top:camera.y};event.currentTarget.setPointerCapture(event.pointerId)}}
       onPointerMove={event=>{const d=drag.current;if(d)setCamera(c=>({...c,x:d.left+event.clientX-d.x,y:d.top+event.clientY-d.y}))}} onPointerUp={()=>{drag.current=null}} onPointerCancel={()=>{drag.current=null}}>
@@ -230,17 +233,17 @@ export default function ResearchFlow(p:Props) {
           </g>})}
         </svg>
         {stations.map(station=>{const primary=primaryAction(station),history=station.actions.filter(item=>item.id!==primary?.id),expression=stationExpression(station,p)
-          return <section key={station.id} role="group" aria-label={`${station.label} 工作区`} className={`agent-station ${role!=='all'&&role!==station.type?'is-dimmed':''}`} data-state={station.status} data-expression={expression} style={{left:station.x,top:station.y}}>
+          return <section key={station.id} role="group" aria-label={t("{0} 工作区", station.label)} className={`agent-station ${role!=='all'&&role!==station.type?'is-dimmed':''}`} data-state={station.status} data-expression={expression} style={{left:station.x,top:station.y}}>
             <header className="station-owner"><button type="button" className="station-owner-button" aria-label={`${station.label}，${statusLabels[station.status]||station.status}`} onClick={()=>setSelected({station:station.id})}>
               {station.actor?<AgentAvatar name={station.label} role={station.type} expression={expression}/>:<span className="station-tools-avatar"><Icon name="network" size={35}/></span>}
               <strong>{station.label}</strong><StatusPill status={station.status}/>
             </button></header>
             <div className="station-ownership-line" aria-hidden="true"><span/></div>
-            <div className="station-task-area" role="group" aria-label={`${station.label} 的动作`}>
-              <div className="station-task-label"><span>{!primary?'所属动作':['pending','waiting'].includes(primary.state)?'待执行动作':primary.state==='running'?'当前动作':primary.state==='paused'?'暂停动作':'最近结果'}</span><span>{station.actions.length} 项</span></div>
-              {primary?actionButton(station,primary):<div className="station-empty">{station.status==='pending'?'等待前序阶段':'暂无保留动作'}</div>}
+            <div className="station-task-area" role="group" aria-label={t("{0} 的动作", station.label)}>
+              <div className="station-task-label"><span>{!primary?t("所属动作"):['pending','waiting'].includes(primary.state)?t("待执行动作"):primary.state==='running'?t("当前动作"):primary.state==='paused'?t("暂停动作"):t("最近结果")}</span><span>{t("{0} 项动作",station.actions.length)}</span></div>
+              {primary?actionButton(station,primary):<div className="station-empty">{station.status==='pending'?t("等待前序阶段"):t("暂无保留动作")}</div>}
               {history.length>0&&<details className="station-history" open={Boolean(expanded[station.id])} onToggle={event=>{const open=event.currentTarget.open;setExpanded(value=>value[station.id]===open?value:{...value,[station.id]:open})}}>
-                <summary>动作记录 <span>{history.length}</span><Icon name="arrow" size={13}/></summary>
+                <summary>{t("动作记录 ")}<span>{history.length}</span><Icon name="arrow" size={13}/></summary>
                 <div className="station-history-items">{history.map(item=>actionButton(station,item,true))}</div>
               </details>}
             </div>
@@ -248,14 +251,14 @@ export default function ResearchFlow(p:Props) {
         })}
       </div>
     </div>
-    <div className="flow-bottom"><span className="station-layer-legend">上层角色交接<span>↓</span>下层所属动作</span><span>{stations.reduce((count,station)=>count+station.actions.length,0)} 项动作</span></div>
-    <Modal open={Boolean(owner)} onClose={()=>setSelected(null)} title={action?.label||owner?.label||'执行详情'}>
+    <div className="flow-bottom"><span className="station-layer-legend">{t("上层角色交接")}<span>↓</span>{t("下层所属动作")}</span><span>{t("{0} 项动作",stations.reduce((count,station)=>count+station.actions.length,0))}</span></div>
+    <Modal open={Boolean(owner)} onClose={()=>setSelected(null)} title={action?.label||owner?.label||t("执行详情")}>
       {owner&&<div className="node-detail"><div className="node-detail-role"><Icon name="network" size={17}/>{owner.label}<StatusPill status={action?.state||owner.status}/></div>
-        {action?<><h3>执行反馈</h3><p className="action-detail-text">{action.detail||'当前动作尚未返回结果'}</p>{action.query&&<><h3>输入</h3><p className="action-detail-text">{action.query}</p></>}
-          {action.items.length>1&&<details><summary>{action.items.length} 条过程记录</summary>{action.items.map(item=><div className="action-retained-event" key={item.id}><span>{item.label}</span><p>{item.detail}</p></div>)}</details>}</>:
-          <><h3>所属动作</h3><div className="node-action-list">{owner.actions.map(item=><button type="button" key={item.id} onClick={()=>openAction(owner,item)}><span><strong>{item.label}</strong><span>{briefFeedback(item.query||item.detail)}</span></span><StatusPill status={item.state}/></button>)}</div></>}
-        {!!node?.dependencies.length&&<><h3>前置步骤</h3><div className="node-dependencies">{node.dependencies.map(id=><span className="tool-chip" key={id}>{nodes.find(item=>item.id===id)?.label||id}</span>)}</div></>}
-        {!!related.length&&<><h3>相关调用</h3>{related.map(tool=><div className="task-row" key={tool.call_id}><span>{readableTool(tool.tool_name)}</span><StatusPill status={tool.status}/></div>)}</>}
+        {action?<><h3>{t("执行反馈")}</h3><p className="action-detail-text">{action.detail||t("当前动作尚未返回结果")}</p>{action.query&&<><h3>{t("输入")}</h3><p className="action-detail-text">{action.query}</p></>}
+          {action.items.length>1&&<details><summary>{action.items.length} {t(" 条过程记录")}</summary>{action.items.map(item=><div className="action-retained-event" key={item.id}><span>{item.label}</span><p>{item.detail}</p></div>)}</details>}</>:
+          <><h3>{t("所属动作")}</h3><div className="node-action-list">{owner.actions.map(item=><button type="button" key={item.id} onClick={()=>openAction(owner,item)}><span><strong>{item.label}</strong><span>{briefFeedback(item.query||item.detail)}</span></span><StatusPill status={item.state}/></button>)}</div></>}
+        {!!node?.dependencies.length&&<><h3>{t("前置步骤")}</h3><div className="node-dependencies">{node.dependencies.map(id=><span className="tool-chip" key={id}>{nodes.find(item=>item.id===id)?.label||id}</span>)}</div></>}
+        {!!related.length&&<><h3>{t("相关调用")}</h3>{related.map(tool=><div className="task-row" key={tool.call_id}><span>{readableTool(tool.tool_name)}</span><StatusPill status={tool.status}/></div>)}</>}
       </div>}
     </Modal>
   </section>

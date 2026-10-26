@@ -1,3 +1,4 @@
+import {useLocale,t,uiMessage} from '../i18n'
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useSSE } from '../hooks/useSSE'
@@ -113,6 +114,8 @@ interface ResearchDashboardProps {
 }
 
 function ResearchDashboard({ onBack }: ResearchDashboardProps) {
+  useLocale()
+
   const [query, setQuery] = useState('')
   const [ragGroup, setRagGroup] = useState('')
   const [useInternalDocs, setUseInternalDocs] = useState(false)
@@ -159,7 +162,7 @@ function ResearchDashboard({ onBack }: ResearchDashboardProps) {
     queryKey: ['research', activeSessionId],
     queryFn: async () => {
       const res = await fetch(`/api/v1/research/${activeSessionId}`)
-      if (!res.ok) throw new Error([401,403,404].includes(res.status)?'任务不存在或当前不可访问。':'任务记录读取失败，请重试。')
+      if (!res.ok) throw new Error([401,403,404].includes(res.status)?t("任务不存在或当前不可访问。"):t("任务记录读取失败，请重试。"))
       return res.json()
     },
     enabled: !!activeSessionId,
@@ -170,7 +173,7 @@ function ResearchDashboard({ onBack }: ResearchDashboardProps) {
     queryKey: ['research-tool-calls', activeSessionId],
     queryFn: async () => {
       const response = await fetch(`/api/v1/research/${activeSessionId}/tool-calls`)
-      if (!response.ok) throw new Error('暂时无法读取本次研究的调用记录。')
+      if (!response.ok) throw new Error(t("暂时无法读取本次研究的调用记录。"))
       return response.json()
     },
     enabled: !!activeSessionId,
@@ -185,19 +188,19 @@ function ResearchDashboard({ onBack }: ResearchDashboardProps) {
       const data=await response.json()
       if (!response.ok) {
         const messages:Record<string,string>={
-          analysis_original_allowance_exhausted:'原任务的额度或期限已用完，无法继续本次分析。',
-          analysis_sources_changed:'研究资料的访问权限已变化，请调整资料后发起新研究。',
-          analysis_inputs_changed:'研究输入已变化，已保存的分析步骤不能继续复用。',
-          analysis_phase_attempt_limit:'当前问题已达到两次尝试上限。',
-          analysis_checkpoint_changed:'任务状态已变化，请刷新后查看。',
-          analysis_checkpoint_not_recoverable:'当前任务没有可继续的分析检查点。',
-          analysis_original_deadline_unavailable:'原任务的期限记录不完整，无法恢复。',
-          report_original_allowance_exhausted:'原任务的额度或期限已用完，无法继续生成报告。',
-          report_resume_attempt_limit:'本次报告已达到一次续作上限，当前资料和原稿已保留。',
-          report_checkpoint_changed:'任务状态已变化，请刷新后查看。',
-          report_checkpoint_not_recoverable:'当前任务没有可继续的报告检查点。',
+          analysis_original_allowance_exhausted:t("原任务的额度或期限已用完，无法继续本次分析。"),
+          analysis_sources_changed:t("研究资料的访问权限已变化，请调整资料后发起新研究。"),
+          analysis_inputs_changed:t("研究输入已变化，已保存的分析步骤不能继续复用。"),
+          analysis_phase_attempt_limit:t("当前问题已达到两次尝试上限。"),
+          analysis_checkpoint_changed:t("任务状态已变化，请刷新后查看。"),
+          analysis_checkpoint_not_recoverable:t("当前任务没有可继续的分析检查点。"),
+          analysis_original_deadline_unavailable:t("原任务的期限记录不完整，无法恢复。"),
+          report_original_allowance_exhausted:t("原任务的额度或期限已用完，无法继续生成报告。"),
+          report_resume_attempt_limit:t("本次报告已达到一次续作上限，当前资料和原稿已保留。"),
+          report_checkpoint_changed:t("任务状态已变化，请刷新后查看。"),
+          report_checkpoint_not_recoverable:t("当前任务没有可继续的报告检查点。"),
         }
-        throw new Error(messages[String(data.detail)] || '暂时无法继续研究，请稍后重试。')
+        throw new Error(messages[String(data.detail)] || t("暂时无法继续研究，请稍后重试。"))
       }
       return data as {execution_id:string}
     },
@@ -221,8 +224,8 @@ function ResearchDashboard({ onBack }: ResearchDashboardProps) {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
     })
     const data = await response.json()
-    if (!response.ok) throw new Error(typeof data.detail === 'string' ? data.detail : '请检查对象、日期和报告选择。')
-    if (requestKeyRef.current !== key) throw new Error('预览期间配置已变化，请重新预览。')
+    if (!response.ok) throw new Error(typeof data.detail === 'string' ? data.detail : t("请检查对象、日期和报告选择。"))
+    if (requestKeyRef.current !== key) throw new Error(t("预览期间配置已变化，请重新预览。"))
     setUnderstanding(data)
     setUnderstandingKey(key)
     return data
@@ -238,7 +241,7 @@ function ResearchDashboard({ onBack }: ResearchDashboardProps) {
       const key = requestKeyRef.current
       const body = buildRequest(q)
       const preview = await previewRequest(body, key)
-      if (!preview.ready) throw new Error('请按预览补全选择后开始研究。')
+      if (!preview.ready) throw new Error(t("请按预览补全选择后开始研究。"))
       const res = await fetch('/api/v1/research', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -250,9 +253,9 @@ function ResearchDashboard({ onBack }: ResearchDashboardProps) {
           setUnderstanding(problem.detail.understanding)
           setUnderstandingKey(key)
         }
-        if (problem.detail?.category === 'query_preview_changed') throw new Error('选择已变化，已更新计划，请再预览一次。')
-        if (problem.detail?.category === 'query_clarification_required') throw new Error('请按计划补充需要的选择。')
-        throw new Error(typeof problem.detail === 'string' ? problem.detail : '研究配置未通过校验，请检查对象、学科和日期。')
+        if (problem.detail?.category === 'query_preview_changed') throw new Error(t("选择已变化，已更新计划，请再预览一次。"))
+        if (problem.detail?.category === 'query_clarification_required') throw new Error(t("请按计划补充需要的选择。"))
+        throw new Error(typeof problem.detail === 'string' ? problem.detail : t("研究配置未通过校验，请检查对象、学科和日期。"))
       }
       return res.json()
     },
@@ -347,20 +350,20 @@ function ResearchDashboard({ onBack }: ResearchDashboardProps) {
   const liveAnalysisProgress=progressEvent?.data.analysis_progress as ResearchResult['analysis_progress']
   const analysisProgress=liveAnalysisProgress&&(!result||['pending','running'].includes(result.status))
     ? {...result?.analysis_progress,...liveAnalysisProgress}:result?.analysis_progress
-  const analysisLabels:Record<string,string>={extract_publications:'整理成果与署名',landscape:'研究布局',
-    evolution:'研究演进',relationships:'组织与学者关系',deep_dive:'成果深读',validation:'来源核对',actions:'研究与合作行动'}
+  const analysisLabels:Record<string,string>={extract_publications:t("整理成果与署名"),landscape:t("研究布局"),
+    evolution:t("研究演进"),relationships:t("组织与学者关系"),deep_dive:t("成果深读"),validation:t("来源核对"),actions:t("研究与合作行动")}
   const progressParts=analysisProgress?.phase?.split(':') || []
-  const analysisPhase=analysisLabels[progressParts[0]==='question'?progressParts[1]:progressParts[0]] || '综合分析'
+  const analysisPhase=analysisLabels[progressParts[0]==='question'?progressParts[1]:progressParts[0]] || t("综合分析")
   const drawingReason=result?.organization_result?.chart_rendering?.reason
   const drawingMessages:Record<string,string>={
-    drawing_original_budget_insufficient:'原任务剩余额度不足以完成绘图。',
-    drawing_original_deadline_exhausted:'原任务的绘图期限已到。',
-    drawing_renderer_failed:'文件绘图未完成，请查看研究记录中的渲染原因和依赖配置。',
-    no_source_bound_chart_data:'所选页面没有可用于绘图的来源数据，请调整页面或补充资料。',
-    drawing_plan_incomplete:'绘图计划未完整返回，当前报告与数据已保留。',
-    model_routing_configuration_changed:'模型配置已变化，本任务保留原模型绑定。',
-    model_context_capability_exceeded:'所选绘图模型的上下文容量不足。',
-    no_eligible_model_route:'没有满足绘图阶段及资料许可的配置模型。',
+    drawing_original_budget_insufficient:t("原任务剩余额度不足以完成绘图。"),
+    drawing_original_deadline_exhausted:t("原任务的绘图期限已到。"),
+    drawing_renderer_failed:t("文件绘图未完成，请查看研究记录中的渲染原因和依赖配置。"),
+    no_source_bound_chart_data:t("所选页面没有可用于绘图的来源数据，请调整页面或补充资料。"),
+    drawing_plan_incomplete:t("绘图计划未完整返回，当前报告与数据已保留。"),
+    model_routing_configuration_changed:t("模型配置已变化，本任务保留原模型绑定。"),
+    model_context_capability_exceeded:t("所选绘图模型的上下文容量不足。"),
+    no_eligible_model_route:t("没有满足绘图阶段及资料许可的配置模型。"),
   }
   const analysisBatch=progressParts[0]==='extract_publications'?progressParts[1]:
     progressParts[2]==='conditions'?progressParts[3]:progressParts[2]
@@ -431,21 +434,21 @@ function ResearchDashboard({ onBack }: ResearchDashboardProps) {
   const workflowErrorEvent = [...events].reverse().find((event: SSEvent) => event.type === 'workflow_error')
   const isFailed = sessionStatus === 'failed'
   const isCanceled=sessionStatus==='canceled'
-  const stoppedLabel=isCanceled?'已取消':sessionStatus==='paused'?'已暂停':sessionStatus==='pending'?'待执行':isFailed?'失败':sessionStatus==='completed'?'已完成':'等待状态'
+  const stoppedLabel=isCanceled?t("已取消"):sessionStatus==='paused'?t("已暂停"):sessionStatus==='pending'?t("待执行"):isFailed?t("失败"):sessionStatus==='completed'?t("已完成"):t("等待状态")
   const emptyReportTitle = isConnectingStream
-    ? '正在建立研究流连接...'
-    : isCanceled?'研究已取消':isFailed
-      ? '研究执行失败'
+    ? t("正在建立研究流连接...")
+    : isCanceled?t("研究已取消"):isFailed
+      ? t("研究执行失败")
       : sseError
-      ? '实时流已中断'
-      : '报告暂未生成'
+      ? t("实时流已中断")
+      : t("报告暂未生成")
   const emptyReportDescription = isConnectingStream
-    ? '正在连接执行记录。'
-    : isCanceled?'资料与进度已保存。':isFailed
-      ? String(workflowErrorEvent?.data.error || workflowErrorEvent?.data.message || '任务执行过程中发生错误。')
+    ? t("正在连接执行记录。")
+    : isCanceled?t("资料与进度已保存。"):isFailed
+      ? String(workflowErrorEvent?.data.error || uiMessage(workflowErrorEvent?.data.message) || t("任务执行过程中发生错误。"))
       : sseError
-      ? '可刷新执行记录。'
-      : '完成分析后生成报告。'
+      ? t("可刷新执行记录。")
+      : t("完成分析后生成报告。")
 
   const [reportElement, setReportElement] = useState<HTMLDivElement | null>(null)
 
@@ -466,74 +469,74 @@ function ResearchDashboard({ onBack }: ResearchDashboardProps) {
     }
   }, [result])
   const busy = isStreaming || startMutation.isPending || previewMutation.isPending
-  const stageLabels:Record<string,string>={planner:'规划研究',search:'搜索资料',browser:'读取来源',rag:'检索资料',analyst:analysisPhase,reflection:'核对来源',report:'生成报告',replan:'调整计划',dag_executor:'执行研究计划'}
+  const stageLabels:Record<string,string>={planner:t("规划研究"),search:t("搜索资料"),browser:t("读取来源"),rag:t("检索资料"),analyst:analysisPhase,reflection:t("核对来源"),report:t("生成报告"),replan:t("调整计划"),dag_executor:t("执行研究计划")}
   const stageEvent=[...traceEvents].reverse().find(event=>event.type==='agent_start')
-  const currentStage=analysisProgress?.status==='running'?analysisPhase:stageLabels[String(stageEvent?.data.agent||'')]||'研究进行中'
-  if(activeSessionId&&resultError&&!result)return <div className="research-workspace"><p role="alert" className="composer-error">{resultError.message}</p><div className="flex gap-3 mt-5"><button type="button" className="btn-secondary" onClick={()=>void refetchResult()}>重新读取</button><button type="button" className="btn-ghost" onClick={handleNewResearch}>新研究</button></div></div>
+  const currentStage=analysisProgress?.status==='running'?analysisPhase:stageLabels[String(stageEvent?.data.agent||'')]||t("研究进行中")
+  if(activeSessionId&&resultError&&!result)return <div className="research-workspace"><p role="alert" className="composer-error">{uiMessage(resultError.message)}</p><div className="flex gap-3 mt-5"><button type="button" className="btn-secondary" onClick={()=>void refetchResult()}>{t("重新读取")}</button><button type="button" className="btn-ghost" onClick={handleNewResearch}>{t("新研究")}</button></div></div>
 
   if (!activeSessionId) return <ResearchComposer
     value={currentSetup()} onChange={applySetup} onStart={handleStart} onPreview={()=>previewMutation.mutate()} onBack={onBack}
     inputRef={inputRef} onKeyDown={handleKeyDown} busy={busy} starting={startMutation.isPending}
     understanding={understanding} previewCurrent={understandingKey===requestDraftKey}
-    error={startMutation.error?.message||previewMutation.error?.message} skills={skillsData?.items||[]}
+    error={uiMessage(startMutation.error?.message)||uiMessage(previewMutation.error?.message)} skills={skillsData?.items||[]}
   />
 
   return <div className="research-workspace">
     <header className="workspace-heading">
-      <div><h1>{result?.query || query || '研究工作区'}</h1><details className="workspace-question"><summary>完整研究问题</summary><p>{result?.query||query}</p></details></div>
-      <button className="btn-secondary" type="button" onClick={handleNewResearch}><Icon name="plus" size={17}/>新研究</button>
+      <div><h1>{result?.query || query || t("研究工作区")}</h1><details className="workspace-question"><summary>{t("完整研究问题")}</summary><p>{result?.query||query}</p></details></div>
+      <button className="btn-secondary" type="button" onClick={handleNewResearch}><Icon name="plus" size={17}/>{t("新研究")}</button>
     </header>
-    <div className="workspace-toolbar"><div className="pill-tabs" role="group" aria-label="研究视图">
-      {[['workflow','研究流程'],['report','图文报告'],['records','研究记录']].map(([id,label])=><button type="button" key={id} aria-pressed={activePanel===id} onClick={()=>setActivePanel(id)}>{label}</button>)}
+    <div className="workspace-toolbar"><div className="pill-tabs" role="group" aria-label={t("研究视图")}>
+      {[['workflow',t("研究流程")],['report',t("图文报告")],['records',t("研究记录")]].map(([id,label])=><button type="button" key={id} aria-pressed={activePanel===id} onClick={()=>setActivePanel(id)}>{label}</button>)}
     </div><div className="workspace-statistics"><StatusPill status={sessionStatus||'pending'} label={isStreaming ? currentStage : stoppedLabel}/>
-      <span>{planNodes ? `${completedNodes}/${planNodes.length} 取证步骤` : `${agentEvents.length} 条记录`}</span>
-      {toolCallCount!==undefined&&<span>{toolCallCount} 次工具调用</span>}
+      <span>{planNodes ? t("{0}/{1} 取证步骤", completedNodes, planNodes.length) : t("{0} 条记录", agentEvents.length)}</span>
+      {toolCallCount!==undefined&&<span>{toolCallCount} {t(" 次工具调用")}</span>}
     </div></div>
-    {showConfirmationState&&<p className="workspace-notice" role="status">等待确认</p>}
-    {sseError&&<p className="workspace-notice" role="status">实时连接中断<button type="button" className="btn-ghost" disabled={!canRefetchResult} onClick={()=>void refetchResult()}>刷新记录</button></p>}
-    <section hidden={activePanel!=='workflow'} aria-label="研究流程视图">
+    {showConfirmationState&&<p className="workspace-notice" role="status">{t("等待确认")}</p>}
+    {sseError&&<p className="workspace-notice" role="status">{t("实时连接中断")}<button type="button" className="btn-ghost" disabled={!canRefetchResult} onClick={()=>void refetchResult()}>{t("刷新记录")}</button></p>}
+    <section hidden={activePanel!=='workflow'} aria-label={t("研究流程视图")}>
       {result&&<ResearchRunControls key={`run-${result.session_id}-${result.execution_id}`} value={result}
         onRefresh={async()=>{const value=await refetchResult();if(value.error)throw value.error}}
         onResumed={async execution=>{clearEvents();setStreamRunKey(execution);setSessionStatus('running');setIsStreaming(true);await refetchResult()}}
         onRestart={openRestartConfiguration} onSynthesis={stage=>resumeSynthesis.mutate(stage)} synthesisBusy={resumeSynthesis.isPending}/>}
       <ResearchFlow key={activeSessionId} plan={result?.plan_manifest} dag={result?.execution_plan} events={traceEvents} status={sessionStatus||'pending'} tools={toolAudit.data} analysis={analysisProgress} history={result?.plan_history} connection={sseStatus} runtimeStatus={result?.runtime_status}/>
-      {resumeSynthesis.error&&<p role="alert" className="composer-error">{resumeSynthesis.error.message}</p>}
+      {resumeSynthesis.error&&<p role="alert" className="composer-error">{uiMessage(resumeSynthesis.error.message)}</p>}
       <div className="workspace-summary-row">
-        <section className="workspace-summary"><span className="eyebrow">当前阶段</span><h2>{isStreaming ? currentStage : stoppedLabel}</h2>
-          {analysisProgress&&<p>{analysisPhase}{progressParts[2]==='conditions'?' · 条件补读':''}{analysisBatch?` · 第 ${analysisBatch} 组`:''} · {analysisProgress.completed_steps} 步已保存</p>}
-          {analysisProgress?.stop_reason==='insufficient_context_budget'&&<p className="text-sm">本阶段剩余上下文额度不足。</p>}
+        <section className="workspace-summary"><span className="eyebrow">{t("当前阶段")}</span><h2>{isStreaming ? currentStage : stoppedLabel}</h2>
+          {analysisProgress&&<p>{analysisPhase}{progressParts[2]==='conditions'?t(" · 条件补读"):''}{analysisBatch?t(" · 第 {0} 组", analysisBatch):''} · {analysisProgress.completed_steps} {t(" 步已保存")}</p>}
+          {analysisProgress?.stop_reason==='insufficient_context_budget'&&<p className="text-sm">{t("本阶段剩余上下文额度不足。")}</p>}
         </section>
-        <section className="workspace-summary"><span className="eyebrow">Token 额度</span><h2>{result?.budget_state?.used_total_tokens?.toLocaleString()??'—'}<small> / {result?.budget_state?.max_total_tokens?.toLocaleString()??'—'}</small></h2>
-          {typeof result?.budget_state?.used_total_tokens==='number'&&typeof result.budget_state.max_total_tokens==='number'&&<progress aria-label="已用 Token 额度" value={result.budget_state.used_total_tokens} max={Math.max(1,result.budget_state.max_total_tokens)}/>}
-          <p>模型与工具累计用量</p>
+        <section className="workspace-summary"><span className="eyebrow">{t("Token 额度")}</span><h2>{result?.budget_state?.used_total_tokens?.toLocaleString()??'—'}<small> / {result?.budget_state?.max_total_tokens?.toLocaleString()??'—'}</small></h2>
+          {typeof result?.budget_state?.used_total_tokens==='number'&&typeof result.budget_state.max_total_tokens==='number'&&<progress aria-label={t("已用 Token 额度")} value={result.budget_state.used_total_tokens} max={Math.max(1,result.budget_state.max_total_tokens)}/>}
+          <p>{t("模型与工具累计用量")}</p>
         </section>
       </div>
     </section>
-    <section hidden={activePanel!=='report'} className="reader-workspace" aria-label="图文报告视图">
-      <div className="reader-heading"><h2>研究报告</h2><div>{normalizedCitations.length>0&&<span>{normalizedCitations.length} 条引用</span>}{result?.status==='completed'&&<ReportDownloads result={result} reportElement={reportElement}/>}</div></div>
+    <section hidden={activePanel!=='report'} className="reader-workspace" aria-label={t("图文报告视图")}>
+      <div className="reader-heading"><h2>{t("研究报告")}</h2><div>{normalizedCitations.length>0&&<span>{normalizedCitations.length} {t(" 条引用")}</span>}{result?.status==='completed'&&<ReportDownloads result={result} reportElement={reportElement}/>}</div></div>
       {activeSessionId&&<ReportHistory key={activeSessionId} sessionId={activeSessionId}/>}
       <div ref={setReportElement}><ReportPreview key={activeSessionId} report={displayReport??''} citations={normalizedCitations} sessionId={activeSessionId}
-        streaming={isStreaming} emptyTitle={isStreaming?`正在${currentStage}`:emptyReportTitle}
+        streaming={isStreaming} emptyTitle={isStreaming?t("正在{0}", currentStage):emptyReportTitle}
         emptyDescription={emptyReportDescription} reportSummary={result?.organization_result?.report_summary}
         deliveryView={result?.delivery_view} reportEditorial={result?.report_editorial} budgetState={result?.budget_state} reportAudit={result?.report_audit}
         contextEvidence={{analyst:result?.organization_result?.analyst_context,report:result?.organization_result?.report_context}}/></div>
     </section>
-    <section hidden={activePanel!=='records'} className="workspace-records" aria-label="研究记录视图">
+    <section hidden={activePanel!=='records'} className="workspace-records" aria-label={t("研究记录视图")}>
       <ExecutionFeed events={traceEvents} connection={sseStatus} status={sessionStatus||'pending'}/>
       {result&&<UnderstandingSummary value={result.query_understanding}/>}
       {result&&result.execution_id!==undefined&&<ResearchCancellation key={`cancel-${result.session_id}-${result.execution_id}`} sessionId={result.session_id} executionId={result.execution_id} status={result.status} inflight={result.budget_state?.inflight_model_requests} onRefresh={async()=>{const refreshed=await refetchResult();if(refreshed.error)throw refreshed.error}}/>}
       {result&&<ResearchPlanSummary status={result.status} plan={result.plan_manifest} dag={result.execution_plan} history={result.plan_history} control={result.iteration_control} failure={result.workflow_failure} operationalEvents={result.operational_events}/>}
       {result&&['completed','paused','failed','canceled'].includes(result.status)&&<div ref={configuration}><ResearchConfigurationEditor key={`configure-${result.session_id}`} query={typeof result.restart_parameters?.query==='string'?result.restart_parameters.query:result.query} parameters={result.restart_parameters} onStarted={handleRestartedResearch}/></div>}
-      {result?.organization_research&&<section className="card p-5"><h3>研究范围</h3><p className="mt-3">{result.organization_research.scope.entities.map(entity=>entity.name).join('、')||'候选发现'} · {result.organization_research.scope.disciplines.join('、')}</p><p className="text-sm text-xmgray-600 mt-2">{result.organization_research.scope.start_date} — {result.organization_research.scope.end_date}</p>{typeof result.organization_result?.evidence_count==='number'&&<p className="text-sm mt-2">{result.organization_result.evidence_count} 条证据</p>}</section>}
+      {result?.organization_research&&<section className="card p-5"><h3>{t("研究范围")}</h3><p className="mt-3">{result.organization_research.scope.entities.map(entity=>entity.name).join('、')||t("候选发现")} · {result.organization_research.scope.disciplines.join('、')}</p><p className="text-sm text-xmgray-600 mt-2">{result.organization_research.scope.start_date} — {result.organization_research.scope.end_date}</p>{typeof result.organization_result?.evidence_count==='number'&&<p className="text-sm mt-2">{result.organization_result.evidence_count} {t(" 条证据")}</p>}</section>}
       {result?.status==='completed'&&result.organization_research&&<ResearchMatchingPanel key={result.session_id} sessionId={result.session_id} query={typeof result.restart_parameters?.query==='string'?result.restart_parameters.query:result.query} scope={result.organization_research.scope} disciplines={result.organization_research.scope.disciplines} restartParameters={result.restart_parameters} purpose={result.organization_research.purpose} modules={result.organization_research.modules} corpus={result.organization_research.corpus} taxonomy={result.organization_research.taxonomy?.request} actionRequirements={result.organization_research.action_requirements} onStarted={handleRestartedResearch}/>}
       {result?.status==='completed'&&result.organization_research&&<ClassificationPanel key={`classification-${result.session_id}`} sessionId={result.session_id}/>}
       <IngestionPanel key={`ingestion-${activeSessionId}`} sessionId={activeSessionId}/>
       {result&&['completed','paused','failed','canceled'].includes(result.status)&&<ResearchQuality key={`quality-${result.session_id}`} sessionId={result.session_id}/>}
-      <details className="card p-5"><summary>工具调用{toolCallCount!==undefined?` · ${toolCallCount}`:''}</summary><div className="mt-4">{toolAudit.error?<p role="alert">{toolAudit.error.message}</p>:<ToolTrace events={traceEvents} records={toolAudit.data}/>}</div></details>
-      {(effectiveSkillIds.length>0||effectiveTools.length>0)&&<details className="card p-5"><summary>阶段 Skill 与工具</summary>
-        <div className="mt-4 flex flex-wrap gap-2">{effectiveSkillIds.map(id=><span className="tool-chip" key={id}>{skillsData?.items.find(item=>item.id===id)?.name||id} · {autoMatchedSkillIds.includes(id)?'自动':'手动'}</span>)}{effectiveTools.map(tool=><span className="tool-chip" key={tool}>{tool}</span>)}</div>
+      <details className="card p-5"><summary>{t("工具调用")}{toolCallCount!==undefined?` · ${toolCallCount}`:''}</summary><div className="mt-4">{toolAudit.error?<p role="alert">{uiMessage(toolAudit.error.message)}</p>:<ToolTrace events={traceEvents} records={toolAudit.data}/>}</div></details>
+      {(effectiveSkillIds.length>0||effectiveTools.length>0)&&<details className="card p-5"><summary>{t("阶段 Skill 与工具")}</summary>
+        <div className="mt-4 flex flex-wrap gap-2">{effectiveSkillIds.map(id=><span className="tool-chip" key={id}>{skillsData?.items.find(item=>item.id===id)?.name||id} · {autoMatchedSkillIds.includes(id)?t("自动"):t("手动")}</span>)}{effectiveTools.map(tool=><span className="tool-chip" key={tool}>{tool}</span>)}</div>
         {matchedSkills.map(match=><p className="mt-3 text-sm" key={match.skill_id}>{match.name} · {match.reason}</p>)}
-        <p className="mt-3 text-sm">手动启用 {manuallyEnabledSkillIds.length} · 禁用 {manuallyDisabledSkillIds.length}</p>
+        <p className="mt-3 text-sm">{t("手动启用 ")}{manuallyEnabledSkillIds.length} {t(" · 禁用 ")}{manuallyDisabledSkillIds.length}</p>
       </details>}
       {drawingReason&&<p className="workspace-notice">{drawingMessages[drawingReason]||drawingReason}</p>}
     </section>

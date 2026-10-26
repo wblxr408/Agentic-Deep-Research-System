@@ -1,3 +1,4 @@
+import {useLocale,t} from '../i18n'
 /**
  * ToolTrace - Xiaomi-style tool invocation timeline.
  *
@@ -115,6 +116,8 @@ const TOOL_ICONS: Record<string, { icon: JSX.Element; color: string; bg: string 
 }
 
 function ToolIcon({ toolName }: { toolName: string }) {
+  useLocale()
+
   const toolKey = Object.keys(TOOL_ICONS).find(k => toolName.toLowerCase().includes(k))
   const cfg = toolKey ? TOOL_ICONS[toolKey] : { icon: null, color: 'text-xmgray-600', bg: 'bg-xmgray-50' }
   return (
@@ -130,6 +133,8 @@ function ToolIcon({ toolName }: { toolName: string }) {
 }
 
 function ToolTrace({ events, records }: ToolTraceProps) {
+  useLocale()
+
   const toolCalls = useMemo<ToolCall[]>(() => {
     // The owner-authorized audit rows also exist when a page missed the live events.
     if (records !== undefined) return records.map<ToolCall>(record => {
@@ -213,7 +218,7 @@ function ToolTrace({ events, records }: ToolTraceProps) {
         <svg width="28" height="28" viewBox="0 0 28 28" fill="none" className="mb-2 text-xmgray-200">
           <path d="M6 14H22M22 14L17 9M22 14L17 19" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
-        <p className="text-xs text-xmgray-400">暂无工具调用</p>
+        <p className="text-xs text-xmgray-400">{t("暂无工具调用")}</p>
       </div>
     )
   }
@@ -221,18 +226,15 @@ function ToolTrace({ events, records }: ToolTraceProps) {
   return (
     <div className="space-y-2.5">
       {events.map((event,index)=>isRecord(event.data.candidate_fusion)&&<details key={`fusion-${index}`} className="rounded-lg border p-2 text-xs">
-        <summary className="cursor-pointer">联网候选融合与来源记录</summary>
+        <summary className="cursor-pointer">{t("联网候选融合与来源记录")}</summary>
         <pre className="whitespace-pre-wrap break-all text-[10px]">{JSON.stringify(event.data.candidate_fusion,null,2)}</pre>
       </details>)}
       {events.map((event,index)=>Array.isArray(event.data.retrieval_channels)&&<details key={`retrieval-${index}`} className="rounded-lg border p-2 text-xs">
-        <summary className="cursor-pointer">内部资料筛选与检索记录</summary>
+        <summary className="cursor-pointer">{t("内部资料筛选与检索记录")}</summary>
         {event.data.retrieval_channels.filter(isRecord).map((item,position)=><div key={position} className="mt-2 space-y-1">
-          <p>{getString(item.query)||'当前检索'} · {getString(item.status)||getString(item.lexical)}</p>
-          {typeof item.returned_total==='number'&&<p>返回 {item.returned_total} 项；请求目标 {Number(item.requested_top_k)||0} 项。
-            {Number(item.returned_shortfall)>0&&'结果不足，保持原筛选范围。'}</p>}
-          {isRecord(item.filter_selectivity)&&<p>本人有效范围内观察 {Number(item.filter_selectivity.observed_authorized_chunks)||0} 块，
-            其中 {Number(item.filter_selectivity.retained_in_observed)||0} 块符合业务条件。
-            {item.filter_selectivity.scope_complete===false&&'此观察有数量上限，不代表整个资料集比例。'}</p>}
+          <p>{getString(item.query)||t("当前检索")} · {getString(item.status)||getString(item.lexical)}</p>
+          {typeof item.returned_total==='number'&&<p>{t("返回 ")}{item.returned_total} {t(" 项；请求目标 ")}{Number(item.requested_top_k)||0} {t("项。")}{Number(item.returned_shortfall)>0&&t("结果不足，保持原筛选范围。")}</p>}
+          {isRecord(item.filter_selectivity)&&<p>{t("本人有效范围内观察 ")}{Number(item.filter_selectivity.observed_authorized_chunks)||0} {t("块， 其中")}{Number(item.filter_selectivity.retained_in_observed)||0} {t("块符合业务条件。")}{item.filter_selectivity.scope_complete===false&&t("此观察有数量上限，不代表整个资料集比例。")}</p>}
           <pre className="whitespace-pre-wrap break-all text-[10px]">{JSON.stringify(item,null,2)}</pre>
         </div>)}
       </details>)}
@@ -263,13 +265,13 @@ function ToolTrace({ events, records }: ToolTraceProps) {
                 </span>
               )}
               {call.status === 'error' && (
-                <span className="text-[10px] text-red-500 shrink-0">失败</span>
+                <span className="text-[10px] text-red-500 shrink-0">{t("失败")}</span>
               )}
               {call.status === 'running' && (
-                <span className="text-[10px] text-xm-500 shrink-0">执行中</span>
+                <span className="text-[10px] text-xm-500 shrink-0">{t("执行中")}</span>
               )}
               {call.status === 'unknown' && (
-                <span className="text-[10px] text-xmgray-500 shrink-0">结果未知</span>
+                <span className="text-[10px] text-xmgray-500 shrink-0">{t("结果未知")}</span>
               )}
             </div>
             {call.query && (

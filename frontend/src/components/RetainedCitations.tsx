@@ -1,3 +1,4 @@
+import {useLocale,t,uiMessage} from '../i18n'
 import { useState } from 'react'
 
 export interface RetainedCitation {
@@ -6,6 +7,8 @@ export interface RetainedCitation {
 }
 interface Quote {text:string;start:number;end:number;evidence_id:string;version_id:string;coverage:string;upstream_locator:unknown}
 export default function RetainedCitations({sessionId,citations}:{sessionId?:string|null;citations:RetainedCitation[]}) {
+  useLocale()
+
   const [selected,setSelected]=useState(''),[quote,setQuote]=useState<Quote|null>(null),[error,setError]=useState(''),[loading,setLoading]=useState(false)
   const located=citations.filter(citation=>citation.locator?.evidence_id)
   async function read(citation:RetainedCitation,expand=false) {
@@ -16,21 +19,21 @@ export default function RetainedCitations({sessionId,citations}:{sessionId?:stri
     if (!expand)parameters.set('end',String(locator.end))
     try {
       const response=await fetch(`/api/v1/research/${encodeURIComponent(sessionId)}/evidence/${encodeURIComponent(locator.evidence_id)}?${parameters}`)
-      if (!response.ok)throw new Error(response.status===404?'该任务未保留此原文，或当前无权访问。':'无法读取该版本的原文范围。')
+      if (!response.ok)throw new Error(response.status===404?t("该任务未保留此原文，或当前无权访问。"):t("无法读取该版本的原文范围。"))
       setQuote(await response.json())
-    }catch(error){setError(error instanceof Error?error.message:'原文读取失败。')}
+    }catch(error){setError(error instanceof Error?uiMessage(error.message):t("原文读取失败。"))}
     finally{setLoading(false)}
   }
   if (!located.length)return null
-  return <details className="mt-6 rounded-xl border border-xmgray-200 p-4 text-sm" aria-label="本次报告的保留依据定位">
-    <summary className="cursor-pointer font-medium">本次保留的依据与原文位置</summary>
-    <p className="my-2 text-xs text-xmgray-500">保留摘录和位置不等于主张已核实。在线可读取本人任务原文；离线文件显示已保存摘录，原文入口需要连接当前应用。</p>
+  return <details className="mt-6 rounded-xl border border-xmgray-200 p-4 text-sm" aria-label={t("本次报告的保留依据定位")}>
+    <summary className="cursor-pointer font-medium">{t("本次保留的依据与原文位置")}</summary>
+    <p className="my-2 text-xs text-xmgray-500">{t("保留摘录和位置不等于主张已核实。在线可读取本人任务原文；离线文件显示已保存摘录，原文入口需要连接当前应用。")}</p>
     <ol className="space-y-4">{located.map(citation=><li key={citation.citation_id}>
       <p>{citation.citation_id} · {citation.source_title}</p>
-      <blockquote className="my-1 whitespace-pre-wrap break-words rounded bg-xmgray-50 p-2 text-xs">{citation.extracted_evidence||'该旧记录未保留展示摘录。'}</blockquote>
-      <p className="break-all text-xs">{citation.locator!.evidence_id} · 保留文字字符 {citation.locator!.start}–{citation.locator!.end}</p>
-      <div className="mt-1 flex gap-2"><button type="button" className="btn-ghost text-xs" disabled={!sessionId||loading} onClick={()=>void read(citation)}>查看本次原文</button><button type="button" className="btn-ghost text-xs" disabled={!sessionId||loading} onClick={()=>void read(citation,true)}>展开有限上下文</button></div>
-      {selected===citation.citation_id&&<div className="mt-2">{loading&&<p role="status">正在读取本任务保留版本…</p>}{error&&<p role="alert" className="text-red-700">{error}</p>}{quote&&<><p className="break-all text-xs">{quote.version_id} · {quote.coverage} · 字符{quote.start}–{quote.end}</p><blockquote className="whitespace-pre-wrap break-words rounded border p-3">{quote.text}</blockquote><details><summary>原资料与片段定位</summary><pre className="whitespace-pre-wrap break-words text-xs">{JSON.stringify(quote.upstream_locator,null,2)}</pre></details></>}</div>}
+      <blockquote className="my-1 whitespace-pre-wrap break-words rounded bg-xmgray-50 p-2 text-xs">{citation.extracted_evidence||t("该旧记录未保留展示摘录。")}</blockquote>
+      <p className="break-all text-xs">{citation.locator!.evidence_id} {t(" · 保留文字字符 ")}{citation.locator!.start}–{citation.locator!.end}</p>
+      <div className="mt-1 flex gap-2"><button type="button" className="btn-ghost text-xs" disabled={!sessionId||loading} onClick={()=>void read(citation)}>{t("查看本次原文")}</button><button type="button" className="btn-ghost text-xs" disabled={!sessionId||loading} onClick={()=>void read(citation,true)}>{t("展开有限上下文")}</button></div>
+      {selected===citation.citation_id&&<div className="mt-2">{loading&&<p role="status">{t("正在读取本任务保留版本…")}</p>}{error&&<p role="alert" className="text-red-700">{uiMessage(error)}</p>}{quote&&<><p className="break-all text-xs">{quote.version_id} · {quote.coverage} {t(" · 字符")}{quote.start}–{quote.end}</p><blockquote className="whitespace-pre-wrap break-words rounded border p-3">{quote.text}</blockquote><details><summary>{t("原资料与片段定位")}</summary><pre className="whitespace-pre-wrap break-words text-xs">{JSON.stringify(quote.upstream_locator,null,2)}</pre></details></>}</div>}
     </li>)}</ol>
   </details>
 }
