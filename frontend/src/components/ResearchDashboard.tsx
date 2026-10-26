@@ -7,6 +7,8 @@ import ExecutionFeed from './ExecutionFeed'
 import ResearchRunControls from './ResearchRunControls'
 import type {RunControlState} from './ResearchRunControls'
 import ResearchComposer from './ResearchComposer'
+import {setupRequest} from './researchSetup'
+import type {ResearchSetup} from './researchSetup'
 import { Icon, StatusPill } from './Interface'
 import ToolTrace from './ToolTrace'
 import type { PersistedToolCall } from './ToolTrace'
@@ -16,10 +18,10 @@ import ReportHistory from './ReportHistory'
 import ClassificationPanel from './ClassificationPanel'
 import IngestionPanel from './IngestionPanel'
 import type { OrganizationReportSnapshot } from './OrganizationReportSummary'
-import { defaultOrganizationDraft, organizationRequest } from './OrganizationResearchPanel'
+import { defaultOrganizationDraft } from './OrganizationResearchPanel'
 import type { WeightSelection } from './OrganizationWeightsPanel'
 import ResearchMatchingPanel from './ResearchMatchingPanel'
-import { defaultQueryDraft, queryDraftRequest, UnderstandingSummary } from './QueryUnderstandingPanel'
+import { defaultQueryDraft, UnderstandingSummary } from './QueryUnderstandingPanel'
 import type { QueryDraft, UnderstandingSnapshot } from './QueryUnderstandingPanel'
 import ResearchPlanSummary from './ResearchPlanSummary'
 import ResearchConfigurationEditor from './ResearchConfigurationEditor'
@@ -209,24 +211,17 @@ function ResearchDashboard({ onBack }: ResearchDashboardProps) {
     },
   })
 
-  function buildRequest(q: string) {
-    const drawingIds = queryDraft.drawingMode==='builtin'?[]:[
-      ...(queryDraft.drawingMode==='manual_skill'?queryDraft.drawingSkillIds:[]),
-      ...Object.values(queryDraft.chartSkillIds||{}).filter(Boolean)]
-    if (drawingIds.some(id => disabledSkillIds.includes(id))) throw new Error('绘图 Skill 已在会话中禁用，请先解除禁用或重新选择。')
-    return { query: q, use_internal_docs: useInternalDocs,
-      rag_group: useInternalDocs ? ragGroup.trim() || null : null, output_length: outputLength,
-      enabled_skill_ids: [...new Set([...enabledSkillIds, ...drawingIds])], disabled_skill_ids: disabledSkillIds,
-      channels: selectedChannels, organization_research: organizationRequest(organizationDraft, q, weightSelection),
-      ...queryDraftRequest(queryDraft, organizationDraft.enabled) }
+  function currentSetup(q=query):ResearchSetup {
+    return {query:q,queryDraft,organizationDraft,weights:weightSelection,outputLength,useInternal:useInternalDocs,group:ragGroup,channels:selectedChannels,enabled:enabledSkillIds,disabled:disabledSkillIds}
   }
+  function buildRequest(q:string) { return setupRequest(currentSetup(q)) }
 
   async function previewRequest(body: ReturnType<typeof buildRequest>, key: string): Promise<UnderstandingSnapshot> {
     const response = await fetch('/api/v1/research/understanding', {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
     })
     const data = await response.json()
-    if (!response.ok) throw new Error(typeof data.detail === 'string' ? data.detail : '查询配置无效，请检查对象、日期和页面设置。')
+    if (!response.ok) throw new Error(typeof data.detail === 'string' ? data.detail : '请检查对象、日期和报告选择。')
     if (requestKeyRef.current !== key) throw new Error('预览期间配置已变化，请重新预览。')
     setUnderstanding(data)
     setUnderstandingKey(key)
@@ -243,7 +238,7 @@ function ResearchDashboard({ onBack }: ResearchDashboardProps) {
       const key = requestKeyRef.current
       const body = buildRequest(q)
       const preview = await previewRequest(body, key)
-      if (!preview.ready) throw new Error('请先处理查询解释中的待澄清项，再开始研究。')
+      if (!preview.ready) throw new Error('请按预览补全选择后开始研究。')
       const res = await fetch('/api/v1/research', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -255,8 +250,8 @@ function ResearchDashboard({ onBack }: ResearchDashboardProps) {
           setUnderstanding(problem.detail.understanding)
           setUnderstandingKey(key)
         }
-        if (problem.detail?.category === 'query_preview_changed') throw new Error('研究配置或上下文已更新，已显示新解释，请重新提交。')
-        if (problem.detail?.category === 'query_clarification_required') throw new Error('请先处理查询解释中的待澄清项。')
+        if (problem.detail?.category === 'query_preview_changed') throw new Error('选择已变化，已更新计划，请再预览一次。')
+        if (problem.detail?.category === 'query_clarification_required') throw new Error('请按计划补充需要的选择。')
         throw new Error(typeof problem.detail === 'string' ? problem.detail : '研究配置未通过校验，请检查对象、学科和日期。')
       }
       return res.json()
@@ -282,6 +277,17 @@ function ResearchDashboard({ onBack }: ResearchDashboardProps) {
     // A corrected draft must not keep displaying a previous submission error.
     if (changed && !selection.error && startMutation.error && !startMutation.isPending) startMutation.reset()
   }, [startMutation.error, startMutation.isPending, startMutation.reset])
+
+  function applySetup(value:ResearchSetup) {
+    if(JSON.stringify(value)!==JSON.stringify(currentSetup())){
+      if(startMutation.error&&!startMutation.isPending)startMutation.reset()
+      if(previewMutation.error&&!previewMutation.isPending)previewMutation.reset()
+    }
+    setQuery(value.query);setQueryDraft(value.queryDraft);setOrganizationDraft(value.organizationDraft)
+    if(value.weights)applyWeightSelection(value.weights);else{previousWeightSelection.current='';setWeightSelection(undefined)}
+    setOutputLength(value.outputLength);setUseInternalDocs(value.useInternal);setRagGroup(value.group)
+    setSelectedChannels(value.channels);setEnabledSkillIds(value.enabled);setDisabledSkillIds(value.disabled)
+  }
 
   useEffect(() => {
     const doneEvent = events.find((e: SSEvent) => e.type === 'done' || e.type === 'workflow_error')
@@ -466,14 +472,10 @@ function ResearchDashboard({ onBack }: ResearchDashboardProps) {
   if(activeSessionId&&resultError&&!result)return <div className="research-workspace"><p role="alert" className="composer-error">{resultError.message}</p><div className="flex gap-3 mt-5"><button type="button" className="btn-secondary" onClick={()=>void refetchResult()}>重新读取</button><button type="button" className="btn-ghost" onClick={handleNewResearch}>新研究</button></div></div>
 
   if (!activeSessionId) return <ResearchComposer
-    query={query} onQuery={setQuery} onStart={handleStart} onPreview={() => previewMutation.mutate()} onBack={onBack}
+    value={currentSetup()} onChange={applySetup} onStart={handleStart} onPreview={()=>previewMutation.mutate()} onBack={onBack}
     inputRef={inputRef} onKeyDown={handleKeyDown} busy={busy} starting={startMutation.isPending}
-    outputLength={outputLength} onLength={setOutputLength} queryDraft={queryDraft} onDraft={setQueryDraft}
-    organizationDraft={organizationDraft} onOrganization={setOrganizationDraft} onWeights={applyWeightSelection}
     understanding={understanding} previewCurrent={understandingKey===requestDraftKey}
-    error={startMutation.error?.message || previewMutation.error?.message}
-    skills={skillsData?.items || []} enabled={enabledSkillIds} disabled={disabledSkillIds} setEnabled={setEnabledSkillIds} setDisabled={setDisabledSkillIds}
-    useInternal={useInternalDocs} onInternal={setUseInternalDocs} group={ragGroup} onGroup={setRagGroup} channels={selectedChannels} onChannels={setSelectedChannels}
+    error={startMutation.error?.message||previewMutation.error?.message} skills={skillsData?.items||[]}
   />
 
   return <div className="research-workspace">

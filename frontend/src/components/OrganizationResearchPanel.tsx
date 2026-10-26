@@ -34,7 +34,6 @@ const labels: Record<OrganizationType, string> = { university: '高校', laborat
 export function organizationRequest(draft: OrganizationDraft, topic: string, preference?: WeightSelection) {
   if (!draft.enabled) return null
   if (!draft.types.length) throw new Error('请至少选择一种研究对象类型。')
-  if (draft.modules === null) throw new Error('研究模块加载中，请稍候。')
   if (draft.modules && !draft.modules.length) throw new Error('请至少选择一个研究模块。')
   const disciplines = draft.disciplines.split(/[,，]/).map(s => s.trim()).filter(Boolean)
   if (!disciplines.length) throw new Error('请填写至少一个学科。')
@@ -49,10 +48,9 @@ export function organizationRequest(draft: OrganizationDraft, topic: string, pre
       aliases: [], source_urls: [source.href], resolution_status: 'pending' }
   })
   if (preference?.error) throw new Error(preference.error)
-  if (!preference?.configuration && !preference?.reference) throw new Error('权重配置加载中，请稍候。')
   const corpus = corpusRequest(draft.corpus)
   return { action_requirements:actionRequirementsRequest(draft.actionRequirements), taxonomy: taxonomyRequest(draft.taxonomy), purpose: draft.purpose || 'research_development', ...(draft.modules ? { modules: draft.modules } : {}), ...(corpus ? { corpus } : {}), scope: { organization_types: draft.types, entities, disciplines, topic,
-    start_date: draft.startDate, end_date: draft.endDate }, ...(preference.reference ? { weight_preset: preference.reference } : { weights: preference.configuration }) }
+    start_date: draft.startDate, end_date: draft.endDate }, ...(preference?.reference ? { weight_preset: preference.reference } : preference?.configuration?{ weights: preference.configuration }:{}) }
 }
 
 export default function OrganizationResearchPanel({ value, onChange }: { value: OrganizationDraft; onChange: (value: OrganizationDraft) => void }) {

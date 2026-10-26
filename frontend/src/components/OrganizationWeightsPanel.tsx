@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 type Weight = number | { weight: number; enabled: boolean }
@@ -98,7 +98,9 @@ export function configurationFromPreview(preview: WeightPreview): WeightConfigur
   return { ...preview.raw_config, config_version: preview.config_version, mappings: preview.mappings }
 }
 
-export default function OrganizationWeightsPanel({ disciplines, onChange, initialPreview }: { disciplines: string; onChange: (selection: WeightSelection) => void; initialPreview?: WeightPreview }) {
+export default function OrganizationWeightsPanel({ disciplines, onChange, initialPreview, deferInitial=false }: { disciplines: string; onChange: (selection: WeightSelection) => void; initialPreview?: WeightPreview;deferInitial?:boolean }) {
+  const interacted=useRef(!deferInitial)
+  const markDirty=()=>{interacted.current=true;setDirty(true)}
   const client = useQueryClient()
   const [draft, setDraft] = useState<Draft | null>(() => initialPreview ? draftFrom(initialPreview) : null)
   const [selected, setSelected] = useState(initialPreview ? 'saved_configuration' : 'research_development')
@@ -123,6 +125,7 @@ export default function OrganizationWeightsPanel({ disciplines, onChange, initia
   const effective = directPersonal ? base?.effective_configuration : JSON.stringify(ready) === configKey && !preview.isFetching && !preview.error ? preview.data : undefined
   const error = catalogue.error?.message || parsed.error || (!directPersonal && preview.error?.message) || (!effective ? '正在校验当前权重，请稍候。' : undefined)
   useEffect(() => {
+    if(!interacted.current)return
     onChange(error ? { error } : directPersonal && base ? { reference: { preset_id: base.preset_id, version: base.version }, effective }
       : { configuration: parsed.config, effective })
   }, [error, directPersonal, base, effective, parsed.config, onChange])
@@ -138,9 +141,10 @@ export default function OrganizationWeightsPanel({ disciplines, onChange, initia
   // Results are tied to the exact visible form, so changing context never shows an old lookup as current.
   const evaluationInput = { context, target, work, publication: publicationYear, metric: metricYear }
   const currentEvaluation = JSON.stringify(evaluation.variables) === JSON.stringify(evaluationInput) ? evaluation.data : undefined
-  const selectPersonal = (record: PersonalPreset) => { setSelected(personalKey(record)); setBase(record); setName(record.name); setDraft(draftFrom(record.effective_configuration)); setDirty(false) }
-  const restore = () => { const source = base?.effective_configuration || (selected === 'saved_configuration' ? initialPreview : catalogue.data?.presets[selected]); if (source) { setDraft(draftFrom(source)); setDirty(false) } }
+  const selectPersonal = (record: PersonalPreset) => { interacted.current=true; setSelected(personalKey(record)); setBase(record); setName(record.name); setDraft(draftFrom(record.effective_configuration)); setDirty(false) }
+  const restore = () => { interacted.current=true; const source = base?.effective_configuration || (selected === 'saved_configuration' ? initialPreview : catalogue.data?.presets[selected]); if (source) { setDraft(draftFrom(source)); setDirty(false) } }
   const select = (value: string) => {
+    interacted.current=true
     if (value === 'saved_configuration' && initialPreview) { setSelected(value); setBase(null); setDraft(draftFrom(initialPreview)); setDirty(false); return }
     if (value.startsWith('personal:')) { const record = savedOptions.find(item => personalKey(item) === value); if (record) selectPersonal(record) }
     else if (catalogue.data?.presets[value]) { setSelected(value); setBase(null); setDraft(draftFrom(catalogue.data.presets[value])); setDirty(false) }
@@ -152,7 +156,7 @@ export default function OrganizationWeightsPanel({ disciplines, onChange, initia
       ...(update ? { expected_version: base!.version } : {}) }, undefined, update ? 'PUT' : 'POST')
   }, onSuccess: record => { selectPersonal(record); client.invalidateQueries({ queryKey: ['organization-personal-presets'] }) } })
   const changeRow = (level: 'roots' | 'groups' | 'metrics', key: string, patch: Partial<Row>) => {
-    setDirty(true)
+    markDirty()
     setDraft(current => current && ({ ...current, [level]: { ...current[level], [key]: { ...(current[level][key] ?? { weight: '1', enabled: false }), ...patch } } }))
   }
   function weightRow(level: 'roots' | 'groups', key: string, label: string, value?: number) {
@@ -165,30 +169,30 @@ export default function OrganizationWeightsPanel({ disciplines, onChange, initia
   }
   return <section className="mt-4 rounded-2xl border border-xmgray-200 bg-white p-4 text-left" aria-label="研究偏好与评价">
     <h3 className="text-sm font-medium text-xmgray-800">研究偏好与评价</h3>
-    <p className="mt-2 text-xs leading-5 text-xmgray-500">比例表示研究偏好。硬条件、来源缺口与已核实事实不会被权重改写；此处不会重新取证或产生候选评分。</p>
+
     {catalogue.isPending && <p role="status">正在读取权重预设…</p>}
     {catalogue.error && <p role="alert">{catalogue.error.message} <button type="button" onClick={() => catalogue.refetch()}>重试读取预设</button></p>}
     {draft && <div className="mt-4 space-y-4">
       <div className="flex flex-wrap items-end gap-3">
         <label className="min-w-48 flex-1 text-xs text-xmgray-600">权重预设<select aria-label="权重预设" className="input-xm mt-1 text-sm" value={selected} onChange={e => select(e.target.value)}>
-          {initialPreview && <option value="saved_configuration">本次研究冻结配置</option>}
+          {initialPreview && <option value="saved_configuration">沿用本次选择</option>}
           <option value="research_development">研究发展</option><option value="cooperation_discovery">合作发现</option>
-          {savedOptions.map(record => <option key={personalKey(record)} value={personalKey(record)}>{record.name} · v{record.version}</option>)}
+          {savedOptions.map(record => <option key={personalKey(record)} value={personalKey(record)}>{record.name} · 第 {record.version} 次保存</option>)}
         </select></label>
         <button type="button" className="btn-ghost text-sm" onClick={restore}>恢复所选预设</button>
       </div>
-      {base && <p className="text-xs text-xmgray-600">已选个人预设：{base.name} · v{base.version}</p>}
-      {dirty && <p className="text-xs text-orange-700">有未保存修改；本次研究会使用当前自定义配置，或先保存为个人预设版本。</p>}
+      {base && <p className="text-xs text-xmgray-600">已选：{base.name}</p>}
+      {dirty && <p className="text-xs text-orange-700">本次使用调整后的权重。</p>}
       {presets.error && <p role="alert">个人预设读取失败：{presets.error.message} <button type="button" onClick={() => presets.refetch()}>重试个人预设</button></p>}
-      <fieldset><legend className="text-xs font-medium text-xmgray-700">匹配维度 · 右侧为归一化比例</legend>
+      <fieldset><legend className="text-xs font-medium text-xmgray-700">匹配重点 · 右侧为实际占比</legend>
         {Object.entries(dimensionLabels).map(([key,label]) => weightRow('roots',key,label,effective?.effective_weights[key]))}
       </fieldset>
-      <fieldset><legend className="text-xs font-medium text-xmgray-700">成果表现内部 · 子组比例受父级预算限制</legend>
+      <fieldset><legend className="text-xs font-medium text-xmgray-700">成果评价的组成</legend>
         {Object.entries(groupLabels).map(([key,label]) => weightRow('groups',key,label,effective?.effective_groups[key]))}
       </fieldset>
-      <label className="block text-xs text-xmgray-600">配置版本<input aria-label="配置版本" className="input-xm mt-1 text-sm" value={draft.version} maxLength={300} onChange={e => { setDirty(true); setDraft({ ...draft, version: e.target.value }) }} /></label>
+
       {error && <p role="alert" className="rounded-lg bg-orange-50 p-3 text-sm text-orange-800">{error}</p>}
-      {effective && <p className="text-xs text-xmgray-500">生效配置：{effective.config_version}；规则：{effective.rule_version}；预设目录：{effective.preset_version}。停用保留原值，实际比例为零。</p>}
+
       <div className="border-t border-xmgray-100 pt-4">
         <label className="block text-xs text-xmgray-600">个人预设名称<input className="input-xm mt-1 text-sm" value={name} maxLength={300} onChange={e => setName(e.target.value)} /></label>
         <div className="mt-3 flex flex-wrap gap-2"><button type="button" className="btn-ghost text-sm" disabled={!!error || !name.trim() || save.isPending} onClick={() => save.mutate(false)}>保存为新预设</button>
@@ -197,7 +201,7 @@ export default function OrganizationWeightsPanel({ disciplines, onChange, initia
       </div>
       <div className="border-t border-xmgray-100 pt-4">
         <h4 className="text-sm font-medium">评价适用性与指标权重</h4>
-        <p className="mt-2 text-xs leading-5 text-xmgray-500">按上方学科及下方成果类型判断适用性。公开部分样本不代表指定成果有数据；偏好比例不代表指标已取得或适用于本次成果。</p>
+
         <label className="mt-3 block text-xs text-xmgray-600">评价成果类型<select aria-label="评价成果类型" className="input-xm mt-1 text-sm" value={outputType} onChange={e => setOutputType(e.target.value)}>
           {Object.entries({ conference_paper: '会议论文', journal_article: '期刊论文', preprint: '预印本', book: '专著', software: '软件', dataset: '数据集' }).map(([key,label]) => <option key={key} value={key}>{label}</option>)}
         </select></label>
@@ -222,19 +226,19 @@ export default function OrganizationWeightsPanel({ disciplines, onChange, initia
             <div className="mt-2 flex flex-wrap items-center gap-2"><label className="text-xs"><input type="checkbox" aria-label={label + ' 指标启用'} checked={!!metric?.enabled} onChange={e => changeRow('metrics',scheme.scheme_id,{ enabled: e.target.checked })} /> 配置偏好</label>
               <input className="input-xm max-w-24 text-xs" type="number" min="0" step="any" aria-label={label + ' 指标权重'} disabled={!metric?.enabled} value={metric?.weight ?? '1'} onChange={e => changeRow('metrics',scheme.scheme_id,{ weight: e.target.value })} />
               <output className="text-xs" aria-label={label + ' 组内比例'}>{percent(effective?.effective_metric_weights[scheme.scheme_id] ?? (effective ? 0 : undefined))}</output></div>
-            {!scheme.applicable && metric?.enabled && <p className="mt-1 text-xs text-orange-700">保留跨情境偏好；当前类型／学科不适用，不当作有效成果评价。</p>}
+            {!scheme.applicable && metric?.enabled && <p className="mt-1 text-xs text-orange-700">当前学科不使用该指标。</p>}
             {evaluated && <div className="mt-2 text-xs"><p>{availability[evaluated.availability]}</p><p className="text-xmgray-500">{evaluated.reason}</p>
               {evaluated.records.map((record,index) => <p key={index}><a className="text-xm-600 underline" href={record.source_url} target="_blank" rel="noreferrer">{String(record.raw_value)} · {record.edition}</a> · {record.category}</p>)}</div>}
             <a href={scheme.source_url} target="_blank" rel="noreferrer" className="mt-2 inline-block text-xs text-xm-600 underline">体系来源</a>
             {scheme.source_versions.length > 0 && <details className="mt-1 text-xs text-xmgray-500"><summary className="cursor-pointer">部分样本版本</summary>{scheme.source_versions.map((source,index) => <p key={index}>{source.edition} · {source.metric_year} · {source.provider}</p>)}</details>}
           </article>
         })}</div>
-        <button type="button" className="btn-ghost mt-3 text-xs" onClick={() => { setDirty(true); setDraft({ ...draft, metrics: {} }) }}>清空指标配置</button>
+        <button type="button" className="btn-ghost mt-3 text-xs" onClick={() => { markDirty(); setDraft({ ...draft, metrics: {} }) }}>清空指标配置</button>
       </div>
-      <details className="border-t border-xmgray-100 pt-3"><summary className="cursor-pointer text-sm">等级偏好映射（产品偏好，不是体系间官方等价）</summary>
+      <details className="border-t border-xmgray-100 pt-3"><summary className="cursor-pointer text-sm">等级对应的偏好分值</summary>
         {draft.mappings.map((mapping,index) => <fieldset key={mapping.scheme_id} className="mt-3 rounded-xl bg-xmgray-50 p-3"><legend className="text-xs">{schemeLabels[mapping.scheme_id]}</legend>
-          <label className="text-xs">映射版本<input className="input-xm mt-1 text-xs" value={mapping.version} onChange={e => { setDirty(true); setDraft({ ...draft, mappings: draft.mappings.map((item,i) => i === index ? { ...item, version: e.target.value } : item) }) }} /></label>
-          <div className="mt-2 flex flex-wrap gap-3">{Object.entries(mapping.scores).map(([grade,value]) => <label key={grade} className="w-20 text-xs">{grade}<input className="input-xm mt-1 text-xs" type="number" min="0" max="1" step="any" aria-label={`${schemeLabels[mapping.scheme_id]} ${grade} 偏好分值`} value={value} onChange={e => { setDirty(true); setDraft({ ...draft, mappings: draft.mappings.map((item,i) => i === index ? { ...item, scores: { ...item.scores, [grade]: e.target.value } } : item) }) }} /></label>)}</div>
+
+          <div className="mt-2 flex flex-wrap gap-3">{Object.entries(mapping.scores).map(([grade,value]) => <label key={grade} className="w-20 text-xs">{grade}<input className="input-xm mt-1 text-xs" type="number" min="0" max="1" step="any" aria-label={`${schemeLabels[mapping.scheme_id]} ${grade} 偏好分值`} value={value} onChange={e => { markDirty(); setDraft({ ...draft, mappings: draft.mappings.map((item,i) => i === index ? { ...item, scores: { ...item.scores, [grade]: e.target.value } } : item) }) }} /></label>)}</div>
         </fieldset>)}
       </details>
     </div>}

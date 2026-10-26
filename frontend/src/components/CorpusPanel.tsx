@@ -7,12 +7,12 @@ const lines = (value: string) => value.split(/\r?\n/).map(item => item.trim()).f
 export function corpusRequest(draft?: CorpusDraft) {
   if (!draft?.enabled) return undefined
   const domains = draft.domains.split(/[,，]/).map(item => item.trim()).filter(Boolean)
-  if (domains.some(domain => /[/:\s]/.test(domain))) throw new Error('来源域名请填写主机名，不含协议或路径。')
+  if (domains.some(domain => /[/:\s]/.test(domain))) throw new Error('请填写有效的网站域名，或直接粘贴网址。')
   const seeds = lines(draft.seeds)
   for (const value of seeds) {
     let url: URL
-    try { url = new URL(value) } catch { throw new Error('每行种子须为完整 HTTPS 网址。') }
-    if (url.protocol !== 'https:') throw new Error('样本读取使用 HTTPS 网址。')
+    try { url = new URL(value) } catch { throw new Error('请填写完整的文档网址，例如 https://example.org/paper.pdf。') }
+    if (url.protocol !== 'https:') throw new Error('文档网址请使用 HTTPS。')
   }
   return { collection_mode: draft.mode, seed_urls: seeds, search_terms: lines(draft.terms),allow_ocr:!!draft.allowOcr,
     output_types: draft.outputTypes.split(/[,，]/).map(item => item.trim()).filter(Boolean),

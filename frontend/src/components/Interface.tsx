@@ -10,6 +10,7 @@ export function Icon({ name, size = 20 }: { name: string; size?: number }) {
     layers: <><path d="m12 3 10 6-10 6L2 9zM2 14l10 6 10-6M2 18l10 6 10-6" /></>,
     settings: <><path d="M4 6h16M4 12h16M4 18h16" /><path d="M8 3v6m8 0v6m-6 0v6" /></>,
     close: <path d="m6 6 12 12M18 6 6 18" />,
+    chevron: <path d="m6 9 6 6 6-6" />,
     plus: <path d="M12 4v16M4 12h16" />,
     minus: <path d="M4 12h16" />,
     fit: <><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5" /><rect x="8" y="8" width="8" height="8" rx="1" /></>,

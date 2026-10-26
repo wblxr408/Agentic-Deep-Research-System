@@ -1,60 +1,42 @@
 import {useRef,useState} from 'react'
-import {UnderstandingSummary} from './QueryUnderstandingPanel'
+import {useQuery} from '@tanstack/react-query'
+import ResearchComposer from './ResearchComposer'
+import {choiceProblem} from './ResearchOptionsEditor'
+import {setupFromRequest,setupRequest} from './researchSetup'
+import type {ResearchSetup} from './researchSetup'
 import type {UnderstandingSnapshot} from './QueryUnderstandingPanel'
 
 async function post(path:string,body:unknown) {
   const response=await fetch(`/api/v1/research${path}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
-  const value=await response.json().catch(()=>({detail:'服务返回内容不完整，请保留配置后重试。'}))
-  if(!response.ok) {
-    const detail=value.detail
-    throw new Error(typeof detail==='string'?detail:Array.isArray(detail)?detail.map((item:{loc?:unknown[];msg?:string})=>
-      `${item.loc?.join('.')||'配置'}：${item.msg||'字段无效'}`).join('；'):'配置已变化或尚需澄清，请重新预览。')
-  }
+  const value=await response.json().catch(()=>({detail:'暂时没有收到完整结果，请重试。'}))
+  if(!response.ok)throw new Error(typeof value.detail==='string'?value.detail:'请检查对象、日期和报告选择后重新预览。')
   return value
 }
-
-export default function ResearchConfigurationEditor({query,parameters,onStarted}:{
-  query:string;parameters?:Record<string,unknown>;onStarted:(sessionId:string)=>void
-}) {
-  const [text,setText]=useState(()=>JSON.stringify({...parameters,query},null,2))
-  const [preview,setPreview]=useState<{body:string;value:UnderstandingSnapshot}|null>(null)
-  const [busy,setBusy]=useState(false)
-  const [error,setError]=useState('')
-  const pending=useRef(false)
-  async function perform(start:boolean) {
+export default function ResearchConfigurationEditor({query,parameters,onStarted}:{query:string;parameters?:Record<string,unknown>;onStarted:(sessionId:string)=>void}) {
+  const [value,setValue]=useState(()=>setupFromRequest(parameters,query)),[preview,setPreview]=useState<{key:string;value:UnderstandingSnapshot}|null>(null)
+  const [busy,setBusy]=useState(false),[starting,setStarting]=useState(false),[error,setError]=useState('')
+  const pending=useRef(false),current=useRef(value),input=useRef<HTMLTextAreaElement>(null);current.current=value
+  const skills=useQuery<{items:Array<{id:string;name:string;enabled:boolean}>}>({queryKey:['skills'],queryFn:async()=>{const response=await fetch('/api/v1/skills');if(!response.ok)throw new Error('暂时无法读取研究方法');return response.json()}})
+  const key=JSON.stringify(value),ready=preview?.key===key&&!!preview.value.ready
+  function change(next:ResearchSetup){current.current=next;setValue(next);setError('')}
+  async function perform(start:boolean){
     if(pending.current)return
-    pending.current=true;setBusy(true);setError('')
-    try {
-      const body=JSON.parse(text)
-      if(!body||Array.isArray(body)||typeof body!=='object'||typeof body.query!=='string'||!body.query.trim())
-        throw new Error('请填写包含非空query的配置对象。')
-      // A new request does not inherit the old root's approvals or preview.
-      delete body.query_preview_id;delete body.user_confirmed
-      if(start) {
-        if(!preview||preview.body!==text||!preview.value.ready)throw new Error('请先预览当前配置并处理待澄清项。')
+    const problem=choiceProblem(value);if(problem){setError(problem.message);return}
+    pending.current=true;setBusy(true);setStarting(start);setError('')
+    try{
+      const body=setupRequest(value)
+      if(start){
+        if(!ready||!preview)throw new Error('请先预览当前选择。')
         const created=await post('',{...body,query_preview_id:preview.value.interpretation_id})
-        if(typeof created.session_id!=='string')throw new Error('未取得新任务身份，请保留当前配置。')
+        if(typeof created.session_id!=='string')throw new Error('新研究尚未创建，请重试。')
         onStarted(created.session_id)
-      } else {
-        const value=await post('/understanding',body) as UnderstandingSnapshot
-        setPreview({body:text,value})
+      }else{
+        const snapshot=await post('/understanding',body) as UnderstandingSnapshot
+        if(JSON.stringify(current.current)!==key)return
+        setPreview({key,value:snapshot})
       }
-    } catch(problem) {
-      if(start)setPreview(null)
-      setError(problem instanceof Error?problem.message:'配置未能提交，请检查内容。')
-    } finally {pending.current=false;setBusy(false)}
+    }catch(cause){setError(cause instanceof Error?cause.message:'暂时无法处理，请重试。')}
+    finally{pending.current=false;setBusy(false);setStarting(false)}
   }
-  return <details className="card p-4 text-sm" aria-label="修改配置创建新研究">
-    <summary className="cursor-pointer font-medium">修改配置并创建新研究</summary>
-    <p className="my-3 text-xs text-xmgray-500">可调整问题、来源、对象、计划策略、补证轮次和交付方案。预览使用当前本人可用配置；开始后创建独立任务，旧任务及其已消耗预算继续保留在历史中。</p>
-    <label className="block text-xs">研究请求 JSON<textarea className="input-xm mt-2 w-full font-mono text-xs" rows={12}
-      maxLength={200000} disabled={busy} value={text} onChange={event=>{setText(event.target.value);setPreview(null);setError('')}}/></label>
-    <div className="my-3 flex flex-wrap gap-3">
-      <button className="btn-ghost text-sm" type="button" disabled={busy} onClick={()=>perform(false)}>{busy?'正在处理…':'预览修改后的配置'}</button>
-      <button className="btn-primary text-sm" type="button" disabled={busy||!preview?.value.ready||preview.body!==text}
-        onClick={()=>perform(true)}>按此配置开始新研究</button>
-    </div>
-    {error&&<p role="alert" className="text-xs text-red-700">{error}</p>}
-    {preview&&<UnderstandingSummary value={preview.value}/>}
-  </details>
+  return <details className="restart-choices" aria-label="调整后重新研究"><summary>调整后重新研究<small>从当前选择开始</small></summary><ResearchComposer restart value={value} onChange={change} inputRef={input} onStart={()=>void perform(true)} onPreview={()=>void perform(false)} busy={busy} starting={starting} understanding={preview?.value||null} previewCurrent={preview?.key===key} error={error} skills={skills.data?.items||[]}/></details>
 }

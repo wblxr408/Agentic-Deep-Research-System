@@ -76,7 +76,7 @@ export function queryDraftRequest(draft: QueryDraft, organizationEnabled: boolea
   for (const line of (draft.termAliases||'').split('\n').map(item=>item.trim()).filter(Boolean)) {
     const [term,...aliases]=line.split('|').map(item=>item.trim())
     if (!term||!aliases.length||aliases.some(item=>!item)||Object.prototype.hasOwnProperty.call(termAliases,term))
-      throw new Error('术语每行填写 原词 | 别称1 | 别称2；原词不能重复。')
+      throw new Error('请补全术语和其他叫法，术语不能重复。')
     termAliases[term]=aliases
   }
   const entities = organizationEnabled ? [] : draft.entityText.split('\n').map(line => line.trim()).filter(Boolean).map((line, index) => {
@@ -111,29 +111,18 @@ export function queryDraftRequest(draft: QueryDraft, organizationEnabled: boolea
   }
 }
 
-export function UnderstandingSummary({ value }: { value: UnderstandingSnapshot | null | undefined }) {
-  if (!value) return null
-  const templates:Record<string,string>={'markdown-v1':'简洁长文','research-map-v1':'研究脉络','organization-development-v1':'组织研究','technology-comparison-v1':'技术比较','cooperation-matching-v1':'合作资源','field-trends-v1':'领域趋势',custom:'自定义页面'}
-  return <section className="understanding-summary" aria-label="研究计划预览">
-    <div className="understanding-heading"><h3>研究计划预览</h3><span>{value.ready?'就绪':'补充信息'}</span></div>
-    <dl>
-      <div><dt>对象</dt><dd>{value.slots.entities.map(item=>item.name).join('、')||'按问题发现候选'}</dd></div>
-      <div><dt>目的</dt><dd>{purposes[value.slots.purpose]||queryTypes[value.query_type]||'通用研究'}</dd></div>
-      {value.slots.time_window&&<div><dt>时间</dt><dd>{value.slots.time_window.start_date} — {value.slots.time_window.end_date}</dd></div>}
-      {value.temporal.as_of_date&&<div><dt>观察截止</dt><dd>{value.temporal.as_of_date}</dd></div>}
-      {!!value.slots.modules.length&&<div><dt>内容</dt><dd>{value.slots.modules.map(key=>modules[key]||key).join(' · ')}</dd></div>}
-      <div><dt>交付</dt><dd>{templates[value.delivery.template]||value.delivery.template} · {value.delivery.formats.map(format=>format.toUpperCase()).join(' / ')}</dd></div>
-    </dl>
-    {!!value.clarifications.length&&<ul className="understanding-clarifications" aria-label="待补充信息">{value.clarifications.map(item=><li key={item.id}>{item.message}</li>)}</ul>}
-    <details><summary>配置明细</summary><dl>
-      <div><dt>参考日期</dt><dd>{value.temporal.reference_date}</dd></div>
-      {value.data_governance&&<><div><dt>资料范围</dt><dd>{({public:'公开',internal:'内部',confidential:'机密',regulated:'受监管'} as Record<string,string>)[value.data_governance.initial_class]||value.data_governance.initial_class}</dd></div><div><dt>模型范围</dt><dd>{({public:'公开',internal:'内部',confidential:'机密',regulated:'受监管'} as Record<string,string>)[value.data_governance.policy.max_model_class]}</dd></div></>}
-      {value.query_rewriting&&<div><dt>检索变体上限</dt><dd>{value.query_rewriting.max_variants}</dd></div>}
-    </dl>
-    {value.candidate_fusion&&<details><summary>候选融合</summary><pre className="whitespace-pre-wrap break-words text-xs">{JSON.stringify(value.candidate_fusion.policy,null,2)}</pre></details>}
-    {!!value.internal_filter?.policy.any_of.length&&<details><summary>资料筛选</summary><pre className="whitespace-pre-wrap break-words text-xs">{JSON.stringify(value.internal_filter.policy,null,2)}</pre></details>}
-    </details>
-  </section>
+export function UnderstandingSummary({value}:{value:UnderstandingSnapshot|null|undefined}) {
+  if(!value)return null
+  const templates:Record<string,string>={'markdown-v1':'简洁长文','visual-brief-v1':'图文简报','research-map-v1':'研究脉络','organization-development-v1':'机构研究','technology-comparison-v1':'技术对比','cooperation-matching-v1':'合作资源','field-trends-v1':'领域趋势',custom:'自定义'}
+  const formats:Record<string,string>={markdown:'可编辑文字',html:'网页报告',json:'数据文件',pdf:'PDF',pptx:'幻灯片'}
+  return <section className="understanding-summary" aria-label="研究计划预览"><div className="understanding-heading"><h3>研究计划</h3><span>{value.ready?'可开始':'补充选择'}</span></div><dl>
+    <div><dt>对象</dt><dd>{value.slots.entities.map(item=>item.name).join('、')||'围绕问题发现'}</dd></div>
+    <div><dt>重点</dt><dd>{purposes[value.slots.purpose]||queryTypes[value.query_type]||'围绕问题研究'}</dd></div>
+    {value.slots.time_window&&<div><dt>时间</dt><dd>{value.slots.time_window.start_date} 至 {value.slots.time_window.end_date}</dd></div>}
+    {value.temporal.as_of_date&&<div><dt>观察截止</dt><dd>{value.temporal.as_of_date}</dd></div>}
+    {!!value.slots.modules.length&&<div><dt>展开</dt><dd>{value.slots.modules.map(key=>modules[key]||key).join(' · ')}</dd></div>}
+    <div><dt>报告</dt><dd>{templates[value.delivery.template]||'已保存的样式'} · {value.delivery.formats.map(format=>formats[format]||format).join(' / ')}</dd></div>
+  </dl>{!!value.clarifications.length&&<ul className="understanding-clarifications" aria-label="需要补充的选择">{value.clarifications.map(item=><li key={item.id}>{item.message}</li>)}</ul>}</section>
 }
 
 function FieldLabel({ title, children }: { title: string; children: ReactNode }) {

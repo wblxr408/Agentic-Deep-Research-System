@@ -1,49 +1,35 @@
-import { useState } from 'react'
-import type { Dispatch, RefObject, SetStateAction, KeyboardEvent } from 'react'
-import QueryUnderstandingPanel, { UnderstandingSummary } from './QueryUnderstandingPanel'
-import type { QueryDraft, UnderstandingSnapshot } from './QueryUnderstandingPanel'
-import OrganizationResearchPanel from './OrganizationResearchPanel'
-import type { OrganizationDraft } from './OrganizationResearchPanel'
-import OrganizationWeightsPanel from './OrganizationWeightsPanel'
-import type { WeightSelection } from './OrganizationWeightsPanel'
-import ChannelPanel from './ChannelPanel'
-import { Icon, Modal, TraceLoader } from './Interface'
+import {useState} from 'react'
+import type {RefObject,KeyboardEvent} from 'react'
+import {UnderstandingSummary} from './QueryUnderstandingPanel'
+import type {UnderstandingSnapshot} from './QueryUnderstandingPanel'
+import {Icon,Modal,TraceLoader} from './Interface'
+import ResearchOptionsEditor from './ResearchOptionsEditor'
+import type {ChoiceSection} from './ResearchOptionsEditor'
+import type {ResearchSetup} from './researchSetup'
+import {setupSummary} from './researchSetup'
+import '../research-choices.css'
 
 interface Props {
-  query: string; onQuery: (value:string)=>void; onStart:()=>void; onPreview:()=>void; onBack?:()=>void
-  inputRef:RefObject<HTMLTextAreaElement>; onKeyDown:(event:KeyboardEvent<HTMLTextAreaElement>)=>void
-  busy:boolean; starting:boolean; outputLength:string; onLength:(value:'short'|'medium'|'long')=>void
-  queryDraft:QueryDraft; onDraft:(value:QueryDraft)=>void; organizationDraft:OrganizationDraft; onOrganization:(value:OrganizationDraft)=>void
-  onWeights:(value:WeightSelection)=>void; understanding:UnderstandingSnapshot|null; previewCurrent:boolean; error?:string
-  skills:Array<{id:string;name:string;enabled:boolean}>; enabled:string[]; disabled:string[]
-  setEnabled:Dispatch<SetStateAction<string[]>>; setDisabled:Dispatch<SetStateAction<string[]>>
-  useInternal:boolean; onInternal:(value:boolean)=>void; group:string; onGroup:(value:string)=>void
-  channels:string[]; onChannels:(value:string[])=>void
+  value:ResearchSetup;onChange:(value:ResearchSetup)=>void;onStart:()=>void;onPreview:()=>void;onBack?:()=>void
+  inputRef:RefObject<HTMLTextAreaElement>;onKeyDown?:(event:KeyboardEvent<HTMLTextAreaElement>)=>void
+  busy:boolean;starting:boolean;understanding:UnderstandingSnapshot|null;previewCurrent:boolean;error?:string
+  skills:Array<{id:string;name:string;enabled:boolean;stages?:string[];agent_hints?:Record<string,string|null>}>;restart?:boolean
 }
 export default function ResearchComposer(p:Props) {
-  const [configuration,setConfiguration]=useState(false),[tab,setTab]=useState('scope')
-  return <div className="research-composer">
+  const [editing,setEditing]=useState<ResearchSetup|null>(null),[section,setSection]=useState<ChoiceSection>('focus')
+  const summary=setupSummary(p.value)
+  const open=(next:ChoiceSection)=>{if(p.starting)return;setSection(next);setEditing(structuredClone(p.value))}
+  return <div className={`research-composer ${p.restart?'research-composer--restart':''}`}>
     {p.onBack&&<button className="composer-back" type="button" onClick={p.onBack}><Icon name="back" size={17}/>首页</button>}
-    <div className="composer-heading"><h1>你想研究什么？</h1></div>
-    <div className="question-box"><label className="sr-only" htmlFor="research-question">研究问题</label><textarea id="research-question" ref={p.inputRef} value={p.query} onChange={e=>p.onQuery(e.target.value)} onKeyDown={p.onKeyDown}
-      placeholder="描述研究对象、时间范围，以及你想弄清楚的问题。" rows={4}/>
-      <div className="question-actions"><button type="button" className="composer-config" onClick={()=>setConfiguration(true)}><Icon name="settings" size={18}/>研究配置</button>
-        <div className="question-submit"><button type="button" className="btn-ghost" disabled={p.busy||p.query.trim().length<5} onClick={p.onPreview}>预览计划</button><button type="button" className="btn-primary" disabled={p.busy||p.query.trim().length<5} onClick={p.onStart}>{p.starting?<TraceLoader/>:<Icon name="arrow" size={18}/>}开始研究</button></div>
-      </div>
+    <div className="composer-heading"><h1>{p.restart?'重新安排这项研究':'你想研究什么？'}</h1></div>
+    <div className="question-box"><label className="sr-only" htmlFor={p.restart?'restart-question':'research-question'}>研究问题</label><textarea id={p.restart?'restart-question':'research-question'} ref={p.inputRef} disabled={p.starting} value={p.value.query} onChange={event=>p.onChange({...p.value,query:event.target.value})} onKeyDown={p.onKeyDown} placeholder="写下你想弄清楚的问题。" rows={4}/>
+      <div className="question-actions"><button type="button" className="composer-config" disabled={p.starting} onClick={()=>open('focus')}><Icon name="settings" size={18}/>研究选项</button><div className="question-submit"><button type="button" className="btn-ghost" disabled={p.busy||p.value.query.trim().length<5} onClick={p.onPreview}>{p.busy&&!p.starting?'预览中…':'预览计划'}</button><button type="button" className="btn-primary" disabled={p.busy||p.value.query.trim().length<5||!!(p.restart&&(!p.previewCurrent||!p.understanding?.ready))} onClick={p.onStart}>{p.starting?<TraceLoader/>:<Icon name="arrow" size={18}/>} {p.restart?'创建新研究':'开始研究'}</button></div></div>
     </div>
-    <div className="composer-options"><div role="group" aria-label="报告篇幅">{([['short','简报'],['medium','标准'],['long','深入']] as const).map(([value,label])=><button type="button" key={value} aria-pressed={p.outputLength===value} onClick={()=>p.onLength(value)}>{label}</button>)}</div><label className="composer-template"><span>报告模板</span><select aria-label="报告模板" value={p.queryDraft.template} onChange={event=>p.onDraft({...p.queryDraft,template:event.target.value})}>{Object.entries({"markdown-v1":"简洁长文","research-map-v1":"研究脉络","organization-development-v1":"组织研究","technology-comparison-v1":"技术比较","cooperation-matching-v1":"合作资源","field-trends-v1":"领域趋势",...(p.queryDraft.template==="custom"?{custom:"自定义页面"}:{})}).map(([id,label])=><option key={id} value={id}>{label}</option>)}</select></label><span>{p.useInternal?'联网 + 内部资料':'联网研究'}</span><span>{p.organizationDraft.enabled?'组织研究':'开放问题'}</span></div>
+    <div className="research-quick-choices" role="group" aria-label="常用研究选择">{([{id:'focus',label:'研究深度',value:summary.depth,icon:'layers'},{id:'scope',label:'研究范围',value:summary.scope,icon:'search'},{id:'report',label:'报告样式',value:summary.report,icon:'chart'}] as const).map(item=><button key={item.id} type="button" disabled={p.starting} aria-label={item.label+'：'+item.value} onClick={()=>open(item.id)}><Icon name={item.icon} size={17}/><span><small>{item.label}</small><strong>{item.value}</strong></span><Icon name="chevron" size={14}/></button>)}</div>
+    <div className="research-choice-summary"><button type="button" onClick={()=>open('sources')}><Icon name="book" size={14}/>{summary.sources}</button>{summary.time!=='按问题确定'&&<button type="button" onClick={()=>open('scope')}>{summary.time}</button>}{p.value.queryDraft.constraints&&<button type="button" onClick={()=>open('focus')}>已补充研究重点</button>}</div>
     {p.error&&<p role="alert" className="composer-error">{p.error}</p>}
-    {p.understanding&&<div className="composer-preview">{p.previewCurrent?<UnderstandingSummary value={p.understanding}/>:<p className="text-sm text-xmgray-600">{p.busy?'更新计划预览…':'预览待更新'}</p>}</div>}
-    <div className="composer-examples"><span>试着问</span>{['北京大学近年 AI 系统研究的演进与团队','固态电池的技术路线与关键研究机构','企业与高校在具身智能领域的合作'].map(question=><button key={question} type="button" onClick={()=>{p.onQuery(question);p.inputRef.current?.focus()}}>{question}<Icon name="arrow" size={15}/></button>)}</div>
-    <Modal open={configuration} onClose={()=>setConfiguration(false)} title="研究配置" wide>
-      <div className="pill-tabs" role="group" aria-label="配置分组">{[['scope','对象与范围'],['methods','方法与交付'],['sources','来源与 Skill']].map(([id,label])=><button type="button" key={id} aria-pressed={tab===id} onClick={()=>setTab(id)}>{label}</button>)}</div>
-      <div hidden={tab!=='scope'} className="configuration-group"><OrganizationResearchPanel value={p.organizationDraft} onChange={p.onOrganization}/>{p.organizationDraft.enabled&&<OrganizationWeightsPanel disciplines={p.organizationDraft.disciplines} onChange={p.onWeights}/>}</div>
-      <div hidden={tab!=='methods'} className="configuration-group"><QueryUnderstandingPanel value={p.queryDraft} onChange={p.onDraft} organizationEnabled={p.organizationDraft.enabled} skills={p.skills.filter(s=>s.enabled)} preview={p.understanding} onPreview={p.onPreview} canPreview={p.query.trim().length>=5} busy={p.busy}/></div>
-      <div hidden={tab!=='sources'} className="configuration-group"><section className="configuration-section"><h3>内部资料</h3><label className="flex items-center gap-3"><input type="checkbox" checked={p.useInternal} onChange={e=>p.onInternal(e.target.checked)}/>加入内部资料检索</label>{p.useInternal&&<label className="block mt-4"><span className="text-sm">资料分组</span><input className="input-xm mt-2" value={p.group} onChange={e=>p.onGroup(e.target.value)} placeholder="留空选择全部分组"/></label>}</section>
-        <ChannelPanel selected={p.channels} onChange={p.onChannels}/>
-        <section className="configuration-section"><h3>阶段 Skill</h3><div className="skill-selection">{p.skills.filter(s=>s.enabled).map(skill=><div className="skill-selection-row" key={skill.id}><span>{skill.name}</span><div role="group" aria-label={skill.name}>{[['auto','自动'],['enable','启用'],['disable','禁用']].map(([mode,label])=><button key={mode} type="button" aria-pressed={mode===(p.disabled.includes(skill.id)?'disable':p.enabled.includes(skill.id)?'enable':'auto')} onClick={()=>{p.setEnabled(ids=>mode==='enable'?[...new Set([...ids,skill.id])]:ids.filter(id=>id!==skill.id));p.setDisabled(ids=>mode==='disable'?[...new Set([...ids,skill.id])]:ids.filter(id=>id!==skill.id))}}>{label}</button>)}</div></div>)}</div></section>
-      </div>
-      <div className="configuration-footer"><button className="btn-primary" type="button" onClick={()=>setConfiguration(false)}>完成配置<Icon name="check" size={17}/></button></div>
-    </Modal>
+    {p.understanding&&<div className="composer-preview">{p.previewCurrent?<><UnderstandingSummary value={p.understanding}/>{!p.value.organizationDraft.enabled&&!!p.understanding.context_candidates?.length&&<div className="choice-reference-objects"><span>你指的是哪些对象？</span>{p.understanding.context_candidates.map(item=><label key={item.entity_id}><input type="checkbox" checked={p.value.queryDraft.referenceIds.includes(item.entity_id)} onChange={event=>p.onChange({...p.value,queryDraft:{...p.value.queryDraft,referenceIds:event.target.checked?[...p.value.queryDraft.referenceIds,item.entity_id]:p.value.queryDraft.referenceIds.filter(id=>id!==item.entity_id)}})}/>{item.name}</label>)}</div>}</>:<p className="choice-preview-stale">{p.busy?'正在更新计划…':'选择已更新，可重新预览。'}</p>}</div>}
+    {!p.restart&&!p.value.query&&<div className="composer-examples"><span>试着问</span>{['北京大学近年 AI 系统研究的演进与团队','固态电池的技术路线与关键研究机构','企业与高校在具身智能领域的合作'].map(question=><button key={question} type="button" onClick={()=>{p.onChange({...p.value,query:question});p.inputRef.current?.focus()}}>{question}<Icon name="arrow" size={15}/></button>)}</div>}
+    <Modal open={!!editing} onClose={()=>setEditing(null)} title="这次怎样研究" wide>{editing&&<ResearchOptionsEditor key={section} initial={section} value={editing} onChange={setEditing} skills={p.skills} onCancel={()=>setEditing(null)} onApply={()=>{p.onChange(editing);setEditing(null)}}/>}</Modal>
   </div>
 }
