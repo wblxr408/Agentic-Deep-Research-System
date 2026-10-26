@@ -1,7 +1,8 @@
 {
   "source_catalog": "https://bo-skill-bookshelf.vercel.app/content/catalog.json",
   "collected_on": "2026-10-26",
-  "purpose": "用户要求将书架中适合研究的方法全部导入当前 ADRS 账号",
+  "purpose": "随仓库及后端镜像分发45项默认研究方法，按认证主体初始化独立副本并保留个人调整",
+  "distribution": "bundled_owner_seed_preserve_existing",
   "source_entry_count": 166,
   "selected_count": 45,
   "semantics": "All selected methods are registered; current top-k, stage context budgets and tool grants determine each research run.",

@@ -9,6 +9,7 @@ from fastapi import HTTPException
 from app.core.time import utc_now_naive
 from app.db.connection import get_db_pool
 from app.db.json import dumps_json
+from app.skills.defaults import ensure_default_methods
 from app.skills.models import (
     SkillContentRecord,
     SkillMetadata,
@@ -152,6 +153,7 @@ def _row_to_content(row: Any) -> SkillContentRecord:
 
 async def list_skill_meta(owner_id: str, include_deleted: bool = False) -> list[SkillMetaRecord]:
     await ensure_skill_storage_bootstrapped()
+    await ensure_default_methods(owner_id)
     pool = await get_db_pool()
     async with pool.acquire() as conn:
         if include_deleted:

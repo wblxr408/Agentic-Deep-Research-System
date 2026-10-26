@@ -27,6 +27,7 @@ RUN playwright install --with-deps chromium
 # Copy application code
 COPY app/ ./app/
 COPY config/ ./config/
+COPY resources/research-skills/bookshelf/ ./resources/research-skills/bookshelf/
 COPY docs/SPEC.md ./docs/SPEC.md
 COPY README.md .
 
