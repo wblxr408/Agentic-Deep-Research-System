@@ -4,7 +4,7 @@ import type {ReactNode} from 'react'
 import {Icon,TraceLoader} from './Interface'
 import '../collections.css'
 
-export const stageNames:Record<string,string>=uiDefinition({planner:'规划',search:'搜索',browser:'网页阅读',rag:'内部资料',mcp:'外部工具',analyst:'分析',reflection:'核对',reporter:'写作',render:'绘图'})
+export const stageNames:Record<string,string>=uiDefinition({planner:'规划',search:'搜索',browser:'网页阅读',rag:'内部资料',mcp:'外部工具',analyst:'分析',reflection:'核对',report:'写作',render:'绘图'})
 export async function collectionRequest(path:string,options:RequestInit={}) {
   const response=await fetch(path,options),body=await response.json().catch(()=>({}))
   if(!response.ok){

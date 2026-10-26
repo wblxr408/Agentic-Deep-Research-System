@@ -1,0 +1,2741 @@
+{
+  "source_catalog": "https://bo-skill-bookshelf.vercel.app/content/catalog.json",
+  "collected_on": "2026-10-26",
+  "purpose": "用户要求将书架中适合研究的方法全部导入当前 ADRS 账号",
+  "source_entry_count": 166,
+  "selected_count": 45,
+  "semantics": "All selected methods are registered; current top-k, stage context budgets and tool grants determine each research run.",
+  "source_storage": "Original downloaded ZIPs and readable references retained in .codex-homework/bookshelf/packages on this host, not automatically installed.",
+  "items": [
+    {
+      "catalog_id": "academic-paper--local",
+      "name": "统一学术写作",
+      "slug": "bookshelf-academic-paper",
+      "file": "academic-paper.md",
+      "stages": [
+        "report"
+      ],
+      "keywords": [
+        "学术写作",
+        "论文写作",
+        "academic writing",
+        "manuscript",
+        "论文修订",
+        "academic-paper"
+      ],
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/fused-skills/academic-paper",
+      "source_version": "fusion-2026-10-05",
+      "release": {
+        "version": "2026-10-22.5",
+        "bundle": "/downloads/bo-local-skills.zip",
+        "commit": "db8ce71a00e9957030a4a19b1c1a474dfb16aa2e",
+        "skills": 165
+      },
+      "author": "Imbad0202 / Academic Research Skills / bahayonghang",
+      "license": "各模块分别适用其原许可。保留模块内 LICENSE / NOTICE；不得用王博的署名替代原作者。 ARS 当前公开许可为 CC BY-NC 4.0（原作者 Cheng-I Wu）；其完整文本随包保留。 academic-writing-skills 根目录未找到统一 LICENSE；保留作者的安装/自行修改说明及原文件，不另宣称 MIT 或商业许可。",
+      "runtime": "Python 3.10+；TeX / Typst / Pandoc 仅在对应格式任务需要；编译也可使用客户端自带编译工具。",
+      "included_skills": [
+        "academic-paper",
+        "deep-research",
+        "dev",
+        "paper-audit",
+        "tech-stack-evaluator"
+      ],
+      "source_pack": "/downloads/bo-skill-academic-paper.zip",
+      "adaptation": "ADRS staged method; original host code is not executed; source reference sections are not loaded into stage context",
+      "private_import_source_primary_embedded": true,
+      "repository_file_includes_upstream_text": false
+    },
+    {
+      "catalog_id": "academic-pipeline",
+      "name": "研究到投稿流水线",
+      "slug": "bookshelf-academic-pipeline",
+      "file": "academic-pipeline.md",
+      "stages": [
+        "planner",
+        "analyst",
+        "reflection",
+        "report"
+      ],
+      "keywords": [
+        "研究到投稿",
+        "research to publication",
+        "academic pipeline",
+        "academic-pipeline"
+      ],
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/academic-pipeline",
+      "source_version": "3.19.0",
+      "release": {
+        "version": "2026-10-22.5",
+        "bundle": "/downloads/bo-local-skills.zip",
+        "commit": "db8ce71a00e9957030a4a19b1c1a474dfb16aa2e",
+        "skills": 165
+      },
+      "author": "Imbad0202 / Academic Research Skills",
+      "license": "见源项目说明，本站不另授许可",
+      "runtime": null,
+      "included_skills": [
+        "academic-pipeline"
+      ],
+      "source_pack": "/downloads/bo-skill-academic-pipeline.zip",
+      "adaptation": "ADRS staged method; original host code is not executed; source reference sections are not loaded into stage context",
+      "private_import_source_primary_embedded": true,
+      "repository_file_includes_upstream_text": false
+    },
+    {
+      "catalog_id": "academic-research-graph",
+      "name": "研究脉络与争议图谱",
+      "slug": "bookshelf-academic-research-graph",
+      "file": "academic-research-graph.md",
+      "stages": [
+        "analyst",
+        "render"
+      ],
+      "keywords": [
+        "研究脉络",
+        "学术谱系",
+        "争议图谱",
+        "literature lineage",
+        "controversy graph",
+        "academic-research-graph"
+      ],
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/academic-research-graph",
+      "source_version": "0.2.4",
+      "release": {
+        "version": "2026-10-22.5",
+        "bundle": "/downloads/bo-local-skills.zip",
+        "commit": "db8ce71a00e9957030a4a19b1c1a474dfb16aa2e",
+        "skills": 165
+      },
+      "author": "原作者待核实",
+      "license": "原许可与署名保留于源文件；本站未另授统一许可",
+      "runtime": "Python 3.10+；按包内 references/research-runtime.md 和原项目依赖说明配置，文献计量等分支可能需要 R / bibliometrix 或 Graphviz。",
+      "included_skills": [
+        "academic-research-graph"
+      ],
+      "source_pack": "/downloads/bo-skill-academic-research-graph.zip",
+      "adaptation": "ADRS staged method; original host code is not executed; source reference sections are not loaded into stage context",
+      "private_import_source_primary_embedded": true,
+      "repository_file_includes_upstream_text": false
+    },
+    {
+      "catalog_id": "agent-crosscheck--local",
+      "name": "统一成果审查",
+      "slug": "bookshelf-agent-crosscheck",
+      "file": "agent-crosscheck.md",
+      "stages": [
+        "reflection"
+      ],
+      "keywords": [
+        "成果审查",
+        "交叉审查",
+        "结果复核",
+        "crosscheck",
+        "agent-crosscheck"
+      ],
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/fused-skills/agent-crosscheck",
+      "source_version": "fusion-2026-10-05",
+      "release": {
+        "version": "2026-10-22.5",
+        "bundle": "/downloads/bo-local-skills.zip",
+        "commit": "db8ce71a00e9957030a4a19b1c1a474dfb16aa2e",
+        "skills": 165
+      },
+      "author": "原始入口作者待核实",
+      "license": "各模块分别适用其原许可。保留模块内 LICENSE / NOTICE；不得用王博的署名替代原作者。 原始 agent-crosscheck / intent-review 作者尚未核实，不宣称原始部分为王博原创。",
+      "runtime": "支持技能的 AI 客户端；开发结果审查共享包内 dev 规则。独立审查角色仅在用户授权和工具可用时使用。",
+      "included_skills": [
+        "agent-crosscheck",
+        "dev",
+        "tech-stack-evaluator"
+      ],
+      "source_pack": "/downloads/bo-skill-agent-crosscheck.zip",
+      "adaptation": "ADRS staged method; original host code is not executed; source reference sections are not loaded into stage context",
+      "private_import_source_primary_embedded": true,
+      "repository_file_includes_upstream_text": false
+    },
+    {
+      "catalog_id": "artifact-template-analytics-dashboard",
+      "name": "模板 · 分析仪表板",
+      "slug": "bookshelf-artifact-template-analytics-dashboard",
+      "file": "artifact-template-analytics-dashboard.md",
+      "stages": [
+        "report"
+      ],
+      "keywords": [
+        "分析仪表板",
+        "analytics dashboard",
+        "artifact-template-analytics-dashboard"
+      ],
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/artifact-template-analytics-dashboard",
+      "source_version": "本机保存版",
+      "release": {
+        "version": "2026-10-22.5",
+        "bundle": "/downloads/bo-local-skills.zip",
+        "commit": "db8ce71a00e9957030a4a19b1c1a474dfb16aa2e",
+        "skills": 165
+      },
+      "author": "OpenAI 插件分发 · 原作者以文件署名为准",
+      "license": "原许可与署名保留于源文件；本站未另授统一许可",
+      "runtime": "需对应宿主插件及其实际可用工具。",
+      "included_skills": [
+        "artifact-template-analytics-dashboard"
+      ],
+      "source_pack": "/downloads/bo-skill-artifact-template-analytics-dashboard.zip",
+      "adaptation": "ADRS staged method; original host code is not executed; source reference sections are not loaded into stage context",
+      "private_import_source_primary_embedded": true,
+      "repository_file_includes_upstream_text": false
+    },
+    {
+      "catalog_id": "artifact-template-annual-impact-report",
+      "name": "模板 · 年度影响力报告",
+      "slug": "bookshelf-artifact-template-annual-impact-report",
+      "file": "artifact-template-annual-impact-report.md",
+      "stages": [
+        "report"
+      ],
+      "keywords": [
+        "年度影响力",
+        "annual impact",
+        "artifact-template-annual-impact-report"
+      ],
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/artifact-template-annual-impact-report",
+      "source_version": "本机保存版",
+      "release": {
+        "version": "2026-10-22.5",
+        "bundle": "/downloads/bo-local-skills.zip",
+        "commit": "db8ce71a00e9957030a4a19b1c1a474dfb16aa2e",
+        "skills": 165
+      },
+      "author": "OpenAI 插件分发 · 原作者以文件署名为准",
+      "license": "原许可与署名保留于源文件；本站未另授统一许可",
+      "runtime": "需对应宿主插件及其实际可用工具。",
+      "included_skills": [
+        "artifact-template-annual-impact-report"
+      ],
+      "source_pack": "/downloads/bo-skill-artifact-template-annual-impact-report.zip",
+      "adaptation": "ADRS staged method; original host code is not executed; source reference sections are not loaded into stage context",
+      "private_import_source_primary_embedded": true,
+      "repository_file_includes_upstream_text": false
+    },
+    {
+      "catalog_id": "artifact-template-business-review",
+      "name": "模板 · 业务复盘",
+      "slug": "bookshelf-artifact-template-business-review",
+      "file": "artifact-template-business-review.md",
+      "stages": [
+        "report"
+      ],
+      "keywords": [
+        "业务复盘",
+        "business review",
+        "artifact-template-business-review"
+      ],
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/artifact-template-business-review",
+      "source_version": "本机保存版",
+      "release": {
+        "version": "2026-10-22.5",
+        "bundle": "/downloads/bo-local-skills.zip",
+        "commit": "db8ce71a00e9957030a4a19b1c1a474dfb16aa2e",
+        "skills": 165
+      },
+      "author": "OpenAI 插件分发 · 原作者以文件署名为准",
+      "license": "原许可与署名保留于源文件；本站未另授统一许可",
+      "runtime": "需对应宿主插件及其实际可用工具。",
+      "included_skills": [
+        "artifact-template-business-review"
+      ],
+      "source_pack": "/downloads/bo-skill-artifact-template-business-review.zip",
+      "adaptation": "ADRS staged method; original host code is not executed; source reference sections are not loaded into stage context",
+      "private_import_source_primary_embedded": true,
+      "repository_file_includes_upstream_text": false
+    },
+    {
+      "catalog_id": "artifact-template-design-report",
+      "name": "模板 · 设计报告",
+      "slug": "bookshelf-artifact-template-design-report",
+      "file": "artifact-template-design-report.md",
+      "stages": [
+        "report"
+      ],
+      "keywords": [
+        "设计研究报告",
+        "design report",
+        "artifact-template-design-report"
+      ],
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/artifact-template-design-report",
+      "source_version": "本机保存版",
+      "release": {
+        "version": "2026-10-22.5",
+        "bundle": "/downloads/bo-local-skills.zip",
+        "commit": "db8ce71a00e9957030a4a19b1c1a474dfb16aa2e",
+        "skills": 165
+      },
+      "author": "OpenAI 插件分发 · 原作者以文件署名为准",
+      "license": "原许可与署名保留于源文件；本站未另授统一许可",
+      "runtime": "需对应宿主插件及其实际可用工具。",
+      "included_skills": [
+        "artifact-template-design-report"
+      ],
+      "source_pack": "/downloads/bo-skill-artifact-template-design-report.zip",
+      "adaptation": "ADRS staged method; original host code is not executed; source reference sections are not loaded into stage context",
+      "private_import_source_primary_embedded": true,
+      "repository_file_includes_upstream_text": false
+    },
+    {
+      "catalog_id": "artifact-template-experiment-analysis",
+      "name": "模板 · 实验分析",
+      "slug": "bookshelf-artifact-template-experiment-analysis",
+      "file": "artifact-template-experiment-analysis.md",
+      "stages": [
+        "report"
+      ],
+      "keywords": [
+        "实验分析",
+        "experiment analysis",
+        "artifact-template-experiment-analysis"
+      ],
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/artifact-template-experiment-analysis",
+      "source_version": "本机保存版",
+      "release": {
+        "version": "2026-10-22.5",
+        "bundle": "/downloads/bo-local-skills.zip",
+        "commit": "db8ce71a00e9957030a4a19b1c1a474dfb16aa2e",
+        "skills": 165
+      },
+      "author": "OpenAI 插件分发 · 原作者以文件署名为准",
+      "license": "原许可与署名保留于源文件；本站未另授统一许可",
+      "runtime": "需对应宿主插件及其实际可用工具。",
+      "included_skills": [
+        "artifact-template-experiment-analysis"
+      ],
+      "source_pack": "/downloads/bo-skill-artifact-template-experiment-analysis.zip",
+      "adaptation": "ADRS staged method; original host code is not executed; source reference sections are not loaded into stage context",
+      "private_import_source_primary_embedded": true,
+      "repository_file_includes_upstream_text": false
+    },
+    {
+      "catalog_id": "artifact-template-growth-strategy",
+      "name": "模板 · 增长策略",
+      "slug": "bookshelf-artifact-template-growth-strategy",
+      "file": "artifact-template-growth-strategy.md",
+      "stages": [
+        "report"
+      ],
+      "keywords": [
+        "增长策略",
+        "growth strategy",
+        "artifact-template-growth-strategy"
+      ],
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/artifact-template-growth-strategy",
+      "source_version": "本机保存版",
+      "release": {
+        "version": "2026-10-22.5",
+        "bundle": "/downloads/bo-local-skills.zip",
+        "commit": "db8ce71a00e9957030a4a19b1c1a474dfb16aa2e",
+        "skills": 165
+      },
+      "author": "OpenAI 插件分发 · 原作者以文件署名为准",
+      "license": "原许可与署名保留于源文件；本站未另授统一许可",
+      "runtime": "需对应宿主插件及其实际可用工具。",
+      "included_skills": [
+        "artifact-template-growth-strategy"
+      ],
+      "source_pack": "/downloads/bo-skill-artifact-template-growth-strategy.zip",
+      "adaptation": "ADRS staged method; original host code is not executed; source reference sections are not loaded into stage context",
+      "private_import_source_primary_embedded": true,
+      "repository_file_includes_upstream_text": false
+    },
+    {
+      "catalog_id": "artifact-template-investment-committee-memo",
+      "name": "模板 · 投委会备忘录",
+      "slug": "bookshelf-artifact-template-investment-committee-memo",
+      "file": "artifact-template-investment-committee-memo.md",
+      "stages": [
+        "report"
+      ],
+      "keywords": [
+        "投委会备忘录",
+        "investment committee",
+        "artifact-template-investment-committee-memo"
+      ],
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/artifact-template-investment-committee-memo",
+      "source_version": "本机保存版",
+      "release": {
+        "version": "2026-10-22.5",
+        "bundle": "/downloads/bo-local-skills.zip",
+        "commit": "db8ce71a00e9957030a4a19b1c1a474dfb16aa2e",
+        "skills": 165
+      },
+      "author": "OpenAI 插件分发 · 原作者以文件署名为准",
+      "license": "原许可与署名保留于源文件；本站未另授统一许可",
+      "runtime": "需对应宿主插件及其实际可用工具。",
+      "included_skills": [
+        "artifact-template-investment-committee-memo"
+      ],
+      "source_pack": "/downloads/bo-skill-artifact-template-investment-committee-memo.zip",
+      "adaptation": "ADRS staged method; original host code is not executed; source reference sections are not loaded into stage context",
+      "private_import_source_primary_embedded": true,
+      "repository_file_includes_upstream_text": false
+    },
+    {
+      "catalog_id": "artifact-template-legal-memorandum",
+      "name": "模板 · 法律备忘录",
+      "slug": "bookshelf-artifact-template-legal-memorandum",
+      "file": "artifact-template-legal-memorandum.md",
+      "stages": [
+        "report"
+      ],
+      "keywords": [
+        "法律研究备忘录",
+        "legal memorandum",
+        "artifact-template-legal-memorandum"
+      ],
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/artifact-template-legal-memorandum",
+      "source_version": "本机保存版",
+      "release": {
+        "version": "2026-10-22.5",
+        "bundle": "/downloads/bo-local-skills.zip",
+        "commit": "db8ce71a00e9957030a4a19b1c1a474dfb16aa2e",
+        "skills": 165
+      },
+      "author": "OpenAI 插件分发 · 原作者以文件署名为准",
+      "license": "原许可与署名保留于源文件；本站未另授统一许可",
+      "runtime": "需对应宿主插件及其实际可用工具。",
+      "included_skills": [
+        "artifact-template-legal-memorandum"
+      ],
+      "source_pack": "/downloads/bo-skill-artifact-template-legal-memorandum.zip",
+      "adaptation": "ADRS staged method; original host code is not executed; source reference sections are not loaded into stage context",
+      "private_import_source_primary_embedded": true,
+      "repository_file_includes_upstream_text": false
+    },
+    {
+      "catalog_id": "artifact-template-market-trends-report",
+      "name": "模板 · 市场趋势报告",
+      "slug": "bookshelf-artifact-template-market-trends-report",
+      "file": "artifact-template-market-trends-report.md",
+      "stages": [
+        "report"
+      ],
+      "keywords": [
+        "市场趋势报告",
+        "market trends report",
+        "artifact-template-market-trends-report"
+      ],
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/artifact-template-market-trends-report",
+      "source_version": "本机保存版",
+      "release": {
+        "version": "2026-10-22.5",
+        "bundle": "/downloads/bo-local-skills.zip",
+        "commit": "db8ce71a00e9957030a4a19b1c1a474dfb16aa2e",
+        "skills": 165
+      },
+      "author": "OpenAI 插件分发 · 原作者以文件署名为准",
+      "license": "原许可与署名保留于源文件；本站未另授统一许可",
+      "runtime": "需对应宿主插件及其实际可用工具。",
+      "included_skills": [
+        "artifact-template-market-trends-report"
+      ],
+      "source_pack": "/downloads/bo-skill-artifact-template-market-trends-report.zip",
+      "adaptation": "ADRS staged method; original host code is not executed; source reference sections are not loaded into stage context",
+      "private_import_source_primary_embedded": true,
+      "repository_file_includes_upstream_text": false
+    },
+    {
+      "catalog_id": "artifact-template-product-strategy",
+      "name": "模板 · 产品策略",
+      "slug": "bookshelf-artifact-template-product-strategy",
+      "file": "artifact-template-product-strategy.md",
+      "stages": [
+        "report"
+      ],
+      "keywords": [
+        "产品策略",
+        "product strategy",
+        "artifact-template-product-strategy"
+      ],
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/artifact-template-product-strategy",
+      "source_version": "本机保存版",
+      "release": {
+        "version": "2026-10-22.5",
+        "bundle": "/downloads/bo-local-skills.zip",
+        "commit": "db8ce71a00e9957030a4a19b1c1a474dfb16aa2e",
+        "skills": 165
+      },
+      "author": "OpenAI 插件分发 · 原作者以文件署名为准",
+      "license": "原许可与署名保留于源文件；本站未另授统一许可",
+      "runtime": "需对应宿主插件及其实际可用工具。",
+      "included_skills": [
+        "artifact-template-product-strategy"
+      ],
+      "source_pack": "/downloads/bo-skill-artifact-template-product-strategy.zip",
+      "adaptation": "ADRS staged method; original host code is not executed; source reference sections are not loaded into stage context",
+      "private_import_source_primary_embedded": true,
+      "repository_file_includes_upstream_text": false
+    },
+    {
+      "catalog_id": "artifact-template-strategy-memorandum",
+      "name": "模板 · 战略备忘录",
+      "slug": "bookshelf-artifact-template-strategy-memorandum",
+      "file": "artifact-template-strategy-memorandum.md",
+      "stages": [
+        "report"
+      ],
+      "keywords": [
+        "战略备忘录",
+        "strategy memorandum",
+        "artifact-template-strategy-memorandum"
+      ],
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/artifact-template-strategy-memorandum",
+      "source_version": "本机保存版",
+      "release": {
+        "version": "2026-10-22.5",
+        "bundle": "/downloads/bo-local-skills.zip",
+        "commit": "db8ce71a00e9957030a4a19b1c1a474dfb16aa2e",
+        "skills": 165
+      },
+      "author": "OpenAI 插件分发 · 原作者以文件署名为准",
+      "license": "原许可与署名保留于源文件；本站未另授统一许可",
+      "runtime": "需对应宿主插件及其实际可用工具。",
+      "included_skills": [
+        "artifact-template-strategy-memorandum"
+      ],
+      "source_pack": "/downloads/bo-skill-artifact-template-strategy-memorandum.zip",
+      "adaptation": "ADRS staged method; original host code is not executed; source reference sections are not loaded into stage context",
+      "private_import_source_primary_embedded": true,
+      "repository_file_includes_upstream_text": false
+    },
+    {
+      "catalog_id": "artifact-template-system-design",
+      "name": "模板 · 系统设计",
+      "slug": "bookshelf-artifact-template-system-design",
+      "file": "artifact-template-system-design.md",
+      "stages": [
+        "report"
+      ],
+      "keywords": [
+        "系统设计研究",
+        "system design report",
+        "artifact-template-system-design"
+      ],
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/artifact-template-system-design",
+      "source_version": "本机保存版",
+      "release": {
+        "version": "2026-10-22.5",
+        "bundle": "/downloads/bo-local-skills.zip",
+        "commit": "db8ce71a00e9957030a4a19b1c1a474dfb16aa2e",
+        "skills": 165
+      },
+      "author": "OpenAI 插件分发 · 原作者以文件署名为准",
+      "license": "原许可与署名保留于源文件；本站未另授统一许可",
+      "runtime": "需对应宿主插件及其实际可用工具。",
+      "included_skills": [
+        "artifact-template-system-design"
+      ],
+      "source_pack": "/downloads/bo-skill-artifact-template-system-design.zip",
+      "adaptation": "ADRS staged method; original host code is not executed; source reference sections are not loaded into stage context",
+      "private_import_source_primary_embedded": true,
+      "repository_file_includes_upstream_text": false
+    },
+    {
+      "catalog_id": "artifact-template-three-statement-forecast",
+      "name": "模板 · 财务三表预测",
+      "slug": "bookshelf-artifact-template-three-statement-forecast",
+      "file": "artifact-template-three-statement-forecast.md",
+      "stages": [
+        "report"
+      ],
+      "keywords": [
+        "财务三表",
+        "three statement forecast",
+        "artifact-template-three-statement-forecast"
+      ],
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/artifact-template-three-statement-forecast",
+      "source_version": "本机保存版",
+      "release": {
+        "version": "2026-10-22.5",
+        "bundle": "/downloads/bo-local-skills.zip",
+        "commit": "db8ce71a00e9957030a4a19b1c1a474dfb16aa2e",
+        "skills": 165
+      },
+      "author": "OpenAI 插件分发 · 原作者以文件署名为准",
+      "license": "原许可与署名保留于源文件；本站未另授统一许可",
+      "runtime": "需对应宿主插件及其实际可用工具。",
+      "included_skills": [
+        "artifact-template-three-statement-forecast"
+      ],
+      "source_pack": "/downloads/bo-skill-artifact-template-three-statement-forecast.zip",
+      "adaptation": "ADRS staged method; original host code is not executed; source reference sections are not loaded into stage context",
+      "private_import_source_primary_embedded": true,
+      "repository_file_includes_upstream_text": false
+    },
+    {
+      "catalog_id": "artifact-template-weekly-business-review",
+      "name": "模板 · 周度业务复盘",
+      "slug": "bookshelf-artifact-template-weekly-business-review",
+      "file": "artifact-template-weekly-business-review.md",
+      "stages": [
+        "report"
+      ],
+      "keywords": [
+        "周度复盘",
+        "weekly business review",
+        "artifact-template-weekly-business-review"
+      ],
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/artifact-template-weekly-business-review",
+      "source_version": "本机保存版",
+      "release": {
+        "version": "2026-10-22.5",
+        "bundle": "/downloads/bo-local-skills.zip",
+        "commit": "db8ce71a00e9957030a4a19b1c1a474dfb16aa2e",
+        "skills": 165
+      },
+      "author": "OpenAI 插件分发 · 原作者以文件署名为准",
+      "license": "原许可与署名保留于源文件；本站未另授统一许可",
+      "runtime": "需对应宿主插件及其实际可用工具。",
+      "included_skills": [
+        "artifact-template-weekly-business-review"
+      ],
+      "source_pack": "/downloads/bo-skill-artifact-template-weekly-business-review.zip",
+      "adaptation": "ADRS staged method; original host code is not executed; source reference sections are not loaded into stage context",
+      "private_import_source_primary_embedded": true,
+      "repository_file_includes_upstream_text": false
+    },
+    {
+      "catalog_id": "bib-search-citation",
+      "name": "文献库检索与引用",
+      "slug": "bookshelf-bib-search-citation",
+      "file": "bib-search-citation.md",
+      "stages": [
+        "rag",
+        "analyst",
+        "report"
+      ],
+      "keywords": [
+        "bibtex",
+        "biblatex",
+        "zotero",
+        "文献库",
+        "citation key",
+        "bib-search-citation"
+      ],
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/bib-search-citation",
+      "source_version": "5.1.0",
+      "release": {
+        "version": "2026-10-22.5",
+        "bundle": "/downloads/bo-local-skills.zip",
+        "commit": "db8ce71a00e9957030a4a19b1c1a474dfb16aa2e",
+        "skills": 165
+      },
+      "author": "bahayonghang",
+      "license": "见源项目说明，本站不另授许可",
+      "runtime": null,
+      "included_skills": [
+        "bib-search-citation"
+      ],
+      "source_pack": "/downloads/bo-skill-bib-search-citation.zip",
+      "adaptation": "ADRS staged method; original host code is not executed; source reference sections are not loaded into stage context",
+      "private_import_source_primary_embedded": true,
+      "repository_file_includes_upstream_text": false
+    },
+    {
+      "catalog_id": "bibliometrix-guide",
+      "name": "文献计量分析",
+      "slug": "bookshelf-bibliometrix-guide",
+      "file": "bibliometrix-guide.md",
+      "stages": [
+        "analyst"
+      ],
+      "keywords": [
+        "bibliometrix",
+        "文献计量",
+        "共词分析",
+        "主题演化",
+        "science mapping",
+        "bibliometrix-guide"
+      ],
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/bibliometrix-guide",
+      "source_version": "本机保存版",
+      "release": {
+        "version": "2026-10-22.5",
+        "bundle": "/downloads/bo-local-skills.zip",
+        "commit": "db8ce71a00e9957030a4a19b1c1a474dfb16aa2e",
+        "skills": 165
+      },
+      "author": "原作者待核实",
+      "license": "原许可与署名保留于源文件；本站未另授统一许可",
+      "runtime": "Python 3.10+；按包内 references/research-runtime.md 和原项目依赖说明配置，文献计量等分支可能需要 R / bibliometrix 或 Graphviz。",
+      "included_skills": [
+        "bibliometrix-guide"
+      ],
+      "source_pack": "/downloads/bo-skill-bibliometrix-guide.zip",
+      "adaptation": "ADRS staged method; original host code is not executed; source reference sections are not loaded into stage context",
+      "private_import_source_primary_embedded": true,
+      "repository_file_includes_upstream_text": false
+    },
+    {
+      "catalog_id": "browser--local",
+      "name": "统一浏览器操作",
+      "slug": "bookshelf-browser",
+      "file": "browser.md",
+      "stages": [
+        "browser"
+      ],
+      "keywords": [
+        "网页取证",
+        "官网文档",
+        "浏览器阅读",
+        "web evidence",
+        "browser"
+      ],
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/fused-skills/browser",
+      "source_version": "fusion-2026-10-05",
+      "release": {
+        "version": "2026-10-22.5",
+        "bundle": "/downloads/bo-local-skills.zip",
+        "commit": "db8ce71a00e9957030a4a19b1c1a474dfb16aa2e",
+        "skills": 165
+      },
+      "author": "stellarlinkco / myclaude（原 cexll） / OpenAI",
+      "license": "各模块分别适用其原许可。保留模块内 LICENSE / NOTICE；不得用王博的署名替代原作者。 myclaude 当前公开 LICENSE 为 AGPL-3.0，随包保留；各旧模块没有版本对应许可时明确保留这一边界。",
+      "runtime": "已有标签页操作需要客户端提供 cua_repl 等浏览器工具。CDP 路线需 Node.js 18+，在安装后的 browser 目录执行 npm install；本地验收需自行安装 Playwright 与浏览器。",
+      "included_skills": [
+        "browser",
+        "dev",
+        "tech-stack-evaluator"
+      ],
+      "source_pack": "/downloads/bo-skill-browser.zip",
+      "adaptation": "ADRS staged method; original host code is not executed; source reference sections are not loaded into stage context",
+      "private_import_source_primary_embedded": true,
+      "repository_file_includes_upstream_text": false
+    },
+    {
+      "catalog_id": "citation-network-builder",
+      "name": "引用网络构建",
+      "slug": "bookshelf-citation-network-builder",
+      "file": "citation-network-builder.md",
+      "stages": [
+        "analyst",
+        "render"
+      ],
+      "keywords": [
+        "引用网络",
+        "共引",
+        "文献耦合",
+        "citation network",
+        "co-citation",
+        "citation-network-builder"
+      ],
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/citation-network-builder",
+      "source_version": "本机保存版",
+      "release": {
+        "version": "2026-10-22.5",
+        "bundle": "/downloads/bo-local-skills.zip",
+        "commit": "db8ce71a00e9957030a4a19b1c1a474dfb16aa2e",
+        "skills": 165
+      },
+      "author": "原作者待核实",
+      "license": "原许可与署名保留于源文件；本站未另授统一许可",
+      "runtime": "Python 3.10+；按包内 references/research-runtime.md 和原项目依赖说明配置，文献计量等分支可能需要 R / bibliometrix 或 Graphviz。",
+      "included_skills": [
+        "citation-network-builder"
+      ],
+      "source_pack": "/downloads/bo-skill-citation-network-builder.zip",
+      "adaptation": "ADRS staged method; original host code is not executed; source reference sections are not loaded into stage context",
+      "private_import_source_primary_embedded": true,
+      "repository_file_includes_upstream_text": false
+    },
+    {
+      "catalog_id": "company-intel",
+      "name": "公司与行业研究",
+      "slug": "bookshelf-company-intel",
+      "file": "company-intel.md",
+      "stages": [
+        "planner",
+        "analyst"
+      ],
+      "keywords": [
+        "公司研究",
+        "企业布局",
+        "company intel",
+        "industry research",
+        "战略信号",
+        "company-intel"
+      ],
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/company-intel",
+      "source_version": "本机保存版",
+      "release": {
+        "version": "2026-10-22.5",
+        "bundle": "/downloads/bo-local-skills.zip",
+        "commit": "db8ce71a00e9957030a4a19b1c1a474dfb16aa2e",
+        "skills": 165
+      },
+      "author": "原作者待核实",
+      "license": "原许可与署名保留于源文件；本站未另授统一许可",
+      "runtime": "按源文件中的运行依赖说明配置 Python、Node 或相应专用工具。",
+      "included_skills": [
+        "company-intel",
+        "intelligence-collection-disciplines"
+      ],
+      "source_pack": "/downloads/bo-skill-company-intel.zip",
+      "adaptation": "ADRS staged method; original host code is not executed; source reference sections are not loaded into stage context",
+      "private_import_source_primary_embedded": true,
+      "repository_file_includes_upstream_text": false
+    },
+    {
+      "catalog_id": "competitive-analysis",
+      "name": "竞品分析",
+      "slug": "bookshelf-competitive-analysis",
+      "file": "competitive-analysis.md",
+      "stages": [
+        "analyst"
+      ],
+      "keywords": [
+        "竞品",
+        "竞争格局",
+        "competitive analysis",
+        "positioning",
+        "battlecard",
+        "competitive-analysis"
+      ],
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/competitive-analysis",
+      "source_version": "本机保存版",
+      "release": {
+        "version": "2026-10-22.5",
+        "bundle": "/downloads/bo-local-skills.zip",
+        "commit": "db8ce71a00e9957030a4a19b1c1a474dfb16aa2e",
+        "skills": 165
+      },
+      "author": "原作者待核实",
+      "license": "原许可与署名保留于源文件；本站未另授统一许可",
+      "runtime": "按源文件中的运行依赖说明配置 Python、Node 或相应专用工具。",
+      "included_skills": [
+        "competitive-analysis"
+      ],
+      "source_pack": "/downloads/bo-skill-competitive-analysis.zip",
+      "adaptation": "ADRS staged method; original host code is not executed; source reference sections are not loaded into stage context",
+      "private_import_source_primary_embedded": true,
+      "repository_file_includes_upstream_text": false
+    },
+    {
+      "catalog_id": "cover-letter",
+      "name": "投稿附信",
+      "slug": "bookshelf-cover-letter",
+      "file": "cover-letter.md",
+      "stages": [
+        "report"
+      ],
+      "keywords": [
+        "投稿附信",
+        "cover letter",
+        "submission letter",
+        "cover-letter"
+      ],
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/cover-letter",
+      "source_version": "5.1.0",
+      "release": {
+        "version": "2026-10-22.5",
+        "bundle": "/downloads/bo-local-skills.zip",
+        "commit": "db8ce71a00e9957030a4a19b1c1a474dfb16aa2e",
+        "skills": 165
+      },
+      "author": "bahayonghang",
+      "license": "见源项目说明，本站不另授许可",
+      "runtime": null,
+      "included_skills": [
+        "cover-letter"
+      ],
+      "source_pack": "/downloads/bo-skill-cover-letter.zip",
+      "adaptation": "ADRS staged method; original host code is not executed; source reference sections are not loaded into stage context",
+      "private_import_source_primary_embedded": true,
+      "repository_file_includes_upstream_text": false
+    },
+    {
+      "catalog_id": "dblp-cli",
+      "name": "DBLP 文献检索",
+      "slug": "bookshelf-dblp-cli",
+      "file": "dblp-cli.md",
+      "stages": [
+        "planner",
+        "search",
+        "analyst"
+      ],
+      "keywords": [
+        "dblp",
+        "计算机论文检索",
+        "会议作者检索",
+        "dblp-cli"
+      ],
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/dblp-cli",
+      "source_version": "本机保存版",
+      "release": {
+        "version": "2026-10-22.5",
+        "bundle": "/downloads/bo-local-skills.zip",
+        "commit": "db8ce71a00e9957030a4a19b1c1a474dfb16aa2e",
+        "skills": 165
+      },
+      "author": "原作者待核实",
+      "license": "原许可与署名保留于源文件；本站未另授统一许可",
+      "runtime": "Python 3.10+；按包内 references/research-runtime.md 和原项目依赖说明配置，文献计量等分支可能需要 R / bibliometrix 或 Graphviz。",
+      "included_skills": [
+        "dblp-cli"
+      ],
+      "source_pack": "/downloads/bo-skill-dblp-cli.zip",
+      "adaptation": "ADRS staged method; original host code is not executed; source reference sections are not loaded into stage context",
+      "private_import_source_primary_embedded": true,
+      "repository_file_includes_upstream_text": false
+    },
+    {
+      "catalog_id": "deep-research--local",
+      "name": "研究入口分流版",
+      "slug": "bookshelf-deep-research",
+      "file": "deep-research.md",
+      "stages": [
+        "planner",
+        "analyst",
+        "reflection",
+        "report"
+      ],
+      "keywords": [
+        "深度调研",
+        "深入研究",
+        "deep research",
+        "事实核查",
+        "deep-research"
+      ],
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/fused-skills/deep-research",
+      "source_version": "fusion-2026-10-05",
+      "release": {
+        "version": "2026-10-22.5",
+        "bundle": "/downloads/bo-local-skills.zip",
+        "commit": "db8ce71a00e9957030a4a19b1c1a474dfb16aa2e",
+        "skills": 165
+      },
+      "author": "Imbad0202 / Academic Research Skills",
+      "license": "各模块分别适用其原许可。保留模块内 LICENSE / NOTICE；不得用王博的署名替代原作者。 ARS 当前公开许可为 CC BY-NC 4.0（原作者 Cheng-I Wu）；其完整文本随包保留。",
+      "runtime": "支持联网检索的 AI 客户端；论文链接、数据库或模型服务需用户自己的连接。不会随包分发 API 密钥。",
+      "included_skills": [
+        "academic-paper",
+        "deep-research",
+        "dev",
+        "paper-audit",
+        "tech-stack-evaluator"
+      ],
+      "source_pack": "/downloads/bo-skill-deep-research.zip",
+      "adaptation": "ADRS staged method; original host code is not executed; source reference sections are not loaded into stage context",
+      "private_import_source_primary_embedded": true,
+      "repository_file_includes_upstream_text": false
+    },
+    {
+      "catalog_id": "documents",
+      "name": "Word 与文档制作",
+      "slug": "bookshelf-documents",
+      "file": "documents.md",
+      "stages": [
+        "report"
+      ],
+      "keywords": [
+        "研究文档",
+        "word文档",
+        "docx",
+        "文档报告",
+        "documents"
+      ],
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/documents",
+      "source_version": "本机保存版",
+      "release": {
+        "version": "2026-10-22.5",
+        "bundle": "/downloads/bo-local-skills.zip",
+        "commit": "db8ce71a00e9957030a4a19b1c1a474dfb16aa2e",
+        "skills": 165
+      },
+      "author": "OpenAI 插件分发 · 原作者以文件署名为准",
+      "license": "原许可与署名保留于源文件；本站未另授统一许可",
+      "runtime": "需对应宿主插件及其实际可用工具。",
+      "included_skills": [
+        "documents"
+      ],
+      "source_pack": "/downloads/bo-skill-documents.zip",
+      "adaptation": "ADRS staged method; original host code is not executed; source reference sections are not loaded into stage context",
+      "private_import_source_primary_embedded": true,
+      "repository_file_includes_upstream_text": false
+    },
+    {
+      "catalog_id": "geopandas",
+      "name": "地理空间数据分析",
+      "slug": "bookshelf-geopandas",
+      "file": "geopandas.md",
+      "stages": [
+        "analyst"
+      ],
+      "keywords": [
+        "geopandas",
+        "地理空间",
+        "空间分布",
+        "crs",
+        "地理合作格局"
+      ],
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/geopandas",
+      "source_version": "1.4",
+      "release": {
+        "version": "2026-10-22.5",
+        "bundle": "/downloads/bo-local-skills.zip",
+        "commit": "db8ce71a00e9957030a4a19b1c1a474dfb16aa2e",
+        "skills": 165
+      },
+      "author": "原作者待核实",
+      "license": "MIT",
+      "runtime": "Python 3.10+；按包内 references/research-runtime.md 和原项目依赖说明配置，文献计量等分支可能需要 R / bibliometrix 或 Graphviz。",
+      "included_skills": [
+        "geopandas"
+      ],
+      "source_pack": "/downloads/bo-skill-geopandas.zip",
+      "adaptation": "ADRS staged method; original host code is not executed; source reference sections are not loaded into stage context",
+      "private_import_source_primary_embedded": true,
+      "repository_file_includes_upstream_text": false
+    },
+    {
+      "catalog_id": "grilling",
+      "name": "方案追问与推敲",
+      "slug": "bookshelf-grilling",
+      "file": "grilling.md",
+      "stages": [
+        "planner",
+        "reflection"
+      ],
+      "keywords": [
+        "方案推敲",
+        "质询",
+        "stress test idea",
+        "grill",
+        "grilling"
+      ],
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/grilling",
+      "source_version": "本机保存版",
+      "release": {
+        "version": "2026-10-22.5",
+        "bundle": "/downloads/bo-local-skills.zip",
+        "commit": "db8ce71a00e9957030a4a19b1c1a474dfb16aa2e",
+        "skills": 165
+      },
+      "author": "原作者待核实",
+      "license": "原许可与署名保留于源文件；本站未另授统一许可",
+      "runtime": "按源文件中的运行依赖说明配置 Python、Node 或相应专用工具。",
+      "included_skills": [
+        "grilling"
+      ],
+      "source_pack": "/downloads/bo-skill-grilling.zip",
+      "adaptation": "ADRS staged method; original host code is not executed; source reference sections are not loaded into stage context",
+      "private_import_source_primary_embedded": true,
+      "repository_file_includes_upstream_text": false
+    },
+    {
+      "catalog_id": "intelligence-collection-disciplines",
+      "name": "多来源情报研究",
+      "slug": "bookshelf-intelligence-collection-disciplines",
+      "file": "intelligence-collection-disciplines.md",
+      "stages": [
+        "planner",
+        "analyst"
+      ],
+      "keywords": [
+        "多来源情报",
+        "情报融合",
+        "osint",
+        "signal to inference",
+        "战略布局",
+        "intelligence-collection-disciplines"
+      ],
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/intelligence-collection-disciplines",
+      "source_version": "本机保存版",
+      "release": {
+        "version": "2026-10-22.5",
+        "bundle": "/downloads/bo-local-skills.zip",
+        "commit": "db8ce71a00e9957030a4a19b1c1a474dfb16aa2e",
+        "skills": 165
+      },
+      "author": "原作者待核实",
+      "license": "原许可与署名保留于源文件；本站未另授统一许可",
+      "runtime": "按源文件中的运行依赖说明配置 Python、Node 或相应专用工具。",
+      "included_skills": [
+        "company-intel",
+        "intelligence-collection-disciplines"
+      ],
+      "source_pack": "/downloads/bo-skill-intelligence-collection-disciplines.zip",
+      "adaptation": "ADRS staged method; original host code is not executed; source reference sections are not loaded into stage context",
+      "private_import_source_primary_embedded": true,
+      "repository_file_includes_upstream_text": false
+    },
+    {
+      "catalog_id": "knowledge-graph-construction",
+      "name": "知识图谱构建",
+      "slug": "bookshelf-knowledge-graph-construction",
+      "file": "knowledge-graph-construction.md",
+      "stages": [
+        "analyst"
+      ],
+      "keywords": [
+        "知识图谱",
+        "knowledge graph",
+        "rdf",
+        "实体关系",
+        "图谱构建",
+        "knowledge-graph-construction"
+      ],
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/knowledge-graph-construction",
+      "source_version": "本机保存版",
+      "release": {
+        "version": "2026-10-22.5",
+        "bundle": "/downloads/bo-local-skills.zip",
+        "commit": "db8ce71a00e9957030a4a19b1c1a474dfb16aa2e",
+        "skills": 165
+      },
+      "author": "原作者待核实",
+      "license": "原许可与署名保留于源文件；本站未另授统一许可",
+      "runtime": "Python 3.10+；按包内 references/research-runtime.md 和原项目依赖说明配置，文献计量等分支可能需要 R / bibliometrix 或 Graphviz。",
+      "included_skills": [
+        "knowledge-graph-construction"
+      ],
+      "source_pack": "/downloads/bo-skill-knowledge-graph-construction.zip",
+      "adaptation": "ADRS staged method; original host code is not executed; source reference sections are not loaded into stage context",
+      "private_import_source_primary_embedded": true,
+      "repository_file_includes_upstream_text": false
+    },
+    {
+      "catalog_id": "literature-search-openalex",
+      "name": "OpenAlex 文献检索",
+      "slug": "bookshelf-literature-search-openalex",
+      "file": "literature-search-openalex.md",
+      "stages": [
+        "planner",
+        "search",
+        "analyst"
+      ],
+      "keywords": [
+        "openalex",
+        "机构论文",
+        "学术成果检索",
+        "doi解析",
+        "literature-search-openalex"
+      ],
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/literature-search-openalex",
+      "source_version": "本机保存版",
+      "release": {
+        "version": "2026-10-22.5",
+        "bundle": "/downloads/bo-local-skills.zip",
+        "commit": "db8ce71a00e9957030a4a19b1c1a474dfb16aa2e",
+        "skills": 165
+      },
+      "author": "原作者待核实",
+      "license": "原许可与署名保留于源文件；本站未另授统一许可",
+      "runtime": "Python 3.10+；按包内 references/research-runtime.md 和原项目依赖说明配置，文献计量等分支可能需要 R / bibliometrix 或 Graphviz。",
+      "included_skills": [
+        "literature-search-openalex"
+      ],
+      "source_pack": "/downloads/bo-skill-literature-search-openalex.zip",
+      "adaptation": "ADRS staged method; original host code is not executed; source reference sections are not loaded into stage context",
+      "private_import_source_primary_embedded": true,
+      "repository_file_includes_upstream_text": false
+    },
+    {
+      "catalog_id": "market-researcher-agent",
+      "name": "市场研究",
+      "slug": "bookshelf-market-researcher-agent",
+      "file": "market-researcher-agent.md",
+      "stages": [
+        "planner",
+        "analyst",
+        "report"
+      ],
+      "keywords": [
+        "市场研究",
+        "市场规模",
+        "market research",
+        "tam",
+        "sam",
+        "som",
+        "market-researcher-agent"
+      ],
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/market-researcher-agent",
+      "source_version": "本机保存版",
+      "release": {
+        "version": "2026-10-22.5",
+        "bundle": "/downloads/bo-local-skills.zip",
+        "commit": "db8ce71a00e9957030a4a19b1c1a474dfb16aa2e",
+        "skills": 165
+      },
+      "author": "原作者待核实",
+      "license": "原许可与署名保留于源文件；本站未另授统一许可",
+      "runtime": "按源文件中的运行依赖说明配置 Python、Node 或相应专用工具。",
+      "included_skills": [
+        "market-researcher-agent"
+      ],
+      "source_pack": "/downloads/bo-skill-market-researcher-agent.zip",
+      "adaptation": "ADRS staged method; original host code is not executed; source reference sections are not loaded into stage context",
+      "private_import_source_primary_embedded": true,
+      "repository_file_includes_upstream_text": false
+    },
+    {
+      "catalog_id": "networkx",
+      "name": "复杂网络分析",
+      "slug": "bookshelf-networkx",
+      "file": "networkx.md",
+      "stages": [
+        "analyst",
+        "render"
+      ],
+      "keywords": [
+        "networkx",
+        "复杂网络",
+        "中心性",
+        "社区发现",
+        "网络分析"
+      ],
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/networkx",
+      "source_version": "1.4",
+      "release": {
+        "version": "2026-10-22.5",
+        "bundle": "/downloads/bo-local-skills.zip",
+        "commit": "db8ce71a00e9957030a4a19b1c1a474dfb16aa2e",
+        "skills": 165
+      },
+      "author": "原作者待核实",
+      "license": "3-clause BSD license",
+      "runtime": "Python 3.10+；按包内 references/research-runtime.md 和原项目依赖说明配置，文献计量等分支可能需要 R / bibliometrix 或 Graphviz。",
+      "included_skills": [
+        "networkx"
+      ],
+      "source_pack": "/downloads/bo-skill-networkx.zip",
+      "adaptation": "ADRS staged method; original host code is not executed; source reference sections are not loaded into stage context",
+      "private_import_source_primary_embedded": true,
+      "repository_file_includes_upstream_text": false
+    },
+    {
+      "catalog_id": "orcid-api",
+      "name": "研究者身份检索",
+      "slug": "bookshelf-orcid-api",
+      "file": "orcid-api.md",
+      "stages": [
+        "search",
+        "analyst"
+      ],
+      "keywords": [
+        "orcid",
+        "研究者身份",
+        "作者消歧",
+        "研究人员身份",
+        "orcid-api"
+      ],
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/orcid-api",
+      "source_version": "本机保存版",
+      "release": {
+        "version": "2026-10-22.5",
+        "bundle": "/downloads/bo-local-skills.zip",
+        "commit": "db8ce71a00e9957030a4a19b1c1a474dfb16aa2e",
+        "skills": 165
+      },
+      "author": "原作者待核实",
+      "license": "原许可与署名保留于源文件；本站未另授统一许可",
+      "runtime": "Python 3.10+；按包内 references/research-runtime.md 和原项目依赖说明配置，文献计量等分支可能需要 R / bibliometrix 或 Graphviz。",
+      "included_skills": [
+        "orcid-api"
+      ],
+      "source_pack": "/downloads/bo-skill-orcid-api.zip",
+      "adaptation": "ADRS staged method; original host code is not executed; source reference sections are not loaded into stage context",
+      "private_import_source_primary_embedded": true,
+      "repository_file_includes_upstream_text": false
+    },
+    {
+      "catalog_id": "paper-audit--local",
+      "name": "统一论文审查",
+      "slug": "bookshelf-paper-audit",
+      "file": "paper-audit.md",
+      "stages": [
+        "reflection"
+      ],
+      "keywords": [
+        "论文审查",
+        "审稿",
+        "paper audit",
+        "peer review",
+        "稿件评估",
+        "paper-audit"
+      ],
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/fused-skills/paper-audit",
+      "source_version": "fusion-2026-10-05",
+      "release": {
+        "version": "2026-10-22.5",
+        "bundle": "/downloads/bo-local-skills.zip",
+        "commit": "db8ce71a00e9957030a4a19b1c1a474dfb16aa2e",
+        "skills": 165
+      },
+      "author": "bahayonghang / Imbad0202 / Academic Research Skills",
+      "license": "各模块分别适用其原许可。保留模块内 LICENSE / NOTICE；不得用王博的署名替代原作者。 ARS 当前公开许可为 CC BY-NC 4.0（原作者 Cheng-I Wu）；其完整文本随包保留。 academic-writing-skills 根目录未找到统一 LICENSE；保留作者的安装/自行修改说明及原文件，不另宣称 MIT 或商业许可。",
+      "runtime": "Python 3.10+；PDF 输入按需安装 pypdf 或 PyMuPDF；稿件相关编译依赖由稿件项目提供。",
+      "included_skills": [
+        "academic-paper",
+        "deep-research",
+        "dev",
+        "paper-audit",
+        "tech-stack-evaluator"
+      ],
+      "source_pack": "/downloads/bo-skill-paper-audit.zip",
+      "adaptation": "ADRS staged method; original host code is not executed; source reference sections are not loaded into stage context",
+      "private_import_source_primary_embedded": true,
+      "repository_file_includes_upstream_text": false
+    },
+    {
+      "catalog_id": "paper-search",
+      "name": "多库论文检索",
+      "slug": "bookshelf-paper-search",
+      "file": "paper-search.md",
+      "stages": [
+        "planner",
+        "search"
+      ],
+      "keywords": [
+        "论文检索",
+        "查找论文",
+        "paper search",
+        "prior art",
+        "文献搜索",
+        "paper-search"
+      ],
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/paper-search",
+      "source_version": "本机保存版",
+      "release": {
+        "version": "2026-10-22.5",
+        "bundle": "/downloads/bo-local-skills.zip",
+        "commit": "db8ce71a00e9957030a4a19b1c1a474dfb16aa2e",
+        "skills": 165
+      },
+      "author": "原作者待核实",
+      "license": "原许可与署名保留于源文件；本站未另授统一许可",
+      "runtime": "Python 3.10+；按包内 references/research-runtime.md 和原项目依赖说明配置，文献计量等分支可能需要 R / bibliometrix 或 Graphviz。",
+      "included_skills": [
+        "paper-search"
+      ],
+      "source_pack": "/downloads/bo-skill-paper-search.zip",
+      "adaptation": "ADRS staged method; original host code is not executed; source reference sections are not loaded into stage context",
+      "private_import_source_primary_embedded": true,
+      "repository_file_includes_upstream_text": false
+    },
+    {
+      "catalog_id": "pdf--local",
+      "name": "统一 PDF 工作流",
+      "slug": "bookshelf-pdf",
+      "file": "pdf.md",
+      "stages": [
+        "browser",
+        "analyst"
+      ],
+      "keywords": [
+        "pdf",
+        "论文全文",
+        "扫描文档",
+        "pdf提取"
+      ],
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/fused-skills/pdf",
+      "source_version": "fusion-2026-10-05",
+      "release": {
+        "version": "2026-10-22.5",
+        "bundle": "/downloads/bo-local-skills.zip",
+        "commit": "db8ce71a00e9957030a4a19b1c1a474dfb16aa2e",
+        "skills": 165
+      },
+      "author": "OpenAI",
+      "license": "各模块分别适用其原许可。保留模块内 LICENSE / NOTICE；不得用王博的署名替代原作者。",
+      "runtime": "Python 3.10+；按操作安装 pypdf、pdfplumber、reportlab、PyMuPDF。Poppler / pdftoppm 为可选渲染工具；Node.js 仅供宿主需要的文档标记脚本。",
+      "included_skills": [
+        "dev",
+        "pdf",
+        "tech-stack-evaluator"
+      ],
+      "source_pack": "/downloads/bo-skill-pdf.zip",
+      "adaptation": "ADRS staged method; original host code is not executed; source reference sections are not loaded into stage context",
+      "private_import_source_primary_embedded": true,
+      "repository_file_includes_upstream_text": false
+    },
+    {
+      "catalog_id": "presentations",
+      "name": "演示文稿",
+      "slug": "bookshelf-presentations",
+      "file": "presentations.md",
+      "stages": [
+        "report"
+      ],
+      "keywords": [
+        "研究汇报",
+        "演示文稿",
+        "presentation",
+        "ppt",
+        "slides",
+        "presentations"
+      ],
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/presentations",
+      "source_version": "本机保存版",
+      "release": {
+        "version": "2026-10-22.5",
+        "bundle": "/downloads/bo-local-skills.zip",
+        "commit": "db8ce71a00e9957030a4a19b1c1a474dfb16aa2e",
+        "skills": 165
+      },
+      "author": "OpenAI 插件分发 · 原作者以文件署名为准",
+      "license": "原许可与署名保留于源文件；本站未另授统一许可",
+      "runtime": "需对应宿主插件及其实际可用工具。",
+      "included_skills": [
+        "presentations"
+      ],
+      "source_pack": "/downloads/bo-skill-presentations.zip",
+      "adaptation": "ADRS staged method; original host code is not executed; source reference sections are not loaded into stage context",
+      "private_import_source_primary_embedded": true,
+      "repository_file_includes_upstream_text": false
+    },
+    {
+      "catalog_id": "research-gap",
+      "name": "研究空白分析",
+      "slug": "bookshelf-research-gap",
+      "file": "research-gap.md",
+      "stages": [
+        "analyst",
+        "report"
+      ],
+      "keywords": [
+        "研究空白",
+        "研究缺口",
+        "research gap",
+        "未来研究方向",
+        "research-gap"
+      ],
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/research-gap",
+      "source_version": "本机保存版",
+      "release": {
+        "version": "2026-10-22.5",
+        "bundle": "/downloads/bo-local-skills.zip",
+        "commit": "db8ce71a00e9957030a4a19b1c1a474dfb16aa2e",
+        "skills": 165
+      },
+      "author": "原作者待核实",
+      "license": "原许可与署名保留于源文件；本站未另授统一许可",
+      "runtime": "Python 3.10+；按包内 references/research-runtime.md 和原项目依赖说明配置，文献计量等分支可能需要 R / bibliometrix 或 Graphviz。",
+      "included_skills": [
+        "research-gap"
+      ],
+      "source_pack": "/downloads/bo-skill-research-gap.zip",
+      "adaptation": "ADRS staged method; original host code is not executed; source reference sections are not loaded into stage context",
+      "private_import_source_primary_embedded": true,
+      "repository_file_includes_upstream_text": false
+    },
+    {
+      "catalog_id": "scientific-data-visualization--local",
+      "name": "统一科研绘图",
+      "slug": "bookshelf-scientific-data-visualization",
+      "file": "scientific-data-visualization.md",
+      "stages": [
+        "analyst",
+        "render"
+      ],
+      "keywords": [
+        "科研绘图",
+        "数据可视化",
+        "scientific visualization",
+        "统计图",
+        "图表设计",
+        "scientific-data-visualization"
+      ],
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/fused-skills/scientific-data-visualization",
+      "source_version": "fusion-2026-10-05",
+      "release": {
+        "version": "2026-10-22.5",
+        "bundle": "/downloads/bo-local-skills.zip",
+        "commit": "db8ce71a00e9957030a4a19b1c1a474dfb16aa2e",
+        "skills": 165
+      },
+      "author": "王博 / wblxr408 / Haojae",
+      "license": "各模块分别适用其原许可。保留模块内 LICENSE / NOTICE；不得用王博的署名替代原作者。",
+      "runtime": "Python 3.10+。按任务使用 numpy、pandas、matplotlib、scipy、PyYAML、openpyxl；期刊方案按需用 seaborn、SciencePlots、plotly。",
+      "included_skills": [
+        "dev",
+        "scientific-data-visualization",
+        "tech-stack-evaluator"
+      ],
+      "source_pack": "/downloads/bo-skill-scientific-data-visualization.zip",
+      "adaptation": "ADRS staged method; original host code is not executed; source reference sections are not loaded into stage context",
+      "private_import_source_primary_embedded": true,
+      "repository_file_includes_upstream_text": false
+    },
+    {
+      "catalog_id": "spreadsheets",
+      "name": "电子表格",
+      "slug": "bookshelf-spreadsheets",
+      "file": "spreadsheets.md",
+      "stages": [
+        "analyst",
+        "report"
+      ],
+      "keywords": [
+        "电子表格",
+        "数据表",
+        "spreadsheet",
+        "xlsx",
+        "csv分析",
+        "spreadsheets"
+      ],
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/spreadsheets",
+      "source_version": "本机保存版",
+      "release": {
+        "version": "2026-10-22.5",
+        "bundle": "/downloads/bo-local-skills.zip",
+        "commit": "db8ce71a00e9957030a4a19b1c1a474dfb16aa2e",
+        "skills": 165
+      },
+      "author": "OpenAI 插件分发 · 原作者以文件署名为准",
+      "license": "原许可与署名保留于源文件；本站未另授统一许可",
+      "runtime": "需对应宿主插件及其实际可用工具。",
+      "included_skills": [
+        "spreadsheets"
+      ],
+      "source_pack": "/downloads/bo-skill-spreadsheets.zip",
+      "adaptation": "ADRS staged method; original host code is not executed; source reference sections are not loaded into stage context",
+      "private_import_source_primary_embedded": false,
+      "repository_file_includes_upstream_text": false
+    },
+    {
+      "catalog_id": "systematic-literature-review",
+      "name": "系统性文献综述",
+      "slug": "bookshelf-systematic-literature-review",
+      "file": "systematic-literature-review.md",
+      "stages": [
+        "planner",
+        "analyst",
+        "reflection",
+        "report"
+      ],
+      "keywords": [
+        "系统综述",
+        "系统性文献综述",
+        "systematic review",
+        "literature review",
+        "文献综述",
+        "systematic-literature-review"
+      ],
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/systematic-literature-review",
+      "source_version": "本机保存版",
+      "release": {
+        "version": "2026-10-22.5",
+        "bundle": "/downloads/bo-local-skills.zip",
+        "commit": "db8ce71a00e9957030a4a19b1c1a474dfb16aa2e",
+        "skills": 165
+      },
+      "author": "原作者待核实",
+      "license": "原许可与署名保留于源文件；本站未另授统一许可",
+      "runtime": "Python 3.10+；按包内 references/research-runtime.md 和原项目依赖说明配置，文献计量等分支可能需要 R / bibliometrix 或 Graphviz。",
+      "included_skills": [
+        "systematic-literature-review"
+      ],
+      "source_pack": "/downloads/bo-skill-systematic-literature-review.zip",
+      "adaptation": "ADRS staged method; original host code is not executed; source reference sections are not loaded into stage context",
+      "private_import_source_primary_embedded": true,
+      "repository_file_includes_upstream_text": false
+    },
+    {
+      "catalog_id": "task-contract",
+      "name": "任务契约",
+      "slug": "bookshelf-task-contract",
+      "file": "task-contract.md",
+      "stages": [
+        "planner"
+      ],
+      "keywords": [
+        "研究范围",
+        "研究需求",
+        "任务契约",
+        "research scope",
+        "task-contract"
+      ],
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/task-contract",
+      "source_version": "仓库快照",
+      "release": {
+        "version": "2026-10-22.5",
+        "bundle": "/downloads/bo-local-skills.zip",
+        "commit": "db8ce71a00e9957030a4a19b1c1a474dfb16aa2e",
+        "skills": 165
+      },
+      "author": "原作者待核实",
+      "license": "见源项目说明，本站不另授许可",
+      "runtime": null,
+      "included_skills": [
+        "task-contract"
+      ],
+      "source_pack": "/downloads/bo-skill-task-contract.zip",
+      "adaptation": "ADRS staged method; original host code is not executed; source reference sections are not loaded into stage context",
+      "private_import_source_primary_embedded": true,
+      "repository_file_includes_upstream_text": false
+    }
+  ],
+  "catalog_decisions": [
+    {
+      "id": "-21risk-automation",
+      "name": "风险业务自动化",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/-21risk-automation"
+    },
+    {
+      "id": "academic-paper--local",
+      "name": "统一学术写作",
+      "included": true,
+      "reason": "学术写作及证据审查",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/fused-skills/academic-paper"
+    },
+    {
+      "id": "academic-pipeline",
+      "name": "研究到投稿流水线",
+      "included": true,
+      "reason": "研究／文献核心方法",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/academic-pipeline"
+    },
+    {
+      "id": "academic-research-graph",
+      "name": "研究脉络与争议图谱",
+      "included": true,
+      "reason": "研究／文献核心方法",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/academic-research-graph"
+    },
+    {
+      "id": "agent-crosscheck--local",
+      "name": "统一成果审查",
+      "included": true,
+      "reason": "研究输入、绘图、交付或质量方法",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/fused-skills/agent-crosscheck"
+    },
+    {
+      "id": "algorithmic-art",
+      "name": "生成式算法艺术",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/algorithmic-art"
+    },
+    {
+      "id": "all-images-ai-automation",
+      "name": "图像服务自动化",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/all-images-ai-automation"
+    },
+    {
+      "id": "artifact-template-analytics-dashboard",
+      "name": "模板 · 分析仪表板",
+      "included": true,
+      "reason": "研究交付的报告结构",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/artifact-template-analytics-dashboard"
+    },
+    {
+      "id": "artifact-template-annual-impact-report",
+      "name": "模板 · 年度影响力报告",
+      "included": true,
+      "reason": "研究交付的报告结构",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/artifact-template-annual-impact-report"
+    },
+    {
+      "id": "artifact-template-brand-guidelines",
+      "name": "模板 · 品牌规范",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/artifact-template-brand-guidelines"
+    },
+    {
+      "id": "artifact-template-business-review",
+      "name": "模板 · 业务复盘",
+      "included": true,
+      "reason": "研究交付的报告结构",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/artifact-template-business-review"
+    },
+    {
+      "id": "artifact-template-calder-architecture",
+      "name": "模板 · 建筑作品集",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/artifact-template-calder-architecture"
+    },
+    {
+      "id": "artifact-template-creative-campaign-brief",
+      "name": "模板 · 创意活动简报",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/artifact-template-creative-campaign-brief"
+    },
+    {
+      "id": "artifact-template-design-report",
+      "name": "模板 · 设计报告",
+      "included": true,
+      "reason": "研究交付的报告结构",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/artifact-template-design-report"
+    },
+    {
+      "id": "artifact-template-experiment-analysis",
+      "name": "模板 · 实验分析",
+      "included": true,
+      "reason": "研究交付的报告结构",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/artifact-template-experiment-analysis"
+    },
+    {
+      "id": "artifact-template-financial-budget",
+      "name": "模板 · 财务预算",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/artifact-template-financial-budget"
+    },
+    {
+      "id": "artifact-template-growth-strategy",
+      "name": "模板 · 增长策略",
+      "included": true,
+      "reason": "研究交付的报告结构",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/artifact-template-growth-strategy"
+    },
+    {
+      "id": "artifact-template-investment-committee-memo",
+      "name": "模板 · 投委会备忘录",
+      "included": true,
+      "reason": "研究交付的报告结构",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/artifact-template-investment-committee-memo"
+    },
+    {
+      "id": "artifact-template-legal-memorandum",
+      "name": "模板 · 法律备忘录",
+      "included": true,
+      "reason": "研究交付的报告结构",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/artifact-template-legal-memorandum"
+    },
+    {
+      "id": "artifact-template-market-trends-report",
+      "name": "模板 · 市场趋势报告",
+      "included": true,
+      "reason": "研究交付的报告结构",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/artifact-template-market-trends-report"
+    },
+    {
+      "id": "artifact-template-minimal-letterhead",
+      "name": "模板 · 极简信纸",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/artifact-template-minimal-letterhead"
+    },
+    {
+      "id": "artifact-template-next-generation-os",
+      "name": "模板 · 操作系统概念",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/artifact-template-next-generation-os"
+    },
+    {
+      "id": "artifact-template-operating-calendar",
+      "name": "模板 · 运营日历",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/artifact-template-operating-calendar"
+    },
+    {
+      "id": "artifact-template-photography-portfolio",
+      "name": "模板 · 摄影作品集",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/artifact-template-photography-portfolio"
+    },
+    {
+      "id": "artifact-template-product-pitch",
+      "name": "模板 · 产品提案",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/artifact-template-product-pitch"
+    },
+    {
+      "id": "artifact-template-product-strategy",
+      "name": "模板 · 产品策略",
+      "included": true,
+      "reason": "研究交付的报告结构",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/artifact-template-product-strategy"
+    },
+    {
+      "id": "artifact-template-project-kickoff",
+      "name": "模板 · 项目启动",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/artifact-template-project-kickoff"
+    },
+    {
+      "id": "artifact-template-project-tracker",
+      "name": "模板 · 项目追踪",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/artifact-template-project-tracker"
+    },
+    {
+      "id": "artifact-template-sales-pipeline",
+      "name": "模板 · 销售漏斗",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/artifact-template-sales-pipeline"
+    },
+    {
+      "id": "artifact-template-state-of-art",
+      "name": "模板 · 研究现状报告",
+      "included": false,
+      "reason": "原文为艺术／创意展示，不是学术研究现状综述",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/artifact-template-state-of-art"
+    },
+    {
+      "id": "artifact-template-strategy-memorandum",
+      "name": "模板 · 战略备忘录",
+      "included": true,
+      "reason": "研究交付的报告结构",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/artifact-template-strategy-memorandum"
+    },
+    {
+      "id": "artifact-template-system-design",
+      "name": "模板 · 系统设计",
+      "included": true,
+      "reason": "研究交付的报告结构",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/artifact-template-system-design"
+    },
+    {
+      "id": "artifact-template-three-statement-forecast",
+      "name": "模板 · 财务三表预测",
+      "included": true,
+      "reason": "研究交付的报告结构",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/artifact-template-three-statement-forecast"
+    },
+    {
+      "id": "artifact-template-weekly-business-review",
+      "name": "模板 · 周度业务复盘",
+      "included": true,
+      "reason": "研究交付的报告结构",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/artifact-template-weekly-business-review"
+    },
+    {
+      "id": "bib-search-citation",
+      "name": "文献库检索与引用",
+      "included": true,
+      "reason": "研究／文献核心方法",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/bib-search-citation"
+    },
+    {
+      "id": "bibliometrix-guide",
+      "name": "文献计量分析",
+      "included": true,
+      "reason": "研究／文献核心方法",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/bibliometrix-guide"
+    },
+    {
+      "id": "bm-decide",
+      "name": "工程决定记录",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/bm-decide"
+    },
+    {
+      "id": "bm-remember",
+      "name": "记住事实与偏好",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/bm-remember"
+    },
+    {
+      "id": "bm-setup",
+      "name": "Basic Memory 设置",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/bm-setup"
+    },
+    {
+      "id": "bm-share",
+      "name": "记忆分享",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/bm-share"
+    },
+    {
+      "id": "bm-status",
+      "name": "记忆服务状态",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/bm-status"
+    },
+    {
+      "id": "bm-writing",
+      "name": "记忆写作规范",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/bm-writing"
+    },
+    {
+      "id": "browser--local",
+      "name": "统一浏览器操作",
+      "included": true,
+      "reason": "研究输入、绘图、交付或质量方法",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/fused-skills/browser"
+    },
+    {
+      "id": "citation-network-builder",
+      "name": "引用网络构建",
+      "included": true,
+      "reason": "研究／文献核心方法",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/citation-network-builder"
+    },
+    {
+      "id": "codeagent",
+      "name": "多后端代码工具",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/codeagent"
+    },
+    {
+      "id": "company-intel",
+      "name": "公司与行业研究",
+      "included": true,
+      "reason": "研究／文献核心方法",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/company-intel"
+    },
+    {
+      "id": "competitive-analysis",
+      "name": "竞品分析",
+      "included": true,
+      "reason": "研究／文献核心方法",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/competitive-analysis"
+    },
+    {
+      "id": "computer-use",
+      "name": "电脑界面操作",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/computer-use"
+    },
+    {
+      "id": "context-bridge--local",
+      "name": "统一任务连续性",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/fused-skills/context-bridge"
+    },
+    {
+      "id": "cover-letter",
+      "name": "投稿附信",
+      "included": true,
+      "reason": "学术写作及证据审查",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/cover-letter"
+    },
+    {
+      "id": "create-pet",
+      "name": "创建动态宠物",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/create-pet"
+    },
+    {
+      "id": "create-plugin",
+      "name": "插件开发",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/create-plugin"
+    },
+    {
+      "id": "dblp-cli",
+      "name": "DBLP 文献检索",
+      "included": true,
+      "reason": "研究／文献核心方法",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/dblp-cli"
+    },
+    {
+      "id": "deep-research--local",
+      "name": "研究入口分流版",
+      "included": true,
+      "reason": "研究／文献核心方法",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/fused-skills/deep-research"
+    },
+    {
+      "id": "dev--local",
+      "name": "统一开发入口",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/fused-skills/dev"
+    },
+    {
+      "id": "documents",
+      "name": "Word 与文档制作",
+      "included": true,
+      "reason": "研究输入、绘图、交付或质量方法",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/documents"
+    },
+    {
+      "id": "engineering-memory",
+      "name": "工程经验记忆",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/engineering-memory"
+    },
+    {
+      "id": "engineering-toolbox--local",
+      "name": "工程专项工具箱",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/fused-skills/engineering-toolbox"
+    },
+    {
+      "id": "excel-live-control",
+      "name": "Excel 实时操作",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/excel-live-control"
+    },
+    {
+      "id": "figma-code-connect",
+      "name": "Figma 组件连接",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/figma-code-connect"
+    },
+    {
+      "id": "figma-create-new-file",
+      "name": "Figma 新建设计",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/figma-create-new-file"
+    },
+    {
+      "id": "figma-design-to-code",
+      "name": "Figma 设计转代码",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/figma-design-to-code"
+    },
+    {
+      "id": "figma-generate-design",
+      "name": "Figma 设计生成",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/figma-generate-design"
+    },
+    {
+      "id": "figma-generate-diagram",
+      "name": "Figma 图表生成",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/figma-generate-diagram"
+    },
+    {
+      "id": "figma-generate-library",
+      "name": "Figma 组件库生成",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/figma-generate-library"
+    },
+    {
+      "id": "figma-implement-motion",
+      "name": "Figma 动效实现",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/figma-implement-motion"
+    },
+    {
+      "id": "figma-swiftui",
+      "name": "Figma 与 SwiftUI",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/figma-swiftui"
+    },
+    {
+      "id": "figma-use",
+      "name": "Figma 设计操作",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/figma-use"
+    },
+    {
+      "id": "figma-use-figjam",
+      "name": "FigJam 协作白板",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/figma-use-figjam"
+    },
+    {
+      "id": "figma-use-motion",
+      "name": "Figma 动效操作",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/figma-use-motion"
+    },
+    {
+      "id": "figma-use-slides",
+      "name": "Figma 幻灯片",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/figma-use-slides"
+    },
+    {
+      "id": "find-skills",
+      "name": "发现与安装 Skill",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/find-skills"
+    },
+    {
+      "id": "firecrawl",
+      "name": "网页搜索与抓取",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/firecrawl"
+    },
+    {
+      "id": "frontend-app-builder",
+      "name": "前端应用搭建",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/frontend-app-builder"
+    },
+    {
+      "id": "frontend-testing-debugging",
+      "name": "前端交互排错",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/frontend-testing-debugging"
+    },
+    {
+      "id": "geopandas",
+      "name": "地理空间数据分析",
+      "included": true,
+      "reason": "研究／文献核心方法",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/geopandas"
+    },
+    {
+      "id": "google-docs",
+      "name": "Google Docs 文档",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/google-docs"
+    },
+    {
+      "id": "google-drive",
+      "name": "Google Drive 文件",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/google-drive"
+    },
+    {
+      "id": "google-drive-comments",
+      "name": "文档批注",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/google-drive-comments"
+    },
+    {
+      "id": "google-sheets",
+      "name": "Google Sheets 表格",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/google-sheets"
+    },
+    {
+      "id": "google-slides",
+      "name": "Google Slides 演示",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/google-slides"
+    },
+    {
+      "id": "grilling",
+      "name": "方案追问与推敲",
+      "included": true,
+      "reason": "研究输入、绘图、交付或质量方法",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/grilling"
+    },
+    {
+      "id": "gsap",
+      "name": "GSAP 动画",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/gsap"
+    },
+    {
+      "id": "hatch-pet",
+      "name": "动态宠物制作",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/hatch-pet"
+    },
+    {
+      "id": "hyperframes",
+      "name": "HyperFrames 视频总入口",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/hyperframes"
+    },
+    {
+      "id": "hyperframes-animation",
+      "name": "视频动画设计",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/hyperframes-animation"
+    },
+    {
+      "id": "hyperframes-audio",
+      "name": "视频音频混合",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/hyperframes-audio"
+    },
+    {
+      "id": "hyperframes-cli",
+      "name": "视频开发与渲染",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/hyperframes-cli"
+    },
+    {
+      "id": "hyperframes-core",
+      "name": "视频合成结构",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/hyperframes-core"
+    },
+    {
+      "id": "hyperframes-creative",
+      "name": "视频创意与分镜",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/hyperframes-creative"
+    },
+    {
+      "id": "hyperframes-keyframes",
+      "name": "镜头与关键帧",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/hyperframes-keyframes"
+    },
+    {
+      "id": "hyperframes-registry",
+      "name": "视频组件与模板",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/hyperframes-registry"
+    },
+    {
+      "id": "hyperframes-studio",
+      "name": "视频 Studio 工作流",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/hyperframes-studio"
+    },
+    {
+      "id": "imagegen",
+      "name": "图像生成与编辑",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/imagegen"
+    },
+    {
+      "id": "impeccable--local",
+      "name": "统一前端设计",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/fused-skills/impeccable"
+    },
+    {
+      "id": "intelligence-collection-disciplines",
+      "name": "多来源情报研究",
+      "included": true,
+      "reason": "研究／文献核心方法",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/intelligence-collection-disciplines"
+    },
+    {
+      "id": "knowledge-graph-construction",
+      "name": "知识图谱构建",
+      "included": true,
+      "reason": "研究／文献核心方法",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/knowledge-graph-construction"
+    },
+    {
+      "id": "lean-agent-harness",
+      "name": "精简 Agent 指令",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/lean-agent-harness"
+    },
+    {
+      "id": "linear",
+      "name": "Linear 项目管理",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/linear"
+    },
+    {
+      "id": "literature-search-openalex",
+      "name": "OpenAlex 文献检索",
+      "included": true,
+      "reason": "研究／文献核心方法",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/literature-search-openalex"
+    },
+    {
+      "id": "maintain-space",
+      "name": "Space 知识维护",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/maintain-space"
+    },
+    {
+      "id": "manage-schedules",
+      "name": "Space 定时任务",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/manage-schedules"
+    },
+    {
+      "id": "market-researcher-agent",
+      "name": "市场研究",
+      "included": true,
+      "reason": "研究／文献核心方法",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/market-researcher-agent"
+    },
+    {
+      "id": "media-use",
+      "name": "视频媒体素材",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/media-use"
+    },
+    {
+      "id": "microsoft-foundry",
+      "name": "Microsoft Foundry 总入口",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/microsoft-foundry"
+    },
+    {
+      "id": "multi-agent-security",
+      "name": "多 Agent 安全",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/multi-agent-security"
+    },
+    {
+      "id": "networkx",
+      "name": "复杂网络分析",
+      "included": true,
+      "reason": "研究／文献核心方法",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/networkx"
+    },
+    {
+      "id": "one-day-prototype",
+      "name": "一天原型",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/one-day-prototype"
+    },
+    {
+      "id": "onetake",
+      "name": "onetake 一镜到底产品动效",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/onetake"
+    },
+    {
+      "id": "open-defense-factory",
+      "name": "代码安全云入口",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/open-defense-factory"
+    },
+    {
+      "id": "openai-docs",
+      "name": "OpenAI 产品文档",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/openai-docs"
+    },
+    {
+      "id": "openspec-apply-change",
+      "name": "OpenSpec 实施",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/openspec-apply-change"
+    },
+    {
+      "id": "openspec-archive-change",
+      "name": "OpenSpec 归档",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/openspec-archive-change"
+    },
+    {
+      "id": "openspec-explore",
+      "name": "OpenSpec 需求探索",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/openspec-explore"
+    },
+    {
+      "id": "openspec-propose",
+      "name": "OpenSpec 需求提案",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/openspec-propose"
+    },
+    {
+      "id": "openspec-sync-specs",
+      "name": "OpenSpec 规格同步",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/openspec-sync-specs"
+    },
+    {
+      "id": "openspec-update-change",
+      "name": "OpenSpec 变更修订",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/openspec-update-change"
+    },
+    {
+      "id": "orcid-api",
+      "name": "研究者身份检索",
+      "included": true,
+      "reason": "研究／文献核心方法",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/orcid-api"
+    },
+    {
+      "id": "organize-space",
+      "name": "Space 页面整理",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/organize-space"
+    },
+    {
+      "id": "paper-audit--local",
+      "name": "统一论文审查",
+      "included": true,
+      "reason": "学术写作及证据审查",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/fused-skills/paper-audit"
+    },
+    {
+      "id": "paper-search",
+      "name": "多库论文检索",
+      "included": true,
+      "reason": "研究／文献核心方法",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/paper-search"
+    },
+    {
+      "id": "pdf--local",
+      "name": "统一 PDF 工作流",
+      "included": true,
+      "reason": "研究输入、绘图、交付或质量方法",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/fused-skills/pdf"
+    },
+    {
+      "id": "pets",
+      "name": "动态宠物管理",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/pets"
+    },
+    {
+      "id": "photon-batch-production",
+      "name": "Photon 批量变体",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/photon-batch-production"
+    },
+    {
+      "id": "photon-composite",
+      "name": "Photon 图层合成",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/photon-composite"
+    },
+    {
+      "id": "photon-edit",
+      "name": "Photon 图像编辑",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/photon-edit"
+    },
+    {
+      "id": "photon-generated-images",
+      "name": "Photon 生成图像",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/photon-generated-images"
+    },
+    {
+      "id": "photon-photo-finish",
+      "name": "Photon 照片精修",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/photon-photo-finish"
+    },
+    {
+      "id": "photon-vector-design",
+      "name": "Photon 矢量设计",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/photon-vector-design"
+    },
+    {
+      "id": "plugin-management",
+      "name": "插件管理",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/plugin-management"
+    },
+    {
+      "id": "prepare-plugin-submission",
+      "name": "插件提交准备",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/prepare-plugin-submission"
+    },
+    {
+      "id": "presentations",
+      "name": "演示文稿",
+      "included": true,
+      "reason": "研究输入、绘图、交付或质量方法",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/presentations"
+    },
+    {
+      "id": "product-requirements",
+      "name": "产品需求整理",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/product-requirements"
+    },
+    {
+      "id": "project-index-router",
+      "name": "项目索引路由",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/project-index-router"
+    },
+    {
+      "id": "prototype-prompt-generator",
+      "name": "原型提示词生成",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/prototype-prompt-generator"
+    },
+    {
+      "id": "react-best-practices",
+      "name": "React 工程实践",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/react-best-practices"
+    },
+    {
+      "id": "remotion-best-practices",
+      "name": "Remotion 视频制作",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/remotion-best-practices"
+    },
+    {
+      "id": "research-gap",
+      "name": "研究空白分析",
+      "included": true,
+      "reason": "研究／文献核心方法",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/research-gap"
+    },
+    {
+      "id": "reverse-engineer-anything",
+      "name": "软件与系统逆向",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/reverse-engineer-anything"
+    },
+    {
+      "id": "review-agent",
+      "name": "代码审查",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/review-agent"
+    },
+    {
+      "id": "scene-to-art-lab",
+      "name": "实景艺术实验室",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/skills/scene-to-art-lab"
+    },
+    {
+      "id": "scientific-data-visualization--local",
+      "name": "统一科研绘图",
+      "included": true,
+      "reason": "研究输入、绘图、交付或质量方法",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/fused-skills/scientific-data-visualization"
+    },
+    {
+      "id": "security-audit",
+      "name": "Cloudflare 源码安全审计",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/security-audit"
+    },
+    {
+      "id": "shadcn",
+      "name": "shadcn 组件设计",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/shadcn"
+    },
+    {
+      "id": "sites",
+      "name": "Sites 网站搭建",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/sites"
+    },
+    {
+      "id": "skill-creator",
+      "name": "Skill 创建与维护",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/skill-creator"
+    },
+    {
+      "id": "skill-install",
+      "name": "Skill 安装助手",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/skill-install"
+    },
+    {
+      "id": "skill-installer",
+      "name": "官方 Skill 安装",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/skill-installer"
+    },
+    {
+      "id": "spreadsheets",
+      "name": "电子表格",
+      "included": true,
+      "reason": "研究输入、绘图、交付或质量方法",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/spreadsheets"
+    },
+    {
+      "id": "starter-workflow",
+      "name": "新项目工作流",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/create-plugin/assets/starter-plugin/skills/starter-workflow"
+    },
+    {
+      "id": "stripe-best-practices",
+      "name": "Stripe 接入实践",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/stripe-best-practices"
+    },
+    {
+      "id": "supabase-postgres-best-practices",
+      "name": "PostgreSQL 工程实践",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/supabase-postgres-best-practices"
+    },
+    {
+      "id": "systematic-literature-review",
+      "name": "系统性文献综述",
+      "included": true,
+      "reason": "研究／文献核心方法",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/systematic-literature-review"
+    },
+    {
+      "id": "task-contract",
+      "name": "任务契约",
+      "included": true,
+      "reason": "研究输入、绘图、交付或质量方法",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/task-contract"
+    },
+    {
+      "id": "task-lanes",
+      "name": "任务分流",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/task-lanes"
+    },
+    {
+      "id": "tech-stack-evaluator",
+      "name": "技术栈与依赖选型",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/tech-stack-evaluator"
+    },
+    {
+      "id": "template-creator",
+      "name": "可复用模板制作",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/template-creator"
+    },
+    {
+      "id": "test-cases",
+      "name": "测试用例设计",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/test-cases"
+    },
+    {
+      "id": "update-pet",
+      "name": "修改动态宠物",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/update-pet"
+    },
+    {
+      "id": "update-plugin",
+      "name": "插件更新",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/update-plugin"
+    },
+    {
+      "id": "visual-style-router",
+      "name": "视觉风格路由",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/visual-style-router"
+    },
+    {
+      "id": "visualize",
+      "name": "交互式可视化",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/visualize"
+    },
+    {
+      "id": "website-to-hyperframes",
+      "name": "网站转视频",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/website-to-hyperframes"
+    },
+    {
+      "id": "wechat-to-memory",
+      "name": "微信文章入库",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/wechat-to-memory"
+    },
+    {
+      "id": "workflow-skill-capture",
+      "name": "工作流沉淀",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/workflow-skill-capture"
+    },
+    {
+      "id": "write-page",
+      "name": "Pages 写作",
+      "included": false,
+      "reason": "开发、宿主管理、运营、媒体或非本次研究方法；不因目录收录自动导入",
+      "source": "https://github.com/wblxr408/skill-bookshelf/tree/db8ce71a00e9957030a4a19b1c1a474dfb16aa2e/local-skills/write-page"
+    }
+  ]
+}
