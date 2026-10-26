@@ -7,7 +7,7 @@ from pydantic import ValidationError
 
 from app.security.auth import Principal, require_principal
 from app.skills import SkillCreateRequest, SkillUpdateRequest, get_skill_registry
-from app.skills.service import create_skill, delete_skill, update_skill
+from app.skills.service import create_skill, delete_skill, update_skill, list_skill_meta
 from app.skills.parser import SkillParseError
 
 router = APIRouter(prefix="/api/v1/skills", tags=["skills"], dependencies=[Depends(require_principal)])
@@ -27,7 +27,11 @@ async def _validated_skill_write(operation):
 
 
 @router.get("")
-async def get_skills(principal: PrincipalDep):
+async def get_skills(principal: PrincipalDep, include_disabled: bool = False):
+    if include_disabled:
+        # Management reads current owner metadata; execution retains its active registry.
+        skills = await list_skill_meta(principal.id, include_deleted=False)
+        return {"items": [skill.to_runtime_view().model_dump() for skill in skills]}
     registry = get_skill_registry(principal.id)
     await registry.ensure_loaded()
     skills = registry.list_runtime_skills()

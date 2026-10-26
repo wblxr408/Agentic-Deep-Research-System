@@ -63,6 +63,8 @@ class SkillRegistry:
             previous_meta = self._meta_by_id.get(skill_record.id)
             if previous_meta is not None:
                 self._deindex_meta(previous_meta)
+            # Disabled updates must not leave the previous enabled revision resident.
+            self._meta_by_id.pop(skill_record.id, None)
             self._index_meta(skill_record.meta)
             self._remember_content(skill_record.content)
             self._bump_revision()
