@@ -1,278 +1,73 @@
-import { useMemo, useState } from 'react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import {useState} from 'react'
+import {useQuery,useQueryClient} from '@tanstack/react-query'
+import ReactMarkdown from 'react-markdown'
+import {Icon,Modal} from './Interface'
+import {CollectionHeader,CollectionEmpty,CollectionTabs,CollectionTags,ActionFooter,collectionRequest,jsonOptions,stageNames,useCollectionAction} from './CollectionUI'
 
-interface SkillItem {
-  id: string
-  name: string
-  slug: string
-  description: string
-  version: number
-  enabled: boolean
-  priority: number
-  trigger_patterns: string[]
-  allowed_tools: string[]
-  tags: string[]
-  keywords: string[]
-  domain: string | null
-  updated_at: string
+interface Skill {id:string;name:string;slug:string;description:string;enabled:boolean;stages:string[];tags:string[];keywords:string[];allowed_tools:string[];markdown_content?:string|null;prompt?:string;constraints?:string;overview?:string}
+interface Draft {name:string;description:string;prompt:string;constraints:string;stages:string[];tools:string[];keywords:string[]}
+function patchMetadata(markdown:string,changes:Record<string,unknown>){
+ const match=/^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/.exec(markdown)
+ if(!match)throw new Error('请在原文中补全方法名称与用途声明')
+ let header=match[1]
+ if(header.trim().startsWith('{'))header=JSON.stringify({...JSON.parse(header),...changes})
+ else for(const [key,value] of Object.entries(changes)){
+  const lines=header.split(/\r?\n/),start=lines.findIndex(line=>line.startsWith(key+':'))
+  const next=key+': '+JSON.stringify(value)
+  if(start<0)lines.push(next)
+  else{let end=start+1;while(end<lines.length&&(lines[end].trim()===''||/^\s|^#/.test(lines[end])))end++;lines.splice(start,end-start,next)}
+  header=lines.join('\n')
+ }
+ return `---\n${header}\n---\n${markdown.slice(match[0].length)}`
 }
-
-interface SkillDetail extends SkillItem {
-  markdown_content: string | null
-  prompt: string
-  constraints: string
-  overview: string
+function patchSection(markdown:string,title:string,value:string){
+ const headings=[...markdown.matchAll(/^#\s+([^\n\r]+)\s*$/gm)],index=headings.findIndex(item=>item[1].trim().toLowerCase()===title.toLowerCase())
+ if(index<0)return value.trim()?markdown.trimEnd()+`\n\n# ${title}\n${value.trim()}\n`:markdown
+ const current=headings[index],end=headings[index+1]?.index??markdown.length
+ return markdown.slice(0,current.index)+`# ${title}\n${value.trim()}\n\n`+markdown.slice(end)
 }
-
-async function readErrorMessage(res: Response, fallback: string) {
-  const text = await res.text()
-  try {
-    const data = JSON.parse(text) as { detail?: string }
-    return data.detail || fallback
-  } catch {
-    return text || fallback
-  }
+function initialDraft(skill?:Skill):Draft{return {name:skill?.name||'',description:skill?.description||'',prompt:skill?.prompt||'',constraints:skill?.constraints||'',stages:skill?.stages||['analyst'],tools:skill?.allowed_tools||[],keywords:skill?.keywords||[]}}
+function compose(draft:Draft,original?:Skill){
+ if(!original)return `---\nname: ${JSON.stringify(draft.name.trim())}\nslug: method-${crypto.randomUUID()}\ndescription: ${JSON.stringify(draft.description.trim())}\nenabled: true\nstages: ${JSON.stringify(draft.stages)}\nkeywords: ${JSON.stringify(draft.keywords.length?draft.keywords:[draft.name.trim()])}\nallowed_tools: ${JSON.stringify(draft.tools)}\n---\n\n# Prompt\n${draft.prompt.trim()}\n\n# Constraints\n${draft.constraints.trim()}\n`
+ const changes:Record<string,unknown>={}
+ if(draft.name!==original.name)changes.name=draft.name.trim()
+ if(draft.description!==original.description)changes.description=draft.description.trim()
+ if(JSON.stringify(draft.stages)!==JSON.stringify(original.stages))changes.stages=draft.stages
+ if(JSON.stringify(draft.tools)!==JSON.stringify(original.allowed_tools))changes.allowed_tools=draft.tools
+ if(JSON.stringify(draft.keywords)!==JSON.stringify(original.keywords))changes.keywords=draft.keywords
+ let markdown=patchMetadata(original.markdown_content||'',changes)
+ if(draft.prompt!==(original.prompt||''))markdown=patchSection(markdown,'Prompt',draft.prompt)
+ if(draft.constraints!==(original.constraints||''))markdown=patchSection(markdown,'Constraints',draft.constraints)
+ return markdown
 }
-
-function SkillManager() {
-  const queryClient = useQueryClient()
-  const [selectedSkillId, setSelectedSkillId] = useState<string | null>(null)
-  const [draftMarkdown, setDraftMarkdown] = useState('')
-  const [newMarkdown, setNewMarkdown] = useState(`---
-name: Example Skill
-slug: example-skill
-description: Example skill description
-version: 1
-enabled: true
-priority: 100
-trigger_patterns:
-  - "example"
-allowed_tools:
-  - search
-agent_hints:
-  planner: Focus on example-specific planning.
----
-
-# Overview
-Describe what this skill is for.
-
-# Prompt
-Add domain-specific prompt instructions here.
-
-# Constraints
-Add explicit tool or reasoning constraints here.
-`)
-  const [uploadFile, setUploadFile] = useState<File | null>(null)
-
-  const { data, isLoading } = useQuery<{ items: SkillItem[] }>({
-    queryKey: ['skills'],
-    queryFn: async () => {
-      const res = await fetch('/api/v1/skills')
-      if (!res.ok) throw new Error('Failed to fetch skills')
-      return res.json()
-    },
-  })
-
-  const selectedSkill = useMemo(
-    () => data?.items.find(item => item.id === selectedSkillId) || null,
-    [data, selectedSkillId],
-  )
-
-  const { data: selectedSkillDetail } = useQuery<SkillDetail>({
-    queryKey: ['skill-detail', selectedSkillId],
-    queryFn: async () => {
-      const res = await fetch(`/api/v1/skills/${selectedSkillId}`)
-      if (!res.ok) throw new Error('Failed to fetch skill detail')
-      return res.json()
-    },
-    enabled: !!selectedSkillId,
-  })
-
-  const createMutation = useMutation({
-    mutationFn: async () => {
-      const res = await fetch('/api/v1/skills', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ markdown_content: newMarkdown }),
-      })
-      if (!res.ok) throw new Error(await readErrorMessage(res, 'Failed to create skill'))
-      return res.json()
-    },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['skills'] })
-    },
-  })
-
-  const updateMutation = useMutation({
-    mutationFn: async () => {
-      if (!selectedSkillId) throw new Error('No skill selected')
-      const markdown = draftMarkdown || selectedSkillDetail?.markdown_content || ''
-      if (!markdown) throw new Error('Skill 内容为空')
-      const res = await fetch(`/api/v1/skills/${selectedSkillId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ markdown_content: markdown }),
-      })
-      if (!res.ok) throw new Error(await readErrorMessage(res, 'Failed to update skill'))
-      return res.json()
-    },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['skills'] })
-    },
-  })
-
-  const deleteMutation = useMutation({
-    mutationFn: async (skillId: string) => {
-      const res = await fetch(`/api/v1/skills/${skillId}`, { method: 'DELETE' })
-      if (!res.ok) throw new Error(await readErrorMessage(res, 'Failed to delete skill'))
-      return res.json()
-    },
-    onSuccess: async () => {
-      setSelectedSkillId(null)
-      setDraftMarkdown('')
-      await queryClient.invalidateQueries({ queryKey: ['skills'] })
-    },
-  })
-
-  const uploadMutation = useMutation({
-    mutationFn: async () => {
-      if (!uploadFile) throw new Error('请选择 skill 文件')
-      const formData = new FormData()
-      formData.append('file', uploadFile)
-      const res = await fetch('/api/v1/skills/upload', {
-        method: 'POST',
-        body: formData,
-      })
-      if (!res.ok) throw new Error(await readErrorMessage(res, 'Failed to upload skill'))
-      return res.json()
-    },
-    onSuccess: async () => {
-      setUploadFile(null)
-      await queryClient.invalidateQueries({ queryKey: ['skills'] })
-    },
-  })
-
-  return (
-    <div className="max-w-7xl mx-auto px-6 py-8">
-      <div className="flex items-center justify-between mb-6 gap-4">
-        <div>
-          <h2 className="text-2xl font-bold text-xmgray-900">Skill 体系管理</h2>
-          <p className="text-sm text-xmgray-500">上传或编辑 Markdown skill，后端会自动热更新运行时 registry。</p>
-        </div>
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-2">
-        <div className="space-y-6">
-          <div className="card p-6">
-            <h3 className="font-semibold mb-4">新增 Skill</h3>
-            <textarea
-              className="input-xm min-h-72 font-mono text-sm"
-              value={newMarkdown}
-              onChange={e => setNewMarkdown(e.target.value)}
-            />
-            <div className="mt-4 flex gap-3">
-              <button className="btn-primary" onClick={() => createMutation.mutate()} disabled={createMutation.isPending}>
-                保存 Skill
-              </button>
-            </div>
-          </div>
-
-          <div className="card p-6">
-            <h3 className="font-semibold mb-4">上传 Skill 文件</h3>
-            <input
-              type="file"
-              className="input-xm"
-              accept=".md"
-              onChange={e => setUploadFile(e.target.files?.[0] || null)}
-            />
-            <div className="mt-4">
-              <button className="btn-primary" onClick={() => uploadMutation.mutate()} disabled={uploadMutation.isPending || !uploadFile}>
-                上传 .md
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div className="space-y-6">
-          <div className="card p-0 overflow-hidden">
-            <div className="px-5 py-4 border-b border-xmgray-100 flex items-center justify-between">
-              <h3 className="font-medium">已加载 Skill</h3>
-              <span className="text-xs text-xmgray-400">{isLoading ? '加载中...' : `${data?.items.length || 0} 项`}</span>
-            </div>
-            <div className="max-h-[320px] overflow-y-auto p-4 space-y-2">
-              {data?.items.map(skill => (
-                <button
-                    key={skill.id}
-                    type="button"
-                    onClick={() => {
-                      setSelectedSkillId(skill.id)
-                      setDraftMarkdown('')
-                    }}
-                  className={`w-full text-left rounded-xl border p-4 transition-colors ${
-                    selectedSkillId === skill.id ? 'border-xm-400 bg-xm-50' : 'border-xmgray-100 hover:border-xmgray-200'
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <div className="font-medium text-xmgray-800">{skill.name}</div>
-                      <div className="text-xs text-xmgray-400 mt-1">
-                        {skill.slug} · v{skill.version} · 优先级 {skill.priority}
-                      </div>
-                      <p className="mt-2 text-sm text-xmgray-500">{skill.description}</p>
-                    </div>
-                    <span className={`tag text-[11px] ${skill.enabled ? '' : 'opacity-60'}`}>
-                      {skill.enabled ? '启用' : '禁用'}
-                    </span>
-                  </div>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {skill.allowed_tools.map(tool => (
-                      <span key={tool} className="tag text-[11px]">{tool}</span>
-                    ))}
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="card p-6">
-            <h3 className="font-semibold mb-4">编辑 Skill</h3>
-            {selectedSkill ? (
-              <>
-                <div className="mb-3 flex flex-wrap gap-2">
-                  {selectedSkill.trigger_patterns.map(pattern => (
-                    <span key={pattern} className="tag text-[11px]">{pattern}</span>
-                  ))}
-                  {selectedSkill.tags.map(tag => (
-                    <span key={tag} className="tag-orange text-[11px]">{tag}</span>
-                  ))}
-                </div>
-                {selectedSkillDetail && (
-                  <div className="mb-3 text-xs text-xmgray-400">
-                    {selectedSkill.domain ? `domain: ${selectedSkill.domain}` : 'domain: global'}
-                  </div>
-                )}
-                <textarea
-                  className="input-xm min-h-72 font-mono text-sm"
-                  value={draftMarkdown || selectedSkillDetail?.markdown_content || ''}
-                  onChange={e => setDraftMarkdown(e.target.value)}
-                />
-                <div className="mt-4 flex gap-3">
-                  <button className="btn-primary" onClick={() => updateMutation.mutate()} disabled={updateMutation.isPending}>
-                    保存修改
-                  </button>
-                  <button className="btn-secondary text-red-600" onClick={() => deleteMutation.mutate(selectedSkill.id)} disabled={deleteMutation.isPending}>
-                    删除
-                  </button>
-                </div>
-              </>
-            ) : (
-              <p className="text-sm text-xmgray-400">选择 Skill 查看与编辑。</p>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  )
+export default function SkillManager(){
+ const client=useQueryClient(),action=useCollectionAction(),[search,setSearch]=useState(''),[state,setState]=useState('all'),[stage,setStage]=useState('all'),[selected,setSelected]=useState<string|null>(null),[editor,setEditor]=useState<Skill|'new'|null>(null),[importing,setImporting]=useState(false),[notice,setNotice]=useState(''),[remove,setRemove]=useState(false)
+ const skills=useQuery<{items:Skill[]}>({queryKey:['skills','management'],queryFn:({signal})=>collectionRequest('/api/v1/skills?include_disabled=true',{signal})})
+ const detail=useQuery<Skill>({queryKey:['skill-detail',selected],enabled:!!selected,queryFn:({signal})=>collectionRequest('/api/v1/skills/'+selected,{signal})})
+ const items=skills.data?.items||[],filtered=items.filter(item=>(state==='all'||item.enabled===(state==='enabled'))&&(stage==='all'||item.stages.includes(stage))&&[item.name,item.description,...item.tags,...item.keywords].join(' ').toLowerCase().includes(search.trim().toLowerCase()))
+ const refresh=async()=>{await client.invalidateQueries({queryKey:['skills']});await client.invalidateQueries({queryKey:['skill-detail']})}
+ function toggle(skill:Skill){void action.run(async()=>{const full=await collectionRequest('/api/v1/skills/'+skill.id) as Skill;await collectionRequest('/api/v1/skills/'+skill.id,jsonOptions({markdown_content:patchMetadata(full.markdown_content||'',{enabled:!full.enabled})},'PUT'));await refresh();setNotice(`${full.enabled?'已停用':'已启用'}「${full.name}」`)})}
+ return <div className="collection-workspace"><CollectionHeader title="研究方法" count={`${items.length} 个 Skills`} action={<><button type="button" className="btn-ghost" onClick={()=>{action.setError('');setImporting(true)}}>导入文件</button><button type="button" className="btn-primary" onClick={()=>{action.setError('');setEditor('new')}}><Icon name="plus" size={17}/>新建方法</button></>}/>
+  {notice&&<div className="collection-notice" role="status">{notice}<button type="button" className="icon-button" aria-label="关闭提示" onClick={()=>setNotice('')}><Icon name="close" size={13}/></button></div>}
+  <div className="collection-toolbar"><label className="collection-search"><Icon name="search" size={17}/><input type="search" aria-label="搜索方法" placeholder="搜索名称或用途" value={search} onChange={event=>setSearch(event.target.value)}/></label><select aria-label="方法阶段筛选" value={stage} onChange={event=>setStage(event.target.value)}><option value="all">所有阶段</option>{Object.entries(stageNames).map(([id,label])=><option key={id} value={id}>{label}</option>)}</select><select aria-label="方法状态筛选" value={state} onChange={event=>setState(event.target.value)}><option value="all">所有状态</option><option value="enabled">已启用</option><option value="disabled">已停用</option></select></div>
+  <p className="collection-results">{skills.isPending?'正在读取方法…':`${filtered.length} 个方法`}</p>{skills.error?<CollectionEmpty title="暂时无法读取方法" action={<button type="button" className="btn-ghost" onClick={()=>void skills.refetch()}>重新读取</button>}/>:!skills.isPending&&!filtered.length?<CollectionEmpty title={items.length?'没有符合条件的方法':'添加你的第一个研究方法'} action={items.length?<button type="button" className="btn-ghost" onClick={()=>{setSearch('');setState('all');setStage('all')}}>清除筛选</button>:<button type="button" className="btn-primary" onClick={()=>setEditor('new')}>新建方法</button>}/>:<div className="collection-skill-grid">{filtered.map(skill=><article className="collection-skill-card" key={skill.id}><button type="button" className="collection-skill-main" aria-label={`查看方法 ${skill.name}`} onClick={()=>{action.setError('');setRemove(false);setSelected(skill.id)}}><header><span className="collection-skill-icon"><Icon name={skill.stages.includes('render')?'chart':'layers'} size={22}/></span><Icon name="arrow" size={17}/></header><div><h3>{skill.name}</h3><p>{skill.description}</p></div></button><footer className="collection-skill-footer"><div className="collection-tags">{skill.stages.length?skill.stages.slice(0,3).map(id=><span key={id}>{stageNames[id]||'研究方法'}</span>):<span>自动匹配</span>}</div><button type="button" role="switch" aria-label={`${skill.enabled?'停用':'启用'}${skill.name}`} aria-checked={skill.enabled} className="collection-switch" disabled={action.busy} onClick={()=>toggle(skill)}><span/>{skill.enabled?'已启用':'已停用'}</button></footer></article>)}</div>}
+  {action.error&&!selected&&<p role="alert" className="collection-danger">{action.error}</p>}
+  <Modal open={!!selected} onClose={()=>{if(!action.busy)setSelected(null)}} title={detail.data?.name||'研究方法'} wide><div className="collection-dialog">{detail.isPending?<p role="status">读取方法…</p>:detail.error?<CollectionEmpty title="暂时无法读取方法" action={<button type="button" className="btn-ghost" onClick={()=>void detail.refetch()}>重新读取</button>}/>:detail.data&&<><div className="collection-detail-heading"><p>{detail.data.description}</p><span className="collection-status" data-state={detail.data.enabled?'enabled':'disabled'}>{detail.data.enabled?'已启用':'已停用'}</span></div><div className="collection-detail-actions"><button type="button" className="btn-primary" disabled={action.busy} onClick={()=>{setEditor(detail.data!);setSelected(null)}}>编辑方法</button><button type="button" className="btn-ghost" disabled={action.busy} onClick={()=>toggle(detail.data!)}>{detail.data.enabled?'停用':'启用'}</button><button type="button" className="btn-ghost collection-danger" disabled={action.busy} onClick={()=>setRemove(true)}>移除</button></div><div className="collection-tags">{detail.data.stages.map(id=><span key={id}>{stageNames[id]||'研究方法'}</span>)}</div><div className="collection-reading"><ReactMarkdown>{[detail.data.overview,detail.data.prompt,detail.data.constraints&&'### 执行规则\n'+detail.data.constraints].filter(Boolean).join('\n\n')||'此方法使用分阶段指令。'}</ReactMarkdown></div><details className="collection-advanced"><summary>查看完整原文</summary><pre className="collection-reading">{detail.data.markdown_content}</pre></details>{remove&&<div className="collection-confirm"><span>移除「{detail.data.name}」？</span><button type="button" className="btn-ghost" disabled={action.busy} onClick={()=>setRemove(false)}>取消</button><button type="button" className="btn-secondary collection-danger" disabled={action.busy} onClick={()=>void action.run(async()=>{await collectionRequest('/api/v1/skills/'+selected,{method:'DELETE'});setSelected(null);setRemove(false);await refresh();setNotice('已移除方法')})}>确认移除</button></div>}{action.error&&<p role="alert">{action.error}</p>}</>}</div></Modal>
+  <Modal open={!!editor} onClose={()=>{if(!action.busy)setEditor(null)}} title={editor==='new'?'新建研究方法':'编辑研究方法'} wide>{editor&&<SkillEditor key={editor==='new'?'new':editor.id} original={editor==='new'?undefined:editor} action={action} onClose={()=>setEditor(null)} onSaved={async()=>{setEditor(null);await refresh();setNotice('已保存研究方法')}}/>}</Modal>
+  <Modal open={importing} onClose={()=>{if(!action.busy)setImporting(false)}} title="导入研究方法"><div className="collection-dialog"><SkillImport action={action} onClose={()=>setImporting(false)} onSaved={async()=>{setImporting(false);await refresh();setNotice('已导入研究方法')}}/></div></Modal>
+ </div>
 }
-
-export default SkillManager
+function SkillEditor({original,action,onClose,onSaved}:{original?:Skill;action:ReturnType<typeof useCollectionAction>;onClose:()=>void;onSaved:()=>Promise<void>}){
+ const [draft,setDraft]=useState(()=>initialDraft(original)),[raw,setRaw]=useState<string|null>(null),[rawStart,setRawStart]=useState<string|null>(null),[validation,setValidation]=useState('')
+ const update=(patch:Partial<Draft>)=>{setDraft({...draft,...patch});setValidation('');action.setError('')}
+ async function save(){
+  if(raw===null&&(!draft.name.trim()||!draft.description.trim()||!original&&!draft.prompt.trim())){setValidation('请填写名称、用途和执行步骤');return}
+  if(raw!==null&&!raw.trim()){setValidation('方法原文不能为空');return}
+  await action.run(async()=>{await collectionRequest('/api/v1/skills'+(original?'/'+original.id:''),jsonOptions({markdown_content:raw??compose(draft,original)},original?'PUT':'POST'));await onSaved()})
+ }
+ return <div className="collection-dialog collection-form"><CollectionTabs value={raw===null?'form':'source'} items={raw===null?{form:'填写方法',source:'编辑原文'}:{source:'编辑原文'}} disabled={action.busy} onChange={mode=>{if(mode==='source')try{{const text=compose(draft,original);setRaw(text);setRawStart(text)}}catch(error){setValidation((error as Error).message)}}}/>{raw===null?<fieldset disabled={action.busy}><label className="collection-field">方法名称<input aria-label="方法名称" maxLength={120} value={draft.name} placeholder="例如：论文技术解读" onChange={event=>update({name:event.target.value})}/></label><label className="collection-field">什么时候使用<textarea aria-label="方法用途" rows={2} maxLength={400} value={draft.description} placeholder="说明适合解决哪类研究问题" onChange={event=>update({description:event.target.value})}/></label><div className="collection-field"><span>参与哪些步骤</span><div className="collection-checks">{Object.entries(stageNames).map(([id,label])=><label key={id}><input type="checkbox" aria-label={'参与'+label} checked={draft.stages.includes(id)} onChange={event=>update({stages:event.target.checked?[...draft.stages,id]:draft.stages.filter(key=>key!==id)})}/>{label}</label>)}</div>{!draft.stages.length&&<small>按用途自动匹配</small>}</div><CollectionTags label="适用话题" values={draft.keywords} onChange={keywords=>update({keywords})}/>{!draft.keywords.length&&!original&&<p className="collection-note">未填写话题时，按方法名称匹配。</p>}<label className="collection-field">执行步骤<textarea aria-label="方法执行步骤" rows={6} value={draft.prompt} placeholder="写下要完成的步骤、判断依据与输出形式" onChange={event=>update({prompt:event.target.value})}/></label><details className="collection-advanced"><summary>规则与工具</summary><div><label className="collection-field">执行规则<textarea aria-label="方法执行规则" rows={3} value={draft.constraints} onChange={event=>update({constraints:event.target.value})}/></label><div className="collection-checks">{Object.entries({search:'搜索',browser:'网页阅读',rag:'内部资料',mcp:'外部工具'}).map(([id,label])=><label key={id}><input type="checkbox" checked={draft.tools.includes(id)} onChange={event=>update({tools:event.target.checked?[...draft.tools,id]:draft.tools.filter(tool=>tool!==id)})}/>{label}</label>)}</div></div></details></fieldset>:<><label className="collection-field">方法原文<textarea className="collection-code" aria-label="方法原文" rows={16} disabled={action.busy} value={raw} onChange={event=>{setRaw(event.target.value);setValidation('');action.setError('')}}/></label><button type="button" className="btn-ghost" disabled={action.busy} onClick={()=>{setRaw(null);setValidation('');action.setError('')}}>放弃原文修改，返回表单</button></>}<ActionFooter busy={action.busy} error={validation||action.error} onCancel={onClose} label="保存方法" disabled={!!original&&JSON.stringify(draft)===JSON.stringify(initialDraft(original))&&(raw===null||raw===rawStart)} onSave={()=>void save()}/></div>
+}
+function SkillImport({action,onClose,onSaved}:{action:ReturnType<typeof useCollectionAction>;onClose:()=>void;onSaved:()=>Promise<void>}){
+ const [file,setFile]=useState<File|null>(null)
+ return <div className="collection-form"><label className="collection-drop"><Icon name="source" size={28}/><strong>{file?.name||'选择方法文件'}</strong><span>Markdown · 最多 256 KB</span><input type="file" aria-label="导入方法文件" accept=".md" disabled={action.busy} onChange={event=>{setFile(event.target.files?.[0]||null);action.setError('')}}/></label><ActionFooter busy={action.busy} error={action.error} onCancel={onClose} disabled={!file} label="导入方法" onSave={()=>void action.run(async()=>{if(!file||!file.name.toLowerCase().endsWith('.md')||file.size>262144)throw new Error('请选择 256 KB 以内的 Markdown 文件');const form=new FormData();form.append('file',file);await collectionRequest('/api/v1/skills/upload',{method:'POST',body:form});await onSaved()})}/></div>
+}
