@@ -8,7 +8,7 @@ interface Version extends Lifecycle {source_id:string;name:string;status:string;
 interface View {source_id:string;source_status:string;parse_version:string|null;current:Lifecycle;versions:Version[];has_more_versions:boolean;access_epoch:number;events:unknown[];maintenance:unknown;report_semantics:string}
 interface Pending {url:string;body:Record<string,unknown>}
 function localDate(value:string|null|undefined) {if(!value)return '';const date=new Date(value);return new Date(date.getTime()-date.getTimezoneOffset()*60000).toISOString().slice(0,16)}
-const messages:Record<string,string>={source_lifecycle_revision_conflict:'资料状态已变化，已刷新；请重新选择操作。',lifecycle_request_id_payload_conflict:'同一请求的内容发生变化，已拒绝；请重新读取状态。',revision_original_parse_version_conflict:'原文版本已变化，请重新读取。',patch_outside_retained_original:'修订范围超出了所保留的原文。',revision_has_no_text_change:'内容没有变化，无需创建新版本。',retention_task_not_owned_or_missing:'所填任务不存在或不属于当前账号。',only_deleted_or_due_noncurrent_source_can_be_purged:'只能永久清理已隐藏或达到清理时间的非当前版本。',lifecycle_result_unconfirmed_retry_same_request_id:'尚未确认结果，请用同一请求重试。'}
+const messages:Record<string,string>={source_lifecycle_revision_conflict:'资料状态已变化，已刷新；请重新选择操作。',lifecycle_request_id_payload_conflict:'同一请求的内容发生变化，已拒绝；请重新读取状态。',revision_original_parse_version_conflict:'原文版本已变化，请重新读取。',patch_outside_retained_original:'修订范围超出了所保留的原文。',revision_has_no_text_change:'内容没有变化，无需创建新版本。',retention_task_not_owned_or_missing:'所填任务不存在或不属于当前账号。',only_deleted_or_due_noncurrent_source_can_be_purged:'只能永久清理已隐藏或达到清理时间的非当前版本。',lifecycle_result_unconfirmed_retry_same_request_id:'尚未确认结果，请确认结果并重试。'}
 
 export default function SourceLifecyclePanel({sourceId,onChanged}:{sourceId:string;onChanged:()=>Promise<void>}) {
   const [policy,setPolicy]=useState<RetentionDraft>(defaultRetentionDraft),[reason,setReason]=useState(''),[error,setError]=useState('')
@@ -27,7 +27,7 @@ export default function SourceLifecyclePanel({sourceId,onChanged}:{sourceId:stri
   },onSuccess:async()=>{pending.current=null;setError('');setOriginal(null);await query.refetch();await onChanged()}})
   function send(action:string) {
     if(!query.data||operation.isPending)return
-    if(pending.current){setError('上一操作结果尚未确认，请先用同一请求重试。');return}
+    if(pending.current){setError('上一操作结果尚未确认，请先确认结果并重试。');return}
     if(!reason.trim()){setError('请填写本次修订或维护原因。');return}
     try {
       const body:Record<string,unknown>={request_id:crypto.randomUUID(),expected_revision:query.data.current.revision,reason}
@@ -41,11 +41,11 @@ export default function SourceLifecyclePanel({sourceId,onChanged}:{sourceId:stri
   }
   const preview=useMutation({mutationFn:async()=>{const response=await fetch(`/api/v1/documents/sources/${sourceId}/parsing?include_content=true`);if(!response.ok)throw new Error('无法读取所保留原文。');const result=await response.json();setOriginal(result.text||'')}})
   const view=query.data
-  return <section aria-label="资料版本与生命周期" className="mt-5 space-y-3 border-t pt-4 text-sm"><h4 className="font-medium">资料版本与生命周期</h4>
+  return <section aria-label="资料版本与生命周期" className="mt-5 space-y-3 border-t pt-4 text-sm"><h4 className="font-medium">资料管理</h4>
     {query.isPending&&<p role="status">正在读取版本…</p>}{query.error&&<p role="alert">{query.error.message}</p>}
-    {view&&<><p>{view.current.is_current?'当前版本':view.current.is_current===null?'旧资料，尚无版本族记录':'保留的旧版本'} · {({active:'使用中',archived:'已归档',tombstone:'已隐藏',candidate:'候选版本'} as Record<string,string>)[view.current.state]||'已保存'}</p>
-      <p>使用范围：{view.current.reuse_scope==='task'?(view.current.task_id?`仅任务 ${view.current.task_id}`:'任务尚未绑定，暂仅本人定位'):view.current.reuse_scope==='owner'?'本人明确跨任务复用':'明确选择同组的研究'}。</p>
-      <p className="text-xs text-xmgray-500">仅当前、未隐藏且在有效期内的版本可供获准研究检索。事实纠正建立独立版本；旧报告保留当时证据和修订关联。</p>
+    {view&&<><p>{view.current.is_current?'当前版本':view.current.is_current===null?'历史资料':'保留的旧版本'} · {({active:'使用中',archived:'已归档',tombstone:'已隐藏',candidate:'候选版本'} as Record<string,string>)[view.current.state]||'已保存'}</p>
+      <p>使用范围：{view.current.reuse_scope==='task'?(view.current.task_id?`仅指定的研究`:'尚未绑定研究'):view.current.reuse_scope==='owner'?'我的研究':'选择此分组的研究'}。</p>
+      <p className="text-xs text-xmgray-500">研究使用当前有效版本。</p>
       <label className="block">操作原因<textarea aria-label="资料维护原因" className="input-xm mt-1 w-full" value={reason} onChange={event=>setReason(event.target.value)} maxLength={2000}/></label>
       <details><summary className="cursor-pointer">修改保存范围和有效期</summary><RetentionPolicyPanel value={policy} onChange={setPolicy}/><button type="button" className="btn-secondary mt-2" disabled={operation.isPending} onClick={()=>send('set_access')}>保存使用范围与有效期</button></details>
       <details><summary className="cursor-pointer">纠正原文并保存新版本</summary><div className="mt-2 space-y-2"><label>修订方式<select aria-label="原文修订方式" value={revisionMode} onChange={event=>setRevisionMode(event.target.value as typeof revisionMode)} className="input-xm ml-2"><option value="replace">替换全文</option><option value="patch" disabled={!view.parse_version}>替换原位片段</option></select></label>
@@ -66,7 +66,7 @@ export default function SourceLifecyclePanel({sourceId,onChanged}:{sourceId:stri
       <p className="text-xs text-xmgray-500">永久清理无法恢复原始来源；不会连带删除已完成任务中独立保留的证据与报告。没有自动后台清理。</p>
       <details><summary>清理不再使用的索引代际</summary><label className="block text-xs">清理此前且未生效的代际<input aria-label="索引清理截止时间" type="datetime-local" className="input-xm ml-2" value={pruneBefore} onChange={event=>setPruneBefore(event.target.value)}/></label><button type="button" className="btn-ghost mt-2" disabled={operation.isPending} onClick={()=>send('prune_indexes')}>显式清理最多20个旧索引代际</button><p className="text-xs">保留当前生效代际和全部来源正文；清理后不能再回滚到被清理的代际。</p></details>
       {operation.isPending&&<p role="status">正在提交资料操作…</p>}{operation.error&&<p role="alert" className="text-red-700">{operation.error.message}</p>}{error&&<p role="alert" className="text-red-700">{error}</p>}
-      {operation.error&&pending.current&&<button type="button" className="btn-secondary" onClick={()=>{if(pending.current)operation.mutate(pending.current)}} disabled={operation.isPending}>用同一请求重试</button>}
+      {operation.error&&pending.current&&<button type="button" className="btn-secondary" onClick={()=>{if(pending.current)operation.mutate(pending.current)}} disabled={operation.isPending}>确认结果并重试</button>}
       {operation.data!=null&&<details open><summary>实际提交结果与受影响报告</summary><pre className="max-h-64 overflow-auto whitespace-pre-wrap break-words text-xs">{JSON.stringify(operation.data,null,2)}</pre></details>}
       <details><summary>同族保留版本（最近50项）</summary><ul>{view.versions.map(version=><li key={version.source_id} className="my-2 break-all">{version.name} · {version.is_current?'当前':'旧版本'} · {({active:'使用中',tombstone:'已隐藏',candidate:'候选'} as Record<string,string>)[version.state]||'已保存'}</li>)}</ul>{view.has_more_versions&&<p>还有更早版本，未自动删除。</p>}</details>
       <details><summary>修订记录与维护方式</summary><pre className="max-h-64 overflow-auto whitespace-pre-wrap break-words text-xs">{JSON.stringify({events:view.events,maintenance:view.maintenance,access_epoch:view.access_epoch},null,2)}</pre></details>
