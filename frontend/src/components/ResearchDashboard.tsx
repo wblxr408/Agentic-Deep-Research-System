@@ -494,7 +494,7 @@ function ResearchDashboard({ onBack }: ResearchDashboardProps) {
         onRefresh={async()=>{const value=await refetchResult();if(value.error)throw value.error}}
         onResumed={async execution=>{clearEvents();setStreamRunKey(execution);setSessionStatus('running');setIsStreaming(true);await refetchResult()}}
         onRestart={openRestartConfiguration} onSynthesis={stage=>resumeSynthesis.mutate(stage)} synthesisBusy={resumeSynthesis.isPending}/>}
-      <ResearchFlow key={activeSessionId} plan={result?.plan_manifest} dag={result?.execution_plan} events={traceEvents} status={sessionStatus||'pending'} tools={toolAudit.data} analysis={analysisProgress} history={result?.plan_history} connection={sseStatus}/>
+      <ResearchFlow key={activeSessionId} plan={result?.plan_manifest} dag={result?.execution_plan} events={traceEvents} status={sessionStatus||'pending'} tools={toolAudit.data} analysis={analysisProgress} history={result?.plan_history} connection={sseStatus} runtimeStatus={result?.runtime_status}/>
       {resumeSynthesis.error&&<p role="alert" className="composer-error">{resumeSynthesis.error.message}</p>}
       <div className="workspace-summary-row">
         <section className="workspace-summary"><span className="eyebrow">当前阶段</span><h2>{isStreaming ? currentStage : stoppedLabel}</h2>

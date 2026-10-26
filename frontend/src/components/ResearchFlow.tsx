@@ -5,6 +5,8 @@ import type { PersistedToolCall } from './ToolTrace'
 import { Icon, Modal, StatusPill, statusLabels } from './Interface'
 import {agentNames,briefFeedback,executionItems,flowActions,phaseName} from './researchExecution'
 import type {FlowAction} from './researchExecution'
+import AgentAvatar from './AgentAvatar'
+import type {AgentExpression} from './AgentAvatar'
 
 const labels:Record<string,string>={planner:'研究规划',search:'搜索取证',browser:'网页读取',rag:'资料检索',mcp:'扩展工具',analyst:'问题分析',reflection:'来源核对',report:'图文报告',replan:'调整计划',dag_executor:'计划执行'}
 export function mergeResearchEvents(history:SSEvent[],live:SSEvent[],execution?:string|null):SSEvent[] {
@@ -20,9 +22,6 @@ export function mergeResearchEvents(history:SSEvent[],live:SSEvent[],execution?:
 }
 interface DagNode {node_id:string;node_type?:string;query?:string;status:string;depends_on?:string[];last_error?:string|null}
 interface FlowNode {id:string;type:string;label:string;query:string;status:string;dependencies:string[];x:number;y:number;error?:string|null;root?:boolean;actions?:FlowAction[]}
-function currentFlowNode(nodes:FlowNode[]):FlowNode|undefined {
-  return nodes.find(node=>node.status==='running')||nodes.find(node=>node.status==='paused')||nodes.find(node=>node.status==='failed')||nodes[nodes.length-1]
-}
 function evidenceLabel(type:string,purpose:string,query:string):string {
   if(type==='browser')try { const url=new URL(query),file=decodeURIComponent(url.pathname.split('/').filter(Boolean).pop()||'');return /\.pdf$/i.test(file)?file.replace(/^OSDI\d+_/,''):url.hostname.replace(/^www\./,'')+(file?' · '+file.slice(0,28):'') } catch { /* Use the public plan label. */ }
   return query||purpose||labels[type]||'取证'
@@ -31,6 +30,7 @@ interface Props {
   plan:PlanSummaryProps['plan'];dag?:{nodes:DagNode[]};events:SSEvent[];status:string;tools?:PersistedToolCall[]
   analysis?:{status:string;phase:string|null;completed_steps:number;phases?:Array<{phase:string;status:string;summary:string;attempts:number}>}|null;history?:PlanSummaryProps['history']
   connection?:string
+  runtimeStatus?:string
 }
 function nodesFor(p:Props):FlowNode[] {
   const persisted=new Map((p.dag?.nodes||[]).map(node=>[node.node_id,node]))
@@ -121,73 +121,140 @@ function readableTool(name:string) {
   return name
 }
 
+interface StationAction extends FlowAction {nodeId?:string}
+interface FlowStation {id:string;type:string;label:string;status:string;actor:boolean;nodes:FlowNode[];actions:StationAction[];x:number;y:number}
+function stationsFor(nodes:FlowNode[]):FlowStation[] {
+  const result:FlowStation[]=[]
+  const addActor=(node:FlowNode)=>{
+    const hasPhases=node.actions?.some(action=>action.id.startsWith('phase:')||action.items.some(item=>item.phase))
+    const actions=(node.actions||[]).filter(action=>!hasPhases||action.state==='failed'||!action.items.length||
+      !action.items.every(item=>['agent_start','agent_complete','agent_end'].includes(item.type)))
+    result.push({id:node.id,type:node.type,label:agentNames[node.type]||node.label,status:node.status,actor:true,nodes:[node],
+      actions:actions.map(action=>({...action,nodeId:node.id})),x:0,y:20})
+  }
+  const planner=nodes.find(node=>node.type==='planner'&&node.root)
+  if(planner)addActor(planner)
+  const tools=nodes.filter(node=>!node.root)
+  if(tools.length){
+    const active=tools.some(node=>node.status==='running'),failed=tools.some(node=>['failed','error'].includes(node.status))
+    const complete=tools.every(node=>['done','completed','success','skipped'].includes(node.status))
+    result.push({id:'$tools',type:'tools',label:'取证工具',status:active?'running':complete?'done':failed?'failed':
+      tools.some(node=>node.status==='paused')?'paused':'pending',actor:false,nodes:tools,x:0,y:20,
+      actions:tools.flatMap(node=>(node.actions?.length?node.actions:[{id:`planned:${node.id}`,label:labels[node.type]||node.type,
+        detail:node.error||'',query:node.query,state:node.status,time:'',items:[]}]).map(action=>({
+          ...action,label:readableTool(action.label),query:action.query||node.query,nodeId:node.id})))})
+  }
+  for(const node of nodes)if(node.root&&node!==planner)addActor(node)
+  return result.map((station,index)=>({...station,x:40+index*364}))
+}
+function primaryAction(station:FlowStation):StationAction|undefined {
+  const active=[...station.actions].reverse().filter(action=>action.state==='running')
+  return active.find(action=>action.id.startsWith('phase:'))||active[0]||station.actions[station.actions.length-1]
+}
+function stationExpression(station:FlowStation,p:Props):AgentExpression {
+  if(['done','success','completed'].includes(station.status))return 'completed'
+  if(p.runtimeStatus==='user_paused'&&['pending','waiting','paused','running'].includes(station.status))return 'paused'
+  if(station.status==='running'){
+    const recent=executionItems(p.events).filter(item=>item.role===station.type),latest=recent[recent.length-1]
+    return latest?.state==='running'&&latest.label==='自动修复'?'recovering':'working'
+  }
+  if(['failed','error'].includes(station.status))return 'failed'
+  if(station.status==='paused')return 'failed'
+  if(['canceled','skipped'].includes(station.status))return 'resting'
+  return ['pending','waiting'].includes(station.status)?'waiting':'unknown'
+}
+
 export default function ResearchFlow(p:Props) {
   const nodes=useMemo(()=>nodesFor(p),[p.plan,p.dag,p.events,p.status,p.analysis,p.tools])
+  const stations=useMemo(()=>stationsFor(nodes),[nodes])
   const viewport=useRef<HTMLDivElement>(null),drag=useRef<{x:number;y:number;left:number;top:number}|null>(null),initialized=useRef(false)
-  const [camera,setCamera]=useState({x:24,y:24,zoom:.8}),[selected,setSelected]=useState<string|null>(null)
+  const [camera,setCamera]=useState({x:24,y:24,zoom:.9})
+  const [selected,setSelected]=useState<{station:string;action?:string}|null>(null)
   const [following,setFollowing]=useState(true),[role,setRole]=useState('all'),[expanded,setExpanded]=useState<Record<string,boolean>>({})
-  const followed=useRef('')
-  const marker=useId().replace(/:/g,'')
-  const shownActions=(node:FlowNode)=>(expanded[node.id]?node.actions:node.actions?.slice(-3))||[]
-  const nodeHeight=(node:FlowNode)=>node.root?Math.max(165,110+shownActions(node).length*118+(node.actions&&node.actions.length>3?34:0)):165
-  const width=Math.max(800,...nodes.map(n=>n.x+285)),height=Math.max(420,...nodes.map(n=>n.y+nodeHeight(n)+45))
-  const fit=useCallback((readable=false)=>{const el=viewport.current;if(!el||el.clientWidth<100)return;const fitted=Math.min(1,(el.clientWidth-48)/width,(el.clientHeight-48)/height),zoom=Math.max(readable ? .65 : .25,fitted);const current=readable?currentFlowNode(nodes):undefined;setCamera(current&&fitted<zoom?{zoom,x:el.clientWidth/2-(current.x+125)*zoom,y:el.clientHeight/2-(current.y+(current.root?210:80))*zoom}:{x:(el.clientWidth-width*zoom)/2,y:(el.clientHeight-height*zoom)/2,zoom});initialized.current=true},[width,height,nodes])
-  useEffect(()=>{const el=viewport.current;if(!el)return;const observer=new ResizeObserver(()=>{if(!initialized.current&&nodes.length)fit(true)});observer.observe(el);return()=>observer.disconnect()},[fit,nodes.length])
-  const changeZoom=(factor:number)=>{const el=viewport.current;if(!el)return;setCamera(c=>{const zoom=Math.min(1.7,Math.max(.25,c.zoom*factor)),x=el.clientWidth/2,y=el.clientHeight/2;return{zoom,x:x-(x-c.x)*zoom/c.zoom,y:y-(y-c.y)*zoom/c.zoom}})}
-  const focusNode=useCallback((node:FlowNode)=>{const el=viewport.current;if(node&&el)setCamera({zoom:.9,x:el.clientWidth/2-(node.x+125)*.9,y:el.clientHeight/2-(node.y+(node.root?210:80))*.9})},[])
-  const focusCurrent=()=>{const candidates=role==='all'?nodes:nodes.filter(node=>node.type===role),node=currentFlowNode(candidates);if(node)focusNode(node);setFollowing(true)}
+  const followed=useRef(''),marker=useId().replace(/:/g,'')
+  const width=Math.max(780,stations.length*364+16)
+  const height=Math.max(450,...stations.map(station=>460+(expanded[station.id]?Math.max(0,station.actions.length-1)*84:0)))
+  const currentStation=useCallback(()=>{
+    const candidates=role==='all'?stations:stations.filter(station=>station.type===role)
+    return candidates.find(station=>station.status==='running')||candidates.find(station=>station.status==='paused')||
+      candidates.find(station=>station.status==='failed')||candidates[candidates.length-1]
+  },[stations,role])
+  const focusStation=useCallback((station:FlowStation)=>{const el=viewport.current;if(!el)return
+    const zoom=.95,renderedWidth=width*zoom,target=el.clientWidth/2-(station.x+150)*zoom
+    setCamera({zoom,x:renderedWidth<=el.clientWidth-48?(el.clientWidth-renderedWidth)/2:
+      Math.max(el.clientWidth-renderedWidth-24,Math.min(24,target)),y:Math.max(12,el.clientHeight/2-225*zoom)})
+  },[width])
+  const fit=useCallback((readable=false)=>{const el=viewport.current;if(!el||el.clientWidth<100)return
+    const fitted=Math.min(1,(el.clientWidth-40)/width,(el.clientHeight-32)/height),zoom=Math.max(readable ? .78 : .25,fitted)
+    const current=readable&&fitted<zoom?currentStation():undefined
+    setCamera(current?{zoom,x:el.clientWidth/2-(current.x+150)*zoom,y:el.clientHeight/2-225*zoom}:
+      {zoom,x:(el.clientWidth-width*zoom)/2,y:Math.max(12,(el.clientHeight-height*zoom)/2)})
+    initialized.current=true
+  },[width,height,currentStation])
+  useEffect(()=>{const el=viewport.current;if(!el)return;const observer=new ResizeObserver(()=>{if(!initialized.current&&stations.length)fit(true)});observer.observe(el);return()=>observer.disconnect()},[fit,stations.length])
   const lastEvent=p.events[p.events.length-1],lastKey=String(lastEvent?.data.event_id||lastEvent?.timestamp||p.events.length)
-  useEffect(()=>{if(!following||!['running','pending'].includes(p.status)||followed.current===lastKey)return;followed.current=lastKey;const node=currentFlowNode(role==='all'?nodes:nodes.filter(item=>item.type===role));if(node)focusNode(node)},[following,p.status,lastKey,nodes,focusNode,role])
-  const current=nodes.find(n=>n.id===selected||n.actions?.some(action=>action.id===selected))
-  const action=current?.actions?.find(item=>item.id===selected)
-  const related=current?(p.tools||[]).filter(tool=>{if(current.root)return tool.agent_type===current.type;const nodeId=tool.node_id||tool.args_json?.node_id;return nodeId?nodeId===current.id:Boolean(current.query&&(tool.args_json?.query===current.query||tool.args_json?.url===current.query))}):[]
-  if(!nodes.length)return <div className="flow-empty"><Icon name="network" size={36}/><p>正在取得研究计划</p></div>
-  return <section className="flow-panel" aria-label="研究工作流">
-    <div className="flow-heading"><div><Icon name="network"/><strong>研究工作流</strong><StatusPill status={p.status}/><span className="flow-stream-status">{['running','pending'].includes(p.status)?p.connection==='connected'?'SSE 实时推送':p.connection==='error'?'正在重连':'连接中':'执行记录'}</span></div><div className="canvas-toolbar" role="group" aria-label="画布操作">
-      <label className="flow-role-filter">角色<select aria-label="画布角色" value={role} onChange={event=>{setRole(event.target.value);const node=nodes.find(item=>item.type===event.target.value);if(node)focusNode(node)}}><option value="all">全部</option>{[...new Set(nodes.map(node=>node.type))].map(type=><option value={type} key={type}>{agentNames[type]||labels[type]||type}</option>)}</select></label>
-      <button type="button" className="btn-ghost" aria-pressed={following} onClick={()=>setFollowing(value=>!value)}>{following?'停止跟随':'跟随当前'}</button>
-      <button type="button" className="icon-button" title="缩小" aria-label="缩小流程图" onClick={()=>changeZoom(1/1.2)}><Icon name="minus" size={17}/></button><span>{Math.round(camera.zoom*100)}%</span><button type="button" className="icon-button" title="放大" aria-label="放大流程图" onClick={()=>changeZoom(1.2)}><Icon name="plus" size={17}/></button>
-      <button type="button" className="icon-button" title="适应画布" aria-label="适应画布" onClick={()=>fit()}><Icon name="fit" size={18}/></button><button type="button" className="icon-button" title="定位当前步骤" aria-label="定位当前步骤" onClick={focusCurrent}><Icon name="target" size={18}/></button>
-    </div></div>
-    <div ref={viewport} className="flow-viewport" tabIndex={0} role="region" aria-label="可拖动研究流程图，方向键平移，加减号缩放，Home 适应画布"
-      onKeyDown={event=>{if(event.target!==event.currentTarget)return;const moves:Record<string,[number,number]>={ArrowLeft:[40,0],ArrowRight:[-40,0],ArrowUp:[0,40],ArrowDown:[0,-40]};if(moves[event.key]){event.preventDefault();const [x,y]=moves[event.key];setCamera(c=>({...c,x:c.x+x,y:c.y+y}))}else if(['+','=','-'].includes(event.key)){event.preventDefault();changeZoom(event.key==='-'?1/1.2:1.2)}else if(event.key==='Home'){event.preventDefault();fit()}}}
-      onPointerDown={event=>{if((event.target as Element).closest('button'))return;setFollowing(false);drag.current={x:event.clientX,y:event.clientY,left:camera.x,top:camera.y};event.currentTarget.setPointerCapture(event.pointerId)}}
-      onPointerMove={event=>{const d=drag.current;if(d)setCamera(c=>({...c,x:d.left+event.clientX-d.x,y:d.top+event.clientY-d.y}))}}
-      onPointerUp={()=>{drag.current=null}} onPointerCancel={()=>{drag.current=null}}>
-      <div className="flow-world" style={{width,height,transform:`translate(${camera.x}px,${camera.y}px) scale(${camera.zoom})`}}>
-        <svg width={width} height={height} className="flow-connections" aria-hidden="true"><defs><marker id={marker} markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0 0L7 3.5L0 7" fill="var(--accent)"/></marker></defs>
-          {nodes.flatMap(node=>node.dependencies.map(id=>{const from=nodes.find(n=>n.id===id);if(!from)return null;const a=from.x+250,b=node.x,mid=(a+b)/2,ay=from.y+(from.root?36:74),by=node.y+(node.root?36:74);return <path key={`${id}-${node.id}`} d={`M${a},${ay} C${mid},${ay} ${mid},${by} ${b},${by}`} markerEnd={`url(#${marker})`} className={`flow-edge ${node.status==='running'?'is-running':''}`} /> }))}
-          {nodes.filter(node=>node.root&&shownActions(node).length>0).map(node=><path key={`actions-${node.id}`} className="flow-association" d={`M${node.x+22},${node.y+72} V${node.y+100+(shownActions(node).length-1)*118+50}`}/>)}
-          {(p.plan?.revision||0)>0&&<path className="flow-edge flow-replan" d={`M${nodes.find(n=>n.id==='$reflection')!.x+110},${height-30} C${width/2},${height+70} 0,${height+70} 35,${height/2}`}><title>计划已调整 {p.plan?.revision} 次，原因见研究记录</title></path>}
-        </svg>
-        {nodes.map((node,index)=><div key={node.id} className={`flow-node-group ${role!=='all'&&role!==node.type?'is-dimmed':''}`}>
-        {node.root?<>
-          <button className="flow-agent" data-status={node.status} style={{left:node.x,top:node.y}} type="button" onClick={()=>setSelected(node.id)} aria-label={`${agentNames[node.type]||node.label}，${statusLabels[node.status]||node.status}`}>
-            <span className="flow-agent-avatar"><Icon name={node.type==='analyst'?'layers':node.type==='report'?'chart':node.type==='reflection'?'target':'network'} size={23}/></span><span><strong>{agentNames[node.type]||node.label}</strong><StatusPill status={node.status}/></span>
-          </button>
-          {!node.actions?.length&&<div className="flow-awaiting" style={{left:node.x+42,top:node.y+100}}>{node.status==='pending'?'等待执行':'暂无动作记录'}</div>}
-          {shownActions(node).map((item,actionIndex)=><button key={item.id} className={`flow-action ${item.query&&item.detail?'has-summary':''}`} data-status={item.state} style={{left:node.x+42,top:node.y+100+actionIndex*118}} type="button" onClick={()=>setSelected(item.id)} aria-label={`动作：${item.label}，${statusLabels[item.state]||item.state}`}>
-            <span className="flow-action-heading"><Icon name={item.label.includes('修复')?'settings':item.label.includes('核对')?'target':'source'} size={15}/><span>{item.label}</span><StatusPill status={item.state}/></span><strong>{briefFeedback(item.query||item.detail)||node.label}</strong>
-            {item.query&&item.detail&&<span className="flow-action-summary">{briefFeedback(item.detail)}</span>}
-          </button>)}
-          {(node.actions?.length||0)>3&&<button type="button" className="flow-actions-more" aria-expanded={Boolean(expanded[node.id])} style={{left:node.x+42,top:node.y+100+shownActions(node).length*118}} onClick={()=>setExpanded(value=>({...value,[node.id]:!value[node.id]}))}>{expanded[node.id]?'收起较早动作':`展开 ${node.actions!.length-3} 项较早动作`}</button>}
-        </>:<button className="flow-node flow-tool-action" data-status={node.status} style={{left:node.x,top:node.y}} type="button" onClick={()=>setSelected(node.id)} aria-label={`${node.label}，${statusLabels[node.status]||node.status}`}>
-          <span className="flow-node-top"><span className="flow-node-icon"><Icon name={node.type==='analyst'?'layers':node.type==='report'?'chart':node.type==='reflection'?'target':node.type==='browser'?'book':'search'} size={18}/></span><span className="flow-node-kind">{labels[node.type]||node.type}</span><span className="flow-node-sequence">{String(index+1).padStart(2,'0')}</span></span>
-          <strong title={node.label}>{node.label}</strong><span className="flow-node-status"><StatusPill status={node.status}/></span>
-          {node.actions?.length?<span className="flow-action-summary">{briefFeedback(node.actions[node.actions.length-1].detail)}</span>:null}
-        </button>}
-        </div>)}
+  useEffect(()=>{if(!following||!['running','pending'].includes(p.status)||followed.current===lastKey)return;followed.current=lastKey;const station=currentStation();if(station)focusStation(station)},[following,p.status,lastKey,currentStation,focusStation])
+  const zoomBy=(factor:number)=>{const el=viewport.current;if(!el)return;setFollowing(false);setCamera(c=>{const zoom=Math.min(1.6,Math.max(.25,c.zoom*factor));return{zoom,x:el.clientWidth/2-(el.clientWidth/2-c.x)*zoom/c.zoom,y:el.clientHeight/2-(el.clientHeight/2-c.y)*zoom/c.zoom}})}
+  const owner=stations.find(station=>station.id===selected?.station),action=owner?.actions.find(item=>item.id===selected?.action)
+  const node=owner?.nodes.find(item=>item.id===action?.nodeId)||owner?.nodes[0]
+  const related=node?(p.tools||[]).filter(tool=>{if(node.root)return tool.agent_type===node.type;const nodeId=tool.node_id||tool.args_json?.node_id;return nodeId?nodeId===node.id:Boolean(node.query&&(tool.args_json?.query===node.query||tool.args_json?.url===node.query))}):[]
+  const openAction=(station:FlowStation,item:StationAction)=>setSelected({station:station.id,action:item.id})
+  const actionButton=(station:FlowStation,item:StationAction,compact=false)=><button key={item.id} type="button"
+    className={`station-action ${compact?'station-action--compact':''}`} data-status={item.state}
+    aria-label={`动作：${item.label}，${statusLabels[item.state]||item.state}`} onClick={()=>openAction(station,item)}>
+      <span className="station-action-heading"><Icon name={item.label.includes('修复')?'settings':item.label.includes('核对')?'target':'source'} size={15}/><strong>{item.label}</strong><StatusPill status={item.state}/></span>
+      <span className="station-action-content">{briefFeedback(item.query||item.detail)||'等待执行'}</span>
+      {!compact&&item.query&&item.detail&&<span className="station-action-result">{briefFeedback(item.detail)}</span>}
+    </button>
+  if(!stations.length)return <div className="flow-empty"><Icon name="network" size={36}/><p>正在取得研究计划</p></div>
+  return <section className="flow-panel station-flow-panel" aria-label="研究工作流">
+    <div className="flow-heading"><div><Icon name="network"/><strong>研究工作流</strong><StatusPill status={p.status}/><span className="flow-stream-status">{['running','pending'].includes(p.status)?p.connection==='connected'?'SSE 实时推送':p.connection==='error'?'正在重连':'连接中':'执行记录'}</span></div>
+      <div className="canvas-toolbar" role="group" aria-label="画布操作">
+        <label className="flow-role-filter">角色<select aria-label="画布角色" value={role} onChange={event=>{setRole(event.target.value);setFollowing(false);const station=stations.find(item=>item.type===event.target.value);if(station)focusStation(station)}}><option value="all">全部</option>{stations.map(station=><option key={station.id} value={station.type}>{station.label}</option>)}</select></label>
+        <button type="button" className="btn-ghost" aria-pressed={following} onClick={()=>{setFollowing(value=>!value);if(!following){const station=currentStation();if(station)focusStation(station)}}}>{following?'停止跟随':'跟随当前'}</button>
+        <button type="button" className="icon-button" aria-label="缩小流程图" onClick={()=>zoomBy(1/1.2)}><Icon name="minus" size={17}/></button><span>{Math.round(camera.zoom*100)}%</span>
+        <button type="button" className="icon-button" aria-label="放大流程图" onClick={()=>zoomBy(1.2)}><Icon name="plus" size={17}/></button>
+        <button type="button" className="icon-button" aria-label="适应画布" onClick={()=>{setFollowing(false);fit()}}><Icon name="fit" size={18}/></button>
+        <button type="button" className="icon-button" aria-label="定位当前步骤" onClick={()=>{const station=currentStation();if(station)focusStation(station);setFollowing(true)}}><Icon name="target" size={18}/></button>
       </div>
     </div>
-    <div className="flow-bottom"><span className="flow-legend"><i className="legend-agent"/>角色<i className="legend-action"/>动作</span><span>{nodes.reduce((count,node)=>count+(node.actions?.length||0),0)} 项动作 · {nodes.filter(n=>['done','completed','success'].includes(n.status)).length} / {nodes.length} 步完成</span></div>
-    <Modal open={Boolean(current)} onClose={()=>setSelected(null)} title={action?.label||(current?.root?agentNames[current.type]:current?.label)||'步骤详情'}>
-      {current&&<div className="node-detail"><div className="node-detail-role"><Icon name="network" size={17}/>{agentNames[current.type]||current.type}<StatusPill status={action?.state||current.status}/></div>
-        {action?<><h3>执行反馈</h3><p className="action-detail-text">{action.detail}</p>{action.query&&<><h3>输入</h3><p className="action-detail-text">{action.query}</p></>}
-          {action.items.length>1&&<details><summary>{action.items.length} 条过程记录</summary>{action.items.map(item=><div className="action-retained-event" key={item.id}><span>{item.label}</span><p>{item.detail}</p></div>)}</details>}</>:<><h3>研究问题</h3><p>{current.query||current.label}</p>
-          {!!current.actions?.length&&<><h3>执行动作</h3><div className="node-action-list">{current.actions.map(item=><button type="button" key={item.id} onClick={()=>setSelected(item.id)}><span><strong>{item.label}</strong><span>{briefFeedback(item.query||item.detail)}</span></span><StatusPill status={item.state}/></button>)}</div></>}
-        </>}
-        {!!current.dependencies.length&&<><h3>前置步骤</h3><div className="node-dependencies">{current.dependencies.map(id=><span className="tool-chip" key={id}>{nodes.find(n=>n.id===id)?.label||id}</span>)}</div></>}
-        {current.error&&!action&&<p role="alert" className="composer-error">{current.error}</p>}
+    <div ref={viewport} className="flow-viewport station-viewport" tabIndex={0} role="region" aria-label="可拖动研究流程图，方向键平移，加减号缩放，Home 适应画布"
+      onKeyDown={event=>{if(event.target!==event.currentTarget)return;const moves:Record<string,[number,number]>={ArrowLeft:[40,0],ArrowRight:[-40,0],ArrowUp:[0,40],ArrowDown:[0,-40]};if(moves[event.key]){event.preventDefault();setFollowing(false);const [x,y]=moves[event.key];setCamera(c=>({...c,x:c.x+x,y:c.y+y}))}else if(['+','=','-'].includes(event.key)){event.preventDefault();zoomBy(event.key==='-'?1/1.2:1.2)}else if(event.key==='Home'){event.preventDefault();fit()}}}
+      onPointerDown={event=>{if((event.target as Element).closest('button,summary,details'))return;setFollowing(false);drag.current={x:event.clientX,y:event.clientY,left:camera.x,top:camera.y};event.currentTarget.setPointerCapture(event.pointerId)}}
+      onPointerMove={event=>{const d=drag.current;if(d)setCamera(c=>({...c,x:d.left+event.clientX-d.x,y:d.top+event.clientY-d.y}))}} onPointerUp={()=>{drag.current=null}} onPointerCancel={()=>{drag.current=null}}>
+      <div className="flow-world" style={{width,height,transform:`translate(${camera.x}px,${camera.y}px) scale(${camera.zoom})`}}>
+        <svg className="flow-connections station-handoffs" width={width} height={height} aria-hidden="true"><defs><marker id={marker} markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0 0L7 3.5L0 7" fill="var(--accent)"/></marker></defs>
+          {stations.slice(1).map((station,index)=>{const from=stations[index],d=`M${from.x+204},${from.y+58} H${station.x+96}`;const active=p.status==='running'&&station.status==='running';return <g key={station.id}>
+            <path d={d} className={`flow-edge station-handoff ${active?'is-running':''}`} markerEnd={`url(#${marker})`}/>
+            {active&&<circle className="station-handoff-dot" r="3" fill="var(--accent)"><animateMotion dur="1.8s" repeatCount="indefinite" path={d}/></circle>}
+          </g>})}
+        </svg>
+        {stations.map(station=>{const primary=primaryAction(station),history=station.actions.filter(item=>item.id!==primary?.id),expression=stationExpression(station,p)
+          return <section key={station.id} role="group" aria-label={`${station.label} 工作区`} className={`agent-station ${role!=='all'&&role!==station.type?'is-dimmed':''}`} data-state={station.status} data-expression={expression} style={{left:station.x,top:station.y}}>
+            <header className="station-owner"><button type="button" className="station-owner-button" aria-label={`${station.label}，${statusLabels[station.status]||station.status}`} onClick={()=>setSelected({station:station.id})}>
+              {station.actor?<AgentAvatar name={station.label} role={station.type} expression={expression}/>:<span className="station-tools-avatar"><Icon name="network" size={35}/></span>}
+              <strong>{station.label}</strong><StatusPill status={station.status}/>
+            </button></header>
+            <div className="station-ownership-line" aria-hidden="true"><span/></div>
+            <div className="station-task-area" role="group" aria-label={`${station.label} 的动作`}>
+              <div className="station-task-label"><span>{!primary?'所属动作':['pending','waiting'].includes(primary.state)?'待执行动作':primary.state==='running'?'当前动作':primary.state==='paused'?'暂停动作':'最近结果'}</span><span>{station.actions.length} 项</span></div>
+              {primary?actionButton(station,primary):<div className="station-empty">{station.status==='pending'?'等待前序阶段':'暂无保留动作'}</div>}
+              {history.length>0&&<details className="station-history" open={Boolean(expanded[station.id])} onToggle={event=>{const open=event.currentTarget.open;setExpanded(value=>value[station.id]===open?value:{...value,[station.id]:open})}}>
+                <summary>动作记录 <span>{history.length}</span><Icon name="arrow" size={13}/></summary>
+                <div className="station-history-items">{history.map(item=>actionButton(station,item,true))}</div>
+              </details>}
+            </div>
+          </section>
+        })}
+      </div>
+    </div>
+    <div className="flow-bottom"><span className="station-layer-legend">上层角色交接<span>↓</span>下层所属动作</span><span>{stations.reduce((count,station)=>count+station.actions.length,0)} 项动作</span></div>
+    <Modal open={Boolean(owner)} onClose={()=>setSelected(null)} title={action?.label||owner?.label||'执行详情'}>
+      {owner&&<div className="node-detail"><div className="node-detail-role"><Icon name="network" size={17}/>{owner.label}<StatusPill status={action?.state||owner.status}/></div>
+        {action?<><h3>执行反馈</h3><p className="action-detail-text">{action.detail||'当前动作尚未返回结果'}</p>{action.query&&<><h3>输入</h3><p className="action-detail-text">{action.query}</p></>}
+          {action.items.length>1&&<details><summary>{action.items.length} 条过程记录</summary>{action.items.map(item=><div className="action-retained-event" key={item.id}><span>{item.label}</span><p>{item.detail}</p></div>)}</details>}</>:
+          <><h3>所属动作</h3><div className="node-action-list">{owner.actions.map(item=><button type="button" key={item.id} onClick={()=>openAction(owner,item)}><span><strong>{item.label}</strong><span>{briefFeedback(item.query||item.detail)}</span></span><StatusPill status={item.state}/></button>)}</div></>}
+        {!!node?.dependencies.length&&<><h3>前置步骤</h3><div className="node-dependencies">{node.dependencies.map(id=><span className="tool-chip" key={id}>{nodes.find(item=>item.id===id)?.label||id}</span>)}</div></>}
         {!!related.length&&<><h3>相关调用</h3>{related.map(tool=><div className="task-row" key={tool.call_id}><span>{readableTool(tool.tool_name)}</span><StatusPill status={tool.status}/></div>)}</>}
       </div>}
     </Modal>
