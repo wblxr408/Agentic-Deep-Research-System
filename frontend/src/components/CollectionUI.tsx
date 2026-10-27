@@ -14,6 +14,8 @@ export async function collectionRequest(path:string,options:RequestInit={}) {
     known.sparse_encoding_unavailable_or_incomplete=t('学习稀疏特征需要已配置的本地模型，且全部片段须能完整编码。')
     known.sparse_feature_budget_exceeded=t('学习稀疏特征超出资料大小限制。')
     known.stemming_feature_budget_exceeded=t('英文词形特征超出资料大小限制。')
+    known.multivector_encoding_unavailable_or_incomplete=t('细粒度语义需要配置本地模型，并确保每个片段可完整处理。')
+    known.multivector_feature_budget_exceeded=t('细粒度语义特征超出资料大小限制。')
     const message=typeof detail==='string'?(known[detail]||(detail.startsWith('invalid_skill_document:')?known.invalid_skill_document:detail)):response.status===422?t("请检查必填项和所选范围"):response.status===403?t("当前账号无法修改这项内容"):t("暂时无法完成，请重试")
     throw new Error(message)
   }

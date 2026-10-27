@@ -477,6 +477,7 @@ async def _finish(claim,result):
                     feature_policy=FeaturePolicy.model_validate((prior_metadata.get('feature_profile') or {}).get('policy') or {})
                     if feature_policy.dense:raise SourceSyncError(409,'source_sync_dense_configuration_requires_manual_update')
                     if feature_policy.sparse:raise SourceSyncError(409,'source_sync_sparse_configuration_requires_manual_update')
+                    if feature_policy.multivector:raise SourceSyncError(409,'source_sync_multivector_configuration_requires_manual_update')
                     mode=await conn.fetchval('SELECT mode FROM source_index_heads WHERE source_id=$1::uuid AND owner_id=$2::uuid',
                         source['id'],claim['owner_id'])
                     if mode=='direct':feature_policy=feature_policy.model_copy(update={'english_stemming':False})

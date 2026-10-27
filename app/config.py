@@ -80,6 +80,14 @@ class RAGSettings(BaseSettings):
     sparse_revision: str | None = Field(default=None,max_length=128)
     sparse_max_input_tokens: int = Field(default=256,ge=32,le=512)
     sparse_top_k: int = Field(default=128,ge=8,le=512)
+    multivector_document_model: str | None = Field(default=None,max_length=200)
+    multivector_document_revision: str | None = Field(default=None,max_length=128)
+    multivector_query_model: str | None = Field(default=None,max_length=200)
+    multivector_query_revision: str | None = Field(default=None,max_length=128)
+    multivector_space: str | None = Field(default=None,max_length=120)
+    multivector_document_prefix: str = Field(default='',max_length=200)
+    multivector_query_prefix: str = Field(default='',max_length=200)
+    multivector_max_input_tokens: int = Field(default=256,ge=32,le=512)
     enable_dense_retrieval: bool = False
     enable_reranker: bool = False
     rerank_model: str = Field(default="BAAI/bge-reranker-v2-m3")

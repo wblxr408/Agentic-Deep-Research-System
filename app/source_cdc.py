@@ -580,6 +580,7 @@ async def _apply_event(conn,claim,event,parsed):
             features=FeaturePolicy.model_validate((old_metadata.get('feature_profile') or {}).get('policy') or {})
             if features.dense:raise SourceSyncError(409,'cdc_dense_configuration_requires_manual_update')
             if features.sparse:raise SourceSyncError(409,'cdc_sparse_configuration_requires_manual_update')
+            if features.multivector:raise SourceSyncError(409,'cdc_multivector_configuration_requires_manual_update')
             mode=await conn.fetchval('SELECT mode FROM source_index_heads WHERE source_id=$1::uuid AND owner_id=$2::uuid',old['id'],owner)
             if mode=='direct':features=features.model_copy(update={'english_stemming':False})
             request=SourceRevision(request_id=event_request,expected_revision=old['lifecycle_revision'],

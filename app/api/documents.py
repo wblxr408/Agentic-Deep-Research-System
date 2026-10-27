@@ -221,6 +221,7 @@ async def _ingest_source(
     if index_policy.mode=='direct' and feature_policy.dense:raise HTTPException(422,'direct_only_source_cannot_request_dense_encoding')
     if index_policy.mode=='direct' and feature_policy.sparse:raise HTTPException(422,'direct_only_source_cannot_request_sparse_encoding')
     if index_policy.mode=='direct' and feature_policy.english_stemming:raise HTTPException(422,'direct_only_source_cannot_request_stemming')
+    if index_policy.mode=='direct' and feature_policy.multivector:raise HTTPException(422,'direct_only_source_cannot_request_multivector')
     semantic_plan=None
     if chunk_policy and chunk_policy.strategy=='semantic':
         from app.semantic_chunking import build_semantic_plan
@@ -245,10 +246,16 @@ async def _ingest_source(
         else:
             pool=await get_db_pool()
             async with pool.acquire() as conn:stem_output=await english_stem_features(conn,chunk_text)
+    multivector_output=None
+    if feature_policy.multivector:
+        from app.channels.models import ChannelError
+        from app.multivector import encode_paired_texts
+        try:multivector_output=await asyncio.to_thread(encode_paired_texts,[text[chunk['start']:chunk['end']] for chunk in plan['children']])
+        except (ValueError,ChannelError):raise HTTPException(422,'multivector_encoding_unavailable_or_incomplete') from None
     try:features=await asyncio.to_thread(build_feature_plan,text,plan,parsed_document,policy=feature_policy,
-        dense_profile=dense_profile,sparse_output=sparse_output,stem_output=stem_output)
+        dense_profile=dense_profile,sparse_output=sparse_output,stem_output=stem_output,multivector_output=multivector_output)
     except ValueError as error:
-        if str(error).startswith(('sparse_','stemming_')):raise HTTPException(422,str(error)) from None
+        if str(error).startswith(('sparse_','stemming_','multivector_')):raise HTTPException(422,str(error)) from None
         raise
     source_metadata = {**{key:value for key,value in metadata.items() if key not in {'document_parse','parse_profile','parse_version_id','parsing_reviews','chunk_plan','chunking_profile','feature_plan','feature_profile','dense_profile','index_policy','retention_policy','revision_intake_key'}},
         'content_hash':digest,'source_version':digest,'owner_scope':'private',
@@ -281,7 +288,8 @@ async def _ingest_source(
         if existing:
             return {'source_id':str(existing['id']),'deduplicated':True,'chunk_count':0,'document_ids':[],
                 'representation':{'status':'reused_compatible_effective_index_mode','new_embedding_api_calls':0,
-                    'semantic_local_encoding_calls':int(semantic_plan is not None),'local_sparse_encoding_calls':int(sparse_output is not None)},'index':{'mode':index_policy.mode}}
+                    'semantic_local_encoding_calls':int(semantic_plan is not None),'local_sparse_encoding_calls':int(sparse_output is not None),
+                    'local_multivector_encoding_calls':int(multivector_output is not None)},'index':{'mode':index_policy.mode}}
         chunks=[text[chunk['start']:chunk['end']] for chunk in plan['children']]
         embeddings=[None]*len(chunks)
         coverage=[]
@@ -307,6 +315,10 @@ async def _ingest_source(
         result=await _persist_ingested_source(conn,name=name,group_name=group_name,source_type=source_type,
             file_name=file_name,file_ext=file_ext,text=text,chunk_size=chunk_size,chunk_overlap=chunk_overlap,
             metadata=source_metadata,owner_id=owner_id,chunks=chunks,embeddings=embeddings,dense_coverage=coverage)
+        if multivector_output is not None:
+            from app.db.retrieval_multivector import persist_document_vectors
+            await persist_document_vectors(conn,owner_id,result['source_id'],result['document_ids'],
+                source_metadata['parse_version_id'],features['profile_id'],multivector_output)
         return {**result,'parse_version_id':source_metadata['parse_version_id'],'parse_quality':(parsed_document or {}).get('quality'),
             'representation':{'dense_status':features['dense']['status'],'semantic_local_encoding_calls':int(semantic_plan is not None),**features['effects']}}
 
@@ -696,7 +708,7 @@ async def create_source_revision(source_id:uuid.UUID,payload:SourceRevision,prin
                 mode=await conn.fetchval('SELECT mode FROM source_index_heads WHERE source_id=$1::uuid AND owner_id=$2::uuid',str(source_id),principal.id)
                 index_policy=IndexPolicy(mode=mode or 'lexical',reason='explicit_source_revision_inherit_effective_mode')
                 feature_policy=FeaturePolicy.model_validate((metadata.get('feature_profile') or {}).get('policy') or {})
-                if index_policy.mode=='direct':feature_policy=feature_policy.model_copy(update={'dense':False,'sparse':False,'english_stemming':False})
+                if index_policy.mode=='direct':feature_policy=feature_policy.model_copy(update={'dense':False,'sparse':False,'english_stemming':False,'multivector':False})
                 return await _ingest_source(name=source['name'],group_name=source['group_name'],source_type='revision',content=parsed['text'],
                     metadata={key:value for key,value in metadata.items() if key not in {'source_sync','source_cdc'}},file_ext=payload.format,chunk_size=source['chunk_size'],chunk_overlap=source['chunk_overlap'],
                     owner_id=principal.id,connection=conn,parsed_document=parsed,

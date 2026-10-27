@@ -26,6 +26,7 @@ class FeaturePolicy(ScopeRecord):
     dense:bool=False
     sparse:bool=False
     english_stemming:bool=False
+    multivector:bool=False
     cjk_mode:Literal['characters','bigrams','both']='both'
     max_token_events:int=Field(default=1024,ge=128,le=2048)
     source_date:date|None=None
@@ -168,20 +169,26 @@ def candidate_decisions():
     }
 
 
-def build_feature_plan(text,chunk_plan,parsed,*,policy=None,dense_profile=None,sparse_output=None,stem_output=None):
+def build_feature_plan(text,chunk_plan,parsed,*,policy=None,dense_profile=None,sparse_output=None,stem_output=None,multivector_output=None):
     policy=policy if isinstance(policy,FeaturePolicy) else FeaturePolicy.model_validate(policy or {})
     policy_data=policy.model_dump(mode='json')
     if not policy.sparse:policy_data.pop('sparse',None)
     if not policy.english_stemming:policy_data.pop('english_stemming',None)
+    if not policy.multivector:policy_data.pop('multivector',None)
     if policy.sparse:validate_sparse_output(sparse_output,len(chunk_plan['children']))
     if policy.english_stemming and (not isinstance(stem_output,dict) or not isinstance(stem_output.get('profile'),dict)
             or not isinstance(stem_output.get('vectors'),list) or len(stem_output['vectors'])!=len(chunk_plan['children'])
             or not isinstance(stem_output.get('coverage'),dict) or stem_output['coverage'].get('chunk_count')!=len(chunk_plan['children'])):
         raise ValueError('stemming_actual_derivation_required')
+    if policy.multivector and (not isinstance(multivector_output,dict) or not isinstance(multivector_output.get('pair'),dict)
+            or not isinstance(multivector_output.get('observed'),dict) or not isinstance(multivector_output.get('vectors'),list)
+            or len(multivector_output['vectors'])!=len(chunk_plan['children'])):
+        raise ValueError('multivector_actual_encoding_required')
     profile={'schema_version':VERSION,'tokenizer_version':TOKENIZER_VERSION,'policy':policy_data,
         'dense_configuration':dense_profile if policy.dense else None}
     if policy.sparse:profile['sparse_configuration']=sparse_output['profile']
     if policy.english_stemming:profile['stemming_configuration']=stem_output['profile']
+    if policy.multivector:profile['multivector_configuration']={'pair':multivector_output['pair'],'observed':multivector_output['observed']}
     children=[];used_bytes=0;omitted=0;df=Counter()
     import json
     for chunk in chunk_plan['children']:
@@ -258,5 +265,15 @@ def build_feature_plan(text,chunk_plan,parsed,*,policy=None,dense_profile=None,s
             'coverage':stem_output['coverage'],'original_lexical_view_retained':True}
         if len(json.dumps(result,ensure_ascii=False).encode('utf-8'))>FEATURE_BYTES-65536:
             raise ValueError('stemming_feature_budget_exceeded')
+    if policy.multivector:
+        for entry,vector in zip(children,multivector_output['vectors']):
+            entry['multivector']={'input_tokens':vector['input_tokens'],'source_tokens':sum(item is not None for item in vector['locations']),
+                'data_location':'owned_document_feature_row','offsets':'source_chunk_relative'}
+        result['multivector']={'status':'encoded_pooled_and_token_vectors','pair':multivector_output['pair'],
+            'observed':multivector_output['observed'],'operator_declared_compatibility':True}
+        result['candidate_decisions']['fine_grained_semantic']={'status':'token_vectors_encoded','reason':'actual_local_token_embeddings_with_validated_source_offsets;_query_and_index_pending'}
+        result['effects']['local_multivector_encoding_calls']=1
+        if len(json.dumps(result,ensure_ascii=False).encode('utf-8'))>FEATURE_BYTES-65536:
+            raise ValueError('multivector_feature_budget_exceeded')
     result['metadata_budget_bytes']=FEATURE_BYTES
     return result

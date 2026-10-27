@@ -39,6 +39,22 @@ CREATE TABLE IF NOT EXISTS retrieval_index_terms (
     FOREIGN KEY(generation_id,document_id,owner_id) REFERENCES retrieval_index_documents(generation_id,document_id,owner_id) ON DELETE CASCADE
 );
 CREATE INDEX IF NOT EXISTS idx_retrieval_terms_owner_term ON retrieval_index_terms(owner_id,term,generation_id,document_id);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_documents_identity_owner_source ON documents(id,owner_id,source_id);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_document_sources_identity_owner ON document_sources(id,owner_id);
+CREATE TABLE IF NOT EXISTS retrieval_model_features (
+    document_id UUID PRIMARY KEY,source_id UUID NOT NULL,owner_id UUID NOT NULL,
+    source_version TEXT NOT NULL,feature_profile_id TEXT NOT NULL,pair_id TEXT NOT NULL,
+    token_dimension INTEGER NOT NULL CHECK(token_dimension BETWEEN 1 AND 4096),
+    pooled_dimension INTEGER NOT NULL CHECK(pooled_dimension BETWEEN 1 AND 4096),
+    token_count INTEGER NOT NULL CHECK(token_count BETWEEN 1 AND 512),
+    token_vectors BYTEA NOT NULL,pooled_vector BYTEA NOT NULL,token_locations JSONB NOT NULL,
+    FOREIGN KEY(document_id,owner_id,source_id) REFERENCES documents(id,owner_id,source_id) ON DELETE CASCADE,
+    FOREIGN KEY(source_id,owner_id) REFERENCES document_sources(id,owner_id) ON DELETE CASCADE,
+    CHECK(octet_length(token_vectors)=token_count*token_dimension*4),
+    CHECK(octet_length(pooled_vector)=pooled_dimension*4),
+    CHECK(CASE WHEN jsonb_typeof(token_locations)='array' THEN jsonb_array_length(token_locations)=token_count ELSE false END)
+);
+CREATE INDEX IF NOT EXISTS idx_retrieval_model_features_owner_source ON retrieval_model_features(owner_id,source_id,pair_id);
 CREATE TABLE IF NOT EXISTS source_index_heads (
     source_id UUID PRIMARY KEY REFERENCES document_sources(id) ON DELETE CASCADE,owner_id UUID NOT NULL,
     mode TEXT NOT NULL CHECK(mode IN ('direct','lexical')),generation_id UUID,
