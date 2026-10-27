@@ -171,6 +171,7 @@ def validate_feedback(state,request):
 
 
 def quality_view(state,feedback):
+    from app.question_quality import question_quality
     evidence=state.get('collected_evidence') or [];review=state.get('review_status') or {}
     result=state.get('organization_result') or {};audit=review.get('final_report_audit') or {}
     runs=ranking_runs(state);binding=quality_binding(state,runs)
@@ -210,7 +211,7 @@ def quality_view(state,feedback):
     return {'schema_version':VERSION,'binding_id':binding,'session_id':state.get('task_id'),
         'data':{'retained_evidence':len(evidence),'coverage':dict(coverage),'freshness_observations':dict(freshness_counts),
             'parsing_accuracy':None,'reason':'no_independently_labeled_parse_reference'},
-        'retrieval_runs':runs,'ranking_judgments':judgments,
+        'retrieval_runs':runs,'ranking_judgments':judgments,'question_coverage':question_quality(state),
         'answer':{'model_audit_supported_claims':supported,'model_audit_total_claims':total,
             'model_audit_source_supported_claims':audit.get('source_supported_claims'),
             'model_audit_method_supported_claims':audit.get('method_supported_claims'),
