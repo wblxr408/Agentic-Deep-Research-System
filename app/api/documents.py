@@ -25,6 +25,7 @@ from app.security.auth import Principal, require_principal
 from app.evidence_chunks import ChunkPolicy,VERSION as CHUNK_VERSION,build_chunk_plan,parent_window,_span
 from app.retrieval_features import FeaturePolicy,build_feature_plan,dense_configuration,validate_vectors,vector_parameter
 from app.retrieval_entity_link import EntityLinkAction
+from app.retrieval_temporal import TemporalTrendRequest
 from app.db.retrieval_indexes import IndexPolicy,IndexAction,initialize_source_index,apply_index_action,adjacency_view,index_choices,source_chunk_metadata,VERSION as INDEX_VERSION
 from app.source_lifecycle import (RetentionPolicy,LifecycleAction,SourceRevision,BatchPublication,lock_owner,
     initialize_lifecycle,apply_lifecycle_action,publish_batch,revise_source,lifecycle_view,bump_epoch)
@@ -424,6 +425,12 @@ async def list_sources(group_name: str | None = None,summary:bool=False, princip
             """,principal.id,summary,group_name or None,
         )
     return {"items": [{**dict(row),'metadata':_metadata(row['metadata'])} for row in rows]}
+
+
+@router.post('/temporal-trends')
+async def get_document_temporal_trends(payload:TemporalTrendRequest,principal:PrincipalDep=None):
+    from app.retrieval_temporal import source_temporal_trend
+    return await source_temporal_trend(principal.id,payload)
 
 
 @router.get('/sources/{source_id}/parsing')
