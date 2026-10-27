@@ -10,6 +10,7 @@ export async function collectionRequest(path:string,options:RequestInit={}) {
   if(!response.ok){
     const detail=body.detail
     const known:Record<string,string>={source_not_found:t("这份资料暂时无法读取"),retention_task_not_owned_or_missing:t("请选择自己的研究链接"),invalid_skill_document:t("请检查方法的阶段、工具和指令内容"),skill_version_conflict:t('方法已更新，请重新读取后再试。'),skill_default_changed:t('默认版本已变化，请重新读取后再试。'),skill_default_missing:t('当前版本未提供默认来源'),skill_default_already_linked:t('方法已关联默认来源，请重新读取。'),skill_version_or_slug_conflict:t('方法名称或版本已变化，请重新读取。'),skill_slug_conflict:t('方法名称标识已被使用。'),skill_frontmatter_scalar_not_editable:t('请调整方法原文中的版本或启停字段。'),skill_merge_too_large:t('方法较长，请对照后手动编辑。'),skill_merge_identity_changed:t('更新会改变方法标识，请手动编辑。'),skill_version_not_found:t('这个版本暂时无法读取。')}
+    known.semantic_chunking_unavailable_or_incomplete=t('语义分块需要本地固定版本的编码模型，且全部片段须能完整编码。')
     const message=typeof detail==='string'?(known[detail]||(detail.startsWith('invalid_skill_document:')?known.invalid_skill_document:detail)):response.status===422?t("请检查必填项和所选范围"):response.status===403?t("当前账号无法修改这项内容"):t("暂时无法完成，请重试")
     throw new Error(message)
   }

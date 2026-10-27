@@ -47,3 +47,9 @@
 #### Scenario: Legacy chunk lacks offsets
 - **WHEN** 旧片段没有原文偏移
 - **THEN** 可保留其片段原文，但父级／原文件位置显示不可用，不能追认不存在的页码
+
+### Requirement: Explicit semantic splitting
+系统 SHALL 允许本人选择固定版本本地编码器按相邻原文语义相似度生成分块断点；模型、阈值、覆盖、来源版本和实际断点必须留存，编码不可用或覆盖不完整时不得标为语义分块成功。
+
+### Requirement: Source-grounded context and entity candidates
+系统 SHALL 支持可定位的抽取式文档摘要与显式模型实体候选；摘要和候选附带原文范围，检索时仍按当前账号、来源和分组检查。模型候选不自动确立同名实体、人员任职或合作事实。

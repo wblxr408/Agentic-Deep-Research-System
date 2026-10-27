@@ -493,6 +493,10 @@ U3实际冻结的科研绘图Skill已装入constraints和stage:render，选用�
 
 2026-10-21：[版本块、有限父级与引用实现](versioned-evidence-chunks.md)九项代码／契约已接入，尚未运行。四种策略、真实区间／版本、词面实体／日期／引用及学科规则、三种接入方式、只读原文详情、RAG父级复核、任务证据／主张／报告定位贯通；父级只存范围，不重复嵌入。语义切块／模型抽取／生成摘要的候选取舍在ACI说明，不冒充已采用。九项纯实施和最终验收在[OpenSpec](../openspec/changes/add-versioned-evidence-chunks/tasks.md)分开打勾；主TODO复合交付保留待统一端到端。下一OPT-04。
 
+2026-10-27：按完整目标补齐本人可选的本地语义切块、可回原文的抽取式摘要和模型实体候选，实施与最终真实验收分别见[OpenSpec任务](../openspec/changes/add-versioned-evidence-chunks/tasks.md)。
+
+- [x] 03.a 固定版本本地编码器语义切块、本人选择与实际断点／覆盖记录已接入源码；模型准备及真实上传／检索留待统一端到端。
+
 - [ ] 03.1 基础分块：固定长度、滑动窗口、递归分块、语义分块。
 - [ ] 03.2 结构化分块：按标题、章节、表格、代码结构切分。
 - [ ] 03.3 层级分块：Parent-Child、Small-to-Big、多粒度分块。

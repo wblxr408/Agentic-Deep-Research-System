@@ -211,8 +211,14 @@ async def _ingest_source(
     retention_policy=retention_policy or RetentionPolicy()
     feature_policy=feature_policy or FeaturePolicy()
     if index_policy.mode=='direct' and feature_policy.dense:raise HTTPException(422,'direct_only_source_cannot_request_dense_encoding')
+    semantic_plan=None
+    if chunk_policy and chunk_policy.strategy=='semantic':
+        from app.semantic_chunking import build_semantic_plan
+        from app.channels.models import ChannelError
+        try:semantic_plan=await asyncio.to_thread(build_semantic_plan,text,chunk_size,chunk_policy.semantic_similarity)
+        except (ValueError,ChannelError):raise HTTPException(422,'semantic_chunking_unavailable_or_incomplete') from None
     plan=await asyncio.to_thread(build_chunk_plan,text,parsed_document,digest+':'+profile_key,
-        size=chunk_size,overlap=chunk_overlap,policy=chunk_policy)
+        size=chunk_size,overlap=chunk_overlap,policy=chunk_policy,semantic_plan=semantic_plan)
     try:dense_profile=dense_configuration(get_settings().rag) if feature_policy.dense else None
     except ValueError as error:raise HTTPException(409,str(error)) from None
     features=await asyncio.to_thread(build_feature_plan,text,plan,parsed_document,policy=feature_policy,dense_profile=dense_profile)
@@ -246,7 +252,8 @@ async def _ingest_source(
             retention_policy.reuse_scope,str(retention_policy.task_id) if retention_policy.task_id else None,retention_policy.valid_from,retention_policy.valid_until,retention_policy.purge_after)
         if existing:
             return {'source_id':str(existing['id']),'deduplicated':True,'chunk_count':0,'document_ids':[],
-                'representation':{'status':'reused_compatible_effective_index_mode','new_embedding_api_calls':0},'index':{'mode':index_policy.mode}}
+                'representation':{'status':'reused_compatible_effective_index_mode','new_embedding_api_calls':0,
+                    'semantic_local_encoding_calls':int(semantic_plan is not None)},'index':{'mode':index_policy.mode}}
         chunks=[text[chunk['start']:chunk['end']] for chunk in plan['children']]
         embeddings=[None]*len(chunks)
         coverage=[]
@@ -273,7 +280,7 @@ async def _ingest_source(
             file_name=file_name,file_ext=file_ext,text=text,chunk_size=chunk_size,chunk_overlap=chunk_overlap,
             metadata=source_metadata,owner_id=owner_id,chunks=chunks,embeddings=embeddings,dense_coverage=coverage)
         return {**result,'parse_version_id':source_metadata['parse_version_id'],'parse_quality':(parsed_document or {}).get('quality'),
-            'representation':{'dense_status':features['dense']['status'],**features['effects']}}
+            'representation':{'dense_status':features['dense']['status'],'semantic_local_encoding_calls':int(semantic_plan is not None),**features['effects']}}
 
     if connection is None:
         pool = await get_db_pool()

@@ -3,7 +3,7 @@ import {useState} from 'react'
 import {useMutation,useQuery} from '@tanstack/react-query'
 
 interface Chunk {logical_chunk_id:string;start:number;end:number;parent_block_id:string;kind:string;title_path:Array<{title:string}>;source_locators:unknown[];labels:unknown[];entity_mentions:unknown[];date_mentions:unknown[];reference_mentions:unknown[];metadata_quality:Record<string,unknown>}
-interface Plan {schema_version:string;profile_id:string;source_version:string;profile:Record<string,unknown>;parents:Array<{parent_block_id:string;parent_id:string|null;kind:string;start:number;end:number;title:string|null}>;children:Chunk[];issues:unknown[];issue_count:number;truncated:boolean;unindexed_range:number[]|null;metadata_enrichment_omitted_chunks:number;summary_excerpt:unknown}
+interface Plan {schema_version:string;profile_id:string;source_version:string;profile:Record<string,unknown>;parents:Array<{parent_block_id:string;parent_id:string|null;kind:string;start:number;end:number;title:string|null}>;children:Chunk[];issues:unknown[];issue_count:number;truncated:boolean;unindexed_range:number[]|null;metadata_enrichment_omitted_chunks:number;summary_excerpt:unknown;semantic_chunking?:{status:string;unit_count?:number;threshold?:number;encoding_profile?:{model:string}}}
 interface PlanResponse {source_id:string;parse_version_id:string|null;view:Plan|null;legacy_gap:boolean}
 interface SpanResponse {source_id:string;parse_version_id:string|null;chunk:Chunk;context:{text:string;start:number;end:number;status:string;matched_start?:number;matched_end?:number}}
 
@@ -40,6 +40,7 @@ export default function ChunkPlanPanel({sourceId,groupName}:{sourceId:string;gro
     {query.data?.legacy_gap&&<p>{t("暂无片段结构记录。")}</p>}
     {plan&&<>
       <p className="break-all text-xs">{plan.schema_version} · {query.data?.parse_version_id}</p>
+      {plan.semantic_chunking?.status==='encoded_local_source_units'&&<p>{t('语义分块')} · {plan.semantic_chunking.encoding_profile?.model} · {t('{0} 个原文单元',plan.semantic_chunking.unit_count)}</p>}
       <p>{plan.parents.length} {t(" 个父级范围，")}{plan.children.length} {t(" 个计划小块；是否发布检索见索引状态。字符范围采用规范原文的起点（含）至终点（不含）。")}</p>
       {plan.truncated&&<p className="text-amber-800">{t("达到分块上限，未索引区间：")}{plan.unindexed_range?.join('–')}{t("；完整保留文字见下载。")}</p>}
       {!!plan.metadata_enrichment_omitted_chunks&&<p className="text-amber-800">{plan.metadata_enrichment_omitted_chunks} {t(" 个块因元数据上限省略标签／提及，不能据此判断不存在相关内容。")}</p>}

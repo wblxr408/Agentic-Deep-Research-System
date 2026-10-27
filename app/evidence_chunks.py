@@ -1,4 +1,4 @@
-"""Versioned spans and optional lexical metadata; no embedding or model calls."""
+"""Versioned spans, optional semantic boundaries, and source-grounded metadata."""
 from __future__ import annotations
 
 from datetime import date
@@ -22,7 +22,8 @@ class EntityTerm(ScopeRecord):
 
 
 class ChunkPolicy(ScopeRecord):
-    strategy:Literal['fixed','sliding','recursive','structure']='structure'
+    strategy:Literal['fixed','sliding','recursive','structure','semantic']='structure'
+    semantic_similarity:float|None=Field(default=None,ge=-1,le=1,allow_inf_nan=False)
     entity_terms:tuple[EntityTerm,...]=Field(default=(),max_length=40)
     disciplines:tuple[Label,...]=Field(default=(),max_length=8)
     taxonomy:TaxonomyRequest|None=None
@@ -31,6 +32,8 @@ class ChunkPolicy(ScopeRecord):
 
     @model_validator(mode='after')
     def consistent(self):
+        if self.strategy=='semantic' and self.semantic_similarity is None:raise ValueError('semantic_similarity_required')
+        if self.strategy!='semantic' and self.semantic_similarity is not None:raise ValueError('semantic_similarity_only_for_semantic_strategy')
         if len({item.entity_id for item in self.entity_terms})!=len(self.entity_terms):raise ValueError('duplicate_entity_dictionary_identity')
         if len(set(self.disciplines))!=len(self.disciplines):raise ValueError('duplicate_chunk_discipline')
         if self.taxonomy:
@@ -62,12 +65,29 @@ def _ranges(text,start,end,size,overlap,recursive):
         start=max(start+1,target-overlap)
 
 
-def build_chunk_plan(text,parsed,source_version,*,size=400,overlap=80,policy=None):
+def semantic_units(text,size):
+    unit_size=max(100,min(size//2,600))
+    return list(_ranges(text,0,len(text),unit_size,0,True))
+
+
+def build_chunk_plan(text,parsed,source_version,*,size=400,overlap=80,policy=None,semantic_plan=None):
     policy=policy if isinstance(policy,ChunkPolicy) else ChunkPolicy.model_validate(policy or {})
     if not source_version or not isinstance(text,str):raise ValueError('chunk_plan_requires_actual_version_and_text')
     if not 100<=size<=4000 or not 0<=overlap<size or overlap>1000:raise ValueError('invalid_chunk_size_or_overlap')
-    profile={'schema_version':VERSION,'policy':policy.model_dump(mode='json'),'size':size,
-        'requested_overlap':overlap,'effective_overlap':0 if policy.strategy=='fixed' else overlap}
+    policy_data=policy.model_dump(mode='json')
+    if policy.strategy!='semantic':policy_data.pop('semantic_similarity',None)
+    if policy.strategy=='semantic':
+        if not isinstance(semantic_plan,dict) or not isinstance(semantic_plan.get('boundaries'),list) or not semantic_plan.get('encoding_profile'):
+            raise ValueError('semantic_chunking_requires_actual_local_encoding')
+        points=semantic_plan['boundaries']
+        if (not points or points[0]!=0 or points[-1]!=len(text) or any(type(value) is not int for value in points)
+                or any(points[i]>=points[i+1] for i in range(len(points)-1))):
+            raise ValueError('semantic_chunk_boundaries_invalid')
+    profile={'schema_version':VERSION,'policy':policy_data,'size':size,
+        'requested_overlap':overlap,'effective_overlap':0 if policy.strategy in {'fixed','semantic'} else overlap}
+    if policy.strategy=='semantic':
+        profile['semantic_encoding']=semantic_plan['encoding_profile']
+        profile['semantic_boundary_id']=identity(semantic_plan['boundaries'])
     profile_id=identity(profile);issues=[];length=len(text);blocks=[]
     for raw in (parsed or {}).get('blocks',[]):
         span=_span(raw,length)
@@ -103,7 +123,9 @@ def build_chunk_plan(text,parsed,source_version,*,size=400,overlap=80,policy=Non
         parent['parent_id']=ids.get(parent.pop('parent_key'));parent['parent_id_semantics']='source_structure_not_entity_affiliation'
         parent['parent_block_id']=ids[parent.pop('key')]
     by_parent={parent['parent_block_id']:parent for parent in parents}
-    boundaries=sorted({0,length,*[value for parent in parents for value in (parent['start'],parent['end'])]}) if policy.strategy=='structure' else [0,length]
+    boundaries=(sorted({0,length,*[value for parent in parents for value in (parent['start'],parent['end'])],
+        *(semantic_plan['boundaries'] if policy.strategy=='semantic' else [])})
+        if policy.strategy in {'structure','semantic'} else [0,length])
     taxonomy=freeze_taxonomy(policy.taxonomy,list(policy.disciplines)) if policy.taxonomy else None
     children=[];truncated=False;enrichment_bytes=0;enrichment_omitted=0
     for left,right in zip(boundaries,boundaries[1:]):
@@ -161,7 +183,7 @@ def build_chunk_plan(text,parsed,source_version,*,size=400,overlap=80,policy=Non
         'metadata_enrichment_bytes':enrichment_bytes,'metadata_enrichment_omitted_chunks':enrichment_omitted,
         'summary_excerpt':{'start':0,'end':min(400,length),'kind':'literal_source_lead_excerpt_not_generated_summary'} if policy.include_source_excerpt and text else None,
         'storage_note':'parent_and_child_spans_reference_one_original_text_parents_not_embedded',
-        'semantic_chunking':'not_selected_no_validated_cost_quality_benefit'}
+        'semantic_chunking':semantic_plan if policy.strategy=='semantic' else {'status':'not_selected'}}
 
 
 def parent_window(text,chunk,parent,limit=2000):

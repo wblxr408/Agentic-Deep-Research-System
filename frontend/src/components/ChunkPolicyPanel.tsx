@@ -3,16 +3,16 @@ import TaxonomyEditor,{defaultTaxonomy,taxonomyRequest} from './TaxonomyEditor'
 import type {TaxonomyDraft} from './TaxonomyEditor'
 
 export interface ChunkDraft {
-  strategy:'fixed'|'sliding'|'recursive'|'structure';context:'matched'|'parent';sourceExcerpt:boolean
+  strategy:'fixed'|'sliding'|'recursive'|'structure'|'semantic';semanticSimilarity:number;context:'matched'|'parent';sourceExcerpt:boolean
   entities:Array<{id:string;name:string;kind:string}>;classification:boolean;disciplines:string;taxonomy:TaxonomyDraft
 }
-export const defaultChunkDraft:ChunkDraft={strategy:'structure',context:'matched',sourceExcerpt:false,entities:[],classification:false,disciplines:'',taxonomy:{...defaultTaxonomy}}
+export const defaultChunkDraft:ChunkDraft={strategy:'structure',semanticSimilarity:0.65,context:'matched',sourceExcerpt:false,entities:[],classification:false,disciplines:'',taxonomy:{...defaultTaxonomy}}
 export function chunkPolicyRequest(value:ChunkDraft) {
   if(value.entities.some(item=>item.name.trim().length<2))throw new Error(t("实体词典中的名称至少需要两个字符。"))
   const disciplines=[...new Set(value.disciplines.split(/[,，、]/).map(item=>item.trim()).filter(Boolean))]
   if(disciplines.length>8)throw new Error(t("块分类最多声明8个学科。"))
   if(value.classification&&!disciplines.length)throw new Error(t("启用块级分类时请填写适用学科。"))
-  return {strategy:value.strategy,retrieval_context:value.context,include_source_excerpt:value.sourceExcerpt,
+  return {strategy:value.strategy,...(value.strategy==='semantic'?{semantic_similarity:value.semanticSimilarity}:{}),retrieval_context:value.context,include_source_excerpt:value.sourceExcerpt,
     entity_terms:value.entities.map(item=>({entity_id:item.id,name:item.name.trim(),kind:item.kind})),
     disciplines:value.classification?disciplines:[],taxonomy:value.classification?taxonomyRequest(value.taxonomy):null}
 }
@@ -22,7 +22,8 @@ export default function ChunkPolicyPanel({value,onChange}:{value:ChunkDraft;onCh
   const update=(patch:Partial<ChunkDraft>)=>onChange({...value,...patch})
   return <fieldset className="space-y-3 rounded-xl border border-xmgray-200 p-3 text-sm"><legend>{t("片段处理")}</legend>
     <label className="block text-xs">{t("分块方式")}<select aria-label={t("分块方式")} className="input-xm mt-1" value={value.strategy} onChange={event=>update({strategy:event.target.value as ChunkDraft['strategy']})}>
-      <option value="structure">{t("按章节、表格和代码结构")}</option><option value="recursive">{t("按段落／换行递归边界")}</option><option value="sliding">{t("固定窗口与重叠")}</option><option value="fixed">{t("固定长度，不重叠")}</option></select></label>
+      <option value="structure">{t("按章节、表格和代码结构")}</option><option value="semantic">{t('按语义变化')}</option><option value="recursive">{t("按段落／换行递归边界")}</option><option value="sliding">{t("固定窗口与重叠")}</option><option value="fixed">{t("固定长度，不重叠")}</option></select></label>
+    {value.strategy==='semantic'&&<label className="block text-xs">{t('主题相似程度')}<select className="input-xm mt-1" value={value.semanticSimilarity} onChange={event=>update({semanticSimilarity:Number(event.target.value)})}><option value={0.5}>{t('宽松')}</option><option value={0.65}>{t('均衡')}</option><option value={0.8}>{t('紧密')}</option></select><span>{t('使用已配置的本地编码模型，片段不重叠')}</span></label>}
     <p className="text-xs text-xmgray-500"></p>
     <label className="block text-xs">{t("检索时的上下文")}<select aria-label={t("检索时的上下文")} className="input-xm mt-1" value={value.context} onChange={event=>update({context:event.target.value as ChunkDraft['context']})}>
       <option value="matched">{t("只返回命中片段")}</option><option value="parent">{t("需要时返回有限父级上下文")}</option></select></label>

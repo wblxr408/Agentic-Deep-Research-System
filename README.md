@@ -52,6 +52,8 @@ ADRS 面向企业、高校和科研实验室的研究发展分析：从公开论
 
 资料解析新增本人可选的页面／内嵌图理解、文字修复建议与跨资料语义比较；结果和原文分开，应用修订时建立新版本。实际图片模型与完整流程仍待统一端到端，见[结构化解析](docs/structured-document-parsing.md)。
 
+分块新增可选本地语义切分，使用事先准备的固定版本编码模型并保留实际断点；详情见[版本化分块](docs/versioned-evidence-chunks.md)。
+
 [主TODO](docs/OPTIMIZATION_TODO.md) · [实施账本与选型](docs/IMPLEMENTATION_LEDGER.md) · [统一真实旅程及失败记录](docs/acceptance/unified-research-20261023.md) · [当前使用说明](docs/organization-research-guide.md)
 
 原云端执行点已停写，当前按用户授权回到本机继续，并逐模块推送同一任务分支。U2e完成7阶段、四个论文／出版页来源归并为两发表；111项全部审核、79支持，230460／240000 Token时因修订余量不足保留草稿，未正常图文交付。恢复顺序、统计分句、写作／建议审核、参数／章节定位与阶段分工修复已提交；同原范围和额度的U2f已实际创建继续完整旅程，效果待观察。完整图文、导出和读者质量尚未通过。[本机实际记录](docs/acceptance/local-continuation-20261024.md)保留原结果；[云端交接](docs/CLOUD_CONTINUATION_20261024.md)为历史，本机数据库、密钥、会话和依赖不随Git迁移。
