@@ -13,6 +13,7 @@ export const documentProcessingEnglish:Record<string,string>={
   '生成学习稀疏特征（本地模型）':'Generate learned sparse features (local model)',
   '学习稀疏特征需要已配置的本地模型，且全部片段须能完整编码。':'Learned sparse features require a configured local model and complete passage coverage.',
   '学习稀疏特征超出资料大小限制。':'Learned sparse features exceed the source size limit.',
+  '生成英文词形特征':'Generate English word-form features','英文词形':'English word forms','英文词形特征超出资料大小限制。':'English word-form features exceed the source size limit.',
   '查看这份资料的词汇、模型与时间特征。':'Explore lexical, model, and time features for this source.',
   '词项统计':'Term statistics','稠密编码':'Dense encoding','学习稀疏':'Learned sparse','时间依据':'Time features',
   '模态覆盖':'Modalities','候选与未采用原因':'Available and inactive options','冻结策略':'Saved settings',

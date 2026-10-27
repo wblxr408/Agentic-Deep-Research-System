@@ -25,6 +25,7 @@ LEXEMES=re.compile(CJK+'|'+WORD+'(?:[.+/_-]'+WORD+r')*(?:\+\+(?:\d+)?|#)?',re.UN
 class FeaturePolicy(ScopeRecord):
     dense:bool=False
     sparse:bool=False
+    english_stemming:bool=False
     cjk_mode:Literal['characters','bigrams','both']='both'
     max_token_events:int=Field(default=1024,ge=128,le=2048)
     source_date:date|None=None
@@ -67,7 +68,7 @@ def lexical_view(text,*,start=0,policy=None):
                 positions[term].append({'start':start+base+left,'end':start+base+right,'quote':raw})
         if truncated:break
     return {'tokenizer_version':TOKENIZER_VERSION,'normalization':'NFKC_casefold_original_offsets_preserved',
-        'cjk_mode':policy.cjk_mode,'stemming':'not_selected_preserve_technical_identifiers',
+        'cjk_mode':policy.cjk_mode,'stemming':'not_applied_to_this_original_lexical_view',
         'terms':dict(counts),'positions':dict(positions),'length':count,'truncated':truncated,
         'coverage_end':start+last_end,'omitted_overlong_terms':long_terms,
         'positions_limit_per_term':2,'semantics':'lexical_features_not_learned_sparse_or_semantic_token_embeddings'}
@@ -160,21 +161,27 @@ def candidate_decisions():
             'reason':'no_stable_user_item_exposure_click_history_training_objective_or_cross_task_reuse_assumption',
             'reference':'https://github.com/zhongqiangwu960812/AI-RecommenderSystem/blob/master/Recall/YoutubeDNN/utils.py',
             'reference_input_fields':['user_id','article_id','expo_time'],'implicit_behavior_collection':False},
-        'bsr':{'status':'unresolved_definition','reason':'no_unique_source_system_definition_input_output_provided_no_abbreviation_assumed'},
+        'bsr':{'status':'beam_search_retrieval_planned','reason':'bounded_beam_over_real_authorized_source_structure_and_mention_edges_not_a_feature_encoding_or_confirmed_entity_graph'},
         'multimodal':{'status':'text_and_structure_only','joint_image_text_encoding':False,
             'reason':'retained_image_pointers_and_captions_are_not_authorized_image_bytes_or_image_embeddings'},
         'entity_linking':{'status':'dictionary_mentions_only','model_ner':False,'confirmed_relationship_inference':False},
     }
 
 
-def build_feature_plan(text,chunk_plan,parsed,*,policy=None,dense_profile=None,sparse_output=None):
+def build_feature_plan(text,chunk_plan,parsed,*,policy=None,dense_profile=None,sparse_output=None,stem_output=None):
     policy=policy if isinstance(policy,FeaturePolicy) else FeaturePolicy.model_validate(policy or {})
     policy_data=policy.model_dump(mode='json')
     if not policy.sparse:policy_data.pop('sparse',None)
+    if not policy.english_stemming:policy_data.pop('english_stemming',None)
     if policy.sparse:validate_sparse_output(sparse_output,len(chunk_plan['children']))
+    if policy.english_stemming and (not isinstance(stem_output,dict) or not isinstance(stem_output.get('profile'),dict)
+            or not isinstance(stem_output.get('vectors'),list) or len(stem_output['vectors'])!=len(chunk_plan['children'])
+            or not isinstance(stem_output.get('coverage'),dict) or stem_output['coverage'].get('chunk_count')!=len(chunk_plan['children'])):
+        raise ValueError('stemming_actual_derivation_required')
     profile={'schema_version':VERSION,'tokenizer_version':TOKENIZER_VERSION,'policy':policy_data,
         'dense_configuration':dense_profile if policy.dense else None}
     if policy.sparse:profile['sparse_configuration']=sparse_output['profile']
+    if policy.english_stemming:profile['stemming_configuration']=stem_output['profile']
     children=[];used_bytes=0;omitted=0;df=Counter()
     import json
     for chunk in chunk_plan['children']:
@@ -245,5 +252,11 @@ def build_feature_plan(text,chunk_plan,parsed,*,policy=None,dense_profile=None,s
         result['effects']['local_sparse_encoding_calls']=1
         if len(json.dumps(result,ensure_ascii=False).encode('utf-8'))>FEATURE_BYTES-65536:
             raise ValueError('sparse_feature_budget_exceeded')
+    if policy.english_stemming:
+        for entry,vector in zip(children,stem_output['vectors']):entry['stemmed_english']=vector
+        result['stemmed_english']={'status':'derived_postgresql_english','profile':stem_output['profile'],
+            'coverage':stem_output['coverage'],'original_lexical_view_retained':True}
+        if len(json.dumps(result,ensure_ascii=False).encode('utf-8'))>FEATURE_BYTES-65536:
+            raise ValueError('stemming_feature_budget_exceeded')
     result['metadata_budget_bytes']=FEATURE_BYTES
     return result

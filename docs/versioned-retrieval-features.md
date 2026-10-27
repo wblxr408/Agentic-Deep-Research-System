@@ -8,13 +8,13 @@
 
 | 子项 | 当前实现／决定 | 候选、成本及重新考虑条件 |
 | --- | --- | --- |
-| 04.1 词汇 | Unicode NFKC／casefold规范词项与原始位置分别保存；英文／技术标识、中文单字／相邻二元组可选；复用03实体词典 | 默认不做词干化，保留技术标识，不声称规则词项具有NER消歧质量。实际召回缺口出现后比较学科词表／分词器 |
+| 04.1 词汇 | Unicode NFKC／casefold规范词项与原始位置分别保存；英文／技术标识、中文单字／相邻二元组可选；复用03实体词典；可选派生PostgreSQL英文词形 | 默认关闭派生视图，原文词项始终单独保留。实际跨来源词形检索接到OPT-05／11；实体词典不声称NER消歧质量 |
 | 04.2 相关性 | 小块TF、源内DF、平滑IDF及归一TF-IDF，保留N、平均长度、覆盖及重叠口径 | 当前PostgreSQL `ts_rank`不是BM25；跨源BM25必须用当前授权查询范围统计，不能直接比较各来源局部IDF |
 | 04.3 学习稀疏 | 本人可选固定版本本地SPLADE模型，保存实际词表token权重与输入覆盖 | 默认关闭；Top-K截断明确记录；稀疏索引／召回由OPT-05／11继续接入，不把TF-IDF改名为SPLADE |
 | 04.4 稠密 | 新接入默认关闭，可显式启用现有SentenceTransformer归一单向量；保存实际编码profile、维度、库版本、token上限和输入长度覆盖 | 不新建双塔训练。启用需服务端固定40位模型提交；失败回滚整次接入。编码与查询配置相符才能比较，旧无身份向量不猜 |
 | 04.5 细粒度 | 保存词项原文区间，供精确定位使用；语义token矩阵／多向量／Late Interaction未选 | ColBERT把文档编码为token矩阵并以MaxSim交互，当前单向量或字面位置不能冒充该能力。实际精细召回收益足够后再选专用模型／索引 |
 | 04.6 行为 | 当前缺少适当授权曝光／点击／用户历史及训练目标，未采用协同过滤、Item2Vec、序列模型／行为双塔 | 不自动收集新行为。已有工具轨迹是执行记录，不能当兴趣标签；跨任务不同主题不预设稳定偏好 |
-| 04.7 BSR | `unresolved_definition`可见，尚无唯一的体系定义／输入输出 | 保留待查证，不擅自展开缩写或把其他特征改名；具体来源明确后再决定 |
+| 04.7 BSR | 用户确认Beam Search Retrieval；选择以授权资料结构和有来源的提及为图边 | 有界束搜索属于召回而非表示，实际执行、路径及资源上限在11.16实现；提及不等于已确认实体关系 |
 | 04.8 实体 | 复用字典提及、来源／偏移、分类及已知字段；身份消歧和确认关系保持独立 | 模型NER／关系抽取没有收益证据，不默认调用。机构／人员／地点共现不产生合作／任职事实；已有组织关系模块继续按来源审核 |
 | 04.9 模态 | 文字／结构独立视图，保留实际图片指针数量和原位置，明确`image_embeddings=false` | 当前未保存原图编码输入，不调用联合图文模型、不跟随资源URL。图注可有文字特征，不能当作理解图内内容 |
 | 04.10 时序 | 显式来源日期、as_of、窗口及半衰期，保存推导依据；未来／未知日期不产生虚假新鲜度 | 来源日期为用户声明而非自动核实，不从正文日期猜发表时间；研究趋势仍用组织趋势模块的跨年同口径证据 |
@@ -27,11 +27,15 @@
 
 每份来源最多200个小块、120秒，逐块检查实际token长度；任何片段超出或模型不可用时不提交不完整表示。使用模型logits、注意力掩码及max池化的 `log1p(relu())` 产生真实非负词表权重，按Top-K保留并标注是否省略了非零项，模型、提交、实际词表身份和池化进入feature profile。实现参考 [SPLADE作者实现](https://github.com/naver/splade/blob/main/splade/models/transformer_rep.py)，没有将TF-IDF或词面标记改称学习稀疏。来源中的这份表示当前供特征详情读取；其加权倒排、查询编码与检索仍须OPT-05／11接续，最终质量和资源占用待完整真实端到端。重复提交可能在版本去重前再次发生本地编码；不会自动调用外部模型API。
 
+## 可选英文词形（2026-10-27，源码已接入）
+
+资料接入可选择派生英文词形，使用当前数据库 `pg_catalog.english` 全文检索配置对每个小块生成lexeme集合，记录配置、数据库版本及每块最多1024项后的覆盖；只新增视图，不改变精确词项和原文偏移。该配置可能包含停用词和其他字典规则，不把它描述成逐词一一映射或适用于所有学科语言的万能词干器；技术标识仍使用保留的原始词项。数据库通常采用英文词干字典，具体处理取决于实际配置，参见 [PostgreSQL文本检索配置](https://www.postgresql.org/docs/current/textsearch-configuration.html)。词形视图的查询及索引交接后续完成，是否改善真实查询需完整端到端。
+
 ## 行为数据与BSR口径（2026-10-27）
 
 当前源码中的 `research_quality_feedback` 是任务质量反馈，并非授权的用户—文献曝光／点击序列。再次在线查阅指定仓库当前 [YouTubeDNN 数据构造](https://github.com/zhongqiangwu960812/AI-RecommenderSystem/blob/master/Recall/YoutubeDNN/utils.py) 和 [UserCF 实现](https://github.com/zhongqiangwu960812/AI-RecommenderSystem/blob/master/Recall/CollaborativeFiltering/CF_For_NewsRec/CFModel.py)：前者使用按时间排序的用户／文章历史，后者使用用户、文章及观看时长；当前资料不足以把它们当成已有训练数据或直接引入推荐器。确有明确推荐目标及授权数据后再选模型，当前不新增行为采集。
 
-BSR至少可能指 [Block Sparse Row 矩阵格式](https://docs.scipy.org/doc/scipy/reference/generated/scipy.sparse.bsr_matrix.html)或研究论文中的 [Beam Search Retrieval](https://opus.lib.uts.edu.au/bitstream/10453/183299/2/Towards%20Linguistic%20Neural%20Representation%20Learning%20and%20Sentence%20Retrieval%20from%20Electroencephalogram%20Recordings.pdf)；二者输入和用途不同，不能据缩写判定本项目目标。已请求澄清，在明确前继续标为待定义。
+用户已确认BSR是Beam Search Retrieval：每轮只保留评分最高的一定数量候选、有限轮扩展，避免所有路径组合无限增长；可参考原论文的 [BSR方法](https://opus.lib.uts.edu.au/bitstream/10453/183299/2/Towards%20Linguistic%20Neural%20Representation%20Learning%20and%20Sentence%20Retrieval%20from%20Electroencephalogram%20Recordings.pdf)。本项目拟以当前用户、任务、有效期可访问的来源片段为种子，沿真实的父子结构与字典提及关系扩展，以查询相关性排序，并输出真实路径、截断与预算；不推断合作或任职关系，不把其他用户资料纳入搜索。其输入、状态及回退在召回模块实现；当前尚无已完成的BSR召回。
 
 后续OPT-05的[真实Posting与范围BM25](versioned-retrieval-indexes.md)现已接入代码、未迁移；FTS `ts_rank`仍是单独回退，不能把它计作BM25。新增direct选择不物化关键词小块，之后显式发布才建立检索代际。
 

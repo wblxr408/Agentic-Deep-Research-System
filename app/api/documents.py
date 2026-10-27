@@ -220,6 +220,7 @@ async def _ingest_source(
     feature_policy=feature_policy or FeaturePolicy()
     if index_policy.mode=='direct' and feature_policy.dense:raise HTTPException(422,'direct_only_source_cannot_request_dense_encoding')
     if index_policy.mode=='direct' and feature_policy.sparse:raise HTTPException(422,'direct_only_source_cannot_request_sparse_encoding')
+    if index_policy.mode=='direct' and feature_policy.english_stemming:raise HTTPException(422,'direct_only_source_cannot_request_stemming')
     semantic_plan=None
     if chunk_policy and chunk_policy.strategy=='semantic':
         from app.semantic_chunking import build_semantic_plan
@@ -236,10 +237,18 @@ async def _ingest_source(
         from app.learned_sparse import build_sparse_features
         try:sparse_output=await asyncio.to_thread(build_sparse_features,[text[chunk['start']:chunk['end']] for chunk in plan['children']])
         except (ValueError,ChannelError):raise HTTPException(422,'sparse_encoding_unavailable_or_incomplete') from None
+    stem_output=None
+    if feature_policy.english_stemming:
+        from app.db.retrieval_stemming import english_stem_features
+        chunk_text=[text[chunk['start']:chunk['end']] for chunk in plan['children']]
+        if connection is not None:stem_output=await english_stem_features(connection,chunk_text)
+        else:
+            pool=await get_db_pool()
+            async with pool.acquire() as conn:stem_output=await english_stem_features(conn,chunk_text)
     try:features=await asyncio.to_thread(build_feature_plan,text,plan,parsed_document,policy=feature_policy,
-        dense_profile=dense_profile,sparse_output=sparse_output)
+        dense_profile=dense_profile,sparse_output=sparse_output,stem_output=stem_output)
     except ValueError as error:
-        if str(error).startswith('sparse_'):raise HTTPException(422,str(error)) from None
+        if str(error).startswith(('sparse_','stemming_')):raise HTTPException(422,str(error)) from None
         raise
     source_metadata = {**{key:value for key,value in metadata.items() if key not in {'document_parse','parse_profile','parse_version_id','parsing_reviews','chunk_plan','chunking_profile','feature_plan','feature_profile','dense_profile','index_policy','retention_policy','revision_intake_key'}},
         'content_hash':digest,'source_version':digest,'owner_scope':'private',
@@ -687,7 +696,7 @@ async def create_source_revision(source_id:uuid.UUID,payload:SourceRevision,prin
                 mode=await conn.fetchval('SELECT mode FROM source_index_heads WHERE source_id=$1::uuid AND owner_id=$2::uuid',str(source_id),principal.id)
                 index_policy=IndexPolicy(mode=mode or 'lexical',reason='explicit_source_revision_inherit_effective_mode')
                 feature_policy=FeaturePolicy.model_validate((metadata.get('feature_profile') or {}).get('policy') or {})
-                if index_policy.mode=='direct':feature_policy=feature_policy.model_copy(update={'dense':False,'sparse':False})
+                if index_policy.mode=='direct':feature_policy=feature_policy.model_copy(update={'dense':False,'sparse':False,'english_stemming':False})
                 return await _ingest_source(name=source['name'],group_name=source['group_name'],source_type='revision',content=parsed['text'],
                     metadata={key:value for key,value in metadata.items() if key not in {'source_sync','source_cdc'}},file_ext=payload.format,chunk_size=source['chunk_size'],chunk_overlap=source['chunk_overlap'],
                     owner_id=principal.id,connection=conn,parsed_document=parsed,

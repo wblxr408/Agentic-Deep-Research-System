@@ -34,6 +34,8 @@
 ### Requirement: Honest modality and candidate state
 系统 SHALL 为学习稀疏、细粒度语义、行为语义、BSR和多模态候选记录选型条件及当前状态。图像指针／图注不等于图像特征；行为模型没有适当授权数据时不得训练或隐式收集点击。
 
+系统 SHALL 在用户显式选择时派生独立英文词形视图，保存数据库实际文本检索配置、版本和覆盖；不得替换原始词项或伪造原文位置。BSR SHALL 指Beam Search Retrieval，其搜索实际接线须遵循来源权限与有限资源，保留来源路径，不能把提及当成已确认关系。
+
 #### Scenario: Image pointer without image bytes
 - **WHEN** 解析只保留图像指针和文字图注
 - **THEN** 特征视图标明未编码图像且不跟随资源出站，文字特征继续关联原位置

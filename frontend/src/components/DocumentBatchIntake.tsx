@@ -77,7 +77,7 @@ export default function DocumentBatchIntake({ groupName, chunkSize, chunkOverlap
         try {
           const response = await fetch('/api/v1/documents/upload',{method:'POST',body:form})
           const payload = await response.json()
-          if (!response.ok) throw new Error(payload.detail==='semantic_chunking_unavailable_or_incomplete'?t('语义分块需要本地固定版本的编码模型，且全部片段须能完整编码。'):payload.detail==='sparse_encoding_unavailable_or_incomplete'?t('学习稀疏特征需要已配置的本地模型，且全部片段须能完整编码。'):payload.detail==='sparse_feature_budget_exceeded'?t('学习稀疏特征超出资料大小限制。'):typeof payload.detail === 'string' ? payload.detail : t("接入失败（{0}）", response.status))
+          if (!response.ok) throw new Error(payload.detail==='semantic_chunking_unavailable_or_incomplete'?t('语义分块需要本地固定版本的编码模型，且全部片段须能完整编码。'):payload.detail==='sparse_encoding_unavailable_or_incomplete'?t('学习稀疏特征需要已配置的本地模型，且全部片段须能完整编码。'):payload.detail==='sparse_feature_budget_exceeded'?t('学习稀疏特征超出资料大小限制。'):payload.detail==='stemming_feature_budget_exceeded'?t('英文词形特征超出资料大小限制。'):typeof payload.detail === 'string' ? payload.detail : t("接入失败（{0}）", response.status))
           update(item.id,{status:payload.deduplicated ? 'reused' : 'saved',sourceId:payload.source_id,message:payload.deduplicated ? t("复用本分组已提交版本") : `${payload.index?.mode==='direct'?t("已保留来源及{0}个计划片段，仅直接定位", payload.planned_chunk_count):t("已提交{0}个检索片段", payload.chunk_count)}${payload.parse_quality?.status==='needs_review'?t("；解析存在待核或未读部分"):''}`})
           saved = true
         } catch (failure) { update(item.id,{status:'failed',message:failure instanceof Error ? uiMessage(failure.message) : t("接入失败；可重试此项")}) }

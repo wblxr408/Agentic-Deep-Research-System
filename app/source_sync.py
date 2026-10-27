@@ -479,6 +479,7 @@ async def _finish(claim,result):
                     if feature_policy.sparse:raise SourceSyncError(409,'source_sync_sparse_configuration_requires_manual_update')
                     mode=await conn.fetchval('SELECT mode FROM source_index_heads WHERE source_id=$1::uuid AND owner_id=$2::uuid',
                         source['id'],claim['owner_id'])
+                    if mode=='direct':feature_policy=feature_policy.model_copy(update={'english_stemming':False})
                     payload=SourceRevision(request_id=UUID(claim['run_id']),expected_revision=source['lifecycle_revision'],
                         expected_parse_version=prior_metadata.get('parse_version_id'),reason='explicit_public_source_sync',
                         mode='replace',text=text,format='txt',publish=True)
