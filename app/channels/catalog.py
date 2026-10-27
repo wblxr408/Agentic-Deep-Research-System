@@ -17,7 +17,7 @@ class ChannelSpec:
 CATALOG = {s.name: s for s in (
     ChannelSpec("web", "网页", ("duckduckgo", "bing-rss", "exa-mcp", "jina"), setup="DuckDuckGo / Bing RSS 搜索，Exa MCP 备选；网页正文经 Jina Reader 读取"),
     ChannelSpec("exa", "Exa 全网搜索", ("exa-mcp",), ("search",), setup="安装 mcporter 并配置名为 exa 的 MCP 服务"),
-    ChannelSpec("github", "GitHub", ("gh", "github-api"), domains=("github.com",), setup="公开仓库可经 API；gh 使用已有认证"),
+    ChannelSpec("github", "GitHub", ("github-api",), domains=("github.com",), setup="公开仓库经官方 API；个人授权在账号页单独启用"),
     ChannelSpec("youtube", "YouTube", ("yt-dlp", "opencli"), domains=("youtube.com", "youtu.be"), setup="安装 yt-dlp；字幕备选需要 OpenCLI", optional_backends=("transcribe",)),
     ChannelSpec("bilibili", "B站", ("bili", "opencli", "bilibili-api"), domains=("bilibili.com",), setup="bili 搜索/详情；OpenCLI 读取字幕"),
     ChannelSpec("rss", "RSS / Atom", ("feed",), setup="配置公开 HTTPS feed URL，或直接读取 feed URL"),

@@ -116,12 +116,14 @@ class ChannelStore:
             atomic_write_json(path,state)
         return {'configured':False,'enabled':False}
 
-    def github_credential(self, owner: str | None) -> str | None:
+    def github_credential(self, owner: str | None, expected_updated_at: str | None = None) -> str | None:
         if owner is None: return None
         from app.security.crypto import decrypt_secret
         with self._locked(owner) as path:
             value = self._read(path).get('personal_connections', {}).get('github') or {}
             if not value.get('enabled'): return None
+            if expected_updated_at is not None and value.get('updated_at') != expected_updated_at:
+                raise ChannelError('personal_connection_changed')
             encrypted = value.get('credential')
             if not isinstance(encrypted,str) or not encrypted.startswith('enc:'):
                 raise ChannelError('personal_connection_unavailable')

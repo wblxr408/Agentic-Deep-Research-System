@@ -6,6 +6,7 @@ import ipaddress
 import json
 import os
 import queue
+import re
 import shutil
 import socket
 import ssl
@@ -71,7 +72,19 @@ class HttpReader:
             raise ChannelError({401: "auth_required", 403: "access_denied", 404: "not_found", 412: "account_risk", 429: "rate_limited"}.get(response.status, "upstream_error"))
         return response.body.decode("utf-8", errors="replace")
 
-    def read(self, url: str, *, method: str = "GET", timeout: float = 20, max_bytes: int = 1024 * 1024,on_request=None) -> PublicResponse:
+    def get_github(self, url: str, *, credential=None, timeout: float = 20,
+                   max_bytes: int = 1024 * 1024,on_request=None) -> str:
+        response = self.read(url,timeout=timeout,max_bytes=max_bytes,on_request=on_request,
+                             _github_api=True,_github_credential=credential)
+        if response.status >= 400:
+            category = ({401:'auth_required',403:'access_denied',404:'not_found',412:'account_risk',429:'rate_limited'}
+                        .get(response.status,'upstream_error'))
+            if response.status == 403 and response.headers.get('x-ratelimit-remaining') == '0': category='rate_limited'
+            raise ChannelError(category)
+        return response.body.decode('utf-8',errors='replace')
+
+    def read(self, url: str, *, method: str = "GET", timeout: float = 20, max_bytes: int = 1024 * 1024,on_request=None,
+             _github_api: bool = False,_github_credential=None) -> PublicResponse:
         if method not in {"GET", "HEAD"}:
             raise ChannelError("read_only")
         deadline = time.monotonic() + timeout
@@ -79,12 +92,19 @@ class HttpReader:
             check_execution()
             if self.url_validator is not None:
                 self.url_validator(url)
+            try: parsed = urlsplit(url)
+            except ValueError: raise ChannelError('domain_blocked') from None
+            if _github_api:
+                # Only the fixed API endpoints are used, even for anonymous requests.
+                from app.data_governance import sensitive_url
+                allowed_path = re.fullmatch(r'/search/repositories|/repos/[^/]+/[^/]+(?:/readme)?|/repositories/[0-9]+(?:/readme)?',parsed.path)
+                if parsed.scheme != 'https' or parsed.hostname != 'api.github.com' or not allowed_path or method != 'GET' or sensitive_url(url):
+                    raise ChannelError('personal_connection_redirect_blocked')
             host, addresses = public_url(url, resolve=True)
             remaining = deadline - time.monotonic()
             if on_request is not None:remaining=min(remaining,on_request())
             if remaining <= 0:
                 raise ChannelError("timeout")
-            parsed = urlsplit(url)
             connection = _PinnedHTTPS(host, addresses[0], remaining)
             control=current_control();close_key='http:'+str(id(connection))
             def abort(connection=connection):
@@ -95,10 +115,18 @@ class HttpReader:
             if control:control.add_closer(close_key,abort)
             try:
                 check_execution()
-                connection.request(method, (parsed.path or "/") + ("?" + parsed.query if parsed.query else ""),
-                                   headers={"User-Agent": "DeepIntel/1.0", "Accept": "application/json,text/plain,text/html,*/*", "Accept-Encoding": "identity"})
+                headers={"User-Agent": "DeepIntel/1.0", "Accept": "application/json,text/plain,text/html,*/*", "Accept-Encoding": "identity"}
+                if _github_api:
+                    headers.update({'Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2026-03-10'})
+                if _github_credential is not None:
+                    credential = _github_credential()
+                    if not isinstance(credential,str) or not 20 <= len(credential) <= 512 or not re.fullmatch(r'[A-Za-z0-9_.-]+',credential):
+                        raise ChannelError('personal_connection_unavailable')
+                    headers['Authorization']='Bearer '+credential
+                connection.request(method, (parsed.path or "/") + ("?" + parsed.query if parsed.query else ""),headers=headers)
                 response = connection.getresponse()
                 if response.status in (301, 302, 303, 307, 308):
+                    if _github_api: raise ChannelError('github_redirect_blocked')
                     url = urljoin(url, response.getheader("Location", ""))
                     continue
                 data = bytearray()
@@ -116,7 +144,7 @@ class HttpReader:
                         raise ChannelError("output_limit")
                 # Do not relay credentials, cookies, connection framing or a
                 # redirect already followed by this pinned transport.
-                allowed_headers = {"content-type", "content-language", "cache-control", "etag", "last-modified", "date", "expires", "content-security-policy", "x-frame-options", "access-control-allow-origin", "access-control-allow-methods", "access-control-allow-headers"}
+                allowed_headers = {"content-type", "content-language", "cache-control", "etag", "last-modified", "date", "expires", "content-security-policy", "x-frame-options", "access-control-allow-origin", "access-control-allow-methods", "access-control-allow-headers", "x-ratelimit-remaining"}
                 headers = {k.lower(): v for k, v in response.getheaders() if k.lower() in allowed_headers}
                 return PublicResponse(url, response.status, headers, bytes(data))
             except (OSError, http.client.HTTPException):

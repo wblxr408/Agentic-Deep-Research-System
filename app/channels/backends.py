@@ -142,7 +142,7 @@ class Backends:
     def __init__(self, commands, http, legacy_search=None):
         self.commands, self.http, self.legacy_search = commands, http, legacy_search
 
-    def collect(self, request, backend, config, timeout, budget):
+    def collect(self, request, backend, config, timeout, budget, *, github_credential=None):
         channel, operation, query, limit = request.channel, request.operation, request.query, request.limit
         def command(argv, secrets=()):
             from app.model_scope import host_credentials_allowed
@@ -150,6 +150,11 @@ class Backends:
                 raise ChannelError('administrator_required')
             return self.commands.run(argv, timeout=budget.take(), secrets=secrets)
         def get(url):
+            if backend == 'github-api':
+                read_github = getattr(self.http,'get_github',None)
+                if read_github is not None:
+                    return read_github(url,credential=github_credential,timeout=budget.remaining(),on_request=budget.take)
+                if github_credential is not None: raise ChannelError('personal_connection_unavailable')
             return self.http.get(url, timeout=budget.remaining(),on_request=budget.take)
         source = query if operation == "read" and query.startswith("https://") else None
         if backend == "duckduckgo":

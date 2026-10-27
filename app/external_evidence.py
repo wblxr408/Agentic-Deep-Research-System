@@ -153,6 +153,13 @@ def collect_public_source(url,configuration,understanding,agent,*,owner_id,max_c
     credentialed=sensitive_url(url)
     if credentialed and mode=='rendered':raise ChannelError('credential_url_requires_direct_pinned_source_reader')
     if credentialed:mode='source'
+    parsed_github=urlsplit(url)
+    if (channel=='github' and operation=='read' and mode!='rendered' and not credentialed
+            and parsed_github.hostname=='github.com' and len(parsed_github.path.strip('/').split('/'))==2):
+        # Preserve explicit source/seed scope before using the fixed GitHub transport.
+        from app.organization_corpus import admit_corpus_request
+        admit_corpus_request(url,config)
+        return agent.execute_browse(url,owner_id=owner_id,max_calls=max_calls,timeout_seconds=timeout_seconds,analyze_page=False)
     if mode=='auto' and not scoped and channel!='web' and operation=='read':
         return agent.execute_browse(url,owner_id=owner_id,max_calls=max_calls,timeout_seconds=timeout_seconds,analyze_page=False)
     deadline=time.monotonic()+timeout_seconds;attempts=[];results=[]

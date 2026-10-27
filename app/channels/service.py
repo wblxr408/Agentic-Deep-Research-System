@@ -12,6 +12,7 @@ from app.channels.store import ChannelStore
 
 STOP_ERRORS = {"auth_required", "account_risk", "rate_limited", "domain_blocked", "disabled",
                "unsupported_input", "not_found", "budget_exceeded", "output_limit",
+               'personal_connection_changed','personal_connection_unavailable','personal_connection_redirect_blocked','github_redirect_blocked',
                'credential_url_requires_direct_pinned_source_reader','access_credentials_cannot_be_external_query_data',
                'credential_url_requires_direct_read_not_search_or_proxy'}
 
@@ -46,7 +47,7 @@ class ChannelService:
         return self.store.read(self.owner_id)["history"]
 
     @staticmethod
-    def _items(items, request, spec, backend, timestamp):
+    def _items(items, request, spec, backend, timestamp, *, authenticated=False):
         from app.data_governance import classify_source,maximum,text_class
         normalized, seen = [], set()
         for item in items:
@@ -57,7 +58,9 @@ class ChannelService:
                 continue
             seen.add(item["url"])
             governance=classify_source(backend=backend,channel=request.channel,url=item['url'],content=item['content'])
-            governance['data_class']=maximum(governance['data_class'],text_class(request.query)[0])
+            governance['data_class']=maximum(governance['data_class'],text_class(request.query)[0],
+                                              'internal' if authenticated else 'public')
+            if authenticated: governance['reasons'].append('personal_authenticated_transport')
             normalized.append(SourceItem(url=item['url'],title=item['title'],content=item['content'][:request.max_chars],
                 channel=request.channel,backend=backend,collected_at=timestamp,data_governance=governance))
             if len(normalized) >= request.limit:
@@ -76,6 +79,8 @@ class ChannelService:
         deadline = started + min(config.timeout_seconds, timeout_seconds if timeout_seconds is not None else config.timeout_seconds)
         budget = ExecutionBudget(deadline, max_calls)
         selected = config.backends or list(spec.backends)
+        # Legacy gh selections never inherit a host login for a personal research request.
+        if request.channel == 'github': selected = ['github-api']
         if not config.backends and request.channel == "bilibili" and request.operation == "read":
             selected = ["opencli", "bili", "bilibili-api"]
         if request.operation == "read" and request.channel == "web":
@@ -89,6 +94,12 @@ class ChannelService:
                 raise ChannelError("disabled")
             if request.operation not in spec.operations:
                 raise ChannelError("unsupported_operation")
+            github_status = self.store.github_status(self.owner_id) if request.channel=='github' and self.owner_id else {}
+            authenticated = bool(github_status.get('enabled'))
+            def github_credential():
+                credential = self.store.github_credential(self.owner_id,github_status.get('updated_at'))
+                if not credential: raise ChannelError('personal_connection_changed')
+                return credential
             if request.operation == "read":
                 host, _ = public_url(request.query)
                 if spec.domains and not any(host == d or host.endswith("." + d) for d in spec.domains):
@@ -109,9 +120,10 @@ class ChannelService:
                     remaining = deadline - time.monotonic()
                     if remaining <= 0:
                         raise ChannelError("budget_exceeded")
-                    items = self.backends.collect(request, backend, config, remaining, budget)
+                    items = (self.backends.collect(request, backend, config, remaining, budget, github_credential=github_credential)
+                             if backend=='github-api' and authenticated else self.backends.collect(request, backend, config, remaining, budget))
                     budget.remaining()
-                    normalized = self._items(items, request, spec, backend, timestamp)
+                    normalized = self._items(items, request, spec, backend, timestamp,authenticated=authenticated and backend=='github-api')
                     if not normalized:
                         raise ChannelError("empty_content")
                     result.items = normalized
@@ -119,7 +131,7 @@ class ChannelService:
                     break
                 except ChannelError as exc:
                     if exc.partial_items:
-                        partial_items = self._items(exc.partial_items, request, spec, backend, timestamp)
+                        partial_items = self._items(exc.partial_items, request, spec, backend, timestamp,authenticated=authenticated and backend=='github-api')
                     result.attempts.append(Attempt(channel=request.channel, backend=backend, status="failed", error_category=exc.category, duration_ms=int((time.monotonic()-attempt_started)*1000), call_count=budget.used-calls_before))
                     if exc.category in STOP_ERRORS:
                         break

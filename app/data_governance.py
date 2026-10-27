@@ -16,7 +16,7 @@ ANONYMOUS_BACKENDS={'pinned-http','public-browser','duckduckgo','bing-rss','gith
     'bilibili-api','feed','xiaoyuzhou-page','jina','exa-mcp'}
 PUBLIC_CHANNELS={'web','exa','rss','v2ex'}
 URL_PATTERN=re.compile(r'https?://[^\s<>"\x27\\]+',re.I)
-SECRET_PATTERN=re.compile(r'\b(?:sk-[A-Za-z0-9_-]{20,}|gh[pousr]_[A-Za-z0-9]{30,}|AKIA[A-Z0-9]{16})\b|'
+SECRET_PATTERN=re.compile(r'\b(?:sk-[A-Za-z0-9_-]{20,}|gh[pousr]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{20,}|AKIA[A-Z0-9]{16})\b|'
     r'-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----|'
     r'(?i:authorization\s*[:=]\s*(?:bearer|basic)\s+[A-Za-z0-9_./+=-]{16,})')
 RESTRICTION_PATTERN=re.compile(r'(?im)^\s*(?:strictly confidential|confidential|internal use only|'

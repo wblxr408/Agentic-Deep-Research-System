@@ -20,7 +20,9 @@
 
 ## 个人平台连接源码进度（2026-10-27）
 
-`GET /api/v1/connections/github` 只返回本人是否配置、是否启用及部署加密配置状态；`PUT` 保存或替换、`PATCH` 启停、`DELETE` 撤销本人 GitHub 凭据，不返回凭据。保存时需要部署配置 `SECURITY_ENCRYPTION_KEY`，令牌以已有 Fernet 加密后保存在本人渠道状态中；删除不需要解密。保存不代表凭据已经通过平台验证。账号和当前会话在操作期间由数据库事务约束，其他账号无法读取或操作该连接。连接存储源码已接入，GitHub 请求路径及界面尚待实现，未进行真实平台调用。
+`GET /api/v1/connections/github` 只返回本人是否配置、是否启用及部署加密配置状态；`PUT` 保存或替换、`PATCH` 启停、`DELETE` 撤销本人 GitHub 凭据，不返回凭据。保存时需要部署配置 `SECURITY_ENCRYPTION_KEY`，令牌以已有 Fernet 加密后保存在本人渠道状态中；删除不需要解密。保存不代表凭据已经通过平台验证。账号和当前会话在操作期间由数据库事务约束，其他账号无法读取或操作该连接。连接存储与 GitHub 请求路径源码已接入，界面尚待实现，未进行真实平台调用。
+
+工具契约：支持公开或本人明确启用授权的 GitHub 仓库搜索，以及 `https://github.com/所有者/仓库` 对应的仓库资料与 README 只读获取；README 需要令牌具有该仓库的内容读取权限。使用官方 `api.github.com` 的固定 HTTPS 路径、GET 和约定请求头，不执行仓库代码，不从 URL 接收凭据，也不复用宿主 `gh` 登录态。API 重定向直接停止；仓库更名后应使用当前地址。每次新网络请求重新检查本人连接版本，暂停、替换或撤销后不继续使用旧授权。所有授权获取结果至少标记为内部数据，后续模型选择、来源范围、网络授权和调用预算仍由原任务契约控制。个人授权只覆盖这里列明的 GitHub 操作；其他平台不自动获得登录态。接口约定见 [GitHub REST 认证](https://docs.github.com/en/rest/authentication/authenticating-to-the-rest-api)和 [README 内容接口](https://docs.github.com/en/rest/repos/contents#get-a-repository-readme)。
 
 `GET/POST /api/v1/workspaces` 列出／创建本人空间；`GET /api/v1/workspaces/invitations` 读取本人待处理邀请，`POST /api/v1/workspaces/invitations/{id}/accept` 或 `/decline` 处理。空间所有者通过 `POST /api/v1/workspaces/{id}/invitations` 指定用户名和 request_id 邀请，`DELETE /api/v1/workspaces/{id}/invitations/{invite_id}` 撤回；成员通过 `DELETE /api/v1/workspaces/{id}/members/{member_id}` 退出或由所有者移除，`DELETE /api/v1/workspaces/{id}` 归档空间。本人活动会话／角色在事务内复查，失效或不属于该空间不返回资源；邀请通过界面显示，不自动给他人发信。共享资料、报告和细节见同一 OpenSpec 后续任务。
 
