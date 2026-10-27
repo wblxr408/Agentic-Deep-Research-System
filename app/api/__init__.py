@@ -11,5 +11,6 @@ from app.api.workspaces import router as workspaces_router
 from app.api.personal_connections import router as personal_connections_router
 from app.api.source_sync import router as source_sync_router
 from app.api.source_sync import public_router as source_sync_events_router
+from app.api.source_cdc import router as source_cdc_router
 
-__all__ = ["auth_router", "channels_router", "backup_router", "config_router", "documents_router", "health_router", "research_router", "skills_router", "workspaces_router", "personal_connections_router", "source_sync_router", "source_sync_events_router"]
+__all__ = ["auth_router", "channels_router", "backup_router", "config_router", "documents_router", "health_router", "research_router", "skills_router", "workspaces_router", "personal_connections_router", "source_sync_router", "source_sync_events_router", "source_cdc_router"]

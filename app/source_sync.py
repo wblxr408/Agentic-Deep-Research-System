@@ -106,7 +106,9 @@ def _run(row):
 
 
 async def _active_owner(conn,owner_id):
-    row=await conn.fetchrow('SELECT id,is_active FROM auth_principals WHERE id=$1::uuid FOR UPDATE',str(owner_id))
+    # Account state changes still serialize here; KEY SHARE from a concurrent
+    # document insert remains compatible while it holds the lifecycle lock.
+    row=await conn.fetchrow('SELECT id,is_active FROM auth_principals WHERE id=$1::uuid FOR NO KEY UPDATE',str(owner_id))
     if not row or not row['is_active']:raise SourceSyncError(404,'source_sync_owner_unavailable')
 
 

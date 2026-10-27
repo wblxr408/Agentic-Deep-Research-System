@@ -26,6 +26,7 @@ from app.api import (
     personal_connections_router,
     source_sync_router,
     source_sync_events_router,
+    source_cdc_router,
 )
 from app.api.config import load_runtime_llm_config_from_db
 from app.config import get_settings
@@ -95,12 +96,16 @@ async def lifespan(app: FastAPI):
     from app.source_sync import SourceSyncDispatcher
     source_sync_dispatcher=SourceSyncDispatcher()
     source_sync_dispatcher.start()
+    from app.source_cdc import CdcDispatcher
+    cdc_dispatcher=CdcDispatcher()
+    await cdc_dispatcher.start()
     try:
         yield
     finally:
         # Stop child processes before releasing their database pool. A later
         # process can reclaim unfinished leases within the original deadline.
         logger.info("Shutting down DeepIntel API")
+        await cdc_dispatcher.stop()
         await source_sync_dispatcher.stop()
         await layout_dispatcher.stop()
         await close_db()
@@ -155,6 +160,7 @@ def create_app() -> FastAPI:
     app.include_router(personal_connections_router)
     app.include_router(source_sync_router)
     app.include_router(source_sync_events_router)
+    app.include_router(source_cdc_router)
 
     # Root endpoint
     @app.get("/")

@@ -32,6 +32,21 @@
 - **WHEN** 用户撤销事件接收或停用账号
 - **THEN** 后续投递及已派发但尚未提交的关联写入不得生效，已保存资料和历史报告保留
 
+### Requirement: Transactional PostgreSQL change capture
+系统 SHALL 支持管理员明确授权、本人凭据访问的 PostgreSQL 事务事件箱来源；新增、修改和删除事件须绑定原资料键及版本，沿既有资料生命周期接入。源方未声明初始快照完成时 SHALL NOT 表示已经覆盖历史全集。
+
+#### Scenario: Commit succeeds but acknowledgment is lost
+- **WHEN** 本地来源版本及事件已提交但源端确认失败
+- **THEN** 后续读取相同事件只确认已有结果，不重复创建资料或跳过其他晚提交事件
+
+#### Scenario: Older or invalid events arrive
+- **WHEN** 较早实体版本晚于较新版本到达，或事件超出授权、大小、格式或源配置
+- **THEN** 旧事件不得覆盖当前资料；无法处理的事件不得被确认成成功，并显示可处理原因
+
+#### Scenario: A source is paused or revoked
+- **WHEN** 用户暂停或撤销连接、端点授权变更或账号停用
+- **THEN** 未提交结果不得写入本人或其他人的资料库，已保存版本和事件记录保留
+
 ### Requirement: Explicit source discovery and batch intake
 系统 SHALL 复用手动登记、启用渠道、种子与检索发现，并允许用户显式选择文件集合或目录后有界批量上传；逐项显示采纳、复用、失败和未处理状态。目录选择不得授予服务端任意本地目录读取权限。
 

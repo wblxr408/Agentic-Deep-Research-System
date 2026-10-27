@@ -302,7 +302,7 @@ async def apply_lifecycle_action(conn,source_id,owner_id,request):
     return result
 
 
-async def revise_source(conn,source_id,owner_id,request,create_revision):
+async def revise_source(conn,source_id,owner_id,request,create_revision,*,allow_unchanged_text=False):
     await lock_owner(conn,owner_id)
     fingerprint=identity({'source_id':str(source_id),'revision':request.model_dump(mode='json')})
     replay=await prior_operation(conn,owner_id,request.request_id,fingerprint)
@@ -320,7 +320,7 @@ async def revise_source(conn,source_id,owner_id,request,create_revision):
         if request.end>len(original):raise ValueError('patch_outside_retained_original')
         text=original[:request.start]+request.text+original[request.end:]
     else:text=request.text
-    if text==original:raise ValueError('revision_has_no_text_change')
+    if text==original and not allow_unchanged_text:raise ValueError('revision_has_no_text_change')
     policy=RetentionPolicy.model_validate({key:lc[key] for key in ('reuse_scope','task_id','valid_from','valid_until','purge_after')})
     created=await create_revision(text,source,metadata,policy)
     new_id=created['source_id']
