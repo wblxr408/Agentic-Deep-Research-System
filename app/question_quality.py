@@ -7,6 +7,7 @@ or attribution of an entire evidence corpus to each question would be misleading
 from __future__ import annotations
 
 from collections import Counter, defaultdict
+import re
 
 from app.organization_purpose import MODULES, report_prose
 from app.query_understanding import identity
@@ -68,6 +69,98 @@ def _claim_view(claim, sources):
             'source_anchors': anchors}
 
 
+def _stored_anchor(proof, sources):
+    if not isinstance(proof, dict): return None
+    return _anchor({'evidence_id': proof.get('evidence_id'), 'quote_valid': True,
+                    'quote_start': proof.get('start'), 'quote_end': proof.get('end'),
+                    'source_quote': proof.get('quote')}, sources)
+
+
+def _anchors(proofs, sources):
+    return [anchor for proof in (proofs or []) if (anchor := _stored_anchor(proof, sources))]
+
+
+def _technical_materials(view, sources, bound):
+    from app.organization_deep_dive import FIELDS, _full_text
+    cards = []
+    for card in (view or {}).get('cards', []):
+        fields = []
+        for key, label in FIELDS.items():
+            field = (card.get('fields') or {}).get(key) or {}
+            proofs = field.get('proofs') or []
+            anchors = _anchors(proofs, sources)
+            complete = bool(proofs) and len(anchors) == len(proofs)
+            if key not in {'problem', 'method_overview'}:
+                complete = complete and all(_full_text(sources[anchor['evidence_id']]) for anchor in anchors)
+            fields.append({'field': key, 'label': label, 'text': field.get('text'),
+                           'status': 'located' if complete else 'unknown', 'source_anchors': anchors})
+        figures = []
+        for figure in card.get('figure_references') or []:
+            if not isinstance(figure, dict): continue
+            anchor = _stored_anchor(figure.get('proof'), sources)
+            page = figure.get('page')
+            if anchor and (page is None or page in anchor['pages']):
+                figures.append({'label': figure.get('label') or '', 'page': page, 'source_anchor': anchor})
+        cards.append({'output_id': card.get('output_id'), 'title': card.get('title') or '',
+                      'full_text_available': card.get('full_text_available') if bound else None,
+                      'fields': fields, 'figure_references': figures})
+    return {'available': bool(view), 'cards': cards,
+            'pending_count': len((view or {}).get('pending_records') or [])}
+
+
+def _trend_materials(view, workflow, sources):
+    """Associate retained trend records only with their actual saved phase."""
+    origin = defaultdict(set)
+    for phase, record in ((workflow or {}).get('completed') or {}).items():
+        parts = phase.split(':')
+        if len(parts) < 2 or parts[0] != 'question' or parts[1] not in {'evolution', 'validation'}:
+            continue
+        data = (record or {}).get('organization_data') or {}
+        for item in data.get('trend_observations') or []:
+            if isinstance(item, dict) and item.get('trend_id'):
+                origin[(item['trend_id'], item.get('kind'), item.get('statement'))].add(parts[1])
+    grouped = {'evolution': [], 'validation': [], 'unassigned': []}
+    for item in (view or {}).get('records') or []:
+        if not isinstance(item, dict): continue
+        phases = origin.get((item.get('trend_id'), item.get('kind'), item.get('statement')), set())
+        key = next(iter(phases)) if len(phases) == 1 else 'unassigned'
+        supporting, opposing = item.get('supporting') or [], item.get('opposing') or []
+        anchors = _anchors(supporting, sources)
+        counter_anchors = _anchors(opposing, sources)
+        grouped[key].append({'trend_id': item.get('trend_id'), 'kind': item.get('kind'),
+            'statement': item.get('statement') or '', 'source_anchors': anchors, 'opposing_anchors': counter_anchors,
+            'source_status': 'located' if supporting and len(anchors) == len(supporting) else 'unknown',
+            'opposing_status': 'located' if opposing and len(counter_anchors) == len(opposing) else
+                               'unknown' if opposing else 'not_recorded',
+            'alternative_explanations': item.get('alternative_explanations') or [],
+            'conditions': item.get('conditions') or [], 'horizon_start': item.get('horizon_start'),
+            'horizon_end': item.get('horizon_end')})
+    return grouped
+
+
+def _action_materials(view, sources):
+    cards = []
+    for card in (view or {}).get('cards') or []:
+        if not isinstance(card, dict): continue
+        basis = card.get('basis') or []
+        anchors = _anchors(basis, sources)
+        contacts = []
+        for contact in card.get('public_contacts') or []:
+            if not isinstance(contact, dict): continue
+            source = sources.get(contact.get('evidence_id')) or {}
+            url = contact.get('url')
+            if url and url in ((source.get('acquisition') or {}).get('public_links') or []):
+                contacts.append({'url': url, 'evidence_id': contact['evidence_id'],
+                                 'source_url': source.get('source_url') or ''})
+        cards.append({'action_id': card.get('action_id'), 'entity_name': card.get('entity_name') or '',
+            'mode': card.get('mode'), 'question': card.get('question'), 'steps': card.get('proposed_steps') or [],
+            'source_anchors': anchors, 'source_status': 'located' if basis and len(anchors) == len(basis) else 'unknown',
+            'missing_requirements': card.get('missing_requirements') or [],
+            'public_contacts': contacts, 'status': card.get('status')})
+    return {'available': bool(view), 'cards': cards,
+            'pending_count': len((view or {}).get('pending_records') or [])}
+
+
 def question_quality(state):
     """Observe selected module coverage using the existing task snapshot only."""
     from app.db.report_delivery import report_binding
@@ -118,6 +211,11 @@ def question_quality(state):
                                'assessment': 'claims_recorded' if paragraph_claims else 'audit_unavailable'})
         return {'paragraphs': mapped, 'unmapped_paragraphs': missing_or_ambiguous}
 
+    trends = _trend_materials(result.get('trend_view'), state.get('analysis_workflow'), sources)
+    topics = {'deep_dive': _technical_materials(result.get('technical_reading'), sources, bound),
+              'evolution': {'available': bool(result.get('trend_view')), 'records': trends['evolution']},
+              'validation': {'available': bool(result.get('trend_view')), 'records': trends['validation']},
+              'actions': _action_materials(result.get('actions'), sources)}
     rows = []
     for key in selected:
         module = next((item for item in (contract.get('modules') or [])
@@ -127,13 +225,28 @@ def question_quality(state):
                      'module_scope': MODULES[key][1],
                      'status': ('unknown' if not bound or module is None else
                                 'recorded' if data['paragraphs'] else
-                                'unmapped' if data['unmapped_paragraphs'] else 'missing'), **data})
+                                'unmapped' if data['unmapped_paragraphs'] else 'missing'),
+                     'materials': topics.get(key), **data})
+    if not selected and bound:
+        # A general task has one user question but no frozen module contract.
+        # Show saved report claims without pretending that they answer it.
+        general = []
+        for line, matching in claims.items():
+            if lines[line] != 1: continue
+            general.append({'text': re.sub(r'\[citation:\d+\]', '', line).strip(), 'kind': None,
+                            'citations': [], 'claims': [_claim_view(row, sources) for row in matching],
+                            'assessment': 'claims_recorded'})
+        rows.append({'module_id': 'report', 'module_label': '报告内容', 'module_scope': '',
+                     'status': 'recorded' if general else 'unknown', 'materials': None,
+                     'paragraphs': general, 'unmapped_paragraphs': 0})
     snapshot = identity({'version': VERSION, 'task_id': state.get('task_id'),
                          'report_binding': review.get('report_binding'),
-                         'report': report, 'selected': selected, 'contract': contract, 'audit': audit})
+                         'report': report, 'selected': selected, 'contract': contract, 'audit': audit,
+                         'materials': topics, 'unassigned_trends': trends['unassigned']})
     return {'schema_version': VERSION, 'snapshot_id': snapshot,
             'research_question': state.get('user_query') or '', 'report_binding_current': bound,
-            'question_structure': 'frozen_selected_modules' if selected else 'unavailable_for_legacy_or_general_task',
+            'question_structure': 'frozen_selected_modules' if selected else 'general_report' if bound else 'unavailable_for_legacy_or_general_task',
             'summary': observations('summary'), 'modules': rows,
+            'unassigned_trends': trends['unassigned'] if {'evolution', 'validation'} & set(selected) else [],
             'semantics': 'structural_mapping_and_saved_model_assessments_not_independent_fact_verification',
             'effects': {'model_calls': 0, 'network_collection': 0}}

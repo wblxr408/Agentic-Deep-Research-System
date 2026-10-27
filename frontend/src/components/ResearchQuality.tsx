@@ -1,11 +1,13 @@
 import {uiDefinition,t,useLocale,uiMessage} from '../i18n'
 import {useRef,useState} from 'react'
+import QuestionCoverage,{type QuestionCoverageData} from './QuestionCoverage'
 
 type Candidate={candidate_id:string;rank:number;title:string;routes:string[]}
 type Run={run_id:string;node_id:string;tool:string;query:string;candidates:Candidate[];filter_bucket:string;
   channel_contributions:Array<{route:string;returned_candidates:number;unique_returned:number;returned_share:number|null}>}
 type Event={request_id:string;kind:string;created_at:string;payload:{note?:string;answer?:Record<string,string>}}
 interface Quality {
+  question_coverage?:QuestionCoverageData
   binding_id:string;data:{retained_evidence:number;coverage:Record<string,number>;freshness_observations:Record<string,number>}
   retrieval_runs:Run[];ranking_judgments:Array<{run_id:string;top_k:number;recall_at_k:number|null;ndcg_at_k:number|null;mrr:number|null;pairwise_accuracy:number|null;judged_count:number;pool_size:number}>
   answer:{model_audit_supported_claims:number|null;model_audit_total_claims:number|null;audit_complete:boolean;
@@ -76,6 +78,7 @@ export default function ResearchQuality({sessionId}:{sessionId:string}) {
     {busy&&<p role="status">{t("正在处理…")}</p>}{saved&&<p role="status" className="my-2 text-green-800">{saved}</p>}
     {error&&<p role="alert" className="my-2 text-red-700">{uiMessage(error)}</p>}
     {value&&<>
+      {value.question_coverage&&<QuestionCoverage value={value.question_coverage}/>}
       <p className="my-2">{t("保留证据 ")}{value.data.retained_evidence} {t(" 条；工具调用 ")}{value.agent.tool_calls} {t(" 次，其中失败或停止 ")}{value.agent.failed_or_stopped_calls} {t("次。 陈述核对")}{value.answer.model_audit_supported_claims??t("未知")} / {value.answer.model_audit_total_claims??t("未知")} {t(" 项，")}{value.answer.audit_complete?t("已完成记录"):t("尚不完整")}。
         {typeof value.answer.model_audit_source_supported_claims==='number' && <>{t("其中原文支持 ")}{value.answer.model_audit_source_supported_claims} {t(" 项，任务方法依据支持 ")}{value.answer.model_audit_method_supported_claims ?? 0} {t(" 项。")}</>}</p>
       <p className="text-xs">{t("统计快照：")}{!value.statistics_review.available?t("本任务无统计快照"):value.statistics_review.issues.length?t("{0}处算术或集合差异", value.statistics_review.issues.length):t("未记录算术或集合差异")}{t("。解析准确率和真实全集召回率需要独立标注。")}</p>
