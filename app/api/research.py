@@ -71,7 +71,7 @@ from app.organization_statistics import build_statistics, apply_statistics
 from app.skills import get_skill_registry
 from app.query_understanding import QueryOptions, DeliveryRequest, interpret_query, context_entities, identity
 from app.planning_control import PlanningPolicy
-from app.skills.stages import compile_stage_skills
+from app.skills.stages import compile_stage_skills, preparation_view
 
 logger = logging.getLogger(__name__)
 
@@ -450,11 +450,11 @@ class ResearchRequest(BaseModel):
         description="Output length: short, medium, long.",
     )
     enabled_skill_ids: list[str] = Field(
-        default_factory=list,
+        default_factory=list, max_length=32,
         description="Explicitly enable selected skill IDs for this session.",
     )
     disabled_skill_ids: list[str] = Field(
-        default_factory=list,
+        default_factory=list, max_length=32,
         description="Explicitly disable selected skill IDs for this session.",
     )
     skill_tenant_id: str | None = Field(
@@ -725,11 +725,14 @@ async def _prepare_query_understanding(conn, request: ResearchRequest, principal
         for stage, profile in compilation['profiles'].items() for conflict in profile['conflicts']]]
     snapshot['execution_preparation'] = {'skill_compilation_id': compilation['compilation_id'],
         'ready': compilation['ready'], 'conflicts': conflicts,
+        'stages':preparation_view(compilation,skill_context),
         'planning_policy': request.planning_policy.model_dump(mode='json')}
     if not compilation['ready']:
         snapshot['ready'] = False
         names = {item['skill_id']: item.get('name', item['skill_id']) for item in skill_context.get('resolved_skills', [])}
         reasons = {'required_tools_not_permitted': '需要的工具不在当前许可内',
+            'manual_skill_selected_and_excluded': '同时选择了启用和禁用',
+            'explicit_skill_disables_stage_tool': '手选方法限制了本阶段需要的工具',
             'required_skill_context_exceeds_budget': '必要技能内容超出上下文预算',
             'registered_inline_reference_missing': '缺少已声明的内联参考内容',
             'manual_skill_unavailable_or_not_resolved': '手选技能不可用或尚未成功解析',

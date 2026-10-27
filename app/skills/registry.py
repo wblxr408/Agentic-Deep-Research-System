@@ -154,9 +154,11 @@ class SkillRegistry:
             selected_by_id.values(),
             key=lambda item: (item.id not in enabled_overrides, -item.metadata.priority, item.metadata.slug),
         )
-        top_k = get_settings().skills.match_top_k
-        truncated_skill_count = max(0, len(ranked_selected) - top_k)
-        effective_metas = ranked_selected[:top_k]
+        top_k = min(32,max(0,get_settings().skills.match_top_k))
+        explicit_count=sum(meta.id in enabled_overrides for meta in ranked_selected)
+        selection_limit=min(32,max(top_k,explicit_count))
+        truncated_skill_count = max(0, len(ranked_selected) - selection_limit)
+        effective_metas = ranked_selected[:selection_limit]
         effective_ids = [meta.id for meta in effective_metas]
         content_map = await self._get_content_for_metas(effective_metas)
         resolved_skills = [
@@ -490,7 +492,7 @@ class SkillRegistry:
                 "enabled_overrides": enabled_overrides,
                 "disabled_overrides": disabled_overrides,
                 "version_token": self._version_token,
-                'selection_contract': 'adrs-stage-skills-v1',
+                'selection_contract': 'adrs-stage-skills-v2-explicit-priority',
                 "revision": self._revision,
             },
             ensure_ascii=False,

@@ -16,6 +16,43 @@ def _normalize(value):
     return str(value).strip().casefold().replace('-', '_')
 
 
+def _restriction(item):
+    restriction=item.get('tool_restrictions')
+    if restriction is None and item.get('allowed_tools'):
+        restriction=item['allowed_tools']
+    return restriction
+
+
+def _allowed_tools(items,task_tools):
+    allowed=set(task_tools)
+    for item in items:
+        restriction=_restriction(item)
+        if restriction is not None:
+            allowed &= set(restriction)
+    return allowed
+
+
+def _required_packet(items,stage):
+    mandatory=[];hints=[]
+    for item in items:
+        sections=item.get('prompt_sections') or {};content=[]
+        for name in ('constraints','prompt',f'stage:{stage}'):
+            text=sections.get(name)
+            if isinstance(text,str) and text.strip():content.append({'section':name,'text':text.strip()})
+        inline=item.get('reference_sections') or {}
+        for ref_id in (item.get('stage_references') or {}).get(stage) or []:
+            text=inline.get(ref_id)
+            if isinstance(text,str) and text.strip():content.append({'section':f'reference:{ref_id}','text':text.strip()})
+        stage_hints=(item.get('agent_hints') or {}).get(stage) or []
+        if isinstance(stage_hints,str):stage_hints=[stage_hints]
+        overview=sections.get('overview') or ''
+        if overview and not content and not stage_hints:
+            content.append({'section':'overview_as_legacy_instructions','text':overview})
+        mandatory.append({'skill_id':item['skill_id'],'version':item['version'],'sections':content})
+        hints.extend(str(text) for text in stage_hints if str(text).strip())
+    return {'stage':stage,'instructions':mandatory,'agent_hints':hints}
+
+
 def compile_stage_skills(selection: dict, *, task_tools: set[str], disciplines: list[str],
         template: str, char_budget: int, needed_stages: set[str] | None = None) -> dict:
     if not 2000 <= char_budget <= 32000:
@@ -23,11 +60,16 @@ def compile_stage_skills(selection: dict, *, task_tools: set[str], disciplines: 
     refs = selection.get('resolved_skills') or []
     if len(refs) > 32:
         raise ValueError('stage_skill_count_limit')
-    manual = set(selection.get('manually_enabled_skill_ids') or []) - set(selection.get('manually_disabled_skill_ids') or [])
+    explicitly_enabled=set(selection.get('manually_enabled_skill_ids') or [])
+    explicitly_disabled=set(selection.get('manually_disabled_skill_ids') or [])
+    manual = explicitly_enabled - explicitly_disabled
     known = {item['skill_id'] for item in refs}
     global_conflicts = [{'skill_id': key, 'reason': 'manual_skill_unavailable_or_not_resolved'} for key in sorted(manual-known)]
+    global_conflicts.extend({'skill_id':key,'reason':'manual_skill_selected_and_excluded',
+        'action':'choose_enable_or_disable'} for key in sorted(explicitly_enabled & explicitly_disabled))
     global_conflicts.extend({'skill_id': item['skill_id'], 'reason': error,
-        'action': 'repair_registered_skill_version'} for item in refs for error in item.get('compilation_errors', []))
+        'action': 'repair_registered_skill_version'} for item in refs if item['skill_id'] in manual
+        for error in item.get('compilation_errors', []))
     needed_stages = (set(task_tools) | {'planner','analyst','reflection','report'}) if needed_stages is None else set(needed_stages)
     if not needed_stages <= set(STAGES):
         raise ValueError('unsupported_requested_skill_stage')
@@ -50,6 +92,8 @@ def compile_stage_skills(selection: dict, *, task_tools: set[str], disciplines: 
                 reason = 'discipline_not_matched' if disciplines else 'discipline_not_declared'
             elif item.get('templates') and template not in item['templates']:
                 reason = 'different_template'
+            elif key not in manual and item.get('compilation_errors'):
+                reason = 'automatic_skill_invalid'
             if reason:
                 omitted.append({'skill_id': key, 'version': item['version'], 'reason': reason})
                 if key in manual and reason in {'discipline_not_matched', 'discipline_not_declared', 'different_template'}:
@@ -57,18 +101,42 @@ def compile_stage_skills(selection: dict, *, task_tools: set[str], disciplines: 
                         'action': 'change_scope_or_template_or_explicitly_disable_skill'})
                 continue
             active.append(item)
+        # Explicit selections are evaluated together first. Automatic matches
+        # are admitted in the registry's existing order only when they do not
+        # remove a required tool or crowd out explicit instructions.
+        chosen=[item for item in active if item['skill_id'] in manual]
+        automatic=[item for item in active if item['skill_id'] not in manual]
+        for item in automatic:
+            trial=[*chosen,item];trial_allowed=_allowed_tools(trial,task_tools)
+            needed_refs=(item.get('stage_references') or {}).get(stage) or []
+            inline=item.get('reference_sections') or {}
+            if any(not isinstance(inline.get(ref),str) or not inline[ref].strip() for ref in needed_refs):
+                reason='automatic_reference_missing'
+            elif any(set(entry.get('required_tools') or [])-trial_allowed for entry in trial):
+                reason='automatic_conflicts_with_required_tools'
+            elif stage in task_tools and stage not in trial_allowed:
+                reason='automatic_disables_stage_tool'
+            elif len(json.dumps(_required_packet(trial,stage),ensure_ascii=False))>payload_budget:
+                reason='automatic_context_budget'
+            else:
+                reason=None
+            if reason:
+                omitted.append({'skill_id':item['skill_id'],'version':item['version'],'reason':reason})
+            else:
+                chosen.append(item)
+        active=chosen
         allowed = set(task_tools)
         restrictions = []
         for item in active:
-            restriction = item.get('tool_restrictions')
-            # Legacy nonempty allowed_tools remains a restriction. Legacy empty
-            # means unspecified; only the new explicit [] means deny all.
-            if restriction is None and item.get('allowed_tools'):
-                restriction = item['allowed_tools']
+            # Legacy nonempty allowed_tools restricts; explicit [] denies all.
+            restriction = _restriction(item)
             if restriction is not None:
                 allowed &= set(restriction)
                 restrictions.append({'skill_id': item['skill_id'], 'tools': list(restriction)})
         conflicts, entries, mandatory, overviews, hints = [], [], [], [], []
+        if stage in task_tools and stage not in allowed and any(item['skill_id'] in manual for item in active):
+            conflicts.append({'reason':'explicit_skill_disables_stage_tool',
+                'action':'adjust_explicit_skill_or_authorized_tool'})
         for item in active:
             key = item['skill_id']
             missing = sorted(set(item.get('required_tools') or []) - allowed)
@@ -137,7 +205,8 @@ def compile_stage_skills(selection: dict, *, task_tools: set[str], disciplines: 
     # that tool. Report-only restrictions do not silently disable collection.
     dispatch_tools = [tool for tool in sorted(task_tools) if tool in profiles
         and profiles[tool]['ready'] and tool in profiles[tool]['effective_tools']]
-    result = {'schema_version': VERSION, 'profiles': profiles, 'conflicts': global_conflicts,
+    result = {'schema_version': VERSION, 'arbitration_policy':'explicit_then_compatible_automatic_v1',
+        'profiles': profiles, 'conflicts': global_conflicts,
         'dispatch_tools': dispatch_tools, 'registry_revision': selection.get('registry_revision'),
         'needed_stages': sorted(needed_stages),
         'ready': not global_conflicts and all(profile['ready'] for profile in profiles.values()),
@@ -157,3 +226,22 @@ def stage_profile(compilation: dict | None, stage: str) -> dict | None:
     if not profile or not compilation.get('ready') or not profile.get('ready'):
         raise ValueError('stage_skill_context_blocked')
     return profile
+
+
+def preparation_view(compilation:dict,selection:dict) -> list[dict]:
+    """A content-free explanation of preparation, never a claim of execution."""
+    names={item['skill_id']:item.get('name') or item['skill_id'] for item in selection.get('resolved_skills') or []}
+    stages=[]
+    for stage in STAGES:
+        if stage not in compilation.get('needed_stages',[]):
+            continue
+        profile=compilation['profiles'][stage]
+        entries=[{key:item.get(key) for key in ('skill_id','name','version','activation','matched_reason')}
+                 for item in profile.get('entries',[])]
+        omitted=[{'skill_id':item['skill_id'],'name':names.get(item['skill_id'],item['skill_id']),
+                  'version':item.get('version'),'reason':item['reason']}
+                 for item in profile.get('omitted',[]) if item.get('reason') not in {
+                     'stage_not_requested','different_stage','overview_only_omitted_for_context_budget'}]
+        if entries or omitted:
+            stages.append({'stage':stage,'entries':entries,'omitted':omitted,'ready':profile['ready']})
+    return stages

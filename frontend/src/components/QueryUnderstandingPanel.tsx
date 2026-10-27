@@ -3,6 +3,8 @@ import { cloneElement, isValidElement } from 'react'
 import type { ReactNode } from 'react'
 import DeliveryTemplateManager from './DeliveryTemplateManager'
 import type {ReportLayout,LayoutSample} from './reportLayouts'
+import SkillStagePlan from './SkillStagePlan'
+import type {StageSkillPlan} from './SkillStagePlan'
 
 export interface QueryDraft {
   queryType: string; entityText: string; disciplines: string; contextSessionId: string; referenceIds: string[]
@@ -60,6 +62,7 @@ export interface UnderstandingSnapshot {
   clarifications: Array<{ id: string; message: string; candidate_ids?: string[] }>; notes: string[]
   context_candidates?: Array<{ entity_id: string; name: string }>
   delivery: { template: string; theme: string; formats: string[]; renderer_status: string; drawing_mode: string }
+  execution_preparation?:{stages?:StageSkillPlan[]}
 }
 
 export function deliveryDraftRequest(draft:QueryDraft) {
@@ -131,7 +134,7 @@ export function UnderstandingSummary({value}:{value:UnderstandingSnapshot|null|u
     {value.temporal.as_of_date&&<div><dt>{t("观察截止")}</dt><dd>{value.temporal.as_of_date}</dd></div>}
     {!!value.slots.modules.length&&<div><dt>{t("展开")}</dt><dd>{value.slots.modules.map(key=>modules[key]||key).join(' · ')}</dd></div>}
     <div><dt>{t("报告")}</dt><dd>{templates[value.delivery.template]||t("已保存的样式")} · {value.delivery.formats.map(format=>formats[format]||format).join(' / ')}</dd></div>
-  </dl>{!!value.clarifications.length&&<ul className="understanding-clarifications" aria-label={t("需要补充的选择")}>{value.clarifications.map(item=><li key={item.id}>{item.message}</li>)}</ul>}</section>
+  </dl>{!!value.clarifications.length&&<ul className="understanding-clarifications" aria-label={t("需要补充的选择")}>{value.clarifications.map((item,index)=><li key={`${item.id}-${index}`}>{item.message}</li>)}</ul>}<SkillStagePlan stages={value.execution_preparation?.stages||[]}/></section>
 }
 
 function FieldLabel({ title, children }: { title: string; children: ReactNode }) {

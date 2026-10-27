@@ -20,6 +20,8 @@
 
 ## 阶段 Skill 已接部分
 
+2026-10-27，20.2.1源码补充仲裁：手选和禁用同一方法明确冲突，手选方法不被自动候选的数量上限挤掉；模板／学科仍是适用边界。自动候选按既有顺序进入阶段，若会排挤必要上下文、使已选方法缺少工具或禁用当前取证工具，则记录原因并跳过；显式方法互相冲突仍需调整。预览展示各阶段的准备方法及跳过原因，不能将准备视为实际调用。原冻结编译继续使用，尚未进行端到端验证；实际请求记录由20.2.2接续。
+
 复用原注册表及Skill内容版本，未新建表。元数据新增stages、disciplines、templates、required_tools、tool_restrictions和stage_references；旧非空allowed_tools作为限制，旧空值为未指定，新tool_restrictions=[]明确拒绝。stages为planner/search/browser/rag/mcp/analyst/reflection/report/render；空列表表示旧通用技能。新增mcp/render角色提示。
 
 正文可用一级标题`# stage:planner`或`# reference:taxonomy`存储阶段内容/内联参考；引用ID只允许有界小写字母数字/下划线/连字符，stage_references列明确引用。重复的prompt、constraints、stage或reference章节拒绝，旧已注册歧义内容变成可见编译错误。正文最多65536字符；上传限制最大UTF-8字节量并拒绝非法编码；失败422、过大413，不执行Skill代码、不追踪外链或读取任意本机路径。

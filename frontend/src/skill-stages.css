@@ -1,0 +1,10 @@
+.skill-stage-plan{border-top:1px solid var(--line);margin-top:15px;padding-top:14px;color:var(--ink)}
+.skill-stage-plan>summary{cursor:pointer;font-size:13px;font-weight:550}
+.skill-stage-plan>p{margin:8px 0 14px;color:var(--muted);font-size:12px}
+.skill-stage-plan>div{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.skill-stage-plan section{min-width:0;padding:13px;border:1px solid var(--line);border-radius:10px;background:var(--paper)}
+.skill-stage-plan h4{margin:0 0 10px;font-size:12px;color:var(--accent);font-weight:550}
+.skill-stage-item{display:grid;gap:3px;padding:7px 0;font-size:13px;overflow-wrap:anywhere}
+.skill-stage-item+.skill-stage-item{border-top:1px solid var(--line)}
+.skill-stage-item small{font-size:11px;line-height:1.5;color:var(--muted)}
+.skill-stage-item.is-omitted{opacity:.72}
