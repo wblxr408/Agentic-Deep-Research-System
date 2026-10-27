@@ -576,8 +576,14 @@ def audit_report(report: str, evidence: list[Evidence], *, client: Any, model: s
             pending.append(row)
 
     if resume_judged:
-        judged=sum(1 for old in previous_audit.get('claims',[]) if old.get('model_verdict') is not None)
-        if any(reusable.values()) or sum(bool(row.get('verification_reused')) for row in rows)!=judged:
+        prior=previous_audit.get('claims') or []
+        same_claims=(len(prior)==len(rows) and all(
+            reuse_key(old)==reuse_key(row) and old.get('excerpts')==row.get('excerpts')
+            and old.get('statistic_context')==row.get('statistic_context')
+            and old.get('allowed_method_ids')==row.get('allowed_method_ids')
+            for old,row in zip(prior,rows)))
+        judged=sum(1 for old in prior if old.get('model_verdict') is not None)
+        if not same_claims or any(reusable.values()) or sum(bool(row.get('verification_reused')) for row in rows)!=judged:
             raise ValueError('audit_resume_judgment_binding_changed')
 
     def compact_payload(batch):
