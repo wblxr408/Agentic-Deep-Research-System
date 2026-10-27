@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 import sys
 import tempfile
@@ -14,6 +15,8 @@ from app.retrieval_features import dense_configuration
 def build_semantic_plan(text,size,threshold):
     config=get_settings().rag
     dense_configuration(config)
+    if not re.fullmatch(r'[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+',config.embed_model) or '..' in config.embed_model:
+        raise ValueError('semantic_model_requires_pinned_cached_repository')
     options={'model':config.embed_model,'revision':config.embed_revision,'dimension':config.embed_dimension,
         'size':size,'threshold':threshold}
     with tempfile.TemporaryDirectory(prefix='adrs-semantic-chunk-') as directory:

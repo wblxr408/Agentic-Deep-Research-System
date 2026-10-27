@@ -26,6 +26,7 @@ const errors:Record<string,string>=uiDefinition({
   cdc_target_changed_or_unavailable:'对应资料已变更或不可用',cdc_entity_revision_conflict:'同一版本的内容不一致',
   cdc_event_identity_conflict:'事件标识对应的内容已变化',cdc_document_ingest_rejected:'资料未能保存',
   cdc_dense_configuration_requires_manual_update:'资料的编码设置已变化',cdc_blocked_event_limit:'待处理事件过多',
+  cdc_sparse_configuration_requires_manual_update:'资料的编码设置已变化',
   cdc_event_history_limit:'同步记录已达到上限',cdc_ack_unconfirmed:'源数据库确认结果尚未确定',cdc_processing_failed:'资料处理未完成',
   cdc_blocked_events:'有事件需要处理',cdc_event_not_blocked:'事件状态已变化',
 })

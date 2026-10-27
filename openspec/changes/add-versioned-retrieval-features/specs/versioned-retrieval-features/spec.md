@@ -44,3 +44,9 @@
 #### Scenario: Known source ID belongs to another owner
 - **WHEN** 调用者尝试读取他人的特征
 - **THEN** 在正文或特征被返回之前拒绝，不能通过特征详情旁路资料权限
+
+### Requirement: Explicit learned sparse representations
+系统 SHALL 允许本人选择实际的固定版本本地学习稀疏模型，为源片段生成带词表身份、非负权重和输入覆盖的稀疏表示；模型不可用或输入被截断时不得伪称完整。词面统计保留为独立路径。
+
+### Requirement: Actual multivector and image representations
+系统 SHALL 仅在明确选择和实际编码后保存token级多向量、图像或图文表示，绑定来源、模型空间、输入版本和权限；未取得原图、未配置兼容模型或空间不匹配时不得标为可比较。

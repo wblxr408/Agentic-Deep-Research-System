@@ -10,7 +10,7 @@
 | --- | --- | --- |
 | 04.1 词汇 | Unicode NFKC／casefold规范词项与原始位置分别保存；英文／技术标识、中文单字／相邻二元组可选；复用03实体词典 | 默认不做词干化，保留技术标识，不声称规则词项具有NER消歧质量。实际召回缺口出现后比较学科词表／分词器 |
 | 04.2 相关性 | 小块TF、源内DF、平滑IDF及归一TF-IDF，保留N、平均长度、覆盖及重叠口径 | 当前PostgreSQL `ts_rank`不是BM25；跨源BM25必须用当前授权查询范围统计，不能直接比较各来源局部IDF |
-| 04.3 学习稀疏 | 明确`not_selected`，现阶段采用词汇稀疏表示 | SPLADE通过模型学习稀疏扩展，不能把TF-IDF改名为SPLADE。增加LSR／SPLADE／DeepImpact前需固定模型／词表、适配索引并有质量／费用收益 |
+| 04.3 学习稀疏 | 本人可选固定版本本地SPLADE模型，保存实际词表token权重与输入覆盖 | 默认关闭；Top-K截断明确记录；稀疏索引／召回由OPT-05／11继续接入，不把TF-IDF改名为SPLADE |
 | 04.4 稠密 | 新接入默认关闭，可显式启用现有SentenceTransformer归一单向量；保存实际编码profile、维度、库版本、token上限和输入长度覆盖 | 不新建双塔训练。启用需服务端固定40位模型提交；失败回滚整次接入。编码与查询配置相符才能比较，旧无身份向量不猜 |
 | 04.5 细粒度 | 保存词项原文区间，供精确定位使用；语义token矩阵／多向量／Late Interaction未选 | ColBERT把文档编码为token矩阵并以MaxSim交互，当前单向量或字面位置不能冒充该能力。实际精细召回收益足够后再选专用模型／索引 |
 | 04.6 行为 | 当前缺少适当授权曝光／点击／用户历史及训练目标，未采用协同过滤、Item2Vec、序列模型／行为双塔 | 不自动收集新行为。已有工具轨迹是执行记录，不能当兴趣标签；跨任务不同主题不预设稳定偏好 |
@@ -20,6 +20,18 @@
 | 04.10 时序 | 显式来源日期、as_of、窗口及半衰期，保存推导依据；未来／未知日期不产生虚假新鲜度 | 来源日期为用户声明而非自动核实，不从正文日期猜发表时间；研究趋势仍用组织趋势模块的跨年同口径证据 |
 
 上述候选取舍遵循主TODO开头的“候选不代表全部选用”。未采用不是运行成功；后续若选择这些模型，需要新的数据／模型／索引及真实场景证据。
+
+## 显式学习稀疏编码（2026-10-27，源码已接入）
+
+资料接入可选择“生成学习稀疏特征”。部署者预先设置 `RAG_SPARSE_MODEL` 为经过SPLADE训练的模型仓库标识、`RAG_SPARSE_REVISION` 为完整40位提交；模型与tokenizer必须已存在本机缓存，不自动下载，且权重必须有 `safetensors`。`RAG_SPARSE_MAX_INPUT_TOKENS` 默认256、`RAG_SPARSE_TOP_K` 默认128，均可在服务端配置。调用不执行仓库远程代码，实际权重由本机受信任管理员准备；声明模型经过SPLADE训练是部署者责任，不从普通Masked-LM结构推断训练质量。
+
+每份来源最多200个小块、120秒，逐块检查实际token长度；任何片段超出或模型不可用时不提交不完整表示。使用模型logits、注意力掩码及max池化的 `log1p(relu())` 产生真实非负词表权重，按Top-K保留并标注是否省略了非零项，模型、提交、实际词表身份和池化进入feature profile。实现参考 [SPLADE作者实现](https://github.com/naver/splade/blob/main/splade/models/transformer_rep.py)，没有将TF-IDF或词面标记改称学习稀疏。来源中的这份表示当前供特征详情读取；其加权倒排、查询编码与检索仍须OPT-05／11接续，最终质量和资源占用待完整真实端到端。重复提交可能在版本去重前再次发生本地编码；不会自动调用外部模型API。
+
+## 行为数据与BSR口径（2026-10-27）
+
+当前源码中的 `research_quality_feedback` 是任务质量反馈，并非授权的用户—文献曝光／点击序列。再次在线查阅指定仓库当前 [YouTubeDNN 数据构造](https://github.com/zhongqiangwu960812/AI-RecommenderSystem/blob/master/Recall/YoutubeDNN/utils.py) 和 [UserCF 实现](https://github.com/zhongqiangwu960812/AI-RecommenderSystem/blob/master/Recall/CollaborativeFiltering/CF_For_NewsRec/CFModel.py)：前者使用按时间排序的用户／文章历史，后者使用用户、文章及观看时长；当前资料不足以把它们当成已有训练数据或直接引入推荐器。确有明确推荐目标及授权数据后再选模型，当前不新增行为采集。
+
+BSR至少可能指 [Block Sparse Row 矩阵格式](https://docs.scipy.org/doc/scipy/reference/generated/scipy.sparse.bsr_matrix.html)或研究论文中的 [Beam Search Retrieval](https://opus.lib.uts.edu.au/bitstream/10453/183299/2/Towards%20Linguistic%20Neural%20Representation%20Learning%20and%20Sentence%20Retrieval%20from%20Electroencephalogram%20Recordings.pdf)；二者输入和用途不同，不能据缩写判定本项目目标。已请求澄清，在明确前继续标为待定义。
 
 后续OPT-05的[真实Posting与范围BM25](versioned-retrieval-indexes.md)现已接入代码、未迁移；FTS `ts_rank`仍是单独回退，不能把它计作BM25。新增direct选择不物化关键词小块，之后显式发布才建立检索代际。
 

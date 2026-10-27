@@ -219,6 +219,7 @@ async def _ingest_source(
     retention_policy=retention_policy or RetentionPolicy()
     feature_policy=feature_policy or FeaturePolicy()
     if index_policy.mode=='direct' and feature_policy.dense:raise HTTPException(422,'direct_only_source_cannot_request_dense_encoding')
+    if index_policy.mode=='direct' and feature_policy.sparse:raise HTTPException(422,'direct_only_source_cannot_request_sparse_encoding')
     semantic_plan=None
     if chunk_policy and chunk_policy.strategy=='semantic':
         from app.semantic_chunking import build_semantic_plan
@@ -229,7 +230,17 @@ async def _ingest_source(
         size=chunk_size,overlap=chunk_overlap,policy=chunk_policy,semantic_plan=semantic_plan)
     try:dense_profile=dense_configuration(get_settings().rag) if feature_policy.dense else None
     except ValueError as error:raise HTTPException(409,str(error)) from None
-    features=await asyncio.to_thread(build_feature_plan,text,plan,parsed_document,policy=feature_policy,dense_profile=dense_profile)
+    sparse_output=None
+    if feature_policy.sparse:
+        from app.channels.models import ChannelError
+        from app.learned_sparse import build_sparse_features
+        try:sparse_output=await asyncio.to_thread(build_sparse_features,[text[chunk['start']:chunk['end']] for chunk in plan['children']])
+        except (ValueError,ChannelError):raise HTTPException(422,'sparse_encoding_unavailable_or_incomplete') from None
+    try:features=await asyncio.to_thread(build_feature_plan,text,plan,parsed_document,policy=feature_policy,
+        dense_profile=dense_profile,sparse_output=sparse_output)
+    except ValueError as error:
+        if str(error).startswith('sparse_'):raise HTTPException(422,str(error)) from None
+        raise
     source_metadata = {**{key:value for key,value in metadata.items() if key not in {'document_parse','parse_profile','parse_version_id','parsing_reviews','chunk_plan','chunking_profile','feature_plan','feature_profile','dense_profile','index_policy','retention_policy','revision_intake_key'}},
         'content_hash':digest,'source_version':digest,'owner_scope':'private',
         'parse_profile':profile,'parse_version_id':digest+':'+profile_key,'parsing_reviews':[],
@@ -261,7 +272,7 @@ async def _ingest_source(
         if existing:
             return {'source_id':str(existing['id']),'deduplicated':True,'chunk_count':0,'document_ids':[],
                 'representation':{'status':'reused_compatible_effective_index_mode','new_embedding_api_calls':0,
-                    'semantic_local_encoding_calls':int(semantic_plan is not None)},'index':{'mode':index_policy.mode}}
+                    'semantic_local_encoding_calls':int(semantic_plan is not None),'local_sparse_encoding_calls':int(sparse_output is not None)},'index':{'mode':index_policy.mode}}
         chunks=[text[chunk['start']:chunk['end']] for chunk in plan['children']]
         embeddings=[None]*len(chunks)
         coverage=[]
@@ -676,7 +687,7 @@ async def create_source_revision(source_id:uuid.UUID,payload:SourceRevision,prin
                 mode=await conn.fetchval('SELECT mode FROM source_index_heads WHERE source_id=$1::uuid AND owner_id=$2::uuid',str(source_id),principal.id)
                 index_policy=IndexPolicy(mode=mode or 'lexical',reason='explicit_source_revision_inherit_effective_mode')
                 feature_policy=FeaturePolicy.model_validate((metadata.get('feature_profile') or {}).get('policy') or {})
-                if index_policy.mode=='direct':feature_policy=feature_policy.model_copy(update={'dense':False})
+                if index_policy.mode=='direct':feature_policy=feature_policy.model_copy(update={'dense':False,'sparse':False})
                 return await _ingest_source(name=source['name'],group_name=source['group_name'],source_type='revision',content=parsed['text'],
                     metadata={key:value for key,value in metadata.items() if key not in {'source_sync','source_cdc'}},file_ext=payload.format,chunk_size=source['chunk_size'],chunk_overlap=source['chunk_overlap'],
                     owner_id=principal.id,connection=conn,parsed_document=parsed,

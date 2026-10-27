@@ -579,6 +579,7 @@ async def _apply_event(conn,claim,event,parsed):
             old_metadata=object_value(old['metadata'])
             features=FeaturePolicy.model_validate((old_metadata.get('feature_profile') or {}).get('policy') or {})
             if features.dense:raise SourceSyncError(409,'cdc_dense_configuration_requires_manual_update')
+            if features.sparse:raise SourceSyncError(409,'cdc_sparse_configuration_requires_manual_update')
             mode=await conn.fetchval('SELECT mode FROM source_index_heads WHERE source_id=$1::uuid AND owner_id=$2::uuid',old['id'],owner)
             request=SourceRevision(request_id=event_request,expected_revision=old['lifecycle_revision'],
                 expected_parse_version=old_metadata.get('parse_version_id'),reason='source_database_change',

@@ -43,7 +43,7 @@
 
 选择“按语义变化”时，本机子进程将原文分成连续有界单元，用已配置且固定完整版本的本地编码模型编码相邻单元，按实际余弦相似度、用户选择的阈值及最大片段长度确定断点；原章节、表格和代码的边界继续保留。可选宽松／均衡／紧密，对应阈值0.50／0.65／0.80；数值是可调产品参数，不是已验证的通用最优值。片段只引用原文范围，语义策略实际重叠为0。
 
-调用复用当前项目 `sentence-transformers`，使用 `local_files_only=True`、固定版本及 `trust_remote_code=False`；模型必须已由部署者配置和准备，处理不会自行下载。该接口及参数见 [SentenceTransformer v3.0.0 源码](https://github.com/huggingface/sentence-transformers/blob/v3.0.0/sentence_transformers/SentenceTransformer.py)。每次最多1,000个原文单元、120秒；逐单元检查实际token长度，任何单元超出编码器上下文或模型不可用时不提交伪造的语义计划。计划保存实际模型及版本、完整覆盖状态、单元范围、相邻相似度与断点；模型配置和实际断点共同进入profile。上传／修订失败保留既有来源，重切不改旧任务证据。模型调用是本地计算，无模型API费用；重复提交在去重判断前仍需编码，资源消耗与实际运行效果待最后端到端确认。
+调用复用当前项目 `sentence-transformers`，使用 `local_files_only=True`、固定仓库提交及 `trust_remote_code=False`；模型必须已由部署者配置和准备，处理不会自行下载，也不把可变本地目录的自报版本当作固定提交。该接口及参数见 [SentenceTransformer v3.0.0 源码](https://github.com/huggingface/sentence-transformers/blob/v3.0.0/sentence_transformers/SentenceTransformer.py)。每次最多1,000个原文单元、120秒；逐单元检查实际token长度，任何单元超出编码器上下文或模型不可用时不提交伪造的语义计划。计划保存实际模型及版本、完整覆盖状态、单元范围、相邻相似度与断点；模型配置和实际断点共同进入profile。上传／修订失败保留既有来源，重切不改旧任务证据。模型调用是本地计算，无模型API费用；重复提交在去重判断前仍需编码，资源消耗与实际运行效果待最后端到端确认。
 
 ### 抽取式摘要与检索交接（2026-10-27，源码已接入）
 

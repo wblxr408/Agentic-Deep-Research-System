@@ -76,6 +76,10 @@ class RAGSettings(BaseSettings):
     embed_model: str = Field(default="BAAI/bge-zh-qwen2-int8")
     embed_revision: str | None = Field(default=None,max_length=128,description="Pinned model commit for new dense representations")
     embed_dimension: int = Field(default=1024,ge=1,le=16000)
+    sparse_model: str | None = Field(default=None,max_length=200)
+    sparse_revision: str | None = Field(default=None,max_length=128)
+    sparse_max_input_tokens: int = Field(default=256,ge=32,le=512)
+    sparse_top_k: int = Field(default=128,ge=8,le=512)
     enable_dense_retrieval: bool = False
     enable_reranker: bool = False
     rerank_model: str = Field(default="BAAI/bge-reranker-v2-m3")

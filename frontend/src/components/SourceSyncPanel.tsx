@@ -20,6 +20,7 @@ const errors:Record<string,string>=uiDefinition({
   lease_receipt_unknown:'上次读取的结果未能确认',network_allowance_exhausted:'本次读取次数已用完',
   unsupported_content_type:'来源格式暂不支持',empty_content:'来源没有可读取的正文',
   source_sync_dense_configuration_requires_manual_update:'该资料的编码设置已变化，请手动更新',
+  source_sync_sparse_configuration_requires_manual_update:'该资料的编码设置已变化，请手动更新',
   source_sync_partial_replacement_blocked:'新内容读取不完整，已保留原版本',
   subscription_changed:'来源设置已变化',subscription_unavailable:'来源或账号已不可用',
   webhook_revoked:'事件通知已撤销',source_webhook_revoked:'事件通知已撤销',

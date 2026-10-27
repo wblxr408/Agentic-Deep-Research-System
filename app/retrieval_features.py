@@ -24,6 +24,7 @@ LEXEMES=re.compile(CJK+'|'+WORD+'(?:[.+/_-]'+WORD+r')*(?:\+\+(?:\d+)?|#)?',re.UN
 
 class FeaturePolicy(ScopeRecord):
     dense:bool=False
+    sparse:bool=False
     cjk_mode:Literal['characters','bigrams','both']='both'
     max_token_events:int=Field(default=1024,ge=128,le=2048)
     source_date:date|None=None
@@ -113,6 +114,37 @@ def validate_vectors(vectors,count,dimension):
         if not .98<=norm<=1.02:raise ValueError('embedding_normalization_mismatch_no_source_committed')
 
 
+def validate_sparse_output(output,count):
+    """Do not persist an incomplete or malformed model result as encoded features."""
+    if not isinstance(output,dict):raise ValueError('sparse_actual_encoding_required')
+    profile=output.get('profile');coverage=output.get('coverage');vectors=output.get('vectors')
+    if not isinstance(profile,dict) or not isinstance(coverage,dict) or not isinstance(vectors,list) or len(vectors)!=count:
+        raise ValueError('sparse_actual_encoding_required')
+    size=profile.get('vocabulary_size');limit=profile.get('top_k');maximum=profile.get('maximum_input_tokens')
+    if (profile.get('kind')!='splade_masked_lm_max_pool' or profile.get('local_files_only') is not True
+            or not isinstance(size,int) or isinstance(size,bool) or size<1
+            or not isinstance(limit,int) or isinstance(limit,bool) or not 1<=limit<=512
+            or not isinstance(maximum,int) or isinstance(maximum,bool) or not 1<=maximum<=512
+            or not re.fullmatch(r'[a-f0-9]{64}',str(profile.get('tokenizer_vocabulary_id','')))
+            or coverage.get('chunk_count')!=count or coverage.get('truncated_inputs')!=0):
+        raise ValueError('sparse_invalid_profile_or_coverage')
+    for vector in vectors:
+        if not isinstance(vector,dict):raise ValueError('sparse_invalid_vector')
+        terms=vector.get('terms');tokens=vector.get('input_tokens');nonzero=vector.get('nonzero_before_top_k')
+        if (not isinstance(terms,list) or len(terms)>limit or not isinstance(tokens,int) or isinstance(tokens,bool)
+                or not 1<=tokens<=maximum or not isinstance(nonzero,int) or isinstance(nonzero,bool)
+                or not len(terms)<=nonzero<=size or vector.get('top_k_truncated') is not (nonzero>limit)):
+            raise ValueError('sparse_invalid_vector')
+        seen=set()
+        for term in terms:
+            if not isinstance(term,dict):raise ValueError('sparse_invalid_vector')
+            token=term.get('token_id');weight=term.get('weight')
+            if (not isinstance(token,int) or isinstance(token,bool) or not 0<=token<size or token in seen
+                    or not isinstance(weight,(int,float)) or isinstance(weight,bool) or not math.isfinite(weight) or weight<=0):
+                raise ValueError('sparse_invalid_vector')
+            seen.add(token)
+
+
 def vector_parameter(vector):
     """Bind text explicitly; asyncpg need not infer an unregistered vector codec."""
     return '['+','.join(repr(float(value)) for value in vector)+']'
@@ -135,10 +167,14 @@ def candidate_decisions():
     }
 
 
-def build_feature_plan(text,chunk_plan,parsed,*,policy=None,dense_profile=None):
+def build_feature_plan(text,chunk_plan,parsed,*,policy=None,dense_profile=None,sparse_output=None):
     policy=policy if isinstance(policy,FeaturePolicy) else FeaturePolicy.model_validate(policy or {})
-    profile={'schema_version':VERSION,'tokenizer_version':TOKENIZER_VERSION,'policy':policy.model_dump(mode='json'),
+    policy_data=policy.model_dump(mode='json')
+    if not policy.sparse:policy_data.pop('sparse',None)
+    if policy.sparse:validate_sparse_output(sparse_output,len(chunk_plan['children']))
+    profile={'schema_version':VERSION,'tokenizer_version':TOKENIZER_VERSION,'policy':policy_data,
         'dense_configuration':dense_profile if policy.dense else None}
+    if policy.sparse:profile['sparse_configuration']=sparse_output['profile']
     children=[];used_bytes=0;omitted=0;df=Counter()
     import json
     for chunk in chunk_plan['children']:
@@ -201,5 +237,13 @@ def build_feature_plan(text,chunk_plan,parsed,*,policy=None,dense_profile=None):
                 entry.clear();entry.update(retained,lexical=None,status='omitted_under_total_feature_budget')
         result['statistics'].update(document_count=0,omitted_chunk_count=len(children),token_event_count=None,average_length=None,
             document_frequency={},idf_weights_status='unavailable_under_total_feature_budget',token_coverage='unknown_under_total_feature_budget')
+    if policy.sparse:
+        for entry,vector in zip(children,sparse_output['vectors']):entry['learned_sparse']=vector
+        result['learned_sparse']={'status':'encoded_splade','profile':sparse_output['profile'],'coverage':sparse_output['coverage']}
+        result['candidate_decisions']['learned_sparse']={'status':'splade_encoded_other_methods_not_selected',
+            'reason':'actual_local_masked_lm_weights_retained_with_vocabulary_identity'}
+        result['effects']['local_sparse_encoding_calls']=1
+        if len(json.dumps(result,ensure_ascii=False).encode('utf-8'))>FEATURE_BYTES-65536:
+            raise ValueError('sparse_feature_budget_exceeded')
     result['metadata_budget_bytes']=FEATURE_BYTES
     return result

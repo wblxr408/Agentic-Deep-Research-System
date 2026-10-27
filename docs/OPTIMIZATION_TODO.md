@@ -515,6 +515,10 @@ U3实际冻结的科研绘图Skill已装入constraints和stage:render，选用�
 
 2026-10-21：[特征视图与编码成本](versioned-retrieval-features.md)已接入代码，尚未运行。十项候选逐项取舍：词项／源内统计、原位实体与时间、可选稠密及真实编码profile、独立词汇查询、三种接入设置和本人详情；新上传默认不编码，未采用学习稀疏／多向量／行为／图文模型，BSR保留待定义，不将词项或图注冒充模型结果。用户指定推荐仓库已按需在线读代码作数据适配判断，无训练／下载。六项纯实施与最后验收见[OpenSpec](../openspec/changes/add-versioned-retrieval-features/tasks.md)，主TODO复合项继续待统一端到端；下一OPT-05。
 
+2026-10-27：完整目标新增本地学习稀疏、可选双塔／多向量、图文编码及其后续索引交接；行为算法继续以授权交互数据为前提，BSR正在澄清。实施阶段及验证状态见[更新后的任务](../openspec/changes/add-versioned-retrieval-features/tasks.md)。
+
+- [x] 04.a 用户可选的固定版本本地SPLADE编码、实际词表权重与覆盖已接入源码；稀疏索引／召回及真实质量待后续实现与统一端到端。
+
 - [ ] 04.1 精确词汇表示：分词、词干化、实体词典。
 - [ ] 04.2 词汇相关性表示：TF-IDF、BM25 所需词项及文档统计。
 - [ ] 04.3 学习式稀疏语义：LSR、SPLADE、DeepImpact。
