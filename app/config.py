@@ -88,6 +88,8 @@ class RAGSettings(BaseSettings):
     multivector_document_prefix: str = Field(default='',max_length=200)
     multivector_query_prefix: str = Field(default='',max_length=200)
     multivector_max_input_tokens: int = Field(default=256,ge=32,le=512)
+    multimodal_model: str | None = Field(default=None,max_length=200)
+    multimodal_revision: str | None = Field(default=None,max_length=128)
     enable_dense_retrieval: bool = False
     enable_reranker: bool = False
     rerank_model: str = Field(default="BAAI/bge-reranker-v2-m3")

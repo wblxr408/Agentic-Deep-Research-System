@@ -496,6 +496,23 @@ async def parse_document_image(source_id:uuid.UUID,file:DocumentUpload,request_i
     return await visual_operation(principal.id,source_id,request_id,parse_version_id,raw,selection,language)
 
 
+@router.post('/sources/{source_id}/processing/multimodal-features')
+async def create_multimodal_features(source_id:uuid.UUID,file:DocumentUpload,request_id:uuid.UUID=Form(...),
+        parse_version_id:str=Form(...,min_length=1,max_length=260),target_kind:Literal['page','figure']=Form(...),
+        page:int|None=Form(default=None,ge=1,le=500),figure_id:str|None=Form(default=None,max_length=100),
+        detail:Literal['low','high']=Form(default='low'),principal:PrincipalDep=None):
+    from app.config import get_settings
+    from app.multimodal_processing import image_text_operation
+    if (target_kind=='page' and (page is None or figure_id is not None)
+            or target_kind=='figure' and (not figure_id or page is not None)):
+        raise HTTPException(422,'visual_target_invalid')
+    maximum=get_settings().security.upload_max_bytes
+    raw=await file.read(maximum+1)
+    if len(raw)>maximum:raise HTTPException(413,'upload_too_large')
+    selection={'kind':'page','page':page,'detail':detail} if target_kind=='page' else {'kind':'figure','figure_id':figure_id,'detail':detail}
+    return await image_text_operation(principal.id,source_id,request_id,parse_version_id,raw,selection)
+
+
 @router.post('/sources/{source_id}/processing/text')
 async def process_document_text(source_id:uuid.UUID,payload:DocumentTextProcessingRequest,principal:PrincipalDep=None):
     from app.document_processing import text_operation
@@ -561,9 +578,21 @@ async def get_source_features(source_id:uuid.UUID,include_chunks:bool=False,prin
     async with pool.acquire() as conn:
         row=await conn.fetchrow('''SELECT metadata->'feature_plan' AS feature_plan,metadata->>'parse_version_id' AS parse_version
             FROM document_sources WHERE id=$1::uuid AND owner_id=$2::uuid''',str(source_id),principal.id)
+        image_rows=await conn.fetch('''SELECT f.operation_id,f.selection,f.model_profile,f.dimension,o.result,o.created_at
+            FROM retrieval_multimodal_features f JOIN document_processing_operations o
+            ON o.id=f.operation_id AND o.owner_id=f.owner_id AND o.source_id=f.source_id
+            WHERE f.source_id=$1::uuid AND f.owner_id=$2::uuid AND f.source_version=$3 AND o.status='completed'
+            ORDER BY o.created_at DESC,o.id DESC LIMIT 21''',str(source_id),principal.id,row['parse_version'] if row else None)
     if not row:raise HTTPException(404,'source_not_found')
     view=json.loads(row['feature_plan']) if isinstance(row['feature_plan'],str) else row['feature_plan']
     if view and view.get('source_version')!=row['parse_version']:raise HTTPException(409,'feature_source_version_conflict')
+    if view and image_rows:
+        records=[{'operation_id':str(item['operation_id']),'selection':_metadata(item['selection']),'model_profile':_metadata(item['model_profile']),
+            'dimension':item['dimension'],'result':_metadata(item['result']),'created_at':item['created_at'].isoformat()} for item in image_rows[:20]]
+        view={**view,'modality':{**(view.get('modality') or {}),'image_embeddings':True,'image_features':records,
+            'additional_image_features':len(image_rows)>20},
+            'candidate_decisions':{**(view.get('candidate_decisions') or {}),'multimodal':{'status':'image_encoded_source_text_when_available',
+                'joint_image_text_encoding':any(item['result'].get('text_windows') for item in records),'index_status':'not_published'}}}
     if view and not include_chunks:
         view={**view,'children':view.get('children',[])[:20],'display_limit':20,'complete_children_included':False}
     return {'source_id':str(source_id),'parse_version_id':row['parse_version'],'view':view,'legacy_gap':not bool(view),

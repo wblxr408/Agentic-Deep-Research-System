@@ -54,7 +54,7 @@ ADRS 面向企业、高校和科研实验室的研究发展分析：从公开论
 
 分块新增可选本地语义切分、可回原文的抽取式摘要，以及本人选用的实体／关系候选；详情见[版本化分块](docs/versioned-evidence-chunks.md)。
 
-来源可选生成本地学习稀疏、英文词形及配对模型的细粒度语义特征；模型需要部署者提前准备，相关索引和召回仍在后续任务中，见[特征视图](docs/versioned-retrieval-features.md)。
+来源可选生成本地学习稀疏、英文词形、配对模型的细粒度语义及实际页面／图片的图文特征；模型需要部署者提前准备，相关索引和召回仍在后续任务中，见[特征视图](docs/versioned-retrieval-features.md)。
 
 [主TODO](docs/OPTIMIZATION_TODO.md) · [实施账本与选型](docs/IMPLEMENTATION_LEDGER.md) · [统一真实旅程及失败记录](docs/acceptance/unified-research-20261023.md) · [当前使用说明](docs/organization-research-guide.md)
 
