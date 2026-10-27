@@ -27,6 +27,7 @@ export interface DeliveryView {
   main_report_markdown?: string; appendix_markdown?: string
   citations?: Array<{ citation_id: string; source_title?: string; source_url: string; extracted_evidence?:string }>
   layout_binding?: LayoutBinding | null
+  template_revision?:{template_id:string;version:number;modified_for_task:boolean}|null
   configuration_origin: string; pages: Array<{
     page_id: string; title: string; question: string; module: string | null; markdown: string
     content_match: string; citation_ids: string[]; charts: Array<{ chart_id: string; kind: string; drawing_skill_id?:string }>; gaps: string[]

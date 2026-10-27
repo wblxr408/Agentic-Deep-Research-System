@@ -330,6 +330,7 @@ def build_delivery_view(*, task_id: str, execution_id: str | None, query: str, r
             and bool(audit) and not audit.get('needs_review',True) and not audit.get('audit_incomplete',False),
         'template': template, 'theme': theme, 'descriptor_id': frozen.get('descriptor_id'),
         'configuration_origin': 'frozen_task' if frozen else 'legacy_report_readonly_compatibility',
+        **({'template_revision':deepcopy(frozen['template_revision'])} if frozen.get('template_revision') else {}),
         'title': (re.search(r'^#\s+(.+)$', report, re.M).group(1)[:180]
             if re.search(r'^#\s+(.+)$', report, re.M) else query[:180]),
         'question':query, 'report_markdown': reader_report,

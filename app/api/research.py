@@ -649,9 +649,11 @@ async def stream_research(session_id: str, request: Request, principal: Principa
 async def _prepare_query_understanding(conn, request: ResearchRequest, principal: Principal,
         skill_context: dict, budget: dict, decision):
     selected_preset = None
+    selected_template = None
     if request.delivery.copied_from_template:
         origin=request.delivery.copied_from_template
-        if not await load_template(conn,_principal_id(principal),origin.template_id,origin.version):
+        selected_template=await load_template(conn,_principal_id(principal),origin.template_id,origin.version)
+        if not selected_template:
             raise HTTPException(404,'Template origin not found')
     if request.organization_research and request.organization_research.weight_preset:
         reference = request.organization_research.weight_preset
@@ -703,6 +705,21 @@ async def _prepare_query_understanding(conn, request: ResearchRequest, principal
             request_limits=limits, context=context)
     except ValueError as error:
         raise HTTPException(status_code=422, detail=str(error)) from None
+    if selected_template:
+        try:
+            original=DeliveryRequest.model_validate(selected_template['configuration']).model_dump(mode='json')
+        except ValueError:
+            # A historical revision can remain a valid origin even if its old
+            # configuration needs adjustment before a new task can use it.
+            original=deepcopy(selected_template['configuration'])
+        effective=request.delivery.model_dump(mode='json')
+        # Origin metadata is not part of the editable layout itself. The task
+        # keeps its actual layout/drawing configuration alongside this revision.
+        original.pop('copied_from_template',None);effective.pop('copied_from_template',None)
+        snapshot['delivery']['template_revision']={
+            'template_id':selected_template['template_id'],'version':selected_template['version'],
+            'modified_for_task':original!=effective,
+            'effective_configuration':'frozen_in_this_delivery_snapshot'}
     snapshot['context_candidates'] = (context or {}).get('entities', [])
     conflicts = [*compilation['conflicts'], *[{'stage': stage, **conflict}
         for stage, profile in compilation['profiles'].items() for conflict in profile['conflicts']]]
@@ -729,7 +746,8 @@ async def _prepare_query_understanding(conn, request: ResearchRequest, principal
         snapshot['clarifications'].append({'id': 'no_eligible_evidence_tools',
             'message': '当前任务与技能限制的交集中没有可用取证工具，请调整选择；系统不会扩大许可启动研究。'})
     snapshot['interpretation_id'] = identity({'query_contract': snapshot['interpretation_id'],
-        'skill_compilation_id': compilation['compilation_id']})
+        'skill_compilation_id': compilation['compilation_id'],
+        **({'template_revision':snapshot['delivery']['template_revision']} if selected_template else {})})
     return organization, snapshot
 
 

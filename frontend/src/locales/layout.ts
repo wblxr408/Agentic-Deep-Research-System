@@ -26,7 +26,7 @@ export const layoutEnglish:Record<string,string>={
   '原研究数据':'Previous research','原研究数据预览':'Previous research preview','使用原研究结果预览。':'Preview with the previous research results.','正在匹配资料…':'Matching data…','更新数据预览':'Refresh data preview','暂时无法读取原研究的预览。':'The previous research preview is unavailable.','等待资料':'Data required','已省略':'Omitted','暂无匹配资料':'No matching data','已有文字':'Existing text','已匹配':'Matched','{0} 项资料':'{0} items',
   '其他研究内容':'Other research content','保留在完整报告':'Retained in the full report',
   '筛选表格':'Filter table','报告章节':'Report sections','数值':'Value','研究内容':'Research','篇':'publications','项':'items','来源摘录':'Source excerpt',
-  '图形比例':'Figure proportions','组件{0}比例':'Component {0} proportions','横向':'Landscape','方形':'Square','纵向':'Portrait','版式资料':'Layout data',
+  '图形比例':'Figure proportions','组件{0}比例':'Component {0} proportions','横向':'Landscape','方形':'Square','纵向':'Portrait','版式资料':'Layout data','使用第 {0} 次保存的样式':'Using saved style version {0}','本次有调整':'Adjusted for this research',
   '单独指定的绘图方法最多 12 项。':'Choose at most 12 individual drawing methods.',
   '报告版式有组件缺少所需资料':'A report component requires data','可补充相关资料，或调整这些组件的缺失处理方式。':'Add relevant sources or change how these components handle missing data.','第 {0} 章 · 第 {1} 个组件':'Section {0} · component {1}',
   '缺少可核对的统计数据。':'Verifiable statistics are missing.','缺少有来源的关系数据。':'Source-backed relationship data is missing.','缺少有来源的技术对照。':'Source-backed technical comparisons are missing.','缺少可引用的来源。':'Citable sources are missing.','缺少相应的报告文字。':'The corresponding report text is missing.','缺少与组件匹配的资料。':'No data matches this component.',

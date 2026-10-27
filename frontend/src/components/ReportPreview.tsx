@@ -121,6 +121,7 @@ function ReportPreview({
           {!!budgetState.routing_decisions?.length&&<details><summary>{t("路由调整")}</summary>{budgetState.routing_decisions.map((item,index)=><p key={item.upgrade_id||index}>{item.stage} · {item.status} · {item.reason}{item.to_model&&` · ${item.from_model} → ${item.to_model}`}</p>)}</details>}
         </section>}
         {!!deliveryView?.layout_binding?.missing?.length&&<details><summary>{t('版式资料')}</summary><ul>{deliveryView.layout_binding.missing.map((item,index)=><li key={index}>{t('第 {0} 章 · 第 {1} 个组件',item.section_index,item.block_index)} · {item.status==='omitted'?t('已省略'):item.status==='required_missing'?t('等待资料'):t('暂无匹配资料')}</li>)}</ul></details>}
+        {deliveryView?.template_revision&&<section><h3>{t('报告样式')}</h3><p>{t('使用第 {0} 次保存的样式',deliveryView.template_revision.version)}{deliveryView.template_revision.modified_for_task?' · '+t('本次有调整'):''}</p></section>}
         {deliveryView&&<details><summary>{t("生成与交付记录")}</summary><p>{t("产物：")}{deliveryView.artifact_id}</p>{reportEditorial?.note&&<p>{reportEditorial.note}</p>}{deliveryView.gaps.map((gap,index)=><p key={index}>{gap}</p>)}
           <pre>{JSON.stringify({audit:deliveryView.audit,module_results:deliveryView.module_results,drawing:deliveryView.drawing,formats:deliveryView.formats},null,2)}</pre>
         </details>}
