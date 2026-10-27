@@ -415,6 +415,8 @@ async def run_migration(
                 logger.warning("Dropping existing tables (drop_existing=True)")
                 await conn.execute("""
                     DROP TABLE IF EXISTS source_sync_actions;
+                    DROP TABLE IF EXISTS source_sync_webhook_events;
+                    DROP TABLE IF EXISTS source_sync_webhooks;
                     DROP TABLE IF EXISTS source_sync_network_receipts;
                     DROP TABLE IF EXISTS source_sync_runs;
                     DROP TABLE IF EXISTS source_sync_subscriptions;

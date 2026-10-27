@@ -176,13 +176,22 @@ async def change_subscription(owner_id,subscription_id,request:SubscriptionActio
             # A schedule toggle does not revoke an explicit manual run whose
             # source and destination have not changed.
             await conn.execute('''UPDATE source_sync_runs SET subscription_revision=$3 WHERE subscription_id=$1::uuid
-                AND owner_id=$2::uuid AND trigger_kind='manual' AND status IN ('queued','running')''',
+                AND owner_id=$2::uuid AND trigger_kind IN ('manual','webhook') AND status IN ('queued','running')''',
                 subscription_id,str(owner_id),row['revision'])
+        else:
+            await conn.execute('''UPDATE source_sync_webhooks SET revoked_at=NOW(),secret_encrypted='' WHERE owner_id=$1::uuid
+                AND subscription_id=$2::uuid AND revoked_at IS NULL''',str(owner_id),subscription_id)
+            await conn.execute('''UPDATE source_sync_webhook_events SET status='canceled' WHERE owner_id=$1::uuid
+                AND subscription_id=$2::uuid AND status='pending' ''',str(owner_id),subscription_id)
         await conn.execute('''UPDATE source_sync_runs SET status='canceled',error_category='subscription_changed',
             network_calls_unknown=network_calls_unknown OR status='running',
             lease_token=NULL,lease_until=NULL,updated_at=NOW() WHERE subscription_id=$1::uuid AND owner_id=$2::uuid
             AND status IN ('queued','running') AND ($3::boolean OR trigger_kind='scheduled')''',
             subscription_id,str(owner_id),deleted)
+        if deleted:
+            await conn.execute('''UPDATE source_sync_webhook_events e SET status='canceled' WHERE e.owner_id=$1::uuid
+                AND e.subscription_id=$2::uuid AND e.status='assigned' AND EXISTS(SELECT 1 FROM source_sync_runs r
+                WHERE r.id=e.run_id AND r.owner_id=e.owner_id AND r.status='canceled')''',str(owner_id),subscription_id)
         value={**_subscription(row),'deleted':deleted,'replayed':False}
         await conn.execute('''INSERT INTO source_sync_actions(owner_id,request_id,subscription_id,fingerprint,result)
             VALUES($1::uuid,$2::uuid,$3::uuid,$4,$5::jsonb)''',str(owner_id),request.request_id,subscription_id,fingerprint,json.dumps(value,ensure_ascii=False))
@@ -293,6 +302,30 @@ async def _claim():
         await conn.execute('''UPDATE source_sync_runs SET status='failed',error_category='lease_receipt_unknown',
             network_calls_unknown=TRUE,lease_token=NULL,lease_until=NULL,updated_at=NOW()
             WHERE status='running' AND lease_until<NOW()''')
+        await conn.execute('''UPDATE source_sync_webhook_events e SET status='canceled' WHERE e.status='pending' AND (
+            NOT EXISTS(SELECT 1 FROM source_sync_webhooks h WHERE h.id=e.webhook_id AND h.owner_id=e.owner_id AND h.revoked_at IS NULL)
+            OR NOT EXISTS(SELECT 1 FROM source_sync_subscriptions s JOIN auth_principals p ON p.id=s.owner_id
+                WHERE s.id=e.subscription_id AND s.owner_id=e.owner_id AND s.deleted_at IS NULL AND p.is_active))''')
+        pending=await conn.fetch('''SELECT s.* FROM source_sync_subscriptions s JOIN auth_principals p ON p.id=s.owner_id
+            WHERE s.deleted_at IS NULL AND p.is_active AND EXISTS(SELECT 1 FROM source_sync_webhook_events e
+                WHERE e.owner_id=s.owner_id AND e.subscription_id=s.id AND e.status='pending')
+            ORDER BY s.id LIMIT 8 FOR UPDATE OF s SKIP LOCKED''')
+        for item in pending:
+            existing=await conn.fetchval('''SELECT id FROM source_sync_runs WHERE owner_id=$1::uuid AND subscription_id=$2::uuid
+                AND status IN ('queued','running')''',item['owner_id'],item['id'])
+            if existing:continue
+            hook_id=await conn.fetchval('''SELECT e.webhook_id FROM source_sync_webhook_events e JOIN source_sync_webhooks h
+                ON h.id=e.webhook_id AND h.owner_id=e.owner_id AND h.revoked_at IS NULL
+                WHERE e.owner_id=$1::uuid AND e.subscription_id=$2::uuid AND e.status='pending'
+                ORDER BY e.received_at,e.id LIMIT 1''',item['owner_id'],item['id'])
+            if not hook_id:continue
+            run_id=uuid4()
+            await conn.execute('''INSERT INTO source_sync_runs(id,owner_id,subscription_id,request_id,trigger_kind,webhook_id,
+                subscription_revision,status,deadline_at) VALUES($1::uuid,$2::uuid,$3::uuid,$4::uuid,'webhook',$5::uuid,$6,'queued',
+                NOW()+($7::int*INTERVAL '1 second'))''',run_id,item['owner_id'],item['id'],uuid4(),hook_id,item['revision'],RUN_SECONDS)
+            await conn.execute('''UPDATE source_sync_webhook_events SET status='assigned',run_id=$3::uuid
+                WHERE owner_id=$1::uuid AND subscription_id=$2::uuid AND webhook_id=$4::uuid AND status='pending' ''',
+                item['owner_id'],item['id'],run_id,hook_id)
         due=await conn.fetch('''SELECT s.* FROM source_sync_subscriptions s JOIN auth_principals p ON p.id=s.owner_id
             WHERE s.enabled AND s.deleted_at IS NULL AND s.next_run_at<=NOW() AND p.is_active
             ORDER BY s.next_run_at,s.id LIMIT 8 FOR UPDATE OF s SKIP LOCKED''')
@@ -316,8 +349,13 @@ async def _claim():
                 AND status='queued' AND not_before<=NOW() AND deadline_at>NOW() FOR UPDATE SKIP LOCKED''',candidate['id'],candidate['owner_id'])
             if not run:continue
             active_owner=await conn.fetchval('SELECT is_active FROM auth_principals WHERE id=$1::uuid',candidate['owner_id'])
+            valid_hook=True
+            if run['trigger_kind']=='webhook':
+                valid_hook=bool(await conn.fetchval('''SELECT 1 FROM source_sync_webhooks WHERE id=$1::uuid
+                    AND owner_id=$2::uuid AND subscription_id=$3::uuid AND revoked_at IS NULL''',
+                    run['webhook_id'],run['owner_id'],run['subscription_id']))
             if (not active_owner or subscription['deleted_at'] or run['subscription_revision']!=subscription['revision']
-                    or run['trigger_kind']=='scheduled' and not subscription['enabled']):
+                    or not valid_hook or run['trigger_kind']=='scheduled' and not subscription['enabled']):
                 await conn.execute("UPDATE source_sync_runs SET status='canceled',error_category='subscription_unavailable',updated_at=NOW() WHERE id=$1::uuid",run['id'])
                 continue
             if run['network_calls']>=MAX_NETWORK_CALLS:
@@ -351,14 +389,14 @@ async def _fail(claim,category,network_calls=0):
     pool=await get_db_pool()
     async with pool.acquire() as conn,conn.transaction():
         # Lock in the same order as user actions and successful writes.
-        await conn.fetchrow('SELECT id FROM auth_principals WHERE id=$1::uuid FOR UPDATE',claim['owner_id'])
+        owner=await conn.fetchrow('SELECT id,is_active FROM auth_principals WHERE id=$1::uuid FOR UPDATE',claim['owner_id'])
         sub=await conn.fetchrow('SELECT * FROM source_sync_subscriptions WHERE id=$1::uuid AND owner_id=$2::uuid FOR UPDATE',
             claim['subscription']['id'],claim['owner_id'])
         run=await conn.fetchrow('SELECT * FROM source_sync_runs WHERE id=$1::uuid AND owner_id=$2::uuid FOR UPDATE',claim['run_id'],claim['owner_id'])
         if not sub or not run:return
         await _record_network_receipt(conn,claim,network_calls)
         if run['status']!='running' or str(run['lease_token'])!=claim['token']:return
-        can_retry=(category in RETRY_LIMITS and run['attempts']<RETRY_LIMITS[category]
+        can_retry=(bool(owner and owner['is_active']) and category in RETRY_LIMITS and run['attempts']<RETRY_LIMITS[category]
             and run['network_calls']+network_calls<MAX_NETWORK_CALLS
             and run['deadline_at']>datetime.now(UTC) and sub['revision']==run['subscription_revision'] and not sub['deleted_at'])
         delay=min(20,2**run['attempts'])
@@ -391,6 +429,10 @@ async def _finish(claim,result):
                 or sub['deleted_at'] or sub['revision']!=run['subscription_revision']
                 or run['trigger_kind']=='scheduled' and not sub['enabled']):
             raise SourceSyncError(409,'source_sync_run_superseded')
+        if run['trigger_kind']=='webhook':
+            valid_hook=await conn.fetchval('''SELECT id FROM source_sync_webhooks WHERE id=$1::uuid AND owner_id=$2::uuid
+                AND subscription_id=$3::uuid AND revoked_at IS NULL FOR UPDATE''',run['webhook_id'],claim['owner_id'],sub['id'])
+            if not valid_hook:raise SourceSyncError(409,'source_webhook_revoked')
         await lock_owner(conn,claim['owner_id'])
         source=None
         if sub['source_id']:

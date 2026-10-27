@@ -32,7 +32,7 @@ CREATE TABLE IF NOT EXISTS source_sync_runs (
     owner_id UUID NOT NULL REFERENCES auth_principals(id) ON DELETE CASCADE,
     subscription_id UUID NOT NULL,
     request_id UUID NOT NULL,
-    trigger_kind TEXT NOT NULL CHECK (trigger_kind IN ('manual','scheduled')),
+    trigger_kind TEXT NOT NULL CHECK (trigger_kind IN ('manual','scheduled','webhook')),
     subscription_revision BIGINT NOT NULL,
     status TEXT NOT NULL CHECK (status IN ('queued','running','completed','failed','canceled')),
     attempts INTEGER NOT NULL DEFAULT 0,
@@ -46,6 +46,7 @@ CREATE TABLE IF NOT EXISTS source_sync_runs (
     network_calls INTEGER NOT NULL DEFAULT 0,
     network_calls_unknown BOOLEAN NOT NULL DEFAULT FALSE,
     http_status INTEGER,
+    webhook_id UUID,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     UNIQUE (owner_id, request_id),
@@ -56,6 +57,9 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_source_sync_one_active
     ON source_sync_runs(owner_id,subscription_id) WHERE status IN ('queued','running');
 CREATE INDEX IF NOT EXISTS idx_source_sync_dispatch ON source_sync_runs(status,not_before,deadline_at);
 CREATE INDEX IF NOT EXISTS idx_source_sync_owner_history ON source_sync_runs(owner_id,subscription_id,created_at DESC);
+ALTER TABLE source_sync_runs ADD COLUMN IF NOT EXISTS webhook_id UUID;
+ALTER TABLE source_sync_runs DROP CONSTRAINT IF EXISTS source_sync_runs_trigger_kind_check;
+ALTER TABLE source_sync_runs ADD CONSTRAINT source_sync_runs_trigger_kind_check CHECK (trigger_kind IN ('manual','scheduled','webhook'));
 CREATE TABLE IF NOT EXISTS source_sync_network_receipts (
     owner_id UUID NOT NULL,
     run_id UUID NOT NULL,
@@ -75,4 +79,36 @@ CREATE TABLE IF NOT EXISTS source_sync_actions (
     PRIMARY KEY (owner_id,request_id),
     FOREIGN KEY (owner_id,subscription_id) REFERENCES source_sync_subscriptions(owner_id,id) ON DELETE CASCADE
 );
+CREATE TABLE IF NOT EXISTS source_sync_webhooks (
+    id UUID PRIMARY KEY,
+    owner_id UUID NOT NULL REFERENCES auth_principals(id) ON DELETE CASCADE,
+    subscription_id UUID NOT NULL,
+    request_id UUID NOT NULL,
+    request_fingerprint TEXT NOT NULL,
+    secret_encrypted TEXT NOT NULL,
+    revoked_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE(owner_id,id), UNIQUE(owner_id,request_id),
+    FOREIGN KEY(owner_id,subscription_id) REFERENCES source_sync_subscriptions(owner_id,id) ON DELETE CASCADE
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_source_sync_one_webhook
+    ON source_sync_webhooks(owner_id,subscription_id) WHERE revoked_at IS NULL;
+CREATE TABLE IF NOT EXISTS source_sync_webhook_events (
+    id UUID PRIMARY KEY,
+    owner_id UUID NOT NULL,
+    webhook_id UUID NOT NULL,
+    subscription_id UUID NOT NULL,
+    delivery_id UUID NOT NULL,
+    payload_fingerprint TEXT NOT NULL,
+    status TEXT NOT NULL CHECK(status IN ('pending','assigned','canceled')),
+    run_id UUID,
+    received_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE(webhook_id,delivery_id), UNIQUE(webhook_id,payload_fingerprint),
+    FOREIGN KEY(owner_id,webhook_id) REFERENCES source_sync_webhooks(owner_id,id) ON DELETE CASCADE,
+    FOREIGN KEY(owner_id,subscription_id) REFERENCES source_sync_subscriptions(owner_id,id) ON DELETE CASCADE,
+    FOREIGN KEY(owner_id,run_id) REFERENCES source_sync_runs(owner_id,id) ON DELETE SET NULL (run_id)
+);
+CREATE INDEX IF NOT EXISTS idx_source_sync_webhook_pending ON source_sync_webhook_events(subscription_id,received_at)
+    WHERE status='pending';
+CREATE INDEX IF NOT EXISTS idx_source_sync_webhook_owner_history ON source_sync_webhook_events(owner_id,received_at);
 """

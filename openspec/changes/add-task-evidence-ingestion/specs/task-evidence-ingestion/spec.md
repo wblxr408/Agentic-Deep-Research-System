@@ -21,6 +21,17 @@
 - **WHEN** 有界读取取得新的可解析内容且目标版本仍有效
 - **THEN** 以同一来源家族追加新版本，保留原文、来源时间、原版本和引用，并记录真实取得结果
 
+### Requirement: Signed source event notifications
+系统 SHALL 允许本人为已登记来源选择 GitHub Webhook 作为事件触发，验证原始正文的 SHA-256 签名与有效授权；事件只调度该来源原有读取，不接受事件指定的新 URL 或指令。重复投递须幂等；读取期间到来的新事件须保留并在当前读取后合并处理。
+
+#### Scenario: Repeated or concurrent deliveries
+- **WHEN** 同一签名正文或投递重复到达，或多个新事件在来源读取期间到达
+- **THEN** 已接收正文不重复排队，新事件保存回执并最多合并为一次后续读取
+
+#### Scenario: Event authorization is revoked
+- **WHEN** 用户撤销事件接收或停用账号
+- **THEN** 后续投递及已派发但尚未提交的关联写入不得生效，已保存资料和历史报告保留
+
 ### Requirement: Explicit source discovery and batch intake
 系统 SHALL 复用手动登记、启用渠道、种子与检索发现，并允许用户显式选择文件集合或目录后有界批量上传；逐项显示采纳、复用、失败和未处理状态。目录选择不得授予服务端任意本地目录读取权限。
 

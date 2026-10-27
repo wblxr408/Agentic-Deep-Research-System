@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import re
 import time
 from collections import defaultdict, deque
 
@@ -105,13 +106,16 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         settings = get_settings()
         path = request.url.path
         client = request.client.host if request.client else "unknown"
+        source_hook=request.method=='POST' and bool(re.fullmatch(r'/api/v1/source-sync/hooks/[0-9a-fA-F-]{36}',path))
+        if source_hook and not rate_limiter.allowed(f'source-hook:{client}',60):
+            return JSONResponse({'detail':'rate_limited'},status_code=429)
         if path == "/api/v1/auth/login" and not rate_limiter.allowed(f"login:{client}", settings.security.login_rate_limit):
             return JSONResponse({"detail": "rate_limited"}, status_code=429)
         if path in {"/api/v1/auth/register", "/api/v1/auth/initialize"} and request.method == 'POST' and not rate_limiter.allowed(f"register:{client}", settings.security.registration_rate_limit):
             return JSONResponse({"detail": "rate_limited"}, status_code=429)
         if path == "/api/v1/documents/upload" and not rate_limiter.allowed(f"upload:{client}", settings.security.upload_rate_limit):
             return JSONResponse({"detail": "rate_limited"}, status_code=429)
-        if settings.security.auth_enabled and path.startswith("/api/") and path not in PUBLIC_PATHS:
+        if settings.security.auth_enabled and path.startswith("/api/") and path not in PUBLIC_PATHS and not source_hook:
             authorization = request.headers.get("authorization")
             if not authorization and not request.cookies.get(settings.security.cookie_name):
                 return JSONResponse({"detail": "authentication_required"}, status_code=401)

@@ -3,6 +3,7 @@ import {useQuery,useQueryClient} from '@tanstack/react-query'
 import {localeCode,t,uiDefinition,uiMessage,useLocale} from '../i18n'
 import {collectionRequest,jsonOptions} from './CollectionUI'
 import {Icon} from './Interface'
+import SourceWebhookPanel from './SourceWebhookPanel'
 
 interface SyncRun {run_id:string;status:string;outcome:string|null;error_category:string|null;network_calls:number;network_calls_unknown:boolean;updated_at:string}
 interface Subscription {subscription_id:string;name:string;group_name:string;url:string;interval_seconds:number;enabled:boolean;revision:number;source_id:string|null;next_run_at:string|null;last_outcome:string|null;last_error:string|null;latest_run:SyncRun|null}
@@ -21,6 +22,7 @@ const errors:Record<string,string>=uiDefinition({
   source_sync_dense_configuration_requires_manual_update:'该资料的编码设置已变化，请手动更新',
   source_sync_partial_replacement_blocked:'新内容读取不完整，已保留原版本',
   subscription_changed:'来源设置已变化',subscription_unavailable:'来源或账号已不可用',
+  webhook_revoked:'事件通知已撤销',source_webhook_revoked:'事件通知已撤销',
 })
 const showTime=(value:string)=>new Date(value).toLocaleString(localeCode(),{year:'numeric',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})
 
@@ -29,6 +31,7 @@ export default function SourceSyncPanel({group,groups,onChanged}:{group:string;g
   const client=useQueryClient(),[adding,setAdding]=useState(false),[name,setName]=useState(''),[url,setUrl]=useState(''),
     [groupName,setGroupName]=useState(group||'我的资料'),[interval,setInterval]=useState(86400),[enabled,setEnabled]=useState(false),
     [busy,setBusy]=useState(''),[error,setError]=useState(''),[history,setHistory]=useState<string|null>(null)
+  const [webhook,setWebhook]=useState<string|null>(null)
   const guard=useRef(false),createId=useRef<string|null>(null),attemptIds=useRef<Record<string,string>>({}),seen=useRef<Record<string,string>>({})
   const query=useQuery<{items:Subscription[]}>({queryKey:['source-sync'],queryFn:({signal})=>collectionRequest('/api/v1/source-sync/subscriptions',{signal}),
     refetchInterval:value=>value.state.data?.items.some(item=>['queued','running'].includes(item.latest_run?.status||''))?2500:30000})
@@ -89,7 +92,9 @@ export default function SourceSyncPanel({group,groups,onChanged}:{group:string;g
         <select aria-label={t("调整同步频率")} value={item.interval_seconds} disabled={!!busy} onChange={event=>void act(item,'interval',Number(event.target.value))}>{![900,3600,86400,604800,2592000].includes(item.interval_seconds)&&<option value={item.interval_seconds}>{t("每 {0} 秒",item.interval_seconds)}</option>}<option value={900}>{t("每 15 分钟")}</option><option value={3600}>{t("每小时")}</option><option value={86400}>{t("每天")}</option><option value={604800}>{t("每周")}</option><option value={2592000}>{t("每 30 天")}</option></select>
         <button type="button" className="btn-ghost" disabled={!!busy} onClick={()=>void act(item,item.enabled?'pause':'enable')}>{item.enabled?t("暂停定时"):t("启用定时")}</button>
         <button type="button" className="btn-ghost" onClick={()=>setHistory(history===item.subscription_id?null:item.subscription_id)}>{t("同步记录")}</button>
+        <button type="button" className="btn-ghost" onClick={()=>setWebhook(webhook===item.subscription_id?null:item.subscription_id)}>{t("事件通知")}</button>
         <button type="button" className="btn-ghost" disabled={!!busy} onClick={()=>void act(item,'delete')}>{t("移除同步")}</button></div>
+      {webhook===item.subscription_id&&<SourceWebhookPanel key={item.subscription_id} subscriptionId={item.subscription_id}/>}
       {history===item.subscription_id&&<div className="source-sync-history">{runs.isLoading?<p>{t("正在读取记录…")}</p>:runs.isError?<p>{t("记录暂时无法读取")}</p>:!runs.data?.items.length?<p>{t("尚无同步记录")}</p>:runs.data.items.map(run=><p key={run.run_id}>{showTime(run.updated_at)} · {states[run.status]||t("同步记录")}{run.outcome&&outcomes[run.outcome]?' · '+outcomes[run.outcome]:''}{run.error_category?' · '+(errors[run.error_category]||t("请查看同步记录")):''}{run.network_calls_unknown?' · '+t("读取次数未完全确认"):''}</p>)}</div>}
     </article>)}</div>}
   </div>

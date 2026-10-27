@@ -25,6 +25,7 @@ from app.api import (
     workspaces_router,
     personal_connections_router,
     source_sync_router,
+    source_sync_events_router,
 )
 from app.api.config import load_runtime_llm_config_from_db
 from app.config import get_settings
@@ -153,6 +154,7 @@ def create_app() -> FastAPI:
     app.include_router(workspaces_router)
     app.include_router(personal_connections_router)
     app.include_router(source_sync_router)
+    app.include_router(source_sync_events_router)
 
     # Root endpoint
     @app.get("/")
