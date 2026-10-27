@@ -28,6 +28,24 @@ CREATE TABLE IF NOT EXISTS auth_registration_policy (
     updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 INSERT INTO auth_registration_policy(singleton) VALUES(TRUE) ON CONFLICT DO NOTHING;
+CREATE TABLE IF NOT EXISTS auth_verified_emails (
+    principal_id UUID PRIMARY KEY REFERENCES auth_principals(id) ON DELETE CASCADE,
+    address TEXT NOT NULL UNIQUE,
+    verified_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE TABLE IF NOT EXISTS auth_email_challenges (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    principal_id UUID NOT NULL REFERENCES auth_principals(id) ON DELETE CASCADE,
+    address TEXT NOT NULL,
+    kind TEXT NOT NULL CHECK(kind IN ('verify','reset')),
+    token_hash TEXT NOT NULL UNIQUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    expires_at TIMESTAMPTZ NOT NULL,
+    consumed_at TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS idx_auth_email_challenge_principal
+    ON auth_email_challenges(principal_id,kind,created_at DESC);
 ALTER TABLE skill_meta DROP CONSTRAINT IF EXISTS skill_meta_slug_key;
 CREATE UNIQUE INDEX IF NOT EXISTS idx_skill_meta_owner_slug ON skill_meta(owner_id,slug);
 """
