@@ -4,6 +4,8 @@ import hashlib
 import json
 from typing import Any
 
+import asyncpg
+import yaml
 from fastapi import HTTPException
 
 from app.core.time import utc_now_naive
@@ -17,8 +19,8 @@ from app.skills.models import (
     SkillRecord,
 )
 from app.skills.parser import (
-    build_skill_markdown,
     derive_coarse_terms,
+    FRONTMATTER_PATTERN,
     parse_skill_markdown,
 )
 
@@ -345,26 +347,48 @@ async def create_skill(markdown_content: str, owner_id: str) -> SkillRecord:
     return SkillRecord(meta=_row_to_meta(row), content=await get_skill_content(str(row["id"]), metadata.version, owner_id))
 
 
-async def update_skill(skill_id: str, markdown_content: str, owner_id: str) -> SkillRecord:
-    existing = await get_skill_meta_by_id(skill_id, owner_id)
+def _set_frontmatter_scalar(markdown_content: str, key: str, value: str) -> str:
+    """Change a top-level scalar without discarding personal YAML comments."""
+    text=markdown_content.strip()
+    match=FRONTMATTER_PATTERN.match(text)
+    if not match:
+        raise HTTPException(422,'invalid_skill_document')
+    header=match.group(1)
+    node=yaml.compose(header)
+    if not isinstance(node,yaml.MappingNode):
+        raise HTTPException(422,'invalid_skill_document')
+    pairs=[(k,v) for k,v in node.value if isinstance(k,yaml.ScalarNode) and k.value==key]
+    if pairs:
+        k,v=pairs[-1]
+        if not isinstance(v,yaml.ScalarNode) or v.start_mark.index<k.end_mark.index:
+            raise HTTPException(422,'skill_frontmatter_scalar_not_editable')
+        header=header[:v.start_mark.index]+value+header[v.end_mark.index:]
+    elif node.flow_style:
+        close=node.end_mark.index-1
+        header=header[:close]+(', ' if node.value else '')+f'{json.dumps(key)}: {value}'+header[close:]
+    else:
+        header=header.rstrip()+f'\n{key}: {value}'
+    return text[:match.start(1)]+header+text[match.end(1):]+'\n'
+
+
+async def _write_skill_revision(conn, skill_id: str, markdown_content: str, owner_id: str,
+                                expected_version: int | None = None) -> SkillRecord:
+    existing=await conn.fetchrow('''SELECT current_version,is_deleted FROM skill_meta
+        WHERE id=$1::uuid AND owner_id=$2::uuid FOR UPDATE''',skill_id,owner_id)
+    if not existing or existing['is_deleted']:
+        raise HTTPException(status_code=404,detail='Skill not found')
+    if expected_version is not None and existing['current_version']!=expected_version:
+        raise HTTPException(status_code=409,detail='skill_version_conflict')
     metadata, body, sections = parse_skill_markdown(markdown_content)
-    slug_conflict = await get_skill_meta_by_slug(metadata.slug, owner_id)
-    if slug_conflict is not None and slug_conflict.id != skill_id:
-        raise HTTPException(status_code=409, detail=f"Skill slug '{metadata.slug}' already exists")
-
-    next_version = max(metadata.version, existing.version + 1)
-    if next_version != metadata.version:
-        metadata = metadata.model_copy(update={"version": next_version})
-        markdown_content = build_skill_markdown(
-            metadata=metadata.model_dump(),
-            body=body,
-        )
-
+    conflict=await conn.fetchval('SELECT id FROM skill_meta WHERE slug=$1 AND owner_id=$2::uuid AND id<>$3::uuid',metadata.slug,owner_id,skill_id)
+    if conflict:
+        raise HTTPException(status_code=409,detail='skill_slug_conflict')
+    next_version=max(metadata.version,existing['current_version']+1)
+    markdown_content=_set_frontmatter_scalar(markdown_content,'version',str(next_version))
+    metadata,body,sections=parse_skill_markdown(markdown_content)
     coarse_terms = derive_coarse_terms(metadata)
     now = utc_now_naive()
-    pool = await get_db_pool()
-    async with pool.acquire() as conn, conn.transaction():
-            row = await conn.fetchrow(
+    row = await conn.fetchrow(
                 """
                 UPDATE skill_meta
                 SET slug = $2,
@@ -413,21 +437,15 @@ async def update_skill(skill_id: str, markdown_content: str, owner_id: str) -> S
                 now,
                 owner_id,
             )
-            if not row:
-                raise HTTPException(status_code=404, detail="Skill not found")
-            await conn.execute(
+    if not row:
+        raise HTTPException(status_code=404, detail="Skill not found")
+    content_row=await conn.fetchrow(
                 """
                 INSERT INTO skill_content (
                     skill_id, version, markdown_content, body, overview, prompt, constraints, content_hash, created_at
                 )
                 VALUES ($1::uuid, $2, $3, $4, $5, $6, $7, $8, $9)
-                ON CONFLICT (skill_id, version) DO UPDATE SET
-                    markdown_content = EXCLUDED.markdown_content,
-                    body = EXCLUDED.body,
-                    overview = EXCLUDED.overview,
-                    prompt = EXCLUDED.prompt,
-                    constraints = EXCLUDED.constraints,
-                    content_hash = EXCLUDED.content_hash
+                RETURNING skill_id,version,markdown_content,body,overview,prompt,constraints,content_hash,created_at
                 """,
                 skill_id,
                 next_version,
@@ -439,7 +457,17 @@ async def update_skill(skill_id: str, markdown_content: str, owner_id: str) -> S
                 _content_hash(markdown_content),
                 now,
             )
-    return SkillRecord(meta=_row_to_meta(row), content=await get_skill_content(skill_id, next_version, owner_id))
+    return SkillRecord(meta=_row_to_meta(row),content=_row_to_content(content_row))
+
+
+async def update_skill(skill_id: str, markdown_content: str, owner_id: str, *, expected_version: int | None = None) -> SkillRecord:
+    await ensure_skill_storage_bootstrapped()
+    pool=await get_db_pool()
+    try:
+        async with pool.acquire() as conn,conn.transaction():
+            return await _write_skill_revision(conn,skill_id,markdown_content,owner_id,expected_version)
+    except asyncpg.UniqueViolationError:
+        raise HTTPException(status_code=409,detail='skill_version_or_slug_conflict') from None
 
 
 async def delete_skill(skill_id: str, owner_id: str) -> None:

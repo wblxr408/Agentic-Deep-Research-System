@@ -241,6 +241,7 @@ class SkillCreateRequest(BaseModel):
 
 class SkillUpdateRequest(BaseModel):
     markdown_content: str = Field(..., min_length=1, max_length=65536)
+    expected_version: int | None = Field(default=None, ge=1)
 
 
 class SkillMatchResult(BaseModel):

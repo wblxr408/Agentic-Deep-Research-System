@@ -47,12 +47,30 @@ async def ensure_default_methods(owner_id: str) -> None:
         rows = await conn.fetch('SELECT id,slug FROM skill_meta WHERE owner_id=$1::uuid', owner_id)
         existing_slugs = {row['slug'] for row in rows}
         existing_ids = {str(row['id']) for row in rows}
+        by_slug = {row['slug']:str(row['id']) for row in rows}
+        linked={str(row['skill_id']) for row in await conn.fetch(
+            'SELECT DISTINCT skill_id FROM skill_default_transitions WHERE owner_id=$1::uuid',owner_id)}
         now = utc_now_naive()
         for metadata, markdown, body, sections in methods:
             skill_id = str(uuid5(NAMESPACE_URL, f'adrs:research-default:{owner_id}:{metadata.slug}'))
             # Include tombstones and disabled/renamed copies. Never overwrite
             # personal source, recreate a deleted method, or undo a user choice.
             if metadata.slug in existing_slugs or skill_id in existing_ids:
+                candidate=skill_id if skill_id in existing_ids else by_slug[metadata.slug]
+                if candidate not in linked:
+                    first=await conn.fetchrow('''SELECT version,markdown_content FROM skill_content
+                        WHERE skill_id=$1::uuid ORDER BY version LIMIT 1''',candidate)
+                    # A deterministic ID proves this was seeded, but if its
+                    # initial bytes do not match the current bundle the prior
+                    # upstream baseline cannot be authenticated automatically.
+                    if first and (candidate==skill_id or first['markdown_content']==markdown):
+                        initial=first['markdown_content']
+                        await conn.execute('''INSERT INTO skill_default_transitions
+                            (owner_id,skill_id,personal_version,bundle_slug,baseline_hash,baseline_markdown,provenance)
+                            VALUES($1::uuid,$2::uuid,$3,$4,$5,$6,$7) ON CONFLICT DO NOTHING''',
+                            owner_id,candidate,first['version'],metadata.slug,hashlib.sha256(initial.encode('utf-8')).hexdigest(),
+                            initial,'matched' if initial==markdown else 'unverified')
+                        linked.add(candidate)
                 continue
             inserted = await conn.fetchval(
                 """INSERT INTO skill_meta (
@@ -80,3 +98,7 @@ async def ensure_default_methods(owner_id: str) -> None:
                     sections.get('prompt', ''), sections.get('constraints', ''),
                     hashlib.sha256(markdown.encode('utf-8')).hexdigest(), now,
                 )
+                await conn.execute('''INSERT INTO skill_default_transitions
+                    (owner_id,skill_id,personal_version,bundle_slug,baseline_hash,baseline_markdown,provenance)
+                    VALUES($1::uuid,$2::uuid,$3,$4,$5,$6,'seeded')''',owner_id,inserted,metadata.version,
+                    metadata.slug,hashlib.sha256(markdown.encode('utf-8')).hexdigest(),markdown)

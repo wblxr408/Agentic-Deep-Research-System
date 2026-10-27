@@ -71,7 +71,7 @@ async def upload_skill(file: SkillUpload, principal: PrincipalDep):
 
 @router.put("/{skill_id}")
 async def update_skill_endpoint(skill_id: str, request: SkillUpdateRequest, principal: PrincipalDep):
-    skill = await _validated_skill_write(update_skill(skill_id, request.markdown_content, principal.id))
+    skill = await _validated_skill_write(update_skill(skill_id, request.markdown_content, principal.id,expected_version=request.expected_version))
     await get_skill_registry(principal.id).upsert(skill)
     return _runtime_payload(skill)
 

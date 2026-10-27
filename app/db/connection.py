@@ -22,6 +22,7 @@ from app.db.retrieval_indexes import RETRIEVAL_SCHEMA_SQL
 from app.source_lifecycle import SCHEMA_SQL as LIFECYCLE_SCHEMA_SQL
 from app.db.text_search import regconfig_sql_literal, resolve_text_search_config
 from app.db.accounts import migrate_accounts
+from app.db.skill_versions import SCHEMA_SQL as SKILL_VERSIONS_SCHEMA_SQL
 
 if TYPE_CHECKING:
     import redis.asyncio as redis
@@ -436,6 +437,7 @@ async def init_db() -> asyncpg.Pool:
         await conn.execute(MATCHING_SCHEMA_SQL)
         await conn.execute(PRESET_SCHEMA_SQL)
         await conn.execute(REPORT_DELIVERY_SCHEMA_SQL)
+        await conn.execute(SKILL_VERSIONS_SCHEMA_SQL)
         await conn.execute(RESEARCH_QUALITY_SCHEMA_SQL)
         await conn.execute(EXECUTION_CONTROL_SCHEMA_SQL)
         await conn.execute(RETRIEVAL_SCHEMA_SQL)
