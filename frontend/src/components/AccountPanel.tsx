@@ -5,6 +5,7 @@ import type { Account } from './AuthGate'
 import { TraceLoader } from './Interface'
 import {EmailSettings} from './EmailRecovery'
 import CollaborationSpaces from './CollaborationSpaces'
+import PersonalConnections from './PersonalConnections'
 
 async function accountRequest(path: string, init?: RequestInit) {
   const response = await fetch(`/api/v1/auth${path}`, init)
@@ -39,6 +40,7 @@ export default function AccountPanel({ account, onLogout, onAdmin }: { account: 
     <section className="account-card"><h2>{t("账号")}</h2><div className="account-actions">{account.role === 'admin' && <button type="button" className="btn-secondary" onClick={onAdmin}>{t("管理用户")}</button>}<button type="button" className="btn-secondary" disabled={busy} onClick={() => void logout()}>{t("退出登录")}</button></div></section>
     {account.auth_type !== 'disabled'&&<EmailSettings key={account.id} ownerId={account.id}/>}
     {account.auth_type !== 'disabled'&&<CollaborationSpaces key={account.id} ownerId={account.id}/>}
+    {account.auth_type !== 'disabled'&&<PersonalConnections key={account.id} ownerId={account.id}/>}
     {account.auth_type !== 'disabled' && <section className="account-card"><h2>{t("修改密码")}</h2><form onSubmit={changePassword} className="account-form">
       <label>{t("当前密码")}<input type="password" autoComplete="current-password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} required className="input-xm" /></label>
       <label>{t("新密码")}<input type="password" autoComplete="new-password" value={newPassword} onChange={e => setNewPassword(e.target.value)} minLength={12} required className="input-xm" /></label>

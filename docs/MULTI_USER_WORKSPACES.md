@@ -20,7 +20,7 @@
 
 ## 个人平台连接源码进度（2026-10-27）
 
-`GET /api/v1/connections/github` 只返回本人是否配置、是否启用及部署加密配置状态；`PUT` 保存或替换、`PATCH` 启停、`DELETE` 撤销本人 GitHub 凭据，不返回凭据。保存时需要部署配置 `SECURITY_ENCRYPTION_KEY`，令牌以已有 Fernet 加密后保存在本人渠道状态中；删除不需要解密。保存不代表凭据已经通过平台验证。账号和当前会话在操作期间由数据库事务约束，其他账号无法读取或操作该连接。连接存储与 GitHub 请求路径源码已接入，界面尚待实现，未进行真实平台调用。
+`GET /api/v1/connections/github` 只返回本人是否配置、是否启用及部署加密配置状态；`PUT` 保存或替换、`PATCH` 启停、`DELETE` 撤销本人 GitHub 凭据，不返回凭据。保存时需要部署配置 `SECURITY_ENCRYPTION_KEY`，令牌以已有 Fernet 加密后保存在本人渠道状态中；删除不需要解密。保存不代表凭据已经通过平台验证。账号和当前会话在操作期间由数据库事务约束，其他账号无法读取或操作该连接。连接存储、GitHub 请求路径和账号页管理界面源码已接入，未进行真实平台或浏览器验证。
 
 工具契约：支持公开或本人明确启用授权的 GitHub 仓库搜索，以及 `https://github.com/所有者/仓库` 对应的仓库资料与 README 只读获取；README 需要令牌具有该仓库的内容读取权限。使用官方 `api.github.com` 的固定 HTTPS 路径、GET 和约定请求头，不执行仓库代码，不从 URL 接收凭据，也不复用宿主 `gh` 登录态。API 重定向直接停止；仓库更名后应使用当前地址。每次新网络请求重新检查本人连接版本，暂停、替换或撤销后不继续使用旧授权。所有授权获取结果至少标记为内部数据，后续模型选择、来源范围、网络授权和调用预算仍由原任务契约控制。个人授权只覆盖这里列明的 GitHub 操作；其他平台不自动获得登录态。接口约定见 [GitHub REST 认证](https://docs.github.com/en/rest/authentication/authenticating-to-the-rest-api)和 [README 内容接口](https://docs.github.com/en/rest/repos/contents#get-a-repository-readme)。
 

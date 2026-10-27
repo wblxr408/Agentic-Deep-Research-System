@@ -17,4 +17,12 @@ export const collaborationEnglish:Record<string,string>={
   '只有空间所有者可以操作。':'Only the space owner can do this.','所有者可归档空间。':'The owner can archive the space.',
   '空间成员已达上限。':'The space has reached its member limit.','空间已达上限。':'Space limit reached.',
   '分享已达上限。':'Share limit reached.','操作内容已变化，请重新提交。':'The request changed. Submit it again.'
+  ,'个人平台连接':'Personal connections','使用自己的账号读取 GitHub 仓库与 README。':'Read GitHub repositories and READMEs with your own account.',
+  '服务端尚未配置凭据加密。':'Credential encryption is not configured on the server.',
+  '已启用 · 令牌尚未验证':'Enabled · token not yet verified','已保存 · 未启用':'Saved · not enabled','尚未连接':'Not connected',
+  '替换令牌':'Replace token','添加令牌':'Add token','暂停使用':'Pause','启用':'Enable','撤销连接':'Remove connection',
+  'GitHub 访问令牌':'GitHub access token','仅需仓库元数据和内容读取权限。':'Only repository metadata and content read access are needed.',
+  '保存后启用':'Enable after saving','令牌已保存。':'Token saved.','连接已撤销。':'Connection removed.',
+  '请先保存访问令牌。':'Save an access token first.','个人连接暂不可用。':'Personal connection is unavailable.',
+  '令牌格式不正确。':'The token format is invalid.'
 }
