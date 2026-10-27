@@ -12,6 +12,7 @@ from app.core.time import utc_now_naive
 from app.db.connection import get_db_pool
 from app.db.json import dumps_json
 from app.skills.defaults import ensure_default_methods
+from app.skills.generation import bump_generation
 from app.skills.models import (
     SkillContentRecord,
     SkillMetadata,
@@ -344,6 +345,7 @@ async def create_skill(markdown_content: str, owner_id: str) -> SkillRecord:
                 _content_hash(markdown_content),
                 now,
             )
+            await bump_generation(conn,owner_id)
     return SkillRecord(meta=_row_to_meta(row), content=await get_skill_content(str(row["id"]), metadata.version, owner_id))
 
 
@@ -457,6 +459,7 @@ async def _write_skill_revision(conn, skill_id: str, markdown_content: str, owne
                 _content_hash(markdown_content),
                 now,
             )
+    await bump_generation(conn,owner_id)
     return SkillRecord(meta=_row_to_meta(row),content=_row_to_content(content_row))
 
 
@@ -473,7 +476,7 @@ async def update_skill(skill_id: str, markdown_content: str, owner_id: str, *, e
 async def delete_skill(skill_id: str, owner_id: str) -> None:
     await ensure_skill_storage_bootstrapped()
     pool = await get_db_pool()
-    async with pool.acquire() as conn:
+    async with pool.acquire() as conn,conn.transaction():
         result = await conn.execute(
             """
             UPDATE skill_meta
@@ -486,5 +489,6 @@ async def delete_skill(skill_id: str, owner_id: str) -> None:
             utc_now_naive(),
             owner_id,
         )
-    if result.endswith("0"):
-        raise HTTPException(status_code=404, detail="Skill not found")
+        if result.endswith("0"):
+            raise HTTPException(status_code=404, detail="Skill not found")
+        await bump_generation(conn,owner_id)

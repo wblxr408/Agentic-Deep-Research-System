@@ -21,6 +21,7 @@ from app.skills.models import (
     SkillRecord,
 )
 from app.skills.parser import tokenize_query, _parse_sections
+from app.skills.generation import read_generation
 from app.skills.service import (
     get_skill_content,
     get_skill_content_batch,
@@ -42,6 +43,7 @@ class SkillRegistry:
         self._content_l1: OrderedDict[tuple[str, int], SkillContentRecord] = OrderedDict()
         self._revision: int = 0
         self._version_token: str = "empty"
+        self._generation: int | None = None
 
     async def load(self) -> None:
         if self._owner_id is None:
@@ -50,12 +52,14 @@ class SkillRegistry:
             self._rebuild_indexes([])
             return
         async with self._lock:
+            generation=await read_generation(self._owner_id)
             metas = await list_skill_meta(self._owner_id, include_deleted=False)
             self._rebuild_indexes(metas)
+            self._generation=generation
             self._loaded = True
 
     async def ensure_loaded(self) -> None:
-        if not self._loaded:
+        if not self._loaded or self._owner_id is not None and await read_generation(self._owner_id)!=self._generation:
             await self.load()
 
     async def upsert(self, skill_record: SkillRecord) -> None:
@@ -91,11 +95,8 @@ class SkillRegistry:
 
     async def get_skill_record(self, skill_id: str) -> SkillRecord:
         self._require_owner()
-        meta = self.get_meta_by_id(skill_id)
-        if meta is None:
-            meta = await self._get_cached_meta_l2(skill_id)
-        if meta is None:
-            meta = await get_skill_meta_by_id(skill_id, self._owner_id)
+        await self.ensure_loaded()
+        meta = await get_skill_meta_by_id(skill_id, self._owner_id)
         if meta is not None and not meta.is_deleted and meta.metadata.enabled:
             async with self._lock:
                 if skill_id not in self._meta_by_id:
@@ -115,8 +116,7 @@ class SkillRegistry:
         project_id: str | None = None,
     ) -> SessionSkillSelection:
         self._require_owner()
-        if not self._loaded and not self._meta_by_id:
-            await self.load()
+        await self.ensure_loaded()
         enabled_overrides = list(dict.fromkeys(manually_enabled_skill_ids or []))
         disabled_overrides = set(manually_disabled_skill_ids or [])
         match_cache_key = self._match_cache_key(

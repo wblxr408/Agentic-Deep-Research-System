@@ -1,8 +1,9 @@
 import {useSyncExternalStore} from 'react'
 import {english as baseEnglish} from './locales/en'
 import {layoutEnglish} from './locales/layout'
+import {skillVersionsEnglish} from './locales/skillVersions'
 import {systemMessages} from './locales/system'
-const english:Record<string,string>={...baseEnglish,...layoutEnglish}
+const english:Record<string,string>={...baseEnglish,...layoutEnglish,...skillVersionsEnglish}
 export type Locale='zh'|'en'
 const key='deepintel.appearance.v1'
 let language:Locale=(()=>{try{return JSON.parse(localStorage.getItem(key)||'{}').language==='en'?'en':'zh'}catch{return 'zh'}})()

@@ -13,6 +13,7 @@ from app.core.time import utc_now_naive
 from app.db.connection import get_db_pool
 from app.db.json import dumps_json
 from app.skills.parser import derive_coarse_terms, parse_skill_markdown
+from app.skills.generation import bump_generation
 
 _BUNDLE = Path(__file__).resolve().parents[2] / 'resources' / 'research-skills' / 'bookshelf'
 
@@ -33,15 +34,23 @@ def _bundled_methods():
     return tuple(methods)
 
 
+@lru_cache(maxsize=1)
+def bundled_releases():
+    manifest=json.loads((_BUNDLE / 'manifest.json').read_text(encoding='utf-8'))
+    return {item['slug']:str(item.get('release',{}).get('version') or item.get('source_version') or '')
+            for item in manifest['items']}
+
+
 async def ensure_default_methods(owner_id: str) -> None:
     # Parse the repository-owned bundle before beginning any writes. No downloads
     # or upstream programs are part of account initialization.
     methods = _bundled_methods()
+    releases=bundled_releases()
     pool = await get_db_pool()
     async with pool.acquire() as conn, conn.transaction():
         # Multiple workers/requests initialize one principal atomically. Other
         # principals remain independent; normal edits use the same unique keys.
-        owner = await conn.fetchval('SELECT id FROM auth_principals WHERE id=$1::uuid FOR UPDATE', owner_id)
+        owner = await conn.fetchval('SELECT id FROM auth_principals WHERE id=$1::uuid FOR NO KEY UPDATE', owner_id)
         if owner is None:
             raise HTTPException(status_code=401, detail='authentication_required')
         rows = await conn.fetch('SELECT id,slug FROM skill_meta WHERE owner_id=$1::uuid', owner_id)
@@ -51,6 +60,7 @@ async def ensure_default_methods(owner_id: str) -> None:
         linked={str(row['skill_id']) for row in await conn.fetch(
             'SELECT DISTINCT skill_id FROM skill_default_transitions WHERE owner_id=$1::uuid',owner_id)}
         now = utc_now_naive()
+        changed=False
         for metadata, markdown, body, sections in methods:
             skill_id = str(uuid5(NAMESPACE_URL, f'adrs:research-default:{owner_id}:{metadata.slug}'))
             # Include tombstones and disabled/renamed copies. Never overwrite
@@ -66,10 +76,10 @@ async def ensure_default_methods(owner_id: str) -> None:
                     if first and (candidate==skill_id or first['markdown_content']==markdown):
                         initial=first['markdown_content']
                         await conn.execute('''INSERT INTO skill_default_transitions
-                            (owner_id,skill_id,personal_version,bundle_slug,baseline_hash,baseline_markdown,provenance)
-                            VALUES($1::uuid,$2::uuid,$3,$4,$5,$6,$7) ON CONFLICT DO NOTHING''',
+                            (owner_id,skill_id,personal_version,bundle_slug,baseline_hash,baseline_markdown,provenance,baseline_release)
+                            VALUES($1::uuid,$2::uuid,$3,$4,$5,$6,$7,$8) ON CONFLICT DO NOTHING''',
                             owner_id,candidate,first['version'],metadata.slug,hashlib.sha256(initial.encode('utf-8')).hexdigest(),
-                            initial,'matched' if initial==markdown else 'unverified')
+                            initial,'matched' if initial==markdown else 'unverified',releases.get(metadata.slug) if initial==markdown else None)
                         linked.add(candidate)
                 continue
             inserted = await conn.fetchval(
@@ -90,6 +100,7 @@ async def ensure_default_methods(owner_id: str) -> None:
                 dumps_json(derive_coarse_terms(metadata)), dumps_json(metadata.model_dump()), owner_id, now,
             )
             if inserted is not None:
+                changed=True
                 await conn.execute(
                     """INSERT INTO skill_content (
                         skill_id,version,markdown_content,body,overview,prompt,constraints,content_hash,created_at)
@@ -99,6 +110,8 @@ async def ensure_default_methods(owner_id: str) -> None:
                     hashlib.sha256(markdown.encode('utf-8')).hexdigest(), now,
                 )
                 await conn.execute('''INSERT INTO skill_default_transitions
-                    (owner_id,skill_id,personal_version,bundle_slug,baseline_hash,baseline_markdown,provenance)
-                    VALUES($1::uuid,$2::uuid,$3,$4,$5,$6,'seeded')''',owner_id,inserted,metadata.version,
-                    metadata.slug,hashlib.sha256(markdown.encode('utf-8')).hexdigest(),markdown)
+                    (owner_id,skill_id,personal_version,bundle_slug,baseline_hash,baseline_markdown,provenance,baseline_release)
+                    VALUES($1::uuid,$2::uuid,$3,$4,$5,$6,'seeded',$7)''',owner_id,inserted,metadata.version,
+                    metadata.slug,hashlib.sha256(markdown.encode('utf-8')).hexdigest(),markdown,releases.get(metadata.slug))
+        if changed:
+            await bump_generation(conn,owner_id)

@@ -113,3 +113,20 @@
 .collection-tag-entry>.btn-ghost{flex-shrink:0;font-size:12px}
 
 @media(max-width:540px){.collection-header:has(.collection-header-actions>.btn-ghost){display:grid;grid-template-columns:1fr;align-items:start;gap:17px}.collection-header:has(.collection-header-actions>.btn-ghost) .collection-header-actions{justify-content:flex-start}}
+
+.skill-versions{margin-top:20px;padding-top:22px;border-top:1px solid var(--line)}
+.skill-versions-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+.skill-versions h3,.skill-versions h4{margin:0;color:var(--ink);font-weight:550}
+.skill-versions h3{font-size:16px}.skill-versions h4{font-size:13px}
+.skill-versions-heading p{margin:6px 0 0;font-size:12px;color:var(--muted)}
+.skill-version-notice{margin:16px 0;padding:10px 13px;background:var(--accent-soft);color:var(--accent);border-radius:9px;font-size:13px}
+.skill-version-difference{border-bottom:1px solid var(--line)}
+.skill-version-difference summary{padding:13px 0;cursor:pointer;color:var(--ink);font-size:13px}
+.skill-version-difference pre,.skill-version-preview pre{max-height:260px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;padding:15px;background:var(--paper);color:var(--ink);border-radius:9px;font:12px/1.7 Consolas,monospace}
+.skill-version-difference p,.skill-version-difference small{color:var(--muted);font-size:12px}
+.skill-version-history,.skill-version-preview{margin-top:22px;display:grid;gap:10px}
+.skill-version-list{display:flex;gap:8px;flex-wrap:wrap}
+.skill-version-list button{display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:8px;background:var(--paper);padding:8px 10px;color:var(--ink);font:inherit;font-size:12px;cursor:pointer}
+.skill-version-list button.is-selected{border-color:var(--accent);color:var(--accent)}
+.skill-version-list time{color:var(--muted)}.skill-version-list em{font-style:normal;color:var(--accent);margin-left:5px}
+.skill-version-history>.btn-ghost,.skill-version-preview>.btn-ghost,.skill-versions> .btn-ghost{justify-self:start}
