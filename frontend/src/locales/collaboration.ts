@@ -1,0 +1,20 @@
+export const collaborationEnglish:Record<string,string>={
+  '协作空间':'Collaboration spaces','邀请成员，分享选定的报告与资料。':'Invite members and share selected reports and sources.',
+  '空间名称':'Space name','创建空间':'Create space','还没有协作空间。':'No spaces yet.',
+  '所有者':'Owner','成员':'Member','邀请账号':'Invite account','输入用户名':'Username','邀请':'Invite',
+  '等待接受':'Awaiting response','撤回邀请':'Withdraw invitation','{0} 邀请你加入':'{0} invited you to join',
+  '接受':'Accept','拒绝':'Decline','归档空间':'Archive space','退出空间':'Leave space','移除':'Remove',
+  '共享内容':'Shared content','仅共享所选正文，不共享私人来源。':'Only the selected text is shared; private sources stay private.',
+  '选择本人内容':'Choose your content','报告':'Report','资料':'Source','版本 {0}':'Version {0}',
+  '资料需允许跨任务复用，列表显示最近 200 项。':'Sources must allow reuse across tasks. The latest 200 are shown.',
+  '分享':'Share','还没有共享内容。':'No shared content yet.','内容已不可用':'Content unavailable',
+  '查看':'View','撤回':'Withdraw','关闭':'Close','分享者：{0}':'Shared by {0}','草稿':'Draft','图像':'Image',
+  '空间不存在或已不可访问。':'This space is no longer available.',
+  '没有找到该账号。':'Account not found.','内容已不可访问，请刷新后重试。':'Content is no longer available. Refresh and try again.',
+  '成员已不可访问。':'Member is no longer available.','邀请已不可访问。':'Invitation is no longer available.',
+  '邀请已处理。':'Invitation already answered.','邀请已过期。':'Invitation expired.','该账号已是成员。':'This account is already a member.',
+  '该账号已有待处理邀请。':'This account already has a pending invitation.','该版本已经分享。':'This version is already shared.',
+  '只有空间所有者可以操作。':'Only the space owner can do this.','所有者可归档空间。':'The owner can archive the space.',
+  '空间成员已达上限。':'The space has reached its member limit.','空间已达上限。':'Space limit reached.',
+  '分享已达上限。':'Share limit reached.','操作内容已变化，请重新提交。':'The request changed. Submit it again.'
+}

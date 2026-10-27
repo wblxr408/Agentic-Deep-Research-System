@@ -6,8 +6,9 @@ import {skillStagesEnglish} from './locales/skillStages'
 import {questionQualityEnglish} from './locales/questionQuality'
 import {budgetAllocationEnglish} from './locales/budgetAllocation'
 import {accountRecoveryEnglish} from './locales/accountRecovery'
+import {collaborationEnglish} from './locales/collaboration'
 import {systemMessages} from './locales/system'
-const english:Record<string,string>={...baseEnglish,...layoutEnglish,...skillVersionsEnglish,...skillStagesEnglish,...questionQualityEnglish,...budgetAllocationEnglish,...accountRecoveryEnglish}
+const english:Record<string,string>={...baseEnglish,...layoutEnglish,...skillVersionsEnglish,...skillStagesEnglish,...questionQualityEnglish,...budgetAllocationEnglish,...accountRecoveryEnglish,...collaborationEnglish}
 export type Locale='zh'|'en'
 const key='deepintel.appearance.v1'
 let language:Locale=(()=>{try{return JSON.parse(localStorage.getItem(key)||'{}').language==='en'?'en':'zh'}catch{return 'zh'}})()
