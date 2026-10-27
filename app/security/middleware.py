@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import time
 from collections import defaultdict, deque
 
@@ -35,10 +36,65 @@ rate_limiter = InMemoryRateLimiter()
 PUBLIC_PATHS = {"/", "/api/v1/health", "/api/v1/ready", "/api/v1/auth/status", "/api/v1/auth/initialize", "/api/v1/auth/login", "/api/v1/auth/register"}
 
 
+class LayoutUploadLimitMiddleware:
+    """Bound multipart intake before Starlette can spool an unbounded upload."""
+    def __init__(self,app):
+        self.app=app
+        self._slots=asyncio.Semaphore(8)
+
+    async def __call__(self,scope,receive,send):
+        path=scope.get('path','')
+        if scope.get('type')!='http' or scope.get('method')!='POST' or path not in {
+                '/api/v1/research/layout-samples','/api/v1/research/layout-samples/operations'}:
+            await self.app(scope,receive,send)
+            return
+        try:
+            await asyncio.wait_for(self._slots.acquire(),timeout=2)
+        except TimeoutError:
+            await JSONResponse({'detail':'layout_upload_busy'},status_code=429)(scope,receive,send)
+            return
+        try:
+            await self._accept(scope,receive,send)
+        finally:
+            self._slots.release()
+
+    async def _accept(self,scope,receive,send):
+        maximum=2*1024*1024+32768
+        chunks=[];size=0
+        try:
+            async with asyncio.timeout(45):
+                while True:
+                    message=await receive()
+                    if message['type']=='http.disconnect':
+                        return
+                    if message['type']!='http.request':
+                        continue
+                    body=message.get('body',b'');size+=len(body)
+                    if size>maximum:
+                        await JSONResponse({'detail':'layout_sample_size_limit'},status_code=413)(scope,receive,send)
+                        return
+                    chunks.append(body)
+                    if not message.get('more_body',False):
+                        break
+        except TimeoutError:
+            await JSONResponse({'detail':'layout_upload_timeout'},status_code=408)(scope,receive,send)
+            return
+        complete=b''.join(chunks);sent=False
+        async def replay():
+            nonlocal sent
+            if not sent:
+                sent=True
+                return {'type':'http.request','body':complete,'more_body':False}
+            return await receive()
+        await self.app(scope,replay,send)
+
+
 class StreamingGZipMiddleware(GZipMiddleware):
     """Keep event boundaries flushable on the installed Starlette runtime."""
     async def __call__(self, scope, receive, send):
-        if scope['type']=='http' and scope.get('path','').startswith('/api/v1/research/stream/'):
+        path=scope.get('path','')
+        if scope['type']=='http' and (path.startswith('/api/v1/research/stream/') or
+                path.startswith('/api/v1/research/layout-samples/operations/') and path.endswith('/events')):
             await self.app(scope,receive,send)
         else:
             await super().__call__(scope,receive,send)

@@ -2,13 +2,27 @@ import {useEffect,useRef,useState} from 'react'
 import type {CSSProperties,ReactNode} from 'react'
 import {t,uiMessage,useLocale} from '../i18n'
 import {Icon,TraceLoader} from './Interface'
-import {blankReportLayout,layoutBindings,layoutImportError,layoutInteractions,layoutKinds,layoutMissing,layoutProblem,layoutRole,layoutRoles,newLayoutBlock,nextLayoutId} from './reportLayouts'
+import {blankReportLayout,layoutBindings,layoutInteractions,layoutKinds,layoutMissing,layoutProblem,layoutRole,layoutRoles,newLayoutBlock,nextLayoutId} from './reportLayouts'
 import type {LayoutBlock,LayoutKind,LayoutSample,ReportLayout} from './reportLayouts'
+import {cancelLayoutOperation,followLayoutOperation,getLayoutOperation,getLayoutSample,LayoutOperationFailure,stageLabel,submitLayoutOperation} from './layoutOperations'
+import type {LayoutOperation} from './layoutOperations'
 import '../layout-editor.css'
 
 interface LayoutDataPreview {binding:{sections:Array<{section_id:string;role:string;title:string;title_origin?:string;blocks:Array<{block_id:string;kind:LayoutKind;status:string;data?:{kind:string;markdown?:string;metric?:{label:string;display:string};items?:unknown[];reference?:{chart_id:string}}|null}>}>;unplaced_sections:Array<{title:string;markdown:string}>};charts:Array<{chart_id:string;title:string}>}
-interface Props {layout?:ReportLayout|null;sample?:LayoutSample|null;active:boolean;onChange:(layout:ReportLayout,sample?:LayoutSample|null)=>void;onManual:()=>void;onBusy:(busy:boolean)=>void;drawingMode:string;drawingSkills:Array<{id:string;name:string}>;slotSkills:Record<string,string>;onSlotSkillChange:(id:string,skill:string)=>void;previewSessionId?:string;previewDelivery:unknown}
+interface Props {layout?:ReportLayout|null;sample?:LayoutSample|null;active:boolean;onChange:(layout:ReportLayout,sample?:LayoutSample|null)=>void;onManual:()=>void;onBusy:(busy:boolean)=>void;drawingMode:string;drawingSkills:Array<{id:string;name:string}>;slotSkills:Record<string,string>;onSlotSkillChange:(id:string,skill:string)=>void;ownerId?:string;operationScopeId?:string;previewSessionId?:string;previewDelivery:unknown}
 function Field({label,children}:{label:string;children:ReactNode}){return <label className="layout-field"><span>{label}</span>{children}</label>}
+
+const deferredCancels=new Map<string,number>()
+let pageLeaving=false
+window.addEventListener('pagehide',()=>{pageLeaving=true})
+window.addEventListener('pageshow',()=>{pageLeaving=false})
+function savedOperation(key:string){try{return key?sessionStorage.getItem(key):null}catch{return null}}
+function rememberOperation(key:string,id:string){try{if(key)sessionStorage.setItem(key,id)}catch{/* in-memory operation still works */}}
+function forgetOperation(key:string,id:string){try{if(key&&sessionStorage.getItem(key)===id)sessionStorage.removeItem(key)}catch{/* storage is optional */}}
+function cancelAfterUnmount(key:string,id:string){
+  const timer=window.setTimeout(()=>{deferredCancels.delete(key);if(pageLeaving)return;forgetOperation(key,id);void cancelLayoutOperation(id).catch(()=>{})},150)
+  deferredCancels.set(key,timer)
+}
 
 export function BlankLayoutPreview({layout}:{layout:ReportLayout}) {
   useLocale()
@@ -30,18 +44,23 @@ export function BlankLayoutPreview({layout}:{layout:ReportLayout}) {
   </div>
 }
 
-export default function ReportLayoutEditor({layout,sample,active,onChange,onManual,onBusy,drawingMode,drawingSkills,slotSkills,onSlotSkillChange,previewSessionId,previewDelivery}:Props) {
+export default function ReportLayoutEditor({layout,sample,active,onChange,onManual,onBusy,drawingMode,drawingSkills,slotSkills,onSlotSkillChange,ownerId,operationScopeId,previewSessionId,previewDelivery}:Props) {
   useLocale()
-  const [tab,setTab]=useState<'edit'|'preview'|'data'>('edit'),[selected,setSelected]=useState(0),[busy,setBusy]=useState(false),[error,setError]=useState('')
+  const [tab,setTab]=useState<'edit'|'preview'|'data'>('edit'),[selected,setSelected]=useState(0),[busy,setBusy]=useState(false),[error,setError]=useState(''),[phase,setPhase]=useState('')
   const [dataPreview,setDataPreview]=useState<{key:string;value:LayoutDataPreview}|null>(null),[previewing,setPreviewing]=useState(false),[previewError,setPreviewError]=useState('')
-  const upload=useRef<HTMLInputElement>(null),controller=useRef<AbortController|null>(null),generation=useRef(0),pending=useRef<{file:File;id:string}|null>(null)
+  const upload=useRef<HTMLInputElement>(null),controller=useRef<AbortController|null>(null),generation=useRef(0),pending=useRef<{file:File|null;id:string;retry:'same'|'new'|'none'}|null>(null)
+  const storageKey=ownerId?`adrs.layout.operation.v1:${ownerId}:${operationScopeId||'new'}`:''
   const previewController=useRef<AbortController|null>(null),previewGeneration=useRef(0),previewKey=JSON.stringify({session:previewSessionId,delivery:previewDelivery}),currentPreviewKey=useRef(previewKey);currentPreviewKey.current=previewKey
   const current=useRef({onChange,onBusy});current.current={onChange,onBusy}
-  useEffect(()=>()=>{generation.current++;controller.current?.abort();controller.current=null;previewGeneration.current++;previewController.current?.abort()},[])
+  useEffect(()=>{
+    const scheduled=deferredCancels.get(storageKey);if(scheduled!==undefined){clearTimeout(scheduled);deferredCancels.delete(storageKey)}
+    const saved=savedOperation(storageKey);if(saved)void resumeOperation(saved)
+    return ()=>{const id=pending.current?.id;generation.current++;controller.current?.abort();controller.current=null;pending.current=null;if(id)cancelAfterUnmount(storageKey,id);previewGeneration.current++;previewController.current?.abort()}
+  },[storageKey])
   const index=Math.min(selected,Math.max(0,(layout?.sections.length||1)-1)),section=layout?.sections[index]
   const blocks=layout?.sections.flatMap(s=>s.blocks)||[],figures=blocks.filter(b=>['chart','image'].includes(b.kind)).length
   const selectedDrawingOverrides=Object.values(slotSkills).filter(Boolean).length
-  function cancel(){generation.current++;controller.current?.abort();controller.current=null;pending.current=null;setBusy(false);onBusy(false);setError('')}
+  function cancel(){const id=pending.current?.id,stamp=++generation.current;controller.current?.abort();controller.current=null;pending.current=null;setBusy(false);onBusy(false);setError('');setPhase('');if(id){forgetOperation(storageKey,id);void cancelLayoutOperation(id).catch(()=>{if(stamp===generation.current)setError(t('取消暂未确认，解析会在原期限内结束。'))})}}
   function update(next:ReportLayout){onChange(next);setError('')}
   function updateSection(patch:Partial<NonNullable<typeof section>>){if(layout)update({...layout,sections:layout.sections.map((s,i)=>i===index?{...s,...patch}:s)})}
   function updateBlock(id:string,patch:Partial<LayoutBlock>){if(section)updateSection({blocks:section.blocks.map(b=>b.block_id===id?{...b,...patch}:b)})}
@@ -58,30 +77,46 @@ export default function ReportLayoutEditor({layout,sample,active,onChange,onManu
     }catch(cause){if(stamp===previewGeneration.current&&!abort.signal.aborted)setPreviewError(cause instanceof Error?uiMessage(cause.message):t('暂时无法读取原研究的预览。'))}
     finally{if(stamp===previewGeneration.current){previewController.current=null;setPreviewing(false)}}
   }
+  async function consume(operation:LayoutOperation,id:string,abort:AbortController,stamp:number){
+    const reconnect=()=>{if(stamp===generation.current)setPhase(t('网络连接中断，正在重连…'))}
+    if(!['completed','failed','canceled'].includes(operation.status))operation=await followLayoutOperation(id,abort.signal,event=>{if(stamp===generation.current)setPhase(stageLabel(event))},reconnect)
+    if(operation.status==='canceled')throw new LayoutOperationFailure('layout_operation_canceled','none')
+    if(operation.status==='failed')throw new LayoutOperationFailure(operation.error_code||'layout_invalid_document',operation.error_category==='transient'?'new':'none')
+    if(operation.status!=='completed'||!operation.source_id)throw new LayoutOperationFailure('layout_connection_lost','same')
+    const result=await getLayoutSample(operation.source_id,abort.signal,reconnect)
+    if(layoutProblem(result.layout))throw new LayoutOperationFailure('layout_invalid_document','none')
+    if(stamp!==generation.current)return false
+    current.current.onChange(result.layout,{source_id:result.source_id,file_name:result.file_name,parse:result.parse});setSelected(0);setTab('preview');pending.current=null;forgetOperation(storageKey,id)
+    return true
+  }
+  async function resumeOperation(id:string){
+    controller.current?.abort();const stamp=++generation.current,abort=new AbortController();controller.current=abort
+    pending.current={file:null,id,retry:'same'};setBusy(true);current.current.onBusy(true);setError('');setPhase(t('正在恢复解析…'))
+    let applied=false
+    try{applied=await consume(await getLayoutOperation(id,abort.signal),id,abort,stamp)}
+    catch(cause){if(stamp===generation.current&&!abort.signal.aborted){if(!(cause instanceof LayoutOperationFailure)||cause.retry!=='same'){pending.current=null;forgetOperation(storageKey,id)}setError(cause instanceof Error?uiMessage(cause.message):t('导入未完成，请重试。'))}}
+    finally{if(stamp===generation.current){setBusy(false);setPhase('');controller.current=null;if(!applied)current.current.onBusy(false)}}
+  }
   async function importFile(file:File,retry=false){
     if(!/\.(html?|docx)$/i.test(file.name)){setError(t('请选择 HTML 或 DOCX 文件。'));return}
     if(!file.size||file.size>2*1024*1024){setError(t('文件需在 2 MB 以内，且不能为空。'));return}
     controller.current?.abort();const stamp=++generation.current,abort=new AbortController();controller.current=abort
-    if(!retry||pending.current?.file!==file)pending.current={file,id:crypto.randomUUID()}
-    const data=new FormData();data.append('file',file);data.append('request_id',pending.current!.id)
-    setBusy(true);onBusy(true);setError('')
+    if(!retry||pending.current?.file!==file||pending.current?.retry==='new')pending.current={file,id:crypto.randomUUID(),retry:'same'}
+    const id=pending.current!.id
+    rememberOperation(storageKey,id)
+    setBusy(true);onBusy(true);setError('');setPhase(t('准备解析'))
     let applied=false
     try{
-      const response=await fetch('/api/v1/research/layout-samples',{method:'POST',body:data,signal:abort.signal})
-      const result=await response.json()
-      if(!response.ok)throw new Error(layoutImportError(typeof result.detail==='string'?result.detail:''))
-      const problem=layoutProblem(result.layout)
-      if(problem)throw new Error(problem)
-      if(stamp!==generation.current)return
-      current.current.onChange(result.layout,{source_id:result.source_id,file_name:result.file_name,parse:result.parse});applied=true;setSelected(0);setTab('preview');pending.current=null
-    }catch(cause){if(stamp===generation.current&&!abort.signal.aborted)setError(cause instanceof Error?uiMessage(cause.message):t('导入未完成，请重试。'))}
-    finally{if(stamp===generation.current){setBusy(false);controller.current=null;if(!applied)current.current.onBusy(false)}}
+      const reconnect=()=>{if(stamp===generation.current)setPhase(t('网络连接中断，正在重连…'))}
+      applied=await consume(await submitLayoutOperation(file,id,abort.signal,reconnect),id,abort,stamp)
+    }catch(cause){if(stamp===generation.current&&!abort.signal.aborted){if(cause instanceof LayoutOperationFailure&&pending.current){pending.current.retry=cause.retry;if(cause.retry==='none'){pending.current=null;forgetOperation(storageKey,id)}}setError(cause instanceof Error?uiMessage(cause.message):t('导入未完成，请重试。'))}}
+    finally{if(stamp===generation.current){setBusy(false);setPhase('');controller.current=null;if(!applied)current.current.onBusy(false)}}
   }
   return <div className="layout-workbench">
     <div className="layout-entry-actions"><button type="button" className="btn-primary" disabled={busy} onClick={()=>upload.current?.click()}><Icon name="source" size={16}/>{t('导入样例')}</button><button type="button" className="btn-ghost" disabled={busy} onClick={()=>{onChange(blankReportLayout(),null);setTab('edit');setSelected(0);setError('')}}>{t('从空白设计')}</button><button type="button" className="btn-ghost" disabled={busy} aria-pressed={!active} onClick={onManual}>{t('手动章节')}</button>{!active&&layout&&<button type="button" className="choice-text-button" onClick={()=>onChange(layout)}>{t('继续编辑版式')}</button>}</div>
     <input ref={upload} className="layout-file-input" type="file" accept=".html,.htm,.docx" aria-label={t('上传报告样例')} onChange={event=>{const file=event.target.files?.[0];event.target.value='';if(file)void importFile(file)}}/>
-    {busy&&<div className="layout-feedback" role="status"><TraceLoader/>{t('正在读取样例…')}<button type="button" className="choice-text-button" onClick={cancel}>{t('取消导入')}</button></div>}
-    {error&&<div className="layout-feedback layout-feedback--error" role="alert">{uiMessage(error)}{pending.current&&<button type="button" className="choice-text-button" onClick={()=>void importFile(pending.current!.file,true)}>{t('重试导入')}</button>}</div>}
+    {busy&&<div className="layout-feedback" role="status"><TraceLoader/>{phase||t('正在读取样例…')}<button type="button" className="choice-text-button" onClick={cancel}>{t('取消导入')}</button></div>}
+    {error&&<div className="layout-feedback layout-feedback--error" role="alert">{uiMessage(error)}{pending.current&&<button type="button" className="choice-text-button" onClick={()=>{const item=pending.current;if(item?.file)void importFile(item.file,true);else if(item)void resumeOperation(item.id)}}>{t('重试导入')}</button>}</div>}
     {active&&layout&&<>
       <div className="layout-toolbar"><div><strong>{t('{0} 章 · {1} 个组件',layout.sections.length,blocks.length)}</strong>{sample&&<span className="layout-source-name" title={sample.file_name}>{sample.file_name}</span>}</div><div className="layout-tabs" role="group" aria-label={t('版式视图')}><button type="button" aria-pressed={tab==='edit'} onClick={()=>setTab('edit')}>{t('编辑版式')}</button><button type="button" aria-pressed={tab==='preview'} onClick={()=>setTab('preview')}>{t('空白预览')}</button>{previewSessionId&&<button type="button" aria-pressed={tab==='data'} onClick={()=>void previewData()}>{t('原研究数据')}</button>}</div></div>
       {tab==='preview'?<BlankLayoutPreview layout={layout}/>:tab==='data'?<div className="layout-data-preview" aria-label={t('原研究数据预览')}>

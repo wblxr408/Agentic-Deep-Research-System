@@ -165,7 +165,7 @@ function Workspace() {
   return <div className="app-shell"><a href="#main-content" className="skip-link">{t("跳到内容")}</a><Header view={view} navigate={navigate} auth={auth} />
     <main id="main-content">
       {view === 'home' && <Home navigate={navigate} />}
-      {auth?.authenticated && (researchVisited || view === 'research' || view === 'login' || view === 'register') && <div key={auth.user?.id} hidden={!['research', 'login', 'register'].includes(view)} className="research-surface"><ResearchDashboard onBack={() => navigate('home')} /></div>}
+      {auth?.authenticated && (researchVisited || view === 'research' || view === 'login' || view === 'register') && <div key={auth.user?.id} hidden={!['research', 'login', 'register'].includes(view)} className="research-surface"><ResearchDashboard ownerId={auth.user?.id} onBack={() => navigate('home')} /></div>}
       {view === 'settings' && <section className="management-surface"><LLMConfigPanel /></section>}
       {view === 'documents' && <section className="management-surface"><DocumentManager /></section>}
       {view === 'skills' && <section className="management-surface"><SkillManager /></section>}

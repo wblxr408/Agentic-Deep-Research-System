@@ -26,7 +26,7 @@ from app.api import (
 from app.api.config import load_runtime_llm_config_from_db
 from app.config import get_settings
 from app.db.connection import close_db, init_db
-from app.security.middleware import SecurityHeadersMiddleware,StreamingGZipMiddleware
+from app.security.middleware import LayoutUploadLimitMiddleware,SecurityHeadersMiddleware,StreamingGZipMiddleware
 from app.disclosure import install_log_redaction,structured_log_projection
 from app.skills import get_skill_registry
 
@@ -85,11 +85,17 @@ async def lifespan(app: FastAPI):
         logger.error("Database initialization failed", error=str(e))
         raise
 
-    yield
-
-    # Shutdown
-    logger.info("Shutting down DeepIntel API")
-    await close_db()
+    from app.layout_operations import LayoutDispatcher
+    layout_dispatcher=LayoutDispatcher()
+    layout_dispatcher.start()
+    try:
+        yield
+    finally:
+        # Stop child processes before releasing their database pool. A later
+        # process can reclaim unfinished leases within the original deadline.
+        logger.info("Shutting down DeepIntel API")
+        await layout_dispatcher.stop()
+        await close_db()
 
 
 # ==============================================================
@@ -123,7 +129,8 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
-    # GZip compression
+    # Bound sample multipart input before parsing, then preserve streaming SSE.
+    app.add_middleware(LayoutUploadLimitMiddleware)
     app.add_middleware(StreamingGZipMiddleware, minimum_size=1000)
     app.add_middleware(SecurityHeadersMiddleware)
 

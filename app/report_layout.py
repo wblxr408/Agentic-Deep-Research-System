@@ -158,13 +158,17 @@ def _color(value):
     return value if re.fullmatch(r'#[0-9a-f]{6}', value or '') else None
 
 
-def _parse_html(raw):
+def _parse_html(raw, progress=None):
+    if progress:
+        progress('reading')
     try:
         text = raw.decode('utf-8-sig')
     except UnicodeDecodeError as error:
         raise ValueError('layout_requires_utf8') from error
     parser = _HTMLStructure()
     parser.feed(text)
+    if progress:
+        progress('cleaning')
     builder, rules, tokens = _Builder(), [], {}
     differences = set()
     for selectors, body in re.findall(r'([^{}]{1,200})\{([^{}]{0,3000})\}', parser.css):
@@ -251,7 +255,9 @@ def _parse_html(raw):
     return builder.result(tokens, differences=sorted(differences))
 
 
-def _parse_docx(raw):
+def _parse_docx(raw, progress=None):
+    if progress:
+        progress('reading')
     builder = _Builder()
     tokens, differences = {}, set()
     namespace = '{http://schemas.openxmlformats.org/wordprocessingml/2006/main}'
@@ -268,6 +274,8 @@ def _parse_docx(raw):
         body = root.find(namespace + 'body')
         if body is None:
             raise ValueError('layout_structure_not_found')
+        if progress:
+            progress('cleaning')
         if styles:
             if len(styles) > 2 * 1024 * 1024 or b'<!DOCTYPE' in styles.upper() or b'<!ENTITY' in styles.upper():
                 raise ValueError('layout_docx_xml_limit')
@@ -319,11 +327,15 @@ def _parse_docx(raw):
         running_footer=section is not None and section.find(namespace + 'footerReference') is not None)
 
 
-def parse_layout_sample(raw: bytes, format: str):
+def parse_layout_sample(raw: bytes, format: str, progress=None):
     if not raw or len(raw) > MAX_SAMPLE_BYTES:
         raise ValueError('layout_sample_size_limit')
     if format in {'html', 'htm'}:
-        return _parse_html(raw)
-    if format == 'docx':
-        return _parse_docx(raw)
-    raise ValueError('layout_format_not_supported')
+        result = _parse_html(raw, progress)
+    elif format == 'docx':
+        result = _parse_docx(raw, progress)
+    else:
+        raise ValueError('layout_format_not_supported')
+    if progress:
+        progress('preview')
+    return result

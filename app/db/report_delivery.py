@@ -30,6 +30,26 @@ CREATE TABLE IF NOT EXISTS research_layout_samples (
  file_bytes BYTEA NOT NULL, parsed JSONB NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
  UNIQUE(owner_id,request_id)
 );
+CREATE TABLE IF NOT EXISTS research_layout_operations (
+ owner_id UUID NOT NULL REFERENCES auth_principals(id) ON DELETE CASCADE,
+ operation_id UUID NOT NULL, status TEXT NOT NULL,
+ stage TEXT NOT NULL, revision INTEGER NOT NULL DEFAULT 1,
+ file_name TEXT, format TEXT, file_size INTEGER, file_identity TEXT, file_bytes BYTEA,
+ attempts INTEGER NOT NULL DEFAULT 0, max_attempts INTEGER NOT NULL DEFAULT 3,
+ run_token UUID, source_id UUID REFERENCES research_layout_samples(source_id) ON DELETE SET NULL,
+ error_code TEXT, error_category TEXT, not_before TIMESTAMPTZ,
+ deadline_at TIMESTAMPTZ NOT NULL, lease_until TIMESTAMPTZ,
+ created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+ PRIMARY KEY(owner_id,operation_id)
+);
+CREATE INDEX IF NOT EXISTS idx_layout_operations_dispatch ON research_layout_operations(status,not_before,deadline_at);
+CREATE TABLE IF NOT EXISTS research_layout_operation_events (
+ owner_id UUID NOT NULL, operation_id UUID NOT NULL, sequence INTEGER NOT NULL,
+ status TEXT NOT NULL, stage TEXT NOT NULL, attempt INTEGER NOT NULL DEFAULT 0,
+ error_code TEXT, error_category TEXT, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+ PRIMARY KEY(owner_id,operation_id,sequence),
+ FOREIGN KEY(owner_id,operation_id) REFERENCES research_layout_operations(owner_id,operation_id) ON DELETE CASCADE
+);
 '''
 
 
