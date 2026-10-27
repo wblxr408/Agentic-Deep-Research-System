@@ -1519,6 +1519,9 @@ async def get_research_result(session_id: str, principal: Principal = principal_
             and review_status.get('reason')=='final_audit_incomplete'
             and bool((review_status.get('final_report_audit') or {}).get('audit_incomplete'))
             and not (review_status.get('disclosure') or {}).get('requires_reaudit')
+            and bool(pause_diagnosis and not pause_diagnosis.get('blockers')
+                and (pause_diagnosis.get('remaining_seconds') or 0)>0
+                and (pause_diagnosis.get('remaining_tokens') or 0)>=1024)
             and int(row.get('audit_resume_attempts') or 0)<1),
         "created_at": row["created_at"].isoformat(),
         "completed_at": row["completed_at"].isoformat() if row["completed_at"] else None,
