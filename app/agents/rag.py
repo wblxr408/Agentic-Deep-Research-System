@@ -100,7 +100,7 @@ class RAGAgent:
     async def execute_async(self,plan_steps,user_query,group=None,owner_id=None,
                             context_mode='source_preference',session_id=None,filters=None,timeout_seconds=None,mode='hybrid',fusion=None,query_type=None,channels=None,channel_settings=None):
         selected=tuple(channels or ())
-        if any(item not in {'stem','sparse'} for item in selected) or len(set(selected))!=len(selected):raise ValueError('unsupported_internal_retrieval_channels')
+        if any(item not in {'stem','sparse','paired','late'} for item in selected) or len(set(selected))!=len(selected):raise ValueError('unsupported_internal_retrieval_channels')
         deadline=time.monotonic()+timeout_seconds if timeout_seconds is not None else None
         try:
             async with asyncio.timeout(timeout_seconds):
@@ -169,7 +169,7 @@ class RAGAgent:
                     started=time.monotonic()
                     try:
                         rows=await operation()
-                    except (asyncpg.PostgresError,OSError,RuntimeError,ValueError,TypeError) as error:
+                    except (asyncpg.PostgresError,OSError,RuntimeError,ValueError,TypeError,ImportError) as error:
                         contract.update(status='failed',reason=type(error).__name__,result_count=0)
                         return []
                     else:
@@ -227,6 +227,34 @@ class RAGAgent:
                         contracts['learned_sparse'].update(status='failed',reason=reason,result_count=0)
                     finally:
                         channel_status.setdefault('resource_usage',[]).append({'kind':'learned_sparse_query','execution':'local_model',
+                            'status':status,'duration_ms':round((time.monotonic()-started)*1000),
+                            'provider_charge_usd':None,'cost_basis':'local_compute_not_priced'})
+                paired_query=None
+                pair_routes=[name for name in ('paired_dense','late_interaction') if contracts[name]['status']=='requested']
+                if pair_routes:
+                    from app.multivector import paired_configuration,encode_paired_texts
+                    from app.db.retrieval_auxiliary import has_paired_index
+                    started=time.monotonic();status='failed'
+                    try:
+                        pair=paired_configuration()
+                        if (channel_settings or {}).get('paired')!=pair:raise ValueError('paired_configuration_changed')
+                        async with pool.acquire() as conn:
+                            indexed=await has_paired_index(conn,owner_id,group,session_id,filters,pair['pair_id'])
+                        if not indexed:
+                            for name in pair_routes:contracts[name].update(status='skipped',reason='no_matching_authorized_paired_index',result_count=0)
+                            status='skipped'
+                        else:
+                            available=max(0.0,deadline-time.monotonic()) if deadline is not None else 112.5
+                            remaining=min(45.0,available*.4)
+                            if remaining<1:raise ValueError('multivector_deadline_unavailable')
+                            paired_query=await asyncio.to_thread(encode_paired_texts,[step.target_query],role='query',timeout=remaining)
+                            status='completed'
+                    except (asyncpg.PostgresError,RuntimeError,ValueError,TypeError,OSError,ImportError) as error:
+                        category=getattr(error,'category',None)
+                        reason='model_configuration_changed' if str(error)=='paired_configuration_changed' else category or 'local_model_or_configuration_unavailable'
+                        for name in pair_routes:contracts[name].update(status='failed',reason=reason,result_count=0)
+                    finally:
+                        channel_status.setdefault('resource_usage',[]).append({'kind':'paired_query','execution':'local_model',
                             'status':status,'duration_ms':round((time.monotonic()-started)*1000),
                             'provider_charge_usd':None,'cost_basis':'local_compute_not_priced'})
                 lexical_query=lexical_view(step.target_query)
@@ -321,6 +349,28 @@ class RAGAgent:
                         return await stem_candidates(conn,owner_id,group,session_id,candidate_limit,filters,encoded)
                     stem_rows=await collect('stem',collect_stems)
                     sparse_rows=await collect('learned_sparse',lambda:sparse_candidates(conn,owner_id,group,session_id,candidate_limit,filters,sparse_query)) if sparse_query is not None else []
+                    paired_rows=[];late_rows=[]
+                    if paired_query is not None:
+                        from app.db.retrieval_auxiliary import paired_candidates,late_candidates
+                        started=time.monotonic()
+                        try:
+                            paired_seeds,pair_coverage=await paired_candidates(conn,owner_id,group,session_id,candidate_limit,filters,paired_query,deadline)
+                            if contracts['paired_dense']['status']=='requested':
+                                paired_rows=paired_seeds;contracts['paired_dense'].update(status='completed' if paired_rows else 'empty',
+                                    result_count=len(paired_rows),coverage=pair_coverage,duration_ms=int((time.monotonic()-started)*1000))
+                            if contracts['late_interaction']['status']=='requested':
+                                late_started=time.monotonic()
+                                try:
+                                    late_rows,coverage=await late_candidates(conn,owner_id,group,session_id,filters,paired_query,paired_seeds,candidate_limit,deadline)
+                                    contracts['late_interaction'].update(status='completed' if late_rows else 'empty',result_count=len(late_rows),
+                                        coverage=coverage,seed_coverage=pair_coverage,duration_ms=int((time.monotonic()-late_started)*1000))
+                                except (asyncpg.PostgresError,OSError,RuntimeError,ValueError,TypeError,ImportError) as error:
+                                    contracts['late_interaction'].update(status='failed',reason=type(error).__name__,result_count=0,
+                                        duration_ms=int((time.monotonic()-late_started)*1000))
+                        except (asyncpg.PostgresError,OSError,RuntimeError,ValueError,TypeError,ImportError) as error:
+                            for name in pair_routes:
+                                if contracts[name]['status']=='requested':contracts[name].update(status='failed',reason=type(error).__name__,result_count=0,
+                                    duration_ms=int((time.monotonic()-started)*1000))
                     channel_status['bm25']=contracts['bm25']['status']
 
                 # Build result lists
@@ -337,14 +387,16 @@ class RAGAgent:
                 structure_results={str(row['id']):{'row':row,'score':float(row['structure_score'])} for row in structure_rows}
                 stem_results={str(row['id']):{'row':row,'score':float(row['auxiliary_score'])} for row in stem_rows}
                 sparse_results={str(row['id']):{'row':row,'score':float(row['auxiliary_score'])} for row in sparse_rows}
+                paired_results={str(row['id']):{'row':row,'score':float(row['auxiliary_score'])} for row in paired_rows}
+                late_results={str(row['id']):{'row':row,'score':float(row['auxiliary_score'])} for row in late_rows}
                 failed=any(item['status']=='failed' for item in contracts.values())
                 usable=any(item['status'] in {'completed','empty'} for item in contracts.values())
                 channel_status['status']='partial' if failed and usable else 'failed' if failed else 'success'
 
                 # Fuse route memberships without treating score agreement as corroboration.
                 route_results={'literal':literal_results,'bm25':bm25_results,'fts':fts_results,'dense':vector_results,'structure':structure_results,
-                    'stem':stem_results,'learned_sparse':sparse_results}
-                all_rows = {str(r['id']): r for r in vector_rows + fts_rows + bm25_rows + literal_rows + structure_rows + stem_rows + sparse_rows}
+                    'stem':stem_results,'learned_sparse':sparse_results,'paired_dense':paired_results,'late_interaction':late_results}
+                all_rows = {str(r['id']): r for r in vector_rows + fts_rows + bm25_rows + literal_rows + structure_rows + stem_rows + sparse_rows + paired_rows + late_rows}
                 fusion_channels={name:[{'id':key,'score':item['score'],'score_direction':'higher',
                     'score_meaning':contracts[name]['score_meaning'],'content':item['row']['content'],
                     'source_key':str(item['row']['document_source_id'] or key)} for key,item in channel.items()]

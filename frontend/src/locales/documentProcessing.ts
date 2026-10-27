@@ -34,6 +34,7 @@ export const documentProcessingEnglish:Record<string,string>={
   '语义片段 {0}':'Semantic passages {0}','图像特征 {0}':'Image features {0}',
   '已加入索引':'Added to index',
   '学习稀疏语义':'Learned sparse semantics',
+  '整体语义':'Whole-passage semantics',
   '无匹配':'No matches','无可用资料':'No available sources','查看检索细节':'View search details',
   '本地模型不可用':'Local model unavailable','本次处理超时':'Processing timed out','结果超出限制':'Result limit reached',
   '模型设置已变化':'Model settings changed',

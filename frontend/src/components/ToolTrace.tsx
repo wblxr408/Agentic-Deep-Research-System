@@ -235,9 +235,9 @@ function ToolTrace({ events, records }: ToolTraceProps) {
           <p>{getString(item.query)||t("当前检索")} · {getString(item.status)||getString(item.lexical)}</p>
           {typeof item.returned_total==='number'&&<p>{t("返回 ")}{item.returned_total} {t(" 项；请求目标 ")}{Number(item.requested_top_k)||0} {t("项。")}{Number(item.returned_shortfall)>0&&t("结果不足，保持原筛选范围。")}</p>}
           {isRecord(item.filter_selectivity)&&<p>{t("本人有效范围内观察 ")}{Number(item.filter_selectivity.observed_authorized_chunks)||0} {t("块， 其中")}{Number(item.filter_selectivity.retained_in_observed)||0} {t("块符合业务条件。")}{item.filter_selectivity.scope_complete===false&&t("此观察有数量上限，不代表整个资料集比例。")}</p>}
-          {isRecord(item.channels)&&<div className="flex flex-wrap gap-2">{Object.entries(item.channels).filter(([,raw])=>isRecord(raw)&&(raw.status!=='skipped'||raw.reason==='no_matching_authorized_sparse_index')).map(([name,raw])=>{
+          {isRecord(item.channels)&&<div className="flex flex-wrap gap-2">{Object.entries(item.channels).filter(([,raw])=>isRecord(raw)&&(raw.status!=='skipped'||['no_matching_authorized_sparse_index','no_matching_authorized_paired_index'].includes(String(raw.reason)))).map(([name,raw])=>{
             if(!isRecord(raw))return null
-            const labels:Record<string,string>={literal:'精确匹配',bm25:'关键词',fts:'全文词语',dense:'语义线索',structure:'文档结构',stem:'英文词形',learned_sparse:'学习稀疏语义'}
+            const labels:Record<string,string>={literal:'精确匹配',bm25:'关键词',fts:'全文词语',dense:'语义线索',structure:'文档结构',stem:'英文词形',learned_sparse:'学习稀疏语义',paired_dense:'整体语义',late_interaction:'细粒度语义'}
             const state:Record<string,string>={requested:'准备中',completed:'已完成',empty:'无匹配',failed:'未完成',skipped:'无可用资料'}
             const reasons:Record<string,string>={local_model_or_configuration_unavailable:'本地模型不可用',model_configuration_changed:'模型设置已变化',timeout:'本次处理超时',output_limit:'结果超出限制'}
             return <span key={name} className="rounded-md border px-2 py-1">{t(labels[name]||name)} · {t(reasons[String(raw.reason)]||state[String(raw.status)]||'未完成')}{typeof raw.result_count==='number'?` ${raw.result_count}`:''}</span>

@@ -199,7 +199,7 @@ export default function QueryUnderstandingPanel({ value, onChange, organizationE
             onChange={event=>update({internalRetrievalMode:event.target.value,...(event.target.value==='structured'?{internalChannels:[]}:{})})}>
             <option value="hybrid">{t("混合查询（词汇及已启用的稠密表示）")}</option><option value="structured">{t("只按筛选条件取资料（不按相关性排名）")}</option>
           </select></FieldLabel>
-          {value.internalRetrievalMode!=='structured'&&<div className="choice-checks">{Object.entries({stem:t('英文词形'),sparse:t('学习稀疏语义')}).map(([id,label])=><label key={id}><input type="checkbox" checked={(value.internalChannels||[]).includes(id)} onChange={event=>update({internalChannels:event.target.checked?[...(value.internalChannels||[]),id]:(value.internalChannels||[]).filter(item=>item!==id)})}/>{label}</label>)}</div>}
+          {value.internalRetrievalMode!=='structured'&&<div className="choice-checks">{Object.entries({stem:t('英文词形'),sparse:t('学习稀疏语义'),paired:t('整体语义'),late:t('细粒度语义')}).map(([id,label])=><label key={id}><input type="checkbox" checked={(value.internalChannels||[]).includes(id)} onChange={event=>update({internalChannels:event.target.checked?[...(value.internalChannels||[]),id]:(value.internalChannels||[]).filter(item=>item!==id)})}/>{label}</label>)}</div>}
           <p className="my-2 text-xs text-xmgray-500">{t("内部检索子问题可使用chunk:块UUID、source:来源UUID、phrase:完整短语或entity:已登记词面实体ID。 entity仅查词面提及与同源父子结构，不能证明真实身份或合作关系。")}</p>
           <FieldLabel title={t("业务筛选 JSON")}><textarea className="input-xm w-full font-mono text-xs" rows={5} maxLength={16000}
             value={value.internalFilter||''} onChange={event=>update({internalFilter:event.target.value})}/></FieldLabel>
