@@ -6,6 +6,7 @@ import os
 import threading
 import uuid
 from contextlib import contextmanager
+from datetime import datetime, timezone
 from pathlib import Path
 
 from app.core.atomic_io import atomic_write_json
@@ -79,3 +80,50 @@ class ChannelStore:
             state = self._read(path)
             state["history"] = [*state["history"], *({**a, "timestamp": timestamp} for a in attempts)][-100:]
             atomic_write_json(path, state)
+
+    def github_status(self, owner: str) -> dict:
+        with self._locked(owner) as path:
+            value = self._read(path).get('personal_connections', {}).get('github') or {}
+            return {'configured':bool(value.get('credential')), 'enabled':bool(value.get('credential') and value.get('enabled')),
+                    'updated_at':value.get('updated_at')}
+
+    def save_github(self, owner: str, token: str, enabled: bool) -> dict:
+        from app.security.crypto import encrypt_secret
+        # encrypt_secret accepts already-encrypted values for legacy callers; inputs here must be plaintext.
+        if token.startswith('enc:'): raise ChannelError('invalid_personal_credential')
+        encrypted = encrypt_secret(token)
+        with self._locked(owner) as path:
+            state = self._read(path)
+            state.setdefault('personal_connections', {})['github'] = {
+                'credential':encrypted,'enabled':enabled,'updated_at':datetime.now(timezone.utc).isoformat()}
+            atomic_write_json(path,state)
+        return {'configured':True,'enabled':enabled}
+
+    def enable_github(self, owner: str, enabled: bool) -> dict:
+        with self._locked(owner) as path:
+            state = self._read(path)
+            value = state.get('personal_connections', {}).get('github')
+            if not value or not value.get('credential'): raise ChannelError('personal_connection_not_configured')
+            value['enabled'] = enabled
+            value['updated_at'] = datetime.now(timezone.utc).isoformat()
+            atomic_write_json(path,state)
+        return {'configured':True,'enabled':enabled}
+
+    def revoke_github(self, owner: str) -> dict:
+        with self._locked(owner) as path:
+            state = self._read(path)
+            state.get('personal_connections', {}).pop('github',None)
+            atomic_write_json(path,state)
+        return {'configured':False,'enabled':False}
+
+    def github_credential(self, owner: str | None) -> str | None:
+        if owner is None: return None
+        from app.security.crypto import decrypt_secret
+        with self._locked(owner) as path:
+            value = self._read(path).get('personal_connections', {}).get('github') or {}
+            if not value.get('enabled'): return None
+            encrypted = value.get('credential')
+            if not isinstance(encrypted,str) or not encrypted.startswith('enc:'):
+                raise ChannelError('personal_connection_unavailable')
+            try: return decrypt_secret(encrypted)
+            except RuntimeError: raise ChannelError('personal_connection_unavailable') from None

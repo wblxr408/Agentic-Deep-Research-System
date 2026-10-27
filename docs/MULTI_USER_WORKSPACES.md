@@ -18,6 +18,10 @@
 
 账号页提供创建空间、接受或拒绝邀请、成员管理、选择本人版本、撤回和阅读入口；报告按安全 Markdown 渲染，资料按文本展示，外部链接与图像不会在共享窗口自动请求。候选列表分别显示最近 200 项。界面按账号区分缓存，切换身份时沿用应用现有清理逻辑；实际双账号与撤回体验尚待统一端到端验证。
 
+## 个人平台连接源码进度（2026-10-27）
+
+`GET /api/v1/connections/github` 只返回本人是否配置、是否启用及部署加密配置状态；`PUT` 保存或替换、`PATCH` 启停、`DELETE` 撤销本人 GitHub 凭据，不返回凭据。保存时需要部署配置 `SECURITY_ENCRYPTION_KEY`，令牌以已有 Fernet 加密后保存在本人渠道状态中；删除不需要解密。保存不代表凭据已经通过平台验证。账号和当前会话在操作期间由数据库事务约束，其他账号无法读取或操作该连接。连接存储源码已接入，GitHub 请求路径及界面尚待实现，未进行真实平台调用。
+
 `GET/POST /api/v1/workspaces` 列出／创建本人空间；`GET /api/v1/workspaces/invitations` 读取本人待处理邀请，`POST /api/v1/workspaces/invitations/{id}/accept` 或 `/decline` 处理。空间所有者通过 `POST /api/v1/workspaces/{id}/invitations` 指定用户名和 request_id 邀请，`DELETE /api/v1/workspaces/{id}/invitations/{invite_id}` 撤回；成员通过 `DELETE /api/v1/workspaces/{id}/members/{member_id}` 退出或由所有者移除，`DELETE /api/v1/workspaces/{id}` 归档空间。本人活动会话／角色在事务内复查，失效或不属于该空间不返回资源；邀请通过界面显示，不自动给他人发信。共享资料、报告和细节见同一 OpenSpec 后续任务。
 
 首次部署创建管理员；之后首页“注册”创建普通用户。已登录账号右上角显示用户名，点击进入账号页。登录后可使用自己的研究、资料、Skill、模板、权重预设和模型设置。用户名不区分大小写，密码至少 12 个字符且不超过 72 个 UTF-8 字节。
