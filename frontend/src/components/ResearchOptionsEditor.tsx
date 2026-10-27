@@ -6,6 +6,7 @@ import {SourceFields,ExtraFields} from './ResearchExtraFields'
 import {setupRequest,setupSummary} from './researchSetup'
 import type {ResearchSetup} from './researchSetup'
 import {Icon} from './Interface'
+import {layoutProblem} from './reportLayouts'
 
 export type ChoiceSection='focus'|'scope'|'sources'|'report'|'more'
 export function choiceProblem(value:ResearchSetup):{section:ChoiceSection;message:string}|null {
@@ -15,7 +16,9 @@ export function choiceProblem(value:ResearchSetup):{section:ChoiceSection;messag
   if(org.enabled&&(!org.types.length||!org.disciplines.trim()))return {section:'scope',message:t("请选择对象类型和至少一个学科。")}
   if(org.enabled&&org.entities.some(entity=>!org.types.includes(entity.type)))return {section:'scope',message:t("有具体对象不在当前类型中，请调整类型或移除该对象。")}
   if(!draft.formats.length)return {section:'report',message:t("请至少选择一种下载形式。")}
-  if(draft.template==='custom'&&(!draft.pages.length||draft.pages.some(page=>!page.title.trim())))return {section:'report',message:t("请为自定义报告填写章节标题。")}
+  if(draft.layoutImportBusy)return {section:'report',message:t('请等待样例读取完成。')}
+  if(draft.template==='custom'&&draft.layoutMode==='layout') {const problem=layoutProblem(draft.layout);if(problem)return {section:'report',message:problem}}
+  else if(draft.template==='custom'&&(!draft.pages.length||draft.pages.some(page=>!page.title.trim())))return {section:'report',message:t("请为自定义报告填写章节标题。")}
   if(draft.drawingMode==='manual_skill'&&!draft.drawingSkillIds.length)return {section:'report',message:t("请选择一种绘图方法，或改用常规图表。")}
   const ranks=['public','internal','confidential','regulated']
   if(ranks.indexOf(draft.dataClass)>ranks.indexOf(draft.modelDataCeiling))return {section:'sources',message:t("模型可使用的资料类别应涵盖本次输入资料。")}
@@ -50,7 +53,7 @@ export default function ResearchOptionsEditor({value,onChange,skills,initial='fo
       {id:'more',name:t("更多选择"),summary:t("检索、分类与研究安排"),icon:'settings'}]
   const fields={value,onChange:(next:ResearchSetup)=>{setError('');onChange(next)},skills}
   return <div className="research-choice-editor"><div className="choice-accordion">{sections.map(section=><section key={section.id} className={`choice-section ${active===section.id?'is-open':''}`} aria-label={t("{0}设置", section.name)}>
-    <button type="button" className="choice-section-heading" aria-expanded={active===section.id} onClick={()=>setActive(section.id)}><span className="choice-section-icon"><Icon name={section.icon} size={19}/></span><span><strong>{section.name}</strong><small>{section.summary}</small></span><Icon name={active===section.id?'minus':'plus'} size={15}/></button>
+    <button type="button" className="choice-section-heading" disabled={!!value.queryDraft.layoutImportBusy&&section.id!=='report'} aria-expanded={active===section.id} onClick={()=>setActive(section.id)}><span className="choice-section-icon"><Icon name={section.icon} size={19}/></span><span><strong>{section.name}</strong><small>{section.summary}</small></span><Icon name={active===section.id?'minus':'plus'} size={15}/></button>
     {active===section.id&&<>{section.id==='focus'?<FocusFields {...fields}/>:section.id==='scope'?<><ScopeFields {...fields}/>{value.organizationDraft.enabled&&<details className="choice-weight-section"><summary>{t("调整匹配重点")}</summary><WeightChoices {...fields}/></details>}</>:section.id==='sources'?<SourceFields {...fields}/>:section.id==='report'?<ReportFields {...fields}/>:<ExtraFields {...fields}/>}</>}
-  </section>)}</div>{error&&<p role="alert" className="choice-error">{uiMessage(error)}</p>}<div className="choice-footer"><span>{summary.depth} · {summary.report}</span><div><button type="button" className="btn-ghost" onClick={onCancel}>{t("取消")}</button><button type="button" className="btn-primary" onClick={()=>{const problem=choiceProblem(value);if(problem){setActive(problem.section);setError(uiMessage(problem.message));return}onApply()}}>{t("应用选择")}<Icon name="check" size={16}/></button></div></div></div>
+  </section>)}</div>{error&&<p role="alert" className="choice-error">{uiMessage(error)}</p>}<div className="choice-footer"><span>{summary.depth} · {summary.report}</span><div><button type="button" className="btn-ghost" onClick={onCancel}>{t("取消")}</button><button type="button" className="btn-primary" disabled={!!value.queryDraft.layoutImportBusy} onClick={()=>{const problem=choiceProblem(value);if(problem){setActive(problem.section);setError(uiMessage(problem.message));return}onApply()}}>{t("应用选择")}<Icon name="check" size={16}/></button></div></div></div>
 }

@@ -1,6 +1,7 @@
 import {uiDefinition,t,joinLabels} from '../i18n'
 import {defaultQueryDraft,queryDraftRequest} from './QueryUnderstandingPanel'
 import type {QueryDraft} from './QueryUnderstandingPanel'
+import type {ReportLayout} from './reportLayouts'
 import {defaultOrganizationDraft,organizationRequest} from './OrganizationResearchPanel'
 import type {OrganizationDraft,OrganizationType} from './OrganizationResearchPanel'
 import type {WeightSelection} from './OrganizationWeightsPanel'
@@ -57,6 +58,7 @@ export function setupFromRequest(parameters:Record<string,unknown>={},query=''):
     pages:(delivery.pages||[]).map((page:any)=>({title:page.title||'',module:page.module||'',question:page.question||'',chart:page.chart_kind||'auto'})),
     drawingMode:delivery.drawing_mode||'builtin',drawingSkillIds:strings(delivery.drawing_skill_ids),chartSkillIds:delivery.chart_skill_ids||{},formats:delivery.formats||['markdown'],
     outputKind:delivery.output_kind||'auto',copiedFromTemplate:delivery.copied_from_template||null,
+    layout:delivery.layout?structuredClone(delivery.layout) as ReportLayout:null,layoutMode:delivery.layout?'layout':'chapters',layoutSample:null,layoutSourceId:null,layoutName:'',layoutImportBusy:false,
     planningStrategy:policy.strategy||'hybrid',autonomy:policy.autonomy||'bounded',maxParallel:policy.max_parallel??3,maxReplans:policy.max_replans??1,
     termAliases:Object.entries(object(q.term_aliases)).map(([term,aliases])=>[term,...strings(aliases)].join(' | ')).join('\n'),maxQueryVariants:q.max_query_variants??2,
     internalFilter:JSON.stringify(q.internal_filter||{any_of:[]}),internalRetrievalMode:q.internal_retrieval_mode||'hybrid',candidateFusion:JSON.stringify(q.candidate_fusion||{}),
@@ -98,6 +100,7 @@ export function setupRequest(value:ResearchSetup) {
   const body:Record<string,unknown>={...old,query:value.query.trim(),use_internal_docs:value.useInternal,rag_group:value.useInternal?value.group.trim()||null:null,
     output_length:value.outputLength,enabled_skill_ids:[...new Set([...value.enabled,...drawingIds])],disabled_skill_ids:value.disabled,channels:value.channels,organization_research:organization,
     planning_policy:{...object(old.planning_policy),...parts.planning_policy},query_options:{...object(old.query_options),...parts.query_options},delivery:{...object(old.delivery),...parts.delivery}}
+  if(!('layout' in parts.delivery))delete (body.delivery as Record<string,unknown>).layout
   delete body.query_preview_id;delete body.user_confirmed
   return body
 }

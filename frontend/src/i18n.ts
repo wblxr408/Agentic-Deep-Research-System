@@ -1,6 +1,8 @@
 import {useSyncExternalStore} from 'react'
-import {english} from './locales/en'
+import {english as baseEnglish} from './locales/en'
+import {layoutEnglish} from './locales/layout'
 import {systemMessages} from './locales/system'
+const english:Record<string,string>={...baseEnglish,...layoutEnglish}
 export type Locale='zh'|'en'
 const key='deepintel.appearance.v1'
 let language:Locale=(()=>{try{return JSON.parse(localStorage.getItem(key)||'{}').language==='en'?'en':'zh'}catch{return 'zh'}})()
@@ -11,10 +13,10 @@ export function useLocale(){return useSyncExternalStore(subscribe,()=>language,(
 export const joinLabels=(values:readonly string[])=>values.join(language==='en'?', ':'、')
 export const localeCode=()=>language==='en'?'en-US':'zh-CN'
 const renderedMessages=new Map<string,{source:string;values:unknown[]}>()
-const singular:Record<string,string>={sources:'source',actions:'action',subjects:'subject',methods:'method',skills:'skill',items:'item',records:'record',versions:'version',steps:'step',pages:'page',users:'user',documents:'document'}
+const singular:Record<string,string>={sources:'source',actions:'action',subjects:'subject',methods:'method',skills:'skill',items:'item',records:'record',versions:'version',steps:'step',pages:'page',users:'user',documents:'document',columns:'column',sections:'section',components:'component'}
 export function t(source:string,...values:unknown[]):string{
  let message=language==='en'?(english[source]??source):source
- if(language==='en'&&Number(values[0])===1)message=message.replace(/^((?:[A-Za-z]+\s+){0,4}\{0\}\s+)(sources|actions|subjects|methods|skills|items|records|versions|steps|pages|users|documents)\b/,(all,prefix,noun)=>prefix+singular[noun])
+ if(language==='en'&&Number(values[0])===1)message=message.replace(/^((?:[A-Za-z]+\s+){0,4}\{0\}\s+)(sources|actions|subjects|methods|skills|items|records|versions|steps|pages|users|documents|columns|sections|components)\b/,(all,prefix,noun)=>prefix+singular[noun])
  const result=message.replace(/\{(\d+)\}/g,(_,index:string)=>String(values[Number(index)]??''))
  // Remember message arguments, never reinterpret source names or report content.
  if(values.length&&source!==result){

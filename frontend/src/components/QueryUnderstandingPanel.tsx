@@ -2,6 +2,7 @@ import {uiDefinition,t,useLocale} from '../i18n'
 import { cloneElement, isValidElement } from 'react'
 import type { ReactNode } from 'react'
 import DeliveryTemplateManager from './DeliveryTemplateManager'
+import type {ReportLayout,LayoutSample} from './reportLayouts'
 
 export interface QueryDraft {
   queryType: string; entityText: string; disciplines: string; contextSessionId: string; referenceIds: string[]
@@ -21,6 +22,7 @@ export interface QueryDraft {
   outputKind:string
   copiedFromTemplate:{template_id:string;version:number}|null
   dataClass:string;modelDataCeiling:string;publicSearchQueries:string
+  layout?:ReportLayout|null;layoutSample?:LayoutSample|null;layoutSourceId?:string|null;layoutName?:string;layoutMode?:'chapters'|'layout';layoutImportBusy?:boolean
 }
 export const defaultQueryDraft: QueryDraft = {
   queryType: '', entityText: '', disciplines: '', contextSessionId: '', referenceIds: [], constraints: '',
@@ -37,6 +39,7 @@ export const defaultQueryDraft: QueryDraft = {
   candidateFusion:'{}',
   outputKind:'auto',copiedFromTemplate:null,
   dataClass:'public',modelDataCeiling:'internal',publicSearchQueries:'',
+  layout:null,layoutSample:null,layoutSourceId:null,layoutName:'',layoutMode:'chapters',layoutImportBusy:false,
 }
 
 const queryTypes: Record<string, string> = uiDefinition({ fact: '事实查询', aggregate: '统计聚合', comparison: '比较', multi_hop: '多跳关联', exploration: '探索研究' })
@@ -60,8 +63,10 @@ export interface UnderstandingSnapshot {
 }
 
 export function deliveryDraftRequest(draft:QueryDraft) {
+  const layoutActive=draft.template==='custom'&&draft.layoutMode==='layout'&&draft.layout
   return {template:draft.template,theme:draft.theme,output_kind:draft.outputKind||'auto',copied_from_template:draft.copiedFromTemplate||null,
-    pages:draft.template==='custom'?draft.pages.map((page,index)=>({page_id:`page-${index+1}`,title:page.title,module:page.module||null,question:page.question,chart_kind:page.chart})):[],
+    pages:draft.template==='custom'&&!layoutActive?draft.pages.map((page,index)=>({page_id:`page-${index+1}`,title:page.title,module:page.module||null,question:page.question,chart_kind:page.chart})):[],
+    ...(layoutActive?{layout:draft.layout}:{}),
     drawing_mode:draft.drawingMode,drawing_skill_ids:draft.drawingMode==='manual_skill'?draft.drawingSkillIds:[],
     chart_skill_ids:draft.drawingMode==='builtin'?{}:Object.fromEntries(Object.entries(draft.chartSkillIds||{}).filter(([,id])=>id)),formats:draft.formats}
 }
@@ -86,7 +91,7 @@ export function queryDraftRequest(draft: QueryDraft, organizationEnabled: boolea
   })
   if (entities.length > 40) throw new Error(t("查询对象最多40个；组织研究可在组织面板选择。"))
   if (!draft.formats.length) throw new Error(t("至少选择一种交付格式。"))
-  if (draft.template === 'custom' && !draft.pages.length) throw new Error(t("请为自定义报告添加页面。"))
+  if (draft.template === 'custom' && !(draft.layoutMode==='layout'&&draft.layout) && !draft.pages.length) throw new Error(t("请为自定义报告添加页面。"))
   if (draft.drawingMode === 'manual_skill' && !draft.drawingSkillIds.length) throw new Error(t("请选择绘图Skill。"))
   return {
     planning_policy: { strategy: draft.planningStrategy, autonomy: draft.autonomy,
@@ -296,9 +301,10 @@ export default function QueryUnderstandingPanel({ value, onChange, organizationE
                 <option value="">{t("沿用默认方案")}</option>{skills.map(skill=><option key={skill.id} value={skill.id}>{skill.name}</option>)}
               </select></FieldLabel>)}</div>
         </details>}
-        <DeliveryTemplateManager configuration={deliveryDraftRequest(value)} onApply={(configuration,origin)=>{
+        <DeliveryTemplateManager configuration={deliveryDraftRequest(value)} layoutSourceId={value.layoutSourceId} onApply={(configuration,origin,meta)=>{
           update({template:String(configuration.template||'markdown-v1'),theme:String(configuration.theme||'plain-v1'),
             outputKind:String(configuration.output_kind||'auto'),copiedFromTemplate:origin,
+            layout:configuration.layout?structuredClone(configuration.layout) as ReportLayout:null,layoutMode:configuration.layout?'layout':'chapters',layoutSample:null,layoutSourceId:meta?.sourceId||null,layoutName:meta?.name||'',layoutImportBusy:false,
             pages:Array.isArray(configuration.pages)?configuration.pages.map((page:Record<string,unknown>)=>({title:String(page.title||''),module:String(page.module||''),question:String(page.question||''),chart:String(page.chart_kind||'auto')})):[],
             drawingMode:String(configuration.drawing_mode||'builtin'),drawingSkillIds:Array.isArray(configuration.drawing_skill_ids)?configuration.drawing_skill_ids as string[]:[],
             chartSkillIds:(configuration.chart_skill_ids||{}) as Record<string,string>,formats:configuration.formats as string[]||['markdown']})

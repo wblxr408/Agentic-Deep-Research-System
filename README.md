@@ -4,7 +4,7 @@ ADRS 面向企业、高校和科研实验室的研究发展分析：从公开论
 
 ## 当前进度
 
-2026-10-27：按模块推进报告样例导入。已实现本人HTML／DOCX样例上传、去内容版式提取、位置与差异记录、幂等及模板保存；当前新增消费者用例通过。前端编辑、数据绑定和呈现仍待后续模块，当前预览阻止未接适配器的新布局启动研究。[设计与进度](docs/REPORT_TEMPLATE_IMPORT_DESIGN.md) · [实际记录](docs/acceptance/layout-import-20261027.md)
+2026-10-27：报告样式支持导入HTML／DOCX样例、空白预览、版式编辑、保存与应用；手动章节可生成同一版式草稿。HTML浏览器路径已实际走通，个人模板可重读和修订。研究数据绑定及报告呈现仍待后续模块，当前计划预览会阻止未接适配器的新布局启动研究。[设计与进度](docs/REPORT_TEMPLATE_IMPORT_DESIGN.md) · [浏览器记录](docs/acceptance/layout-editor-20261027.md) · [解析记录](docs/acceptance/layout-import-20261027.md)
 
 2026-10-26：45项书架研究方法已作为仓库及后端镜像的默认内容，账号首次使用自动获得独立副本，保留已有修改、停用与删除。当前新增行为用例已完成RED/GREEN。[默认方法说明](docs/BOOKSHELF_RESEARCH_SKILLS.md) · [实际证据](docs/acceptance/default-methods-20261026.md)。报告样例“只取格式”的隔离、版式契约、编辑／预览及数据绑定已形成[设计](docs/REPORT_TEMPLATE_IMPORT_DESIGN.md)，实现任务已列入TODO。
 
