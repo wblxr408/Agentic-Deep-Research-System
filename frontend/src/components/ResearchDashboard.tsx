@@ -44,6 +44,7 @@ interface ResearchResult {
     revision_requests?:Array<{claim_id:string;text:string;reason:string;requested_action:string}>}|null
   analysis_recovery_available?: boolean
   report_recovery_available?: boolean
+  audit_recovery_available?: boolean
   analysis_progress?: {phase: string|null;status:string;completed_steps:number;stop_reason?:string|null;
     phases?:Array<{phase:string;status:string;summary:string;attempts:number}>;
     last_admission?:{prompt_bound?:number|null;requested_output_tokens?:number|null;available_tokens?:number|null;selected_sources?:number|null}|null}|null
@@ -188,7 +189,7 @@ function ResearchDashboard({ onBack,ownerId }: ResearchDashboardProps) {
   })
 
   const resumeSynthesis = useMutation({
-    mutationFn: async (stage:'analysis'|'report') => {
+    mutationFn: async (stage:'analysis'|'report'|'audit') => {
       const response=await fetch(`/api/v1/research/${activeSessionId}/${stage}/resume`,{method:'POST'})
       const data=await response.json()
       if (!response.ok) {
@@ -204,6 +205,10 @@ function ResearchDashboard({ onBack,ownerId }: ResearchDashboardProps) {
           report_resume_attempt_limit:t("本次报告已达到一次续作上限，当前资料和原稿已保留。"),
           report_checkpoint_changed:t("任务状态已变化，请刷新后查看。"),
           report_checkpoint_not_recoverable:t("当前任务没有可继续的报告检查点。"),
+          audit_original_allowance_exhausted:t("原任务的额度或期限已用完，无法继续核对。"),
+          audit_resume_attempt_limit:t("本次核对已达到续作上限。"),
+          audit_checkpoint_changed:t("任务状态已变化，请刷新后查看。"),
+          audit_checkpoint_not_recoverable:t("当前任务没有可继续的核对记录。"),
         }
         throw new Error(messages[String(data.detail)] || t("暂时无法继续研究，请稍后重试。"))
       }

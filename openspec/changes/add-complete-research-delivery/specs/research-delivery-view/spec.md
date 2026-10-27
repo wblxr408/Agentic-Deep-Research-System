@@ -195,8 +195,6 @@ The system SHALL save owner-scoped delivery configurations independently of eval
 ### Requirement: Reader task controls generated structure
 The system SHALL freeze answer, summary, comparison, report or data-analysis intent and depth without another model planning round. Explicit pages and selected modules SHALL retain structure priority. Unsupported requested file adapters SHALL NOT be described as delivered.
 
-# 2026-10-27 审核未完成的恢复
-
 ### Requirement: 保留并继续原稿的审核
 系统 SHALL 在审核结果格式损坏或截断时保留调用用量与已完成判断，并在原权限、额度、期限内对失败批次有限拆分重试；仍未完成时只允许对本人未变更的原稿及来源继续审核，不得将未核或不支持事实发布为已完成报告。
 

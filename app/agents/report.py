@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import logging
 import time
+from copy import deepcopy
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 
@@ -473,6 +474,80 @@ Evidence Sources:
             self.last_audit = audit_report(fallback, evidence_list, client=None, model=self.model, max_claims=0)
             self._emit_fallback_chunks(fallback, on_chunk)
             return fallback, citations
+
+    def resume_audit(self, *, user_query: str, evidence_list: list[Evidence],
+                     saved_report: str, saved_citations: list[dict], saved_audit: dict,
+                     module_report: dict, organization_research: dict,
+                     organization_statistics: dict | None, technical_reading: dict | None,
+                     analysis_workflow: dict | None, report_context: dict | None,
+                     writing_plan: dict | None) -> tuple[str, list[Citation]]:
+        """Continue only the unfinished audit of an unchanged, retained draft."""
+        from app.claim_verification import module_paragraph_kinds, research_method_context
+        from app.research_context import reading_source_spans
+        from app.report_revision import revise_report_claims
+
+        self.last_audit=deepcopy(saved_audit)
+        self.last_module_report=deepcopy(module_report)
+        self.last_context_manifest=deepcopy(report_context or {})
+        self.last_writing_plan=deepcopy(writing_plan or {})
+        self.last_draft=saved_report
+        citations=self._build_citations(evidence_list)
+        self.last_citations=citations
+        if [item.model_dump() for item in citations]!=saved_citations:
+            raise TokenBudgetExceeded('audit_resume_citations_changed')
+        structure=(self.last_module_report or {}).get('reading_structure') or {}
+        main,appendix=structure.get('main_markdown'),structure.get('appendix_markdown')
+        if not isinstance(main,str) or not isinstance(appendix,str):
+            raise TokenBudgetExceeded('audit_resume_report_changed')
+        content=main+('\n\n'+appendix if appendix else '')
+        expected=content
+        if '## References' not in content and '## 参考' not in content:
+            expected+='\n\n---\n\n## References\n\n'+self._build_reference_list(citations)
+        if saved_report!=expected:
+            raise TokenBudgetExceeded('audit_resume_report_changed')
+
+        active_client=self.client  # Select the authorized route before checking the model.
+        active_model=self.model
+        if saved_audit.get('audit_model')!=active_model:
+            raise TokenBudgetExceeded('audit_resume_model_changed')
+        paragraphs=[*self.last_module_report.get('summary',[]), *[paragraph
+            for module in self.last_module_report['modules']
+            for paragraph in [*module['paragraphs'],*module.get('appendix',[])]]]
+        bound_statistics=[{'rendered_paragraph':paragraph['rendered_text'],**binding}
+            for paragraph in paragraphs for binding in paragraph.get('statistic_bindings',[])]
+        method_context=research_method_context(user_query,organization_research,evidence_list)
+        located_spans=reading_source_spans(technical_reading,evidence_list,analysis_workflow)
+        try:
+            self.last_audit=audit_report(content,evidence_list,
+                client=budgeted_client(active_client,self.request_budget,'audit'),model=active_model,
+                token_budget=self.request_budget.available('audit'),deadline=self.request_budget.deadline,
+                bound_statistics=bound_statistics,paragraph_kinds=module_paragraph_kinds(self.last_module_report),
+                task_context=method_context,previous_audit=saved_audit,source_spans=located_spans,
+                resume_judged=True)
+        except ValueError as error:
+            raise TokenBudgetExceeded('audit_resume_judgment_binding_changed') from error
+
+        def upgrade_correction(trigger,details,required_tokens):
+            from app.model_routing import prepare_capability_upgrade
+            if prepare_capability_upgrade(self,'report',trigger,evidence_present=bool(evidence_list),
+                    details=details,required_tokens=required_tokens):
+                return self.client,self.model
+            return None
+        def retain_correction(draft,record,audit):
+            self.last_draft=draft
+            self.last_module_report=record
+            self.last_audit=audit
+        content,self.last_module_report,self.last_audit=revise_report_claims(content,self.last_module_report,self.last_audit,
+            configuration=organization_research,statistics=organization_statistics,evidence=evidence_list,
+            client=self.client,model=active_model,budget=self.request_budget,deadline=self.request_budget.deadline,
+            citation_count=len(citations),upgrade_callback=upgrade_correction,task_context=method_context,
+            source_spans=located_spans,on_round=retain_correction,on_event=self.recovery_events.append)
+        self.last_audit['module_contract']=self.last_module_report
+        if '## References' not in content and '## 参考' not in content:
+            content+='\n\n---\n\n## References\n\n'+self._build_reference_list(citations)
+        self.last_draft=content
+        self.last_usage=self.request_budget.usage()
+        return content,citations
 
     def _build_citations(self, evidence_list: list[Evidence]) -> list[Citation]:
         """Build a stable citation list from collected evidence."""

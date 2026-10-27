@@ -485,7 +485,8 @@ def audit_report(report: str, evidence: list[Evidence], *, client: Any, model: s
                  bound_statistics: list[dict] | None = None,
                  paragraph_kinds: dict[str, str] | None = None,
                  task_context: dict | None = None,
-                 previous_audit: dict | None = None, source_spans: dict | None = None) -> dict:
+                 previous_audit: dict | None = None, source_spans: dict | None = None,
+                 resume_judged: bool = False) -> dict:
     from app.llm_budget import BudgetedClient, ModelTokenBudget, TokenBudgetExceeded, request_token_bound
     if client is not None and not isinstance(client,BudgetedClient):
         client = BudgetedClient(client,ModelTokenBudget(token_budget if token_budget is not None else 12000,
@@ -511,10 +512,16 @@ def audit_report(report: str, evidence: list[Evidence], *, client: Any, model: s
         return (row['text'],row['paragraph_context'],tuple(row['citation_ids']),
                 row.get('citation_scope'),row.get('declared_kind'))
     reusable = {}
+    if resume_judged and ((previous_audit or {}).get('audit_contract_version')!=AUDIT_CONTRACT_VERSION
+            or previous_audit.get('audit_model')!=model):
+        raise ValueError('audit_resume_contract_changed')
     if (previous_audit or {}).get('audit_contract_version')==AUDIT_CONTRACT_VERSION and previous_audit.get('audit_model')==model:
         for old in previous_audit.get('claims', []):
-            if (old.get('status')=='supported' and old.get('model_verdict')=='supported'
-                    and _supported_assessment(old,method=old.get('support_basis')=='task_method')):
+            supported=(old.get('status')=='supported' and old.get('model_verdict')=='supported'
+                    and _supported_assessment(old,method=old.get('support_basis')=='task_method'))
+            conservative=(resume_judged and old.get('status') in {'contradicted','unsupported','unverifiable'}
+                          and old.get('model_verdict') in {'supported','contradicted','unsupported','unverifiable'})
+            if supported or conservative:
                 reusable.setdefault(reuse_key(old), []).append(old)
     for i, claim in enumerate(claims):
         ids = claim["citation_ids"]
@@ -539,10 +546,15 @@ def audit_report(report: str, evidence: list[Evidence], *, client: Any, model: s
                "reason": "Explicit claim limit" if i >= claim_limit else "Awaiting source support judgement"}
         rows.append(row)
         if i < claim_limit and not invalid:
-            for old in reusable.get(reuse_key(row), []):
+            candidates = reusable.get(reuse_key(row), [])
+            for position,old in enumerate(candidates):
                 if old.get('excerpts')!=excerpts or old.get('statistic_context')!=row['statistic_context']:
                     continue
-                if old.get('support_basis')=='task_method':
+                if resume_judged and old.get('status')!='supported':
+                    # Negative/uncertain decisions remain negative/uncertain; they
+                    # cannot be promoted by a resume with missing anchor checks.
+                    valid=(previous_audit.get('task_method_context')==task_context if old.get('support_basis')=='task_method' else True)
+                elif old.get('support_basis')=='task_method':
                     checks=old.get('method_checks') or []
                     valid=previous_audit.get('task_method_context')==task_context and bool(checks) and all(check.get('method_id') in method_ids and
                         check.get('value')==(task_context or {}).get(check.get('method_id')) for check in checks)
@@ -557,10 +569,16 @@ def audit_report(report: str, evidence: list[Evidence], *, client: Any, model: s
                     if key in old:row[key]=deepcopy(old[key])
                 row['verification_reused']=True
                 row['reused_from_claim_id']=old['claim_id']
+                if resume_judged:del candidates[position]
                 break
         if row.get('verification_reused'):continue
         if i < claim_limit and not invalid and (ids and excerpts or method_ids):
             pending.append(row)
+
+    if resume_judged:
+        judged=sum(1 for old in previous_audit.get('claims',[]) if old.get('model_verdict') is not None)
+        if any(reusable.values()) or sum(bool(row.get('verification_reused')) for row in rows)!=judged:
+            raise ValueError('audit_resume_judgment_binding_changed')
 
     def compact_payload(batch):
         sources, excerpts, references = shared_passage_payload([
@@ -767,7 +785,8 @@ def audit_report(report: str, evidence: list[Evidence], *, client: Any, model: s
                 'admission':'full_request_byte_bound_and_original_remaining_allowance',
                 'batches':batch_records},
             'task_method_context':deepcopy(task_context) if any(row.get('allowed_method_ids') for row in rows) else None,
-            'reused_supported_claims':sum(bool(row.get('verification_reused')) for row in rows),
+            'reused_supported_claims':sum(bool(row.get('verification_reused')) and row['status']=='supported' for row in rows),
+            'reused_judged_claims':sum(bool(row.get('verification_reused')) for row in rows),
             'newly_checked_claims':sum(row['model_verdict'] is not None and not row.get('verification_reused') for row in rows),
             "human_review_status": "not_reviewed", "total_claims": len(rows),
             "checked_claims": sum(row['model_verdict'] is not None for row in rows),

@@ -7,7 +7,7 @@ export interface RunControlState {
     findings:Array<{text:string;detail:string}>;blockers:string[];diagnosis_complete?:boolean;automatic_recovery:{attempts:number;limit:number;status:string;eligible:boolean;policy_attempts?:number;policy_limit?:number;action?:string}}|null
   session_id:string;execution_id?:string|null;status:string;runtime_status?:string|null;stop_reason?:string|null
   user_control?:{state?:string}|null
-  analysis_recovery_available?:boolean;report_recovery_available?:boolean
+  analysis_recovery_available?:boolean;report_recovery_available?:boolean;audit_recovery_available?:boolean
   budget_state?:{hard_stop_reason?:string|null;model_stop_reason?:string|null}|null
 }
 const reasons:Record<string,string>=uiDefinition({
@@ -30,7 +30,7 @@ const errors:Record<string,string>=uiDefinition({
 })
 export default function ResearchRunControls({value,onRefresh,onResumed,onRestart,onSynthesis,synthesisBusy}:{
   value:RunControlState;onRefresh:()=>Promise<void>;onResumed:(execution:string)=>Promise<void>
-  onRestart:()=>void;onSynthesis:(stage:'analysis'|'report')=>void;synthesisBusy:boolean
+  onRestart:()=>void;onSynthesis:(stage:'analysis'|'report'|'audit')=>void;synthesisBusy:boolean
 }) {
   useLocale()
 
@@ -66,6 +66,7 @@ export default function ResearchRunControls({value,onRefresh,onResumed,onRestart
       {userPaused&&<button type="button" className="btn-primary" disabled={!!busy} onClick={()=>void act('resume')}><Icon name="play" size={16}/>{busy==='resume'?t("正在继续…"):t("继续研究")}</button>}
       {!userPaused&&value.analysis_recovery_available&&<button type="button" className="btn-primary" disabled={synthesisBusy||!!busy} onClick={()=>onSynthesis('analysis')}>{t("继续分析")}</button>}
       {!userPaused&&value.report_recovery_available&&<button type="button" className="btn-primary" disabled={synthesisBusy||!!busy} onClick={()=>onSynthesis('report')}>{t("继续生成报告")}</button>}
+      {!userPaused&&value.audit_recovery_available&&<button type="button" className="btn-primary" disabled={synthesisBusy||!!busy} onClick={()=>onSynthesis('audit')}>{t("继续核对")}</button>}
       {['pending','running','paused'].includes(value.status)&&<button type="button" className="btn-ghost" disabled={!!busy} onClick={()=>void act('cancel')}>{busy==='cancel'?t("正在终止…"):t("终止")}</button>}
       {['paused','failed','canceled','completed'].includes(value.status)&&<button type="button" className="btn-secondary" onClick={onRestart}>{t("调整后重新开始")}<Icon name="arrow" size={15}/></button>}
     </div>

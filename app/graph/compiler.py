@@ -423,6 +423,7 @@ def _model_budget_pause(state, agent, stage, error, *, report=None, citations=No
         'provider_usage_exceeded_reservation','final_audit_budget_exhausted','root_model_admission_denied'}
     if budget_stop:budget['hard_stop_reason'] = budget.get('hard_stop_reason') or error.reason
     session.update(status='paused',updated_at=utc_now_naive().isoformat())
+    session.pop('audit_resume_mode',None)
     recoverable=stage=='analyst' and error.reason in {'analysis_output_incomplete','analysis_provider_unavailable','model_output_limit','insufficient_context_budget'}
     route_error=error.reason.startswith('model_rout') or error.reason in {'no_eligible_model_route',
         'model_endpoint_changed','model_context_capability_exceeded'}
@@ -2485,7 +2486,18 @@ async def report_node(state: ResearchState) -> dict:
     from app.db.report_delivery import report_binding
     from app.disclosure import ensure_report_disclosure,redact_text
     from app.source_lifecycle import current_synthesis_state
+    retained_state=state
+    audit_resume=bool((state.get('session') or {}).get('audit_resume_mode'))
     state=await current_synthesis_state(state)
+    if audit_resume and state.get('collected_evidence')!=retained_state.get('collected_evidence'):
+        from app.graph.state import Citation
+        agent=ReportAgent()
+        agent.request_budget=_stage_model_budget(retained_state,'report')
+        agent.last_audit=(retained_state.get('review_status') or {}).get('final_report_audit')
+        retained_state['evidence_access_gaps']=state.get('evidence_access_gaps',[])
+        return _model_budget_pause(retained_state,agent,'report',TokenBudgetExceeded('report_sources_changed_before_audit'),
+            report=retained_state.get('final_report'),
+            citations=[Citation.model_validate(item) for item in retained_state.get('citations',[])])
     from app.organization_findings import findings_context
     from app.organization_report import build_report_summary
     from app.organization_corpus import build_corpus
@@ -2508,25 +2520,26 @@ async def report_node(state: ResearchState) -> dict:
     organization_result = state.get('organization_result')
     from app.organization_taxonomy import classify_publications
     org_config = state.get('organization_research') or {}
-    if org_config.get('taxonomy'):
-        organization_result = {**(organization_result or {}), 'classification': classify_publications(
-            org_config['taxonomy'], organization_result or {}, state.get('collected_evidence', []), org_config['scope'])}
-    corpus = build_corpus(state.get('organization_research'), organization_result,
-        state.get('collected_evidence', []), state.get('tool_histories', []))
-    if corpus:
-        organization_result = {**(organization_result or {}), 'corpus': corpus}
-    if org_config:
-        source_id=str(state['task_id'])+':'+str(state.get('session',{}).get('execution_id') or 'execution-not-recorded')
-        statistics=build_statistics(org_config,organization_result,state.get('collected_evidence',[]),source_id=source_id)
-        organization_result=apply_statistics(organization_result or {},statistics)
-    if (organization_result or {}).get('trend_view'):
-        trend = {**organization_result['trend_view']}
-        trend['coverage_snapshot']={**trend['coverage_snapshot'],'corpus_counts':(corpus or {}).get('counts'),
-            'taxonomy_version':(org_config.get('taxonomy') or {}).get('version')}
-        organization_result={**organization_result,'trend_view':trend}
-    if org_config and 'actions' in org_config.get('modules',[]):
-        organization_result={**(organization_result or {}),'actions':build_action_view(org_config,organization_result,
-            state.get('collected_evidence',[]),(organization_result or {}).get('action_proposals'),state=state)}
+    if not audit_resume:
+        if org_config.get('taxonomy'):
+            organization_result = {**(organization_result or {}), 'classification': classify_publications(
+                org_config['taxonomy'], organization_result or {}, state.get('collected_evidence', []), org_config['scope'])}
+        corpus = build_corpus(state.get('organization_research'), organization_result,
+            state.get('collected_evidence', []), state.get('tool_histories', []))
+        if corpus:
+            organization_result = {**(organization_result or {}), 'corpus': corpus}
+        if org_config:
+            source_id=str(state['task_id'])+':'+str(state.get('session',{}).get('execution_id') or 'execution-not-recorded')
+            statistics=build_statistics(org_config,organization_result,state.get('collected_evidence',[]),source_id=source_id)
+            organization_result=apply_statistics(organization_result or {},statistics)
+        if (organization_result or {}).get('trend_view'):
+            trend = {**organization_result['trend_view']}
+            trend['coverage_snapshot']={**trend['coverage_snapshot'],'corpus_counts':(corpus or {}).get('counts'),
+                'taxonomy_version':(org_config.get('taxonomy') or {}).get('version')}
+            organization_result={**organization_result,'trend_view':trend}
+        if org_config and 'actions' in org_config.get('modules',[]):
+            organization_result={**(organization_result or {}),'actions':build_action_view(org_config,organization_result,
+                state.get('collected_evidence',[]),(organization_result or {}).get('action_proposals'),state=state)}
 
     if not evidence_gate.allowed and reject_if_no_evidence:
         message = build_answer_gate_message(evidence_gate)
@@ -2607,26 +2620,36 @@ async def report_node(state: ResearchState) -> dict:
     remaining_report_seconds = max(0, float(report_budget.get("max_wall_clock_seconds") or 0)
                                    - float(report_budget.get("elapsed_wall_clock_seconds") or 0))
     try:
-        report, citations = await asyncio.to_thread(agent.generate_stream,
-            user_query=_synthesis_question(state),
-            analysis=state["analysis"] + findings_context(organization_result),
-            evidence_list=evidence_list,
-            reflection=verification,
-            output_length=state.get("output_length") or state.get("session", {}).get("output_length"),
-            skill_prompt=_skill_prompt(state, 'report') or None,
-            report_hints=_agent_skill_hints(state, "report"),
-            # Provider streaming still settles actual usage. Reader publication
-            # waits for the complete output, evidence audit and disclosure gate.
-            on_chunk=None,
-            on_citation=None,
-            verification_token_budget=remaining_report_tokens,
-            verification_timeout_seconds=remaining_report_seconds,
-            organization_research=state.get("organization_research"),
-            organization_statistics=(organization_result or {}).get('statistics'),
-            technical_reading=(organization_result or {}).get('technical_reading'),
-            analysis_workflow=state.get('analysis_workflow'),
-            query_understanding=state.get('query_understanding'),
-        )
+        if audit_resume:
+            report,citations=await asyncio.to_thread(agent.resume_audit,
+                user_query=_synthesis_question(state),evidence_list=evidence_list,
+                saved_report=state.get('final_report'),saved_citations=state.get('citations',[]),
+                saved_audit=(state.get('review_status') or {}).get('final_report_audit') or {},
+                module_report=(organization_result or {}).get('module_report') or {},
+                organization_research=state.get('organization_research') or {},
+                organization_statistics=(organization_result or {}).get('statistics'),
+                technical_reading=(organization_result or {}).get('technical_reading'),
+                analysis_workflow=state.get('analysis_workflow'),
+                report_context=(organization_result or {}).get('report_context'),
+                writing_plan=(organization_result or {}).get('writing_plan'))
+        else:
+            report, citations = await asyncio.to_thread(agent.generate_stream,
+                user_query=_synthesis_question(state),
+                analysis=state["analysis"] + findings_context(organization_result),
+                evidence_list=evidence_list,
+                reflection=verification,
+                output_length=state.get("output_length") or state.get("session", {}).get("output_length"),
+                skill_prompt=_skill_prompt(state, 'report') or None,
+                report_hints=_agent_skill_hints(state, "report"),
+                # Publish only after review and disclosure.
+                on_chunk=None,on_citation=None,
+                verification_token_budget=remaining_report_tokens,
+                verification_timeout_seconds=remaining_report_seconds,
+                organization_research=state.get("organization_research"),
+                organization_statistics=(organization_result or {}).get('statistics'),
+                technical_reading=(organization_result or {}).get('technical_reading'),
+                analysis_workflow=state.get('analysis_workflow'),
+                query_understanding=state.get('query_understanding'))
     except TokenBudgetExceeded as error:
         return _model_budget_pause(state,agent,'report',error,
             report=agent.last_draft,citations=agent.last_citations)
@@ -2784,6 +2807,7 @@ async def report_node(state: ResearchState) -> dict:
 
     # 更新会话状态
     session["status"] = TaskStatus.COMPLETED.value
+    session.pop('audit_resume_mode',None)
     session["completed_at"] = utc_now_naive().isoformat()
 
     complete_event = _append_trace_event(state, EventType.AGENT_COMPLETE, "report", f"Report generated: {len(report)} chars")

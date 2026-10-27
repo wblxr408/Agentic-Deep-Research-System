@@ -110,7 +110,11 @@ def diagnose_stop(state,*,active_execution=False):
             next_step='模型服务仍未恢复。' if attempts else '系统未取得可分类的服务错误，可选择另一已授权模型。',action='settings')
         if error_type in {'AuthenticationError','PermissionDeniedError'}:
             result.update(summary='模型服务拒绝当前凭证或访问权限',next_step='需要更新本账号的模型凭证或授权。',action='settings')
-    elif reason=='final_audit_incomplete' and any(item in {'JSONDecodeError','AuditBatchOutputTruncated','AuditBatchStructureError'} for item in (audit.get('errors') or [])):
+    elif reason=='final_audit_incomplete' and any(
+            batch.get('status') in {'response_unavailable_or_invalid','response_received'}
+            and batch.get('reason') in {'JSONDecodeError','AuditBatchOutputTruncated','AuditBatchStructureError','missing_or_invalid_verdicts'}
+            and bool(set(batch.get('claim_ids') or []) & set(audit.get('unfinished_claim_ids') or []))
+            for batch in (audit.get('batching') or {}).get('batches',[])):
         unfinished=len(audit.get('unfinished_claim_ids') or [])
         result.update(summary='报告核对结果格式不完整',next_step='已保留正文和已完成的核对结果。')
         result['findings']=[{'text':f'仍有 {unfinished} 项未完成核对','detail':'模型返回的审核结果无法完整解析。'}]

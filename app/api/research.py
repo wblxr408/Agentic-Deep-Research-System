@@ -1406,6 +1406,8 @@ async def get_research_result(session_id: str, principal: Principal = principal_
                     WHERE session_id = research_sessions.id) AS analysis_workflow,
                    (SELECT state_snapshot_json -> 'session' ->> 'report_resume_attempts' FROM session_runtime_state
                     WHERE session_id = research_sessions.id) AS report_resume_attempts,
+                   (SELECT state_snapshot_json -> 'session' ->> 'audit_resume_attempts' FROM session_runtime_state
+                    WHERE session_id = research_sessions.id) AS audit_resume_attempts,
                    (SELECT state_snapshot_json -> 'session' FROM session_runtime_state
                     WHERE session_id = research_sessions.id) AS root_session
             FROM research_sessions
@@ -1512,6 +1514,12 @@ async def get_research_result(session_id: str, principal: Principal = principal_
             and (((review_status.get('organization_result') or {}).get('module_report') or {}).get('issues')
                 or review_status.get('last_error_category')=='llm_stream_interrupted')
             and int(row.get('report_resume_attempts') or 0)<1),
+        'audit_recovery_available':bool(row['status']=='paused' and workflow.get('status')=='completed'
+            and review_status.get('output_stage')=='report' and review_status.get('report_payload_kind')=='report'
+            and review_status.get('reason')=='final_audit_incomplete'
+            and bool((review_status.get('final_report_audit') or {}).get('audit_incomplete'))
+            and not (review_status.get('disclosure') or {}).get('requires_reaudit')
+            and int(row.get('audit_resume_attempts') or 0)<1),
         "created_at": row["created_at"].isoformat(),
         "completed_at": row["completed_at"].isoformat() if row["completed_at"] else None,
     }
@@ -1856,6 +1864,13 @@ async def resume_research_report(session_id: str, background_tasks: BackgroundTa
     return await _resume_retained_synthesis(session_id, background_tasks, principal, stage='report')
 
 
+@router.post('/{session_id}/audit/resume')
+async def resume_research_audit(session_id: str, background_tasks: BackgroundTasks,
+                                principal: Principal = principal_dependency):
+    """Resume the unfinished review of this owner's unchanged draft once."""
+    return await _resume_retained_synthesis(session_id, background_tasks, principal, stage='audit')
+
+
 async def _resume_retained_synthesis(session_id, background_tasks, principal, *, stage):
     from datetime import UTC, datetime
     from app.graph.compiler import _build_budget_state, _stage_model_budget, _synthesis_question, _skill_prompt, _agent_skill_hints
@@ -1873,12 +1888,24 @@ async def _resume_retained_synthesis(session_id, background_tasks, principal, *,
     state=deepcopy(_json_object(record['state_snapshot_json']))
     root=state.get('session') or {}; workflow=state.get('analysis_workflow') or {}
     report_resume=stage=='report'
+    audit_resume=stage=='audit'
+    report_stage=report_resume or audit_resume
     review=state.get('review_status') or {}
     module_report=(state.get('organization_result') or {}).get('module_report') or {}
     phase=workflow.get('active_phase')
     reason=workflow.get('stop_reason')
-    if report_resume:
+    if report_stage:
         from app.db.report_delivery import report_binding
+    if audit_resume:
+        audit=review.get('final_report_audit') or {}
+        recoverable=(record['status']=='paused' and state.get('status')=='paused'
+            and state.get('runtime_status')=='report_paused' and review.get('output_stage')=='report'
+            and review.get('report_payload_kind')=='report' and review.get('reason')=='final_audit_incomplete'
+            and review.get('report_binding')==report_binding(state) and bool(audit.get('audit_incomplete'))
+            and not (review.get('disclosure') or {}).get('requires_reaudit')
+            and bool(state.get('final_report')) and bool(module_report.get('reading_structure'))
+            and workflow.get('status')=='completed' and bool(state.get('analysis')))
+    elif report_resume:
         recoverable=(record['status'] in {'failed','paused'} and state.get('status')==record['status']
             and state.get('runtime_status') in {'retryable_failed','report_paused'}
             and review.get('output_stage')=='report' and review.get('report_payload_kind')=='partial_response'
@@ -1900,7 +1927,9 @@ async def _resume_retained_synthesis(session_id, background_tasks, principal, *,
         raise HTTPException(409,f'{stage}_checkpoint_not_recoverable')
     if report_resume and int(root.get('report_resume_attempts') or 0)>=1:
         raise HTTPException(409,'report_resume_attempt_limit')
-    if not report_resume and int((workflow.get('attempts') or {}).get(phase,0))>=10:
+    if audit_resume and int(root.get('audit_resume_attempts') or 0)>=1:
+        raise HTTPException(409,'audit_resume_attempt_limit')
+    if not report_stage and int((workflow.get('attempts') or {}).get(phase,0))>=10:
         raise HTTPException(409,'analysis_phase_attempt_limit')
     current=await current_synthesis_state(state)
     if current.get('collected_evidence')!=state.get('collected_evidence'):
@@ -1937,12 +1966,13 @@ async def _resume_retained_synthesis(session_id, background_tasks, principal, *,
         raise HTTPException(409,'analysis_original_deadline_unavailable')
     state['created_at']=started.isoformat()
     budget=_build_budget_state(state)
-    allowance=_stage_model_budget({**state,'budget_state':budget},'report' if report_resume else 'analyst')
+    allowance=_stage_model_budget({**state,'budget_state':budget},'report' if report_stage else 'analyst')
     import time
     cost_exhausted=budget.get('max_cost_usd') is not None and float(budget.get('used_cost_usd') or 0)>=float(budget['max_cost_usd'])
     # This route never dispatches new acquisition. Tool exhaustion cannot
     # erase the separate remaining model allowance; cost/time still apply.
-    if (budget.get('hard_stop_reason') not in {None,'tool_call_limit'} or cost_exhausted or allowance.available()<1024
+    if (budget.get('hard_stop_reason') not in {None,'tool_call_limit'} or cost_exhausted
+            or allowance.available('audit' if audit_resume else 'research')<1024
             or allowance.deadline is None or time.monotonic()>=allowance.deadline):
         raise HTTPException(409,f'{stage}_original_allowance_exhausted')
     budget['model_stop_reason']=None
@@ -1951,9 +1981,13 @@ async def _resume_retained_synthesis(session_id, background_tasks, principal, *,
         'last_error_category':None,'runtime_status':'running','budget_state':budget}
     execution_id=str(uuid.uuid4())
     state['session']={**root,'status':'running','execution_id':execution_id}
+    state['session']['audit_resume_mode']=audit_resume
     if report_resume:
         state['session']['report_resume_attempts']=int(root.get('report_resume_attempts') or 0)+1
         state['review_status']['report_resume_attempts']=state['session']['report_resume_attempts']
+    if audit_resume:
+        state['session']['audit_resume_attempts']=int(root.get('audit_resume_attempts') or 0)+1
+        state['review_status']['audit_resume_attempts']=state['session']['audit_resume_attempts']
     async with pool.acquire() as conn,conn.transaction():
         locked=await conn.fetchrow('''SELECT s.status,s.execution_id,r.checkpoint_seq
             FROM research_sessions s JOIN session_runtime_state r ON r.session_id=s.id
@@ -1973,7 +2007,7 @@ async def _resume_retained_synthesis(session_id, background_tasks, principal, *,
         use_internal_docs=bool(state.get('use_internal_docs')),rag_group=state.get('rag_group'),
         output_length=state.get('output_length','medium'),skill_context=state.get('skill_context'),
         owner_id=principal.id,channels=root.get('channels',[]),resume_state=state,execution_id=execution_id,
-        resume_at='report_resume' if report_resume else 'analysis_resume')
+        resume_at='report_resume' if report_stage else 'analysis_resume')
     return {'session_id':session_id,'execution_id':execution_id,'status':'running','resumed':True}
 
 @controlled_execution
