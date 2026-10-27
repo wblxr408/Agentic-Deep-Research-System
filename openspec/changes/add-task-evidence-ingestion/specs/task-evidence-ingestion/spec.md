@@ -6,6 +6,21 @@
 
 ## ADDED Requirements
 
+### Requirement: Explicit owner-scoped scheduled source synchronization
+系统 SHALL 允许用户为本人选择的公开 HTTPS 来源建立手动或定时同步；源范围、目标分组与执行状态由用户控制，同步 SHALL 沿用当前资料版本、owner、网络限制和有界执行。创建订阅不得自动触发读取，周期只有启用后生效。
+
+#### Scenario: A remote source has not changed
+- **WHEN** 来源按其真实 ETag 或 Last-Modified 返回 304，或取得的正文与当前版本一致
+- **THEN** 保留现有版本并记录未变，不产生重复资料或改写历史报告
+
+#### Scenario: A pending synchronization is revoked or replaced
+- **WHEN** 用户暂停、删除或修改订阅，或原账号／资料权限在写入前失效
+- **THEN** 已派发读取的迟到结果不得写入资料，运行状态如实保留
+
+#### Scenario: A source changes
+- **WHEN** 有界读取取得新的可解析内容且目标版本仍有效
+- **THEN** 以同一来源家族追加新版本，保留原文、来源时间、原版本和引用，并记录真实取得结果
+
 ### Requirement: Explicit source discovery and batch intake
 系统 SHALL 复用手动登记、启用渠道、种子与检索发现，并允许用户显式选择文件集合或目录后有界批量上传；逐项显示采纳、复用、失败和未处理状态。目录选择不得授予服务端任意本地目录读取权限。
 
