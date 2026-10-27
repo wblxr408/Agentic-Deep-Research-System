@@ -14,9 +14,12 @@ def diagnose_stop(state,*,active_execution=False):
     if state.get('status') not in {'paused','failed'}:return None
     review=state.get('review_status') or {};budget=state.get('budget_state') or review.get('budget_state') or {}
     root=state.get('session') or {};workflow=state.get('analysis_workflow') or {}
-    reason=review.get('reason') or workflow.get('stop_reason') or budget.get('model_stop_reason') or budget.get('hard_stop_reason')
     failure=review.get('workflow_failure') or {}
-    reason=reason or failure.get('category') or review.get('last_error_category') or state.get('runtime_status') or 'unknown'
+    # A completed analysis may retain its earlier stop reason for history. It
+    # must not override the error from a later report or other active stage.
+    reason=review.get('reason') or failure.get('category') or review.get('last_error_category')
+    if not reason and workflow.get('status')=='paused':reason=workflow.get('stop_reason')
+    reason=reason or budget.get('model_stop_reason') or budget.get('hard_stop_reason') or state.get('runtime_status') or 'unknown'
     reason=str(reason)
     phase=review.get('output_stage') or failure.get('stage') or ('report' if reason.startswith('final_') else 'analyst')
     active=workflow.get('active_phase') or ''
@@ -44,7 +47,16 @@ def diagnose_stop(state,*,active_execution=False):
         return result
     audit=review.get('final_report_audit') or {}
     revisions=audit.get('revision_requests') or []
-    if reason=='layout_required_data_missing':
+    if reason=='report_contract_invalid':
+        module_report=((state.get('organization_result') or review.get('organization_result') or {}).get('module_report') or {})
+        labels={'unbound_sample_aggregate':'正文中的样本数量没有关联已计算统计。',
+                'unbound_source_aggregate':'正文中的来源数量没有关联已计算统计。',
+                'unbound_sample_ratio':'正文中的样本比例没有关联已计算统计。'}
+        result.update(summary='报告结构校验未通过',next_step='已保留草稿，可在原任务剩余额度内继续生成报告。',action='restart')
+        result['findings']=[{'text':str((item.get('paragraph') or {}).get('text') or '')[:240],
+            'detail':labels.get(item.get('reason'),'报告内容未满足当前交付结构。')}
+            for item in (module_report.get('rejected_paragraphs') or [])[:100]]
+    elif reason=='layout_required_data_missing':
         result.update(summary='报告版式有组件缺少所需资料',next_step='可补充相关资料，或调整这些组件的缺失处理方式。',action='restart')
         labels={'statistics':'缺少可核对的统计数据。','relationships':'缺少有来源的关系数据。',
             'technical_comparison':'缺少有来源的技术对照。','sources':'缺少可引用的来源。',

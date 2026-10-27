@@ -151,7 +151,8 @@ def _sample_counting_text(text: str) -> str:
     Another/the same paper and an ordinal paper identify a work; they do not
     state the size of the corpus. Literal cardinal counts still need binding.
     """
-    reference=r'(?:另一|同一|第(?:\d+|[零〇一二两三四五六七八九十百千万]+))\s*篇(?!全文|完整正文|文档)'
+    reference=(r'(?:另一|同一|第(?:\d+|[零〇一二两三四五六七八九十百千万]+))\s*篇(?!全文|完整正文|文档)'
+        r'|(?<![0-9零〇一二两三四五六七八九十百千万])(?:一|1)\s*篇(?:中文|英文)?(?:解读|评论|报道)(?:材料|文章|资料)')
     return re.sub(reference,'[work reference]',text)
 
 

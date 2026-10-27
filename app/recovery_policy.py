@@ -21,7 +21,10 @@ def recovery_plan(state):
     phase = workflow.get('active_phase')
     failures = (workflow.get('failed_attempts') or {}).get(phase) or []
     failure = failures[-1] if failures else {}
-    reason = (state.get('review_status') or {}).get('reason') or workflow.get('stop_reason')
+    review = state.get('review_status') or {}
+    # Never treat an earlier analysis stop as the cause of a later report failure.
+    reason = review.get('reason') or (workflow.get('stop_reason') if workflow.get('status') == 'paused' else None)
+    if review.get('output_stage') not in (None,'analyst'): reason = None
     kind = PROVIDER_KINDS.get(failure.get('provider_error_type')) if reason == 'analysis_provider_unavailable' else {
         'analysis_output_incomplete': 'structure', 'model_output_limit': 'length',
         'insufficient_context_budget': 'context'}.get(reason)
