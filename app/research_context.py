@@ -22,19 +22,30 @@ CONDITION_QUERIES = {
 
 IDENTITY_CONTEXT_VERSION = 'adrs-publication-identity-v2'
 QUESTION_SEED_VERSION = 'adrs-question-publication-seed-v3'
+LEGACY_CONTEXT_PACKING_VERSION = 'adrs-context-packing-v1'
+CONTEXT_PACKING_VERSION = 'adrs-context-packing-v2'
 
 
-def analysis_binding(query, configuration, skills, hints, evidence):
+def analysis_binding(query, configuration, skills, hints, evidence, *, packing_version=CONTEXT_PACKING_VERSION):
     """Bind retained question phases to their exact frozen model inputs."""
     from app.query_understanding import identity
     from app.evidence_selection import VERSION as SELECTION_VERSION
-    return identity({'version':'adrs-analysis-questions-v2','query':query,'configuration':configuration,
+    bound={'version':'adrs-analysis-questions-v2','query':query,'configuration':configuration,
         'identity_context_version':IDENTITY_CONTEXT_VERSION,
         'question_seed_version':QUESTION_SEED_VERSION,
         'context_selection_version':SELECTION_VERSION,
         'skills':skills,'hints':hints,'evidence':[
             {'id':item.evidence_id,'url':item.source_url,'content':item.content,'acquisition':item.acquisition}
-            for item in evidence]})
+            for item in evidence]}
+    # Keep the exact historical binding for existing roots; new roots explicitly
+    # bind the packing contract before any phase is checkpointed.
+    if packing_version != LEGACY_CONTEXT_PACKING_VERSION:
+        bound['context_packing_version']=packing_version
+    return identity(bound)
+
+
+def workflow_packing_version(workflow):
+    return (workflow or {}).get('context_packing_version', LEGACY_CONTEXT_PACKING_VERSION)
 
 
 RETAINED_SYNTHESIS_VERSION = 'adrs-retained-synthesis-v1'
@@ -72,7 +83,8 @@ def capture_retained_synthesis(state, query, skills, hints):
     evidence=[deserialize_evidence(item) for item in state.get('collected_evidence',[])]
     identifiers=[item.evidence_id for item in evidence]
     if (_bound_evidence_subset(evidence,identifiers) is None
-            or workflow.get('binding')!=analysis_binding(query,state.get('organization_research'),skills,hints,evidence)):
+            or workflow.get('binding')!=analysis_binding(query,state.get('organization_research'),skills,hints,evidence,
+                packing_version=workflow_packing_version(workflow))):
         return None
     return deepcopy({'version':RETAINED_SYNTHESIS_VERSION,**identity,
         'material_version':retained_evidence_version(state),'evidence_ids':identifiers,
@@ -99,13 +111,14 @@ def reuse_retained_synthesis(state, query, skills, hints):
     evidence=[deserialize_evidence(item) for item in state.get('collected_evidence',[])]
     subset=_bound_evidence_subset(evidence,frame.get('evidence_ids'))
     if (subset is None or workflow.get('binding')!=analysis_binding(
-            query,state.get('organization_research'),skills,hints,subset)):
+            query,state.get('organization_research'),skills,hints,subset,packing_version=workflow_packing_version(workflow))):
         return None
     workflow=deepcopy(workflow)
     workflow['retained_material_reuse']={'version':RETAINED_SYNTHESIS_VERSION,**identity,
         'original_binding':workflow['binding'],'evidence_ids':list(frame['evidence_ids']),
         'material_version':frame['material_version'],
-        'current_binding':analysis_binding(query,state.get('organization_research'),skills,hints,evidence)}
+        'current_binding':analysis_binding(query,state.get('organization_research'),skills,hints,evidence,
+            packing_version=workflow_packing_version(workflow))}
     return {'analysis':frame['analysis'],'analysis_workflow':workflow,
         'organization_result':deepcopy(frame.get('organization_result')),
         'verification':deepcopy(frame.get('verification'))}
@@ -115,7 +128,8 @@ def analysis_input_matches(state, query, skills, hints, evidence):
     """A report continuation retains both the original and extended bindings."""
     from app.planning_control import retained_evidence_version
     workflow=state.get('analysis_workflow') or {}
-    expected=analysis_binding(query,state.get('organization_research'),skills,hints,evidence)
+    packing_version=workflow_packing_version(workflow)
+    expected=analysis_binding(query,state.get('organization_research'),skills,hints,evidence,packing_version=packing_version)
     if workflow.get('binding')==expected:
         return True
     reuse=workflow.get('retained_material_reuse') or {}
@@ -129,7 +143,7 @@ def analysis_input_matches(state, query, skills, hints, evidence):
         return False
     subset=_bound_evidence_subset(evidence,reuse.get('evidence_ids'))
     return subset is not None and workflow['binding']==analysis_binding(
-        query,state.get('organization_research'),skills,hints,subset)
+        query,state.get('organization_research'),skills,hints,subset,packing_version=packing_version)
 
 
 def identity_batches(evidence):
@@ -320,8 +334,69 @@ def _ranges(source, query, deep, focus=None, located_spans=None):
     return spans
 
 
+def _bounded_deep_excerpt(record, item, source, meta, quota, proofs):
+    """Fit a literal window; a located proof is either complete or not selected."""
+    lower, upper = item['start'], item['end']
+    proof = next(((field, start, end) for field, start, end in proofs
+        if lower <= start < end <= upper and field in item['roles']), None)
+
+    def make(start, end):
+        roles=[]
+        for role, role_start, role_end in item['entries']:
+            if not (start < role_end and end > role_start):
+                continue
+            relevant=[(a,b) for field,a,b in proofs if field==role and lower<=a<b<=upper]
+            if role=='retained_field_proof':
+                relevant=[(a,b) for _,a,b in proofs if lower<=a<b<=upper]
+            if relevant and not any(start<=a and b<=end for a,b in relevant):
+                continue
+            if role not in roles:roles.append(role)
+        if not roles:return None
+        return {'role':roles[0], 'roles':roles, 'start':start, 'end':end,
+            'quote':source.content[start:end],
+            'boundary':'retained_bounded_window_not_full_section' if start==lower and end==upper
+                else 'literal_window_reduced_to_fit_context',
+            'pages':[p['number'] for p in meta.get('pages',[]) if isinstance(p,dict)
+                and isinstance(p.get('start'),int) and isinstance(p.get('end'),int)
+                and start<p['end'] and end>p['start'] and 'number' in p]}
+
+    ceiling=quota-600
+    current=len(encoded(record).encode('utf-8'))
+    share=min(ceiling,current+max(800,(ceiling-current)//2))
+
+    def fits(excerpt, limit=ceiling):
+        return excerpt is not None and len(encoded({**record,'excerpts':[*record['excerpts'],excerpt]}).encode('utf-8'))<=limit
+
+    whole=make(lower,upper)
+    if fits(whole):return whole
+    if proof:
+        _,start,end=proof
+        if not fits(make(start,end)):return None
+        limit=share if fits(make(start,end),share) else ceiling
+        # Grow around the entire proof, never truncate its actual source text.
+        left,right=0,max(start-lower,upper-end)
+        while left<right:
+            size=(left+right+1)//2
+            if fits(make(max(lower,start-size),min(upper,end+size)),limit):left=size
+            else:right=size-1
+        return make(max(lower,start-left),min(upper,end+left))
+    minimum=min(upper-lower,160)
+    if minimum<=0 or not fits(make(lower,lower+minimum)):return None
+    limit=share if fits(make(lower,lower+minimum),share) else ceiling
+    left,right=minimum,upper-lower
+    while left<right:
+        size=(left+right+1)//2
+        if fits(make(lower,lower+size),limit):left=size
+        else:right=size-1
+    end=lower+left
+    # Prefer a sentence or line boundary without changing the source offset.
+    boundary=max(source.content.rfind(mark,lower+minimum,end) for mark in ('\n','。','. '))
+    if boundary>=lower+minimum and boundary>=end-240:end=boundary+1
+    return make(lower,end)
+
+
 def evidence_context(evidence, query: str, *, deep: bool, max_bytes: int, preferred_ids=None, focus=None, identity_only=False,
-                     located_spans=None) -> tuple[str, dict]:
+                     located_spans=None, required_groups=None, packing_version=CONTEXT_PACKING_VERSION) -> tuple[str, dict]:
     """Distribute a UTF-8 payload allowance across sources, retaining exact spans.
 
     Omitted documents/passages remain in the task evidence. This is selection,
@@ -336,7 +411,20 @@ def evidence_context(evidence, query: str, *, deep: bool, max_bytes: int, prefer
     from app.evidence_selection import source_priority,context_coverage,excerpt_anchor
     from app.evidence_ingestion import retained_evidence_identity
     priority,assessment=source_priority(evidence,query,preferred_ids=preferred_ids,identity_only=identity_only,deep=deep)
-    retained = priority if identity_only else priority[:max(1, allowance//(7000 if deep else 2200))]
+    required={}
+    if deep and not identity_only and packing_version==CONTEXT_PACKING_VERSION:
+        for output_id,identifiers in (required_groups or {}).items():
+            allowed=set(identifiers or [])
+            eligible=[source.evidence_id for _,source in priority if source.evidence_id in allowed
+                and (source.acquisition or {}).get('coverage')=='full_text' and source.content.strip()]
+            if eligible:required[output_id]=eligible
+    mandatory=[]
+    for identifiers in required.values():
+        if not any(item in mandatory for item in identifiers):mandatory.append(identifiers[0])
+    if mandatory:
+        priority=[pair for pair in priority if pair[1].evidence_id in mandatory]+[
+            pair for pair in priority if pair[1].evidence_id not in mandatory]
+    retained = priority if identity_only else priority[:max(1,len(mandatory),allowance//(7000 if deep else 2200))]
     chosen_ids = {source.evidence_id for _, source in retained}
     omitted.extend(source.evidence_id for source in evidence if source.evidence_id not in chosen_ids)
     weights={source.evidence_id:3 if (deep or identity_only) and (number,source) in primary else 1 for number,source in retained}
@@ -400,21 +488,27 @@ def evidence_context(evidence, query: str, *, deep: bool, max_bytes: int, prefer
                 if merged and start<=merged[-1]['end'] and max(merged[-1]['end'],end)-merged[-1]['start']<=6000:
                     merged[-1]['end']=max(merged[-1]['end'],end)
                     if role not in merged[-1]['roles']:merged[-1]['roles'].append(role)
-                else:merged.append({'start':start,'end':end,'roles':[role]})
+                    merged[-1]['entries'].append((role,start,end))
+                else:merged.append({'start':start,'end':end,'roles':[role],'entries':[(role,start,end)]})
             desired=list(focus or CONDITION_QUERIES)
             merged.sort(key=lambda item:('retained_field_proof' not in item['roles'],
                 -sum(role in item['roles'] for role in desired),item['start']))
             covered=set()
             for item in merged:
                 start,end=item['start'],item['end']
-                excerpt={'role':item['roles'][0],'roles':item['roles'],'start':start,'end':end,
-                    'quote':source.content[start:end],'boundary':'retained_bounded_window_not_full_section',
-                    'pages':[p['number'] for p in meta.get('pages',[]) if isinstance(p,dict)
-                        and isinstance(p.get('start'),int) and isinstance(p.get('end'),int)
-                        and start<p['end'] and end>p['start'] and 'number' in p]}
+                if packing_version==CONTEXT_PACKING_VERSION:
+                    excerpt=_bounded_deep_excerpt(record,item,source,meta,quota,
+                        (located_spans or {}).get(source.evidence_id,[]))
+                    if excerpt is None:continue
+                else:
+                    excerpt={'role':item['roles'][0],'roles':item['roles'],'start':start,'end':end,
+                        'quote':source.content[start:end],'boundary':'retained_bounded_window_not_full_section',
+                        'pages':[p['number'] for p in meta.get('pages',[]) if isinstance(p,dict)
+                            and isinstance(p.get('start'),int) and isinstance(p.get('end'),int)
+                            and start<p['end'] and end>p['start'] and 'number' in p]}
                 candidate={**record,'excerpts':[*record['excerpts'],excerpt]}
                 if len(encoded(candidate).encode('utf-8'))<=quota-600:
-                    record=candidate;covered.update(item['roles'])
+                    record=candidate;covered.update(excerpt['roles'])
             record['reading_facets']={role:'selected_window' if role in covered else 'not_selected'
                 for role in desired}
             record['facet_interpretation']='retrieval_roles_not_semantic_completeness'
@@ -474,6 +568,15 @@ def evidence_context(evidence, query: str, *, deep: bool, max_bytes: int, prefer
             else 'per_source_method_evaluation_question_windows',
         'source_selection':assessment,
         'conclusion_coverage': 'not_assessed', 'offset_unit': 'task_retained_evidence_character'}
+    if required:
+        body_roles={'method','evaluation','limitations','question',*CONDITION_QUERIES}
+        body_ids={row['evidence_id'] for row in rows if any(
+            body_roles.intersection(part.get('roles',[part.get('role')])) for part in row['excerpts'])}
+        manifest['required_full_text_groups']={output_id:{'eligible_evidence_ids':identifiers,
+            'selected_evidence_ids':[item for item in identifiers if item in body_ids]}
+            for output_id,identifiers in required.items()}
+        manifest['missing_full_text_outputs']=[output_id for output_id,group in manifest['required_full_text_groups'].items()
+            if not group['selected_evidence_ids']]
     if located_spans:
         manifest['located_proofs']=[{'evidence_id':key,'field':field,'start':start,'end':end,
             'selected':key in selected_ids and any(lower<=start and end<=upper

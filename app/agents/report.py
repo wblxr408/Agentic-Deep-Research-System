@@ -227,13 +227,15 @@ class ReportAgent:
         # Generate citation range note
         citation_note = self._citation_range_note(len(citations))
 
-        from app.research_context import analysis_context, evidence_context, fit_messages, encoded, reading_source_spans
+        from app.research_context import (analysis_context, evidence_context, fit_messages, encoded, reading_source_spans,
+            workflow_packing_version, CONTEXT_PACKING_VERSION)
         located_spans=reading_source_spans(technical_reading,evidence_list,analysis_workflow)
+        packing_version=workflow_packing_version(analysis_workflow) if analysis_workflow else CONTEXT_PACKING_VERSION
         def build_messages(allowance):
             selected_analysis, omitted = analysis_context(analysis, int(allowance*.18))
             formatted_evidence, manifest = evidence_context(evidence_list, user_query,
                 deep=module_mode and 'deep_dive' in organization_research['modules'], max_bytes=int(allowance*.75),
-                located_spans=located_spans)
+                located_spans=located_spans,packing_version=packing_version)
             stats = dict(computed_statistics) if computed_statistics else None
             if stats:
                 stats['metric_registry'] = dict(stats['metric_registry'])

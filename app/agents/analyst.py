@@ -104,16 +104,24 @@ Return a JSON object with these fields:
     def _analyze_workflow(self, user_query, evidence_list, skill_prompt, analyst_hints,
                           configuration, resume_state, on_progress):
         """Sequential questions share one analyst, root allowance and checkpoint."""
-        from app.research_context import analysis_binding, identity_batches, QUESTION_SEED_VERSION
+        from app.research_context import (analysis_binding, identity_batches, QUESTION_SEED_VERSION,
+            CONTEXT_PACKING_VERSION, LEGACY_CONTEXT_PACKING_VERSION, workflow_packing_version)
         from app.organization_purpose import MODULES
         from app.organization_findings import build_organization_findings
         modules=list(configuration.get('modules') or [])
-        binding=analysis_binding(user_query,configuration,skill_prompt,analyst_hints,evidence_list)
+        packing_version=workflow_packing_version(resume_state) if resume_state else CONTEXT_PACKING_VERSION
+        if packing_version not in {CONTEXT_PACKING_VERSION,LEGACY_CONTEXT_PACKING_VERSION}:
+            self.last_workflow=deepcopy(resume_state)
+            raise TokenBudgetExceeded('analysis_context_contract_changed')
+        self.context_packing_version=packing_version
+        binding=analysis_binding(user_query,configuration,skill_prompt,analyst_hints,evidence_list,
+            packing_version=packing_version)
         if isinstance(resume_state,dict) and resume_state and resume_state.get('question_seed_version')!=QUESTION_SEED_VERSION:
             self.last_workflow=deepcopy(resume_state)
             raise TokenBudgetExceeded('analysis_context_contract_changed')
         workflow=deepcopy(resume_state) if isinstance(resume_state,dict) and resume_state.get('binding')==binding else {
             'schema_version':'adrs-analysis-questions-v2','binding':binding,'question_seed_version':QUESTION_SEED_VERSION,
+            'context_packing_version':packing_version,
             'completed':{},'attempts':{},'status':'running'}
         self.last_workflow=workflow
 
@@ -139,7 +147,9 @@ Return a JSON object with these fields:
                     'context':deepcopy(self.last_context_manifest),'extraction':deepcopy(self.last_extraction_status)}
                 workflow.setdefault('attempt_records',{}).setdefault(key,[]).append({
                     'attempt':workflow['attempts'][key],**record})
-                if workflow['attempts'][key]<2:
+                if workflow['attempts'][key]<2 and not (
+                        packing_version==CONTEXT_PACKING_VERSION and kind=='question'
+                        and 'deep_dive' in phase_config.get('modules',[])):
                     requested=set((seed or {}).get('identity_evidence_ids',[]))
                     for output in (seed or {}).get('outputs',[]):
                         requested.update(((seed or {}).get('publication_metadata',{}).get(output['output_id']) or {}).get('evidence_ids',[]))
@@ -411,7 +421,7 @@ Return a JSON object with these fields:
             system_prompt += action_instructions(organization_research)
             if 'actions' in organization_research.get('modules',[]):
                 system_prompt += '\nUser action requirements (do not invent missing values): ' + json.dumps(organization_research.get('action_requirements') or {},ensure_ascii=False)
-        from app.research_context import evidence_context, fit_messages
+        from app.research_context import evidence_context, fit_messages, CONTEXT_PACKING_VERSION
         phase_request = (
             'Answer only the currently selected module question. Return the short analysis_text lead and complete '
             'organization_data with literal source proofs; do not draft the final report.' if _phase=='question' else
@@ -422,11 +432,16 @@ Return a JSON object with these fields:
         def build_messages(allowance):
             preferred=[]
             preferred.extend(context_seed.get('identity_evidence_ids',[]))
+            groups={}
             for output in context_seed.get('outputs',[]):
-                preferred.extend((context_seed.get('publication_metadata',{}).get(output['output_id']) or {}).get('evidence_ids',[]))
+                identifiers=(context_seed.get('publication_metadata',{}).get(output['output_id']) or {}).get('evidence_ids',[])
+                preferred.extend(identifiers)
+                groups[output['output_id']]=identifiers
             text, manifest = evidence_context(evidence_list, user_query,
                 deep='deep_dive' in (organization_research or {}).get('modules', []), max_bytes=allowance,
-                preferred_ids=preferred,focus=context_seed.get('reading_focus'),identity_only=_phase=='extraction')
+                preferred_ids=preferred,focus=context_seed.get('reading_focus'),identity_only=_phase=='extraction',
+                required_groups=groups if _phase=='question' else None,
+                packing_version=getattr(self,'context_packing_version',CONTEXT_PACKING_VERSION))
             self.last_evidence_ids = [row['evidence_id'] for row in manifest['sources']]
             formatted_evidence = untrusted_context('external_evidence', text, limit=len(text))
             messages = [
@@ -452,6 +467,15 @@ Collected Evidence:
         messages, self.last_context_manifest = fit_messages(build_messages, self.request_budget,
             'research', _output_tokens, max_bytes=int(repair.get('max_bytes') or (getattr(self,'context_expansion_bytes',36000) if organization_research else 10000)),
             request_extra={'response_format': {'type': 'json_object'}} if organization_research else None)
+        missing=self.last_context_manifest.get('missing_full_text_outputs') or []
+        if missing:
+            error=TokenBudgetExceeded('insufficient_context_budget')
+            error.admission={'reason':'assigned_full_text_source_not_in_context',
+                'missing_output_ids':missing,'selected_sources':len(self.last_context_manifest.get('sources') or []),
+                'prompt_bound':self.last_context_manifest.get('prompt_bound'),
+                'requested_output_tokens':_output_tokens,
+                'available_tokens':self.request_budget.available() if self.request_budget else None}
+            raise error
         if organization_research and not self.last_context_manifest.get('sources'):
             error=TokenBudgetExceeded('insufficient_context_budget')
             error.admission={'reason':'no_acquired_source_fits','prompt_bound':self.last_context_manifest.get('prompt_bound'),

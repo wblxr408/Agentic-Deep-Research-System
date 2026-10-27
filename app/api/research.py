@@ -1895,7 +1895,7 @@ async def _resume_retained_synthesis(session_id, background_tasks, principal, *,
     from datetime import UTC, datetime
     from app.graph.compiler import _build_budget_state, _stage_model_budget, _synthesis_question, _skill_prompt, _agent_skill_hints
     from app.graph.state import deserialize_evidence
-    from app.research_context import analysis_binding, analysis_input_matches
+    from app.research_context import analysis_binding, analysis_input_matches, workflow_packing_version
     from app.source_lifecycle import current_synthesis_state
 
     pool=await get_db_pool()
@@ -1965,7 +1965,7 @@ async def _resume_retained_synthesis(session_id, background_tasks, principal, *,
             item for item in retained if item.get('source_type')=='knowledge_base']
         legacy_expected=analysis_binding(_synthesis_question(state),state.get('organization_research'),
             _skill_prompt(state,'analyst') or None,_agent_skill_hints(state,'analyst'),
-            [deserialize_evidence(item) for item in legacy_order])
+            [deserialize_evidence(item) for item in legacy_order],packing_version=workflow_packing_version(workflow))
         if workflow.get('binding')!=legacy_expected:
             raise HTTPException(409,'analysis_inputs_changed')
         state['collected_evidence']=legacy_order
