@@ -489,14 +489,14 @@ class RAGAgent:
                                 AND input_description->'primary'->>'chunk_profile_id'=$6
                                 ORDER BY accepted_at DESC,id LIMIT 1''',owner_id,actual_source_id,meta.get('parse_version_id'),
                                 row['source_access_revision'],chunk_id,meta.get('chunk_profile_id'))
-                            linked_entities=await conn.fetch('''SELECT l.entity_name,l.entity_kind,l.span_start,l.span_end,l.target_uri
+                            linked_entities=await conn.fetch('''SELECT l.id,l.revision,l.entity_name,l.entity_kind,l.span_start,l.span_end,l.target_uri
                                 FROM source_entity_links l JOIN document_processing_operations o
                                 ON o.id=l.operation_id AND o.owner_id=l.owner_id AND o.source_id=l.source_id
                                 WHERE l.owner_id=$1::uuid AND l.source_id=$2::uuid AND l.parse_version=$3 AND l.lifecycle_revision=$4
                                   AND l.chunk_id=$5 AND l.state='active' AND o.status='completed' AND o.accepted
                                   AND o.input_description->'primary'->>'chunk_profile_id'=$6 ORDER BY l.created_at,l.id LIMIT 8''',
                                 owner_id,actual_source_id,meta.get('parse_version_id'),row['source_access_revision'],chunk_id,meta.get('chunk_profile_id'))
-                        if linked_entities:meta['linked_entities']=[{'name':item['entity_name'],'kind':item['entity_kind'],
+                        if linked_entities:meta['linked_entities']=[{'link_id':str(item['id']),'revision':item['revision'],'name':item['entity_name'],'kind':item['entity_kind'],
                             'start':item['span_start'],'end':item['span_end'],'uri':item['target_uri'],
                             'origin':'user_declared_identity_not_independently_verified'} for item in linked_entities]
                         candidates=[]
@@ -556,6 +556,9 @@ class RAGAgent:
                 if result.chunk_id not in permitted:continue
                 source_id=result.metadata.get('source_id')
                 if source_id and not await current_access(conn,source_id,owner_id,session_id,group,result.metadata.get('source_access_revision')):continue
+                if source_id:
+                    from app.source_lifecycle import current_entity_annotations
+                    result.metadata=await current_entity_annotations(conn,owner_id,source_id,result.metadata)
                 current_results.append(result)
         results=current_results
         if not results and any(item.get('status')=='failed' for item in self.last_channel_status):

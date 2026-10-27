@@ -356,6 +356,44 @@ async def lifecycle_view(conn,source_id,owner_id):
         'report_semantics':'historical_task_evidence_remains_immutable; source_purge_is_not_task_deletion'}
 
 
+async def current_entity_annotations(conn,owner_id,source_id,acquisition):
+    """Keep only still-selected annotations and exact active identity-link revisions."""
+    candidates=acquisition.get('model_entity_candidates') or []
+    links=acquisition.get('linked_entities') or []
+    if not candidates and not links:return acquisition
+    def valid_ids(items,key):
+        result=[]
+        for item in items[:20]:
+            if not isinstance(item,dict):continue
+            try:result.append(UUID(str(item.get(key))))
+            except (ValueError,TypeError,AttributeError):continue
+        return result
+    operation_ids=valid_ids(candidates,'operation_id');link_ids=valid_ids(links,'link_id')
+    source_version=acquisition.get('parse_version_id');revision=acquisition.get('source_access_revision')
+    allowed_operations=set()
+    if operation_ids:
+        rows=await conn.fetch('''SELECT id FROM document_processing_operations WHERE owner_id=$1::uuid AND source_id=$2::uuid
+            AND id=ANY($3::uuid[]) AND parse_version=$4 AND lifecycle_revision=$5 AND kind='entity_extraction' AND status='completed' AND accepted''',
+            str(owner_id),str(source_id),operation_ids,source_version,revision)
+        allowed_operations={str(row['id']) for row in rows}
+    allowed_links=set()
+    if link_ids:
+        rows=await conn.fetch('''SELECT l.id,l.revision FROM source_entity_links l JOIN document_processing_operations o
+            ON o.id=l.operation_id AND o.owner_id=l.owner_id AND o.source_id=l.source_id
+            WHERE l.owner_id=$1::uuid AND l.source_id=$2::uuid AND l.id=ANY($3::uuid[]) AND l.parse_version=$4 AND l.lifecycle_revision=$5
+            AND l.state='active' AND o.kind='entity_extraction' AND o.status='completed' AND o.accepted''',
+            str(owner_id),str(source_id),link_ids,source_version,revision)
+        allowed_links={(str(row['id']),row['revision']) for row in rows}
+    result=dict(acquisition)
+    kept_candidates=[item for item in candidates if isinstance(item,dict) and str(item.get('operation_id')) in allowed_operations]
+    kept_links=[item for item in links if isinstance(item,dict) and (str(item.get('link_id')),item.get('revision')) in allowed_links]
+    if kept_candidates:result['model_entity_candidates']=kept_candidates
+    else:result.pop('model_entity_candidates',None)
+    if kept_links:result['linked_entities']=kept_links
+    else:result.pop('linked_entities',None)
+    return result
+
+
 async def current_synthesis_state(state):
     """Retained history stays intact; a new synthesis rechecks private evidence."""
     import asyncio
@@ -381,22 +419,25 @@ async def current_synthesis_state(state):
         result={**state,'collected_evidence':[item for item in accepted if item is not None],'evidence_access_gaps':gaps}
         if new_gap:result.update(analysis='',verification=None,organization_result=None)
         return result
-    session=state.get('session') or {};memo={}
+    session=state.get('session') or {};memo={};refreshed={};annotations_changed=False
     try:
         pool=await get_db_pool()
         async with asyncio.timeout(10),pool.acquire() as conn,conn.transaction(readonly=True):
-            for _,evidence in candidates:
+            for position,evidence in candidates:
                 acquisition=evidence.get('acquisition') or {};source_id=acquisition.get('source_document_id')
                 key=(source_id,acquisition.get('source_access_revision'))
                 if key not in memo:
                     memo[key]=bool(source_id and session.get('owner_id') and await current_access(conn,source_id,session['owner_id'],session.get('session_id'),state.get('rag_group'),key[1]))
+                if memo[key]:
+                    current=await current_entity_annotations(conn,session['owner_id'],source_id,acquisition)
+                    if current!=acquisition:annotations_changed=True;refreshed[position]=current
     except (asyncpg.PostgresError,TimeoutError,OSError,ValueError):memo={}
     for position,evidence in candidates:
         acquisition=evidence.get('acquisition') or {};key=(acquisition.get('source_document_id'),acquisition.get('source_access_revision'))
-        if memo.get(key):accepted[position]=evidence
+        if memo.get(key):accepted[position]={**evidence,'acquisition':refreshed[position]} if position in refreshed else evidence
         else:
             gaps.append({'evidence_id':evidence.get('evidence_id'),'source_id':key[0],'reason':'current_internal_source_access_not_established'})
             new_gap=True
     result={**state,'collected_evidence':[item for item in accepted if item is not None],'evidence_access_gaps':gaps}
-    if new_gap:result.update(analysis='',verification=None,organization_result=None)
+    if new_gap or annotations_changed:result.update(analysis='',analysis_workflow=None,verification=None,organization_result=None)
     return result

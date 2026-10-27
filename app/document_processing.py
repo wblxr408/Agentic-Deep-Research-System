@@ -227,9 +227,13 @@ async def change_annotation(owner,source_id,operation_id,accepted):
                 or row['lifecycle_revision']!=source['lifecycle_revision'] or row['parse_version']!=metadata.get('parse_version_id')
                 or primary.get('chunk_profile_id')!=(metadata.get('chunk_plan') or {}).get('profile_id')):
             raise HTTPException(409,'processing_context_changed')
+        changed=row['accepted']!=accepted
         row=await conn.fetchrow('''UPDATE document_processing_operations SET accepted=$3,
             accepted_at=CASE WHEN $3 THEN COALESCE(accepted_at,NOW()) ELSE NULL END,updated_at=NOW()
             WHERE id=$1::uuid AND owner_id=$2::uuid RETURNING *''',str(operation_id),str(owner),accepted)
+        if changed:
+            from app.source_lifecycle import bump_epoch
+            await bump_epoch(conn,owner)
     return _public(row)
 
 

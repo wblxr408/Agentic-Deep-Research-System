@@ -2227,8 +2227,12 @@ async def analyst_node(state: ResearchState) -> dict:
         if progress.get('status')=='running' and progress.get('active_phase') not in progress.get('completed',{}):
             current=await current_synthesis_state(state)
             retained={item.get('evidence_id') for item in current.get('collected_evidence',[])}
-            if retained!={item.evidence_id for item in evidence_list}:
+            if (retained!={item.evidence_id for item in evidence_list}
+                    or current.get('collected_evidence')!=state.get('collected_evidence')):
                 state['evidence_access_gaps']=current.get('evidence_access_gaps',[])
+                state['collected_evidence']=current.get('collected_evidence',[])
+                state['analysis_workflow']=None;state['analysis']='';state['organization_result']=None;state['verification']=None
+                agent.last_workflow=None
                 raise TokenBudgetExceeded('analysis_sources_changed')
         session,budget=_apply_llm_usage_to_state(state,'analyst',_agent_model_usage(agent))
         checkpoint={**state,'analysis_workflow':progress,'session':session,'budget_state':budget}
