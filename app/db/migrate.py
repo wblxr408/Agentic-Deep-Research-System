@@ -453,13 +453,13 @@ async def run_migration(
 
             await conn.execute(MATCHING_SCHEMA_SQL)
             await conn.execute(PRESET_SCHEMA_SQL)
+            await conn.execute('ALTER TABLE skill_meta ADD COLUMN IF NOT EXISTS owner_id UUID')
+            await migrate_accounts(conn)
             await conn.execute(REPORT_DELIVERY_SCHEMA_SQL)
             await conn.execute(RESEARCH_QUALITY_SCHEMA_SQL)
             await conn.execute(EXECUTION_CONTROL_SCHEMA_SQL)
             await conn.execute(RETRIEVAL_SCHEMA_SQL)
             await conn.execute(LIFECYCLE_SCHEMA_SQL)
-            await conn.execute('ALTER TABLE skill_meta ADD COLUMN IF NOT EXISTS owner_id UUID')
-            await migrate_accounts(conn)
             logger.info("Database migration completed successfully")
 
 

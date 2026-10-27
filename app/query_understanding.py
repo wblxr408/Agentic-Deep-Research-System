@@ -9,12 +9,13 @@ from datetime import UTC, date, datetime, timedelta
 from typing import Literal
 from uuid import UUID
 
-from pydantic import Field, model_validator
+from pydantic import Field, model_validator, model_serializer
 from app.research_scope import ScopeRecord, Label, Identifier
 from app.organization_purpose import ResearchPurpose, ResearchModule, resolve_modules
 from app.retrieval_filters import RetrievalFilter,filter_plan
 from app.candidate_fusion import FusionPolicy,freeze_policy
 from app.data_governance import DataPolicy
+from app.report_layout import ReportLayout
 
 VERSION = 'adrs-query-understanding-v1'
 DELIVERY_VERSION = 'adrs-delivery-contract-v1'
@@ -98,19 +99,30 @@ class DeliveryRequest(ScopeRecord):
         'technology-comparison-v1', 'cooperation-matching-v1', 'field-trends-v1', 'custom'] = 'markdown-v1'
     theme: Literal['plain-v1', 'light-v1', 'dark-v1'] = 'plain-v1'
     pages: tuple[DeliveryPage, ...] = Field(default=(), max_length=24)
+    layout: ReportLayout | None = None
     drawing_mode: Literal['builtin', 'manual_skill', 'auto_skill'] = 'builtin'
     drawing_skill_ids: tuple[Identifier, ...] = Field(default=(), max_length=8)
     chart_skill_ids: dict[Identifier,Identifier] = Field(default_factory=dict,max_length=12)
     formats: tuple[Literal['markdown', 'html', 'json', 'pdf', 'pptx'], ...] = Field(default=('markdown',), min_length=1, max_length=5)
 
+    @model_serializer(mode='wrap')
+    def wire_configuration(self, handler):
+        data = handler(self)
+        # Old saved configurations keep their original wire representation.
+        if self.layout is None:
+            data.pop('layout', None)
+        return data
+
     @model_validator(mode='after')
     def valid_delivery(self):
         if len({page.page_id for page in self.pages}) != len(self.pages):
             raise ValueError('delivery page IDs must be unique')
-        if self.template == 'custom' and not self.pages:
+        if self.template == 'custom' and not self.pages and self.layout is None:
             raise ValueError('custom template needs declarative pages')
         if self.pages and self.template != 'custom':
             raise ValueError('custom pages require custom template')
+        if self.layout is not None and (self.template != 'custom' or self.pages):
+            raise ValueError('layout_requires_custom_template_without_legacy_pages')
         if len(set(self.formats)) != len(self.formats) or len(set(self.drawing_skill_ids)) != len(self.drawing_skill_ids):
             raise ValueError('delivery formats and skill IDs must be unique')
         if self.drawing_mode == 'manual_skill' and not self.drawing_skill_ids:
@@ -322,6 +334,8 @@ def interpret_query(query: str, options: QueryOptions, delivery: DeliveryRequest
     resolved_skills = [{key: item.get(key) for key in ('skill_id', 'version', 'slug')}
         for item in skill_context.get('resolved_skills', [])]
     available_skills = {item['skill_id'] for item in resolved_skills}
+    if delivery.layout is not None:
+        questions.append({'id': 'layout_binding_pending', 'message': '版式已保存，报告呈现尚未接入；请暂选已有报告样式。'})
     if any(key not in available_skills for key in delivery.drawing_skill_ids):
         questions.append({'id': 'drawing_skill_not_selected', 'message': '手选绘图Skill须在当前会话显式启用并通过注册表解析。'})
     if modules and any(page.module and page.module not in modules for page in delivery.pages):

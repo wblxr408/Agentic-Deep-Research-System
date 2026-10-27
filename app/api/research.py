@@ -85,6 +85,9 @@ def _json_object(value: Any) -> dict[str, Any]:
 router = APIRouter(prefix="/api/v1/research", tags=["research"], dependencies=[Depends(require_principal)])
 principal_dependency = Depends(require_principal)
 
+from app.api.layout_samples import router as layout_samples_router
+router.include_router(layout_samples_router)
+
 
 @router.get('/analysis/catalog')
 def organization_analysis_catalogue():

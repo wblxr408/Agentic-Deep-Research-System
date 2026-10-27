@@ -4,7 +4,7 @@ from __future__ import annotations
 import json
 from uuid import UUID,uuid4
 
-from pydantic import Field
+from pydantic import Field, model_serializer
 from app.query_understanding import DeliveryRequest,identity
 from app.research_scope import Label,ScopeRecord
 
@@ -23,6 +23,13 @@ CREATE TABLE IF NOT EXISTS research_delivery_templates (
  PRIMARY KEY(template_id,version), UNIQUE(owner_id,request_id)
 );
 CREATE INDEX IF NOT EXISTS idx_delivery_templates_owner ON research_delivery_templates(owner_id,template_id,version DESC);
+ALTER TABLE research_delivery_templates ADD COLUMN IF NOT EXISTS layout_source_id UUID;
+CREATE TABLE IF NOT EXISTS research_layout_samples (
+ source_id UUID PRIMARY KEY, owner_id UUID NOT NULL REFERENCES auth_principals(id) ON DELETE CASCADE,
+ request_id UUID NOT NULL, file_name TEXT NOT NULL, format TEXT NOT NULL,
+ file_bytes BYTEA NOT NULL, parsed JSONB NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+ UNIQUE(owner_id,request_id)
+);
 '''
 
 
@@ -32,6 +39,14 @@ class TemplateSave(ScopeRecord):
     project_label:Label|None=None
     configuration:DeliveryRequest
     expected_version:int|None=Field(default=None,ge=1)
+    layout_source_id:UUID|None=None
+
+    @model_serializer(mode='wrap')
+    def wire_request(self, handler):
+        data = handler(self)
+        if self.layout_source_id is None:
+            data.pop('layout_source_id', None)
+        return data
 
 
 def _json(value):
@@ -41,7 +56,8 @@ def _json(value):
 def template_record(row):
     return None if row is None else {'template_id':str(row['template_id']),'version':row['version'],
         'name':row['name'],'project_label':row['project_label'],'configuration':_json(row['configuration']),
-        'created_at':row['created_at'].isoformat()}
+        'created_at':row['created_at'].isoformat(),
+        **({'layout_source_id':str(row['layout_source_id'])} if row.get('layout_source_id') else {})}
 
 
 async def load_template(conn,owner_id,template_id,version=None):
@@ -61,6 +77,9 @@ async def save_template(conn,owner_id,request,template_id=None):
         if prior['fingerprint']!=fingerprint:raise ValueError('template_request_id_payload_conflict')
         return {**template_record(prior),'replayed':True}
     origin=request.configuration.copied_from_template
+    if request.layout_source_id:
+        if request.configuration.layout is None or not await conn.fetchval('SELECT 1 FROM research_layout_samples WHERE source_id=$1::uuid AND owner_id=$2::uuid', request.layout_source_id, str(owner_id)):
+            raise ValueError('layout_source_not_owned_or_missing')
     if origin and not await load_template(conn,owner_id,origin.template_id,origin.version):
         raise ValueError('template_origin_not_owned_or_missing')
     if template_id:
@@ -75,9 +94,9 @@ async def save_template(conn,owner_id,request,template_id=None):
         if count>=50:raise ValueError('personal_template_limit_50')
         template_id=uuid4();version=1
     row=await conn.fetchrow('''INSERT INTO research_delivery_templates
-        (template_id,owner_id,version,request_id,fingerprint,name,project_label,configuration)
-        VALUES($1::uuid,$2::uuid,$3,$4::uuid,$5,$6,$7,$8::jsonb) RETURNING *''',str(template_id),str(owner_id),version,
-        str(request.request_id),fingerprint,request.name,request.project_label,request.configuration.model_dump_json())
+        (template_id,owner_id,version,request_id,fingerprint,name,project_label,configuration,layout_source_id)
+        VALUES($1::uuid,$2::uuid,$3,$4::uuid,$5,$6,$7,$8::jsonb,$9::uuid) RETURNING *''',str(template_id),str(owner_id),version,
+        str(request.request_id),fingerprint,request.name,request.project_label,request.configuration.model_dump_json(),request.layout_source_id)
     return {**template_record(row),'replayed':False}
 
 
