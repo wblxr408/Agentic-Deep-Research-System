@@ -49,6 +49,7 @@ class QueryOptions(ScopeRecord):
     term_aliases: dict[Label,tuple[Label,...]] = Field(default_factory=dict,max_length=16)
     internal_filter:RetrievalFilter=Field(default_factory=RetrievalFilter)
     internal_retrieval_mode:Literal['hybrid','structured']='hybrid'
+    internal_channels:tuple[Literal['stem','sparse'],...]=Field(default=(),max_length=2)
     web_cache_hours:int=Field(default=24,ge=0,le=8760)
     web_read_mode:Literal['auto','source','rendered']='auto'
     candidate_fusion:FusionPolicy=Field(default_factory=FusionPolicy)
@@ -68,6 +69,8 @@ class QueryOptions(ScopeRecord):
             raise ValueError('query modules must be unique')
         if len(set(self.disciplines)) != len(self.disciplines):
             raise ValueError('query disciplines must be unique')
+        if len(set(self.internal_channels))!=len(self.internal_channels):
+            raise ValueError('internal retrieval channels must be unique')
         vocabulary=set()
         for term,aliases in self.term_aliases.items():
             group=[term,*aliases]
@@ -209,8 +212,10 @@ def interpret_query(query: str, options: QueryOptions, delivery: DeliveryRequest
     questions, notes = [], []
     if 'pptx' in delivery.formats:
         questions.append({'id':'presentation_export_adapter_missing','message':'当前未配置PPTX报告导出器，请改选Markdown／HTML／JSON，或使用报告PDF打印；未生成的PPTX不能记为交付完成。'})
-    if (options.internal_filter.any_of or options.internal_retrieval_mode!='hybrid') and not request_limits.get('use_internal_docs'):
+    if (options.internal_filter.any_of or options.internal_retrieval_mode!='hybrid' or options.internal_channels) and not request_limits.get('use_internal_docs'):
         questions.append({'id':'internal_filter_without_retrieval','message':'已填写内部资料筛选，请启用内部资料或清空这些条件。'})
+    if options.internal_retrieval_mode=='structured' and options.internal_channels:
+        questions.append({'id':'structured_mode_additional_channels_conflict','message':'仅按筛选取资料时不能启用相关性检索方式，请调整选择。'})
     if options.reference_date and options.reference_date > datetime.now(UTC).date():
         questions.append({'id': 'future_reference_date', 'message': '参考日期不能作为尚未发生事实的依据，请使用当前或历史日期；未来方向须作为情景。'})
     scope = (organization or {}).get('scope') or {}
@@ -371,7 +376,8 @@ def interpret_query(query: str, options: QueryOptions, delivery: DeliveryRequest
             'reuse_scope':'same_owned_task_only','automatic_archive':False,
             'time_semantics':'publication_event_update_and_acquisition_are_distinct'},
         'internal_filter':filter_plan(options.internal_filter),
-        'internal_retrieval':{'version':'adrs-retrieval-candidates-v1','mode':options.internal_retrieval_mode},
+        'internal_retrieval':{'version':'adrs-retrieval-candidates-v1','mode':options.internal_retrieval_mode,'channels':list(options.internal_channels),
+            'model_settings':request_limits.get('internal_retrieval_settings',{}) if options.internal_channels else {}},
         'candidate_fusion':freeze_policy(options.candidate_fusion),
         'query_rewriting':{'version':'adrs-query-routes-v1','max_variants':options.max_query_variants,
             'term_aliases':options.model_dump(mode='json')['term_aliases'],'method':'rules_no_additional_model'},

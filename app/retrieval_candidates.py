@@ -26,23 +26,29 @@ def literal_query(query,mode='hybrid'):
     return {'kind':'none','value':None,'score_meaning':None}
 
 
-def channel_contracts(query,*,mode,dense_enabled,limit,filter_id):
+def channel_contracts(query,*,mode,dense_enabled,limit,filter_id,selected=()):
     literal=literal_query(query,mode)
     result={name:{'status':'requested','candidate_limit':limit,'filter_id':filter_id,
         'filter_support':'trusted_current_scope_AND_business_pre_filter',
         'deadline':'shared_original_retrieval_timeout','duration_ms':None,
-        'candidate_identity':'owned_document_chunk_uuid'} for name in ('literal','bm25','fts','dense','structure')}
+        'candidate_identity':'owned_document_chunk_uuid'} for name in ('literal','bm25','fts','dense','structure','stem','learned_sparse')}
     result['literal'].update(representation=literal['kind'],score_meaning=literal['score_meaning'])
     result['bm25'].update(representation='versioned_literal_terms',score_meaning='scoped_BM25_higher_is_more_relevant')
     result['fts'].update(representation='postgres_plain_tsquery_plus_literal_terms',score_meaning='ts_rank_higher_is_more_relevant')
     result['dense'].update(representation='configured_compatible_query_embedding',score_meaning='one_minus_cosine_distance')
     result['structure'].update(representation='same_source_parent_adjacency',score_meaning='shared_parent_context_not_factual_relation')
+    result['stem'].update(representation='postgres_english_lexemes',score_meaning='matching_derived_lexeme_count')
+    result['learned_sparse'].update(representation='local_splade_query_and_matching_weighted_postings',score_meaning='nonnegative_sparse_inner_product')
+    if 'stem' not in selected:result['stem'].update(status='skipped',reason='not_selected')
+    if 'sparse' not in selected:result['learned_sparse'].update(status='skipped',reason='not_selected')
     if literal['kind']=='none':result['literal'].update(status='skipped',reason='no_explicit_literal_selector')
     if literal['kind'] not in {'entity','chunk'}:result['structure'].update(status='skipped',reason='no_explicit_graph_seed')
     if not dense_enabled:result['dense'].update(status='skipped',reason='dense_not_enabled')
+    if literal['kind'] in {'chunk','source','phrase','entity'}:
+        for name in ('bm25','fts','dense','stem','learned_sparse'):result[name].update(status='skipped',reason='explicit_selector_preserved')
     if mode=='structured':
-        for name in ('bm25','fts','dense','structure'):result[name].update(status='skipped',reason='explicit_metadata_only_mode')
-    for name,reason in {'learned_sparse':'no_configured_sparse_model_or_index','late_interaction':'no_token_embedding_index',
+        for name in ('bm25','fts','dense','structure','stem','learned_sparse'):result[name].update(status='skipped',reason='explicit_metadata_only_mode')
+    for name,reason in {'late_interaction':'no_token_embedding_query_handoff',
         'behavioral':'no_authorized_behavior_dataset','multimodal':'no_cross_modal_query_encoder_and_index',
         'community_summary':'no_evidenced_need_or_versioned_GraphRAG_summary_index'}.items():
         result[name]={'status':'skipped','reason':reason}

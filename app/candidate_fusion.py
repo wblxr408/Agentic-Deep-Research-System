@@ -10,7 +10,7 @@ from pydantic import Field, model_validator
 from app.research_scope import ScopeRecord
 
 VERSION = 'adrs-candidate-fusion-v1'
-ROUTES = {'literal', 'bm25', 'fts', 'dense', 'structure', 'web', 'platform'}
+ROUTES = {'literal', 'bm25', 'fts', 'dense', 'structure', 'stem', 'learned_sparse', 'web', 'platform'}
 
 
 class FusionPolicy(ScopeRecord):
@@ -20,7 +20,7 @@ class FusionPolicy(ScopeRecord):
     global_top_k: int = Field(default=30, ge=1, le=100)
     route_minimum: int = Field(default=1, ge=0, le=3)
     rrf_k: int = Field(default=60, ge=1, le=1000)
-    weights: dict[str, float] = Field(default_factory=dict, max_length=8)
+    weights: dict[str, float] = Field(default_factory=dict, max_length=16)
     query_aware: bool = True
     diversity: Literal['none', 'mmr'] = 'mmr'
     relevance_weight: float = Field(default=.8, ge=0, le=1)

@@ -690,6 +690,7 @@ async def _prepare_query_understanding(conn, request: ResearchRequest, principal
     skill_context['effective_tool_allowlist'] = list(compilation['dispatch_tools'])
     from app.document_structure import VERSION as DOCUMENT_PARSER_VERSION
     parsing=get_settings().document_parsing
+    rag_settings=get_settings().rag
     limits = {'budget': budget, 'max_revision': request.max_revision,
         'document_parser_policy':{'schema_version':DOCUMENT_PARSER_VERSION,**{key:getattr(parsing,key)
             for key in ('ocr_enabled','ocr_language','max_ocr_pages','max_chars','timeout_seconds')}},
@@ -697,6 +698,8 @@ async def _prepare_query_understanding(conn, request: ResearchRequest, principal
         'skill_compilation_id': compilation['compilation_id'],
         'output_length': normalize_research_length(request.output_length).value,
         'channels': list(request.channels), 'use_internal_docs': request.use_internal_docs,
+        'internal_retrieval_settings':{'sparse':{'model':rag_settings.sparse_model,'revision':rag_settings.sparse_revision,
+            'max_input_tokens':rag_settings.sparse_max_input_tokens,'top_k':rag_settings.sparse_top_k}} if 'sparse' in request.query_options.internal_channels else {},
         'rag_group': request.rag_group if request.use_internal_docs else None,
         'effective_tool_allowlist': compilation['dispatch_tools']}
     try:

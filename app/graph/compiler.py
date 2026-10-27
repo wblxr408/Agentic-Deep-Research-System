@@ -2004,6 +2004,8 @@ def rag_node(state: ResearchState) -> dict:
                 filters=business_filter,
                 timeout_seconds=remaining_seconds,
                 mode=retrieval_policy.get('mode','hybrid'),
+                channels=retrieval_policy.get('channels',[]),
+                channel_settings=retrieval_policy.get('model_settings',{}),
                 fusion=frozen_policy((state.get('query_understanding') or {}).get('candidate_fusion')),
                 query_type=(state.get('query_understanding') or {}).get('query_type'),
             )[:max_results]

@@ -64,7 +64,7 @@ export function setupFromRequest(parameters:Record<string,unknown>={},query='',p
     layout:delivery.layout?structuredClone(delivery.layout) as ReportLayout:null,layoutMode:delivery.layout?'layout':'chapters',layoutSample:null,layoutSourceId:null,layoutName:'',layoutImportBusy:false,
     planningStrategy:policy.strategy||'hybrid',autonomy:policy.autonomy||'bounded',maxParallel:policy.max_parallel??3,maxReplans:policy.max_replans??1,
     termAliases:Object.entries(object(q.term_aliases)).map(([term,aliases])=>[term,...strings(aliases)].join(' | ')).join('\n'),maxQueryVariants:q.max_query_variants??2,
-    internalFilter:JSON.stringify(q.internal_filter||{any_of:[]}),internalRetrievalMode:q.internal_retrieval_mode||'hybrid',candidateFusion:JSON.stringify(q.candidate_fusion||{}),
+    internalFilter:JSON.stringify(q.internal_filter||{any_of:[]}),internalRetrievalMode:q.internal_retrieval_mode||'hybrid',internalChannels:strings(q.internal_channels),candidateFusion:JSON.stringify(q.candidate_fusion||{}),
     webCacheHours:q.web_cache_hours??24,maxAgeHours:q.max_age_hours??72,webReadMode:q.web_read_mode||'auto',
     dataClass:data.input_class||'public',modelDataCeiling:data.max_model_class||'internal',publicSearchQueries:strings(data.public_search_queries).join('\n')}
   const organizationDraft:OrganizationDraft={...structuredClone(defaultOrganizationDraft),enabled:!!parameters.organization_research,
@@ -102,7 +102,8 @@ export function setupRequest(value:ResearchSetup) {
   parts.query_options.entities=parts.query_options.entities.map(entity=>{const existing=(object(old.query_options).entities||[]).find((item:any)=>item.name===entity.name);return existing?{...existing,...entity,entity_id:existing.entity_id}:entity})
   const body:Record<string,unknown>={...old,query:value.query.trim(),use_internal_docs:value.useInternal,rag_group:value.useInternal?value.group.trim()||null:null,
     output_length:value.outputLength,enabled_skill_ids:[...new Set([...value.enabled,...drawingIds])],disabled_skill_ids:value.disabled,channels:value.channels,organization_research:organization,
-    planning_policy:{...object(old.planning_policy),...parts.planning_policy},query_options:{...object(old.query_options),...parts.query_options},delivery:{...object(old.delivery),...parts.delivery}}
+    planning_policy:{...object(old.planning_policy),...parts.planning_policy},query_options:{...object(old.query_options),...parts.query_options,
+      ...(!value.useInternal?{internal_filter:{any_of:[]},internal_retrieval_mode:'hybrid',internal_channels:[]}:{})},delivery:{...object(old.delivery),...parts.delivery}}
   if(!('layout' in parts.delivery))delete (body.delivery as Record<string,unknown>).layout
   delete body.query_preview_id;delete body.user_confirmed
   return body

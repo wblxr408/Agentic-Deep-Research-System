@@ -7,6 +7,7 @@ retrieval, with rank fusion and reranking.
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import math
@@ -97,12 +98,14 @@ class RAGAgent:
         await self.close()
 
     async def execute_async(self,plan_steps,user_query,group=None,owner_id=None,
-                            context_mode='source_preference',session_id=None,filters=None,timeout_seconds=None,mode='hybrid',fusion=None,query_type=None):
-        import asyncio
+                            context_mode='source_preference',session_id=None,filters=None,timeout_seconds=None,mode='hybrid',fusion=None,query_type=None,channels=None,channel_settings=None):
+        selected=tuple(channels or ())
+        if any(item not in {'stem','sparse'} for item in selected) or len(set(selected))!=len(selected):raise ValueError('unsupported_internal_retrieval_channels')
+        deadline=time.monotonic()+timeout_seconds if timeout_seconds is not None else None
         try:
             async with asyncio.timeout(timeout_seconds):
                 return await self._execute_async(plan_steps,user_query,group=group,owner_id=owner_id,
-                    context_mode=context_mode,session_id=session_id,filters=filters,mode=mode,fusion=fusion,query_type=query_type)
+                    context_mode=context_mode,session_id=session_id,filters=filters,mode=mode,fusion=fusion,query_type=query_type,channels=selected,channel_settings=channel_settings or {},deadline=deadline)
         except TimeoutError as error:
             self.last_channel_status.append({'status':'timeout','reason':'retrieval_original_deadline_exhausted'})
             raise RuntimeError('retrieval_original_deadline_exhausted') from error
@@ -119,6 +122,9 @@ class RAGAgent:
         mode:str='hybrid',
         fusion:dict|None=None,
         query_type:str|None=None,
+        channels:tuple[str,...]=(),
+        channel_settings:dict|None=None,
+        deadline:float|None=None,
     ) -> list[RAGResult]:
         """
         Execute RAG retrieval for the given plan steps.
@@ -155,7 +161,7 @@ class RAGAgent:
                 channel_status={'query':step.target_query,'lexical':'requested','dense':'disabled','reranker':'disabled'}
                 candidate_limit=fusion_policy['per_route_top_k']
                 contracts=channel_contracts(step.target_query,mode=mode,dense_enabled=self.rag_cfg.enable_dense_retrieval,
-                    limit=candidate_limit,filter_id=filtering['filter_id'])
+                    limit=candidate_limit,filter_id=filtering['filter_id'],selected=channels)
                 channel_status['channels']=contracts
                 async def collect(name,operation):
                     contract=contracts[name]
@@ -193,6 +199,36 @@ class RAGAgent:
                             'input_characters':len(step.target_query),'input_documents':1,
                             'encoding_profile_id':(query_profile or {}).get('encoding_profile_id'),
                             'provider_charge_usd':None,'cost_basis':'local_compute_not_priced_no_provider_invoice'})
+                sparse_query=None
+                if contracts['learned_sparse']['status']=='requested':
+                    from app.learned_sparse import build_sparse_features
+                    from app.retrieval_features import validate_sparse_output
+                    from app.db.retrieval_auxiliary import has_sparse_index
+                    started=time.monotonic();status='failed'
+                    try:
+                        current={'model':self.rag_cfg.sparse_model,'revision':self.rag_cfg.sparse_revision,
+                            'max_input_tokens':self.rag_cfg.sparse_max_input_tokens,'top_k':self.rag_cfg.sparse_top_k}
+                        if (channel_settings or {}).get('sparse')!=current:raise ValueError('sparse_configuration_changed')
+                        if not self.rag_cfg.sparse_model or not self.rag_cfg.sparse_revision:raise ValueError('sparse_configuration_missing')
+                        async with pool.acquire() as conn:
+                            indexed=await has_sparse_index(conn,owner_id,group,session_id,filters,self.rag_cfg.sparse_model,self.rag_cfg.sparse_revision)
+                        if not indexed:
+                            contracts['learned_sparse'].update(status='skipped',reason='no_matching_authorized_sparse_index',result_count=0)
+                            status='skipped'
+                        else:
+                            available=max(0.0,deadline-time.monotonic()) if deadline is not None else 112.5
+                            remaining=min(45.0,available*.4)
+                            if remaining<1:raise ValueError('sparse_deadline_unavailable')
+                            sparse_query=await asyncio.to_thread(build_sparse_features,[step.target_query],timeout=remaining)
+                            validate_sparse_output(sparse_query,1);status='completed'
+                    except (asyncpg.PostgresError,RuntimeError,ValueError,TypeError,OSError,ModuleNotFoundError) as error:
+                        category=getattr(error,'category',None)
+                        reason='model_configuration_changed' if str(error)=='sparse_configuration_changed' else category or 'local_model_or_configuration_unavailable'
+                        contracts['learned_sparse'].update(status='failed',reason=reason,result_count=0)
+                    finally:
+                        channel_status.setdefault('resource_usage',[]).append({'kind':'learned_sparse_query','execution':'local_model',
+                            'status':status,'duration_ms':round((time.monotonic()-started)*1000),
+                            'provider_charge_usd':None,'cost_basis':'local_compute_not_priced'})
                 lexical_query=lexical_view(step.target_query)
                 query_terms=list(lexical_query['terms'])[:128]
                 channel_status['query_terms_used']=len(query_terms)
@@ -278,6 +314,13 @@ class RAGAgent:
                         *filter_parameters,
                     ))
                     bm25_rows=await collect('bm25',lambda:scoped_bm25(conn,owner_id,group,query_terms,candidate_limit,session_id,filters))
+                    from app.db.retrieval_auxiliary import sparse_candidates,stem_candidates
+                    from app.db.retrieval_stemming import english_stem_features
+                    async def collect_stems():
+                        encoded=await english_stem_features(conn,[step.target_query])
+                        return await stem_candidates(conn,owner_id,group,session_id,candidate_limit,filters,encoded)
+                    stem_rows=await collect('stem',collect_stems)
+                    sparse_rows=await collect('learned_sparse',lambda:sparse_candidates(conn,owner_id,group,session_id,candidate_limit,filters,sparse_query)) if sparse_query is not None else []
                     channel_status['bm25']=contracts['bm25']['status']
 
                 # Build result lists
@@ -292,17 +335,20 @@ class RAGAgent:
                 fts_results={str(row['id']):{'row':row,'score':float(row['fts_score'])} for row in fts_rows}
                 literal_results={str(row['id']):{'row':row,'score':float(row['literal_score'])} for row in literal_rows}
                 structure_results={str(row['id']):{'row':row,'score':float(row['structure_score'])} for row in structure_rows}
+                stem_results={str(row['id']):{'row':row,'score':float(row['auxiliary_score'])} for row in stem_rows}
+                sparse_results={str(row['id']):{'row':row,'score':float(row['auxiliary_score'])} for row in sparse_rows}
                 failed=any(item['status']=='failed' for item in contracts.values())
                 usable=any(item['status'] in {'completed','empty'} for item in contracts.values())
                 channel_status['status']='partial' if failed and usable else 'failed' if failed else 'success'
 
                 # Fuse route memberships without treating score agreement as corroboration.
-                channels={'literal':literal_results,'bm25':bm25_results,'fts':fts_results,'dense':vector_results,'structure':structure_results}
-                all_rows = {str(r['id']): r for r in vector_rows + fts_rows + bm25_rows + literal_rows + structure_rows}
+                route_results={'literal':literal_results,'bm25':bm25_results,'fts':fts_results,'dense':vector_results,'structure':structure_results,
+                    'stem':stem_results,'learned_sparse':sparse_results}
+                all_rows = {str(r['id']): r for r in vector_rows + fts_rows + bm25_rows + literal_rows + structure_rows + stem_rows + sparse_rows}
                 fusion_channels={name:[{'id':key,'score':item['score'],'score_direction':'higher',
                     'score_meaning':contracts[name]['score_meaning'],'content':item['row']['content'],
                     'source_key':str(item['row']['document_source_id'] or key)} for key,item in channel.items()]
-                    for name,channel in channels.items() if contracts[name]['status']!='skipped'}
+                    for name,channel in route_results.items() if contracts[name]['status']!='skipped'}
                 # Metadata-only mode preserves the literal channel's ingestion/ID order.
                 actual_fusion={**fusion_policy,**({'method':'borda','diversity':'none','route_minimum':0} if mode=='structured' else {})}
                 fused,summary=fuse_candidates(fusion_channels,actual_fusion,query=step.target_query,query_type=query_type,route_status=contracts)
@@ -312,7 +358,7 @@ class RAGAgent:
                 fusion_rows={row['id']:row for row in fused}
                 fusion_scores={row['id']:row['fusion_score'] for row in fused}
                 rrf_scores={key:sum(1/(fusion_policy['rrf_k']+list(channel).index(key)+1)
-                    for channel in channels.values() if key in channel) for key in all_rows}
+                    for channel in route_results.values() if key in channel) for key in all_rows}
 
                 # Revoke stale candidates before their text enters the optional
                 # reranker, not just after the reranker has already consumed it.
@@ -399,7 +445,7 @@ class RAGAgent:
                     meta['retrieval_routes']=[{'channel':name,'rank':list(channel).index(doc_id)+1,
                         'raw_score':channel[doc_id]['score'],'score_meaning':contracts[name]['score_meaning'],
                         'filter_id':filtering['filter_id'],'candidate_limit':candidate_limit}
-                        for name,channel in channels.items() if doc_id in channel]
+                        for name,channel in route_results.items() if doc_id in channel]
                     if doc_id in structure_results:
                         reference=meta.get('chunk_reference') or {}
                         seed_ids=[]
@@ -584,12 +630,14 @@ class RAGAgent:
         mode:str='hybrid',
         fusion:dict|None=None,
         query_type:str|None=None,
+        channels:list[str]|tuple[str,...]|None=None,
+        channel_settings:dict|None=None,
     ) -> list[RAGResult]:
         """Synchronous wrapper."""
         import asyncio
         async def invoke():
             try:return await self.execute_async(plan_steps,user_query,group=group,owner_id=owner_id,
-                context_mode=context_mode,session_id=session_id,filters=filters,timeout_seconds=timeout_seconds,mode=mode,fusion=fusion,query_type=query_type)
+                context_mode=context_mode,session_id=session_id,filters=filters,timeout_seconds=timeout_seconds,mode=mode,fusion=fusion,query_type=query_type,channels=channels,channel_settings=channel_settings)
             finally:await self.close()
         try:
             asyncio.get_running_loop()
@@ -609,6 +657,8 @@ class RAGAgent:
         mode:str='hybrid',
         fusion:dict|None=None,
         query_type:str|None=None,
+        channels:list[str]|tuple[str,...]|None=None,
+        channel_settings:dict|None=None,
     ) -> list[RAGResult]:
         """
         Execute RAG retrieval for a single query (主题 3 工具接口).
@@ -617,7 +667,7 @@ class RAGAgent:
         """
         from app.graph.state import PlanStep
         step = PlanStep(target_query=query, node_type="rag")
-        return self.execute([step], context or query, group=group, owner_id=owner_id,session_id=session_id,filters=filters,timeout_seconds=timeout_seconds,mode=mode,fusion=fusion,query_type=query_type)
+        return self.execute([step], context or query, group=group, owner_id=owner_id,session_id=session_id,filters=filters,timeout_seconds=timeout_seconds,mode=mode,fusion=fusion,query_type=query_type,channels=channels,channel_settings=channel_settings)
 
     def execute_for_node(
         self,

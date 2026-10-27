@@ -18,6 +18,7 @@ export interface QueryDraft {
   chartSkillIds:Record<string,string>
   internalFilter:string
   internalRetrievalMode:string
+  internalChannels:string[]
   webCacheHours:number; maxAgeHours:number
   webReadMode:string
   candidateFusion:string
@@ -36,6 +37,7 @@ export const defaultQueryDraft: QueryDraft = {
   chartSkillIds:{},
   internalFilter:'{"any_of":[]}',
   internalRetrievalMode:'hybrid',
+  internalChannels:[],
   webCacheHours:24,maxAgeHours:72,
   webReadMode:'auto',
   candidateFusion:'{}',
@@ -111,6 +113,7 @@ export function queryDraftRequest(draft: QueryDraft, organizationEnabled: boolea
       term_aliases:termAliases,max_query_variants:draft.maxQueryVariants??2,
       internal_filter:internalFilter,
       internal_retrieval_mode:draft.internalRetrievalMode||'hybrid',
+      internal_channels:draft.internalChannels||[],
       web_cache_hours:draft.webCacheHours??24,max_age_hours:draft.maxAgeHours??72,
       web_read_mode:draft.webReadMode||'auto',
       candidate_fusion:candidateFusion,
@@ -193,9 +196,10 @@ export default function QueryUnderstandingPanel({ value, onChange, organizationE
         <details className="rounded-lg border p-3"><summary className="cursor-pointer text-sm">{t("内部资料筛选（可选）")}</summary>
           <p className="my-2 text-xs text-xmgray-500">{t("需要启用内部资料。any_of组之间为“或”，组内all_of为“且”；所有组都受到本人权限和有效版本约束。")}</p>
           <FieldLabel title={t("内部资料召回方式")}><select className="input-xm w-full" value={value.internalRetrievalMode||'hybrid'}
-            onChange={event=>update({internalRetrievalMode:event.target.value})}>
+            onChange={event=>update({internalRetrievalMode:event.target.value,...(event.target.value==='structured'?{internalChannels:[]}:{})})}>
             <option value="hybrid">{t("混合查询（词汇及已启用的稠密表示）")}</option><option value="structured">{t("只按筛选条件取资料（不按相关性排名）")}</option>
           </select></FieldLabel>
+          {value.internalRetrievalMode!=='structured'&&<div className="choice-checks">{Object.entries({stem:t('英文词形'),sparse:t('学习稀疏语义')}).map(([id,label])=><label key={id}><input type="checkbox" checked={(value.internalChannels||[]).includes(id)} onChange={event=>update({internalChannels:event.target.checked?[...(value.internalChannels||[]),id]:(value.internalChannels||[]).filter(item=>item!==id)})}/>{label}</label>)}</div>}
           <p className="my-2 text-xs text-xmgray-500">{t("内部检索子问题可使用chunk:块UUID、source:来源UUID、phrase:完整短语或entity:已登记词面实体ID。 entity仅查词面提及与同源父子结构，不能证明真实身份或合作关系。")}</p>
           <FieldLabel title={t("业务筛选 JSON")}><textarea className="input-xm w-full font-mono text-xs" rows={5} maxLength={16000}
             value={value.internalFilter||''} onChange={event=>update({internalFilter:event.target.value})}/></FieldLabel>
