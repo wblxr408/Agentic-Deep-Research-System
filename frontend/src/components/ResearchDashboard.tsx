@@ -24,6 +24,8 @@ import type { WeightSelection } from './OrganizationWeightsPanel'
 import ResearchMatchingPanel from './ResearchMatchingPanel'
 import { defaultQueryDraft, UnderstandingSummary } from './QueryUnderstandingPanel'
 import type { QueryDraft, UnderstandingSnapshot } from './QueryUnderstandingPanel'
+import SkillStageUsage from './SkillStageUsage'
+import type {MethodUsage} from './SkillStageUsage'
 import ResearchPlanSummary from './ResearchPlanSummary'
 import ResearchConfigurationEditor from './ResearchConfigurationEditor'
 import ResearchQuality from './ResearchQuality'
@@ -69,6 +71,7 @@ interface ResearchResult {
   execution_plan?: { nodes: Array<{ node_id: string; node_type: string; query: string; status: string }> }
   restart_parameters?: Record<string, unknown>
   export_view?: unknown
+  method_usage?:MethodUsage
   skill_context?: {
     auto_matched_skill_ids?: string[]
     manually_enabled_skill_ids?: string[]
@@ -534,7 +537,7 @@ function ResearchDashboard({ onBack,ownerId }: ResearchDashboardProps) {
       <IngestionPanel key={`ingestion-${activeSessionId}`} sessionId={activeSessionId}/>
       {result&&['completed','paused','failed','canceled'].includes(result.status)&&<ResearchQuality key={`quality-${result.session_id}`} sessionId={result.session_id}/>}
       <details className="card p-5"><summary>{t("工具调用")}{toolCallCount!==undefined?` · ${toolCallCount}`:''}</summary><div className="mt-4">{toolAudit.error?<p role="alert">{uiMessage(toolAudit.error.message)}</p>:<ToolTrace events={traceEvents} records={toolAudit.data}/>}</div></details>
-      {(effectiveSkillIds.length>0||effectiveTools.length>0)&&<details className="card p-5"><summary>{t("阶段 Skill 与工具")}</summary>
+      {result?.method_usage?<SkillStageUsage value={result.method_usage}/>: (effectiveSkillIds.length>0||effectiveTools.length>0)&&<details className="card p-5"><summary>{t("阶段 Skill 与工具")}</summary>
         <div className="mt-4 flex flex-wrap gap-2">{effectiveSkillIds.map(id=><span className="tool-chip" key={id}>{skillsData?.items.find(item=>item.id===id)?.name||id} · {autoMatchedSkillIds.includes(id)?t("自动"):t("手动")}</span>)}{effectiveTools.map(tool=><span className="tool-chip" key={tool}>{tool}</span>)}</div>
         {matchedSkills.map(match=><p className="mt-3 text-sm" key={match.skill_id}>{match.name} · {match.reason}</p>)}
         <p className="mt-3 text-sm">{t("手动启用 ")}{manuallyEnabledSkillIds.length} {t(" · 禁用 ")}{manuallyDisabledSkillIds.length}</p>

@@ -11,7 +11,7 @@ import logging
 from typing import TYPE_CHECKING
 
 from app.config import get_settings
-from app.llm_budget import budgeted_client, TokenBudgetExceeded
+from app.llm_budget import budgeted_client, skill_context_client, TokenBudgetExceeded
 from app.graph.state import (
     ClaimConflict,
     Evidence,
@@ -24,7 +24,7 @@ from app.llm_client import (
     collect_usage_metrics,
     create_fallback_llm_client,
 )
-from app.security.prompt_security import untrusted_context
+from app.security.prompt_security import untrusted_context,research_method_context
 from app.claim_verification import claim_evidence_context
 
 if TYPE_CHECKING:
@@ -160,7 +160,7 @@ Be strict but fair. Flag real hallucinations but don't over-flag.
 Analysis to Validate:
 {untrusted_context('analyst_output', analysis)}
 
-{untrusted_context('skill_content', skill_prompt or '') if skill_prompt else ''}
+{research_method_context(skill_prompt or '',guidance=bool(getattr(self.request_budget,'skill_guidance',False))) if skill_prompt else ''}
 
 Evidence Sources:
 {untrusted_context('external_evidence', formatted_evidence, limit=25000)}
@@ -170,7 +170,7 @@ Perform a rigorous quality check and return the structured JSON output."""
         ]
 
         try:
-            active_client=self.client
+            active_client=skill_context_client(self.client) if skill_prompt else self.client
             response, response_model, fallback_used = call_chat_with_fallback(
                 active_client,
                 self.model,

@@ -1416,6 +1416,10 @@ async def get_research_result(session_id: str, principal: Principal = principal_
             """,
             session_id, _principal_id(principal),
         )
+        model_receipts=await conn.fetch('''SELECT payload FROM research_model_receipts
+            WHERE session_id=$1::uuid AND owner_id=$2::uuid ORDER BY updated_at,call_id''',session_id,_principal_id(principal)) if row else []
+        tool_receipts=await conn.fetch('''SELECT payload FROM research_tool_receipts
+            WHERE session_id=$1::uuid AND owner_id=$2::uuid ORDER BY updated_at,operation_id''',session_id,_principal_id(principal)) if row else []
 
     if not row:
         raise HTTPException(status_code=404, detail="Session not found")
@@ -1428,6 +1432,10 @@ async def get_research_result(session_id: str, principal: Principal = principal_
     citations = projection([{**dict(citation),'locator':locators.get(citation['citation_id'])} for citation in citation_rows] if citation_rows else frozen_citations)
 
     review_status = _json_object(row.get("review_status"))
+    from app.skills.usage import method_usage_view
+    method_usage=method_usage_view(_json_object(row.get('skill_context')),
+        [_json_object(item['payload']) for item in model_receipts],
+        [_json_object(item['payload']) for item in tool_receipts],row['status'])
     from app.research_diagnostics import diagnose_stop
     pause_diagnosis=diagnose_stop({'status':row['status'],'runtime_status':review_status.get('runtime_status'),
         'created_at':row['created_at'].isoformat(),'session':_json_object(row.get('root_session')),
@@ -1466,6 +1474,7 @@ async def get_research_result(session_id: str, principal: Principal = principal_
         "tool_audit_summary": review_status.get("tool_audit_summary", {}),
         'ingestion':review_status.get('ingestion'),
         "skill_context": _json_object(row.get("skill_context")),
+        'method_usage':method_usage,
         "organization_research": review_status.get("organization_research"),
         "organization_result": review_status.get("organization_result"),
         'query_understanding': review_status.get('query_understanding'),

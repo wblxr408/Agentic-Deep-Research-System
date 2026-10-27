@@ -25,7 +25,7 @@ import re
 from typing import TYPE_CHECKING
 
 from app.config import get_settings
-from app.llm_budget import budgeted_client, TokenBudgetExceeded
+from app.llm_budget import budgeted_client, skill_context_client, TokenBudgetExceeded
 from app.graph.source_policy import apply_source_policy
 from app.graph.state import (
     DAGDefinition,
@@ -43,7 +43,7 @@ from app.llm_client import (
     collect_usage_metrics,
     create_fallback_llm_client,
 )
-from app.security.prompt_security import untrusted_context
+from app.security.prompt_security import untrusted_context,research_method_context
 
 if TYPE_CHECKING:
     from openai import OpenAI
@@ -290,7 +290,7 @@ Return a JSON object with dag_name, nodes, and edges."""
         if use_internal_docs and rag_group:
             user_prompt += f"\n\n{untrusted_context('internal_document_group', rag_group)}"
         if skill_prompt:
-            user_prompt = f"{user_prompt}\n\n{untrusted_context('skill_content', skill_prompt)}"
+            user_prompt = f"{user_prompt}\n\n{research_method_context(skill_prompt,guidance=bool(getattr(self.request_budget,'skill_guidance',False)))}"
         if planning_hints:
             user_prompt = f"{user_prompt}\n\nSession Planning Hints:\n{planning_hints}"
         if planner_hints:
@@ -305,7 +305,7 @@ Return a JSON object with dag_name, nodes, and edges."""
         ]
 
         try:
-            active_client=self.client
+            active_client=skill_context_client(self.client) if skill_prompt else self.client
             create_kwargs = {
                 "model": self.model,
                 "messages": messages,

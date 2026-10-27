@@ -52,6 +52,9 @@ class ModelTokenBudget:
         from app.execution_control import current_control
         self.execution_control=current_control()
         self.stage=None
+        self.skill_packet:dict|None=None
+        self.skill_tracking=False
+        self.skill_guidance=False
         self._lock = threading.Lock()
 
     def available(self, purpose: str = 'research') -> int:
@@ -124,6 +127,7 @@ class ModelTokenBudget:
                 'purpose':purpose, 'model':request.get('model'), 'prompt_bound':prompt_bound,
                 'agent':self.stage,'output_cap':completion_cap,'reserved_tokens':reservation,'status':'inflight',
                 'dispatch_status':'admitted_possible_dispatch'}
+            if self.skill_tracking:record['skill_tracking_version']='adrs-method-use-v1'
             if route:record['routing']=dict(route)
             price=(route or {}).get('price') or {}
             record['reserved_known_cost_usd']=(prompt_bound*price['input_per_million']+completion_cap*price['output_per_million'])/1000000 if (
@@ -172,6 +176,7 @@ class ModelTokenBudget:
             cost=(prompt*price['input_per_million']+completion*price['output_per_million'])/1000000 if configured_price and valid else (
                 estimate_cost_usd(record['model'],prompt_tokens=prompt,completion_tokens=completion) if known_price else 0.0)
             record.update(status='unknown' if interrupted or not valid else 'settled',
+                response_received=not interrupted,
                 total_tokens=charge, reported_tokens=total, prompt_tokens=prompt if valid else record['prompt_bound'],
                 completion_tokens=completion if valid else record['output_cap'], estimated=interrupted or not valid,
                 cost_known=known_price, cost_usd=round(cost,6) if known_price else 0.0,
@@ -201,10 +206,11 @@ class ModelTokenBudget:
 
 
 class BudgetedClient:
-    def __init__(self, client: Any, budget: ModelTokenBudget, purpose: str):
+    def __init__(self, client: Any, budget: ModelTokenBudget, purpose: str, *, skill_packet:dict|None=None):
         self.route_info=getattr(client,'route_info',None)
         self._client = client._client if isinstance(client, BudgetedClient) else client
         self.budget, self.purpose = budget, purpose
+        self.skill_packet=skill_packet
         self.chat = SimpleNamespace(completions=SimpleNamespace(create=self.create))
 
     def __getattr__(self, name):
@@ -212,7 +218,7 @@ class BudgetedClient:
 
     def with_options(self, **options):
         client = self._client.with_options(**options) if hasattr(self._client,'with_options') else self._client
-        result=BudgetedClient(client,self.budget,self.purpose)
+        result=BudgetedClient(client,self.budget,self.purpose,skill_packet=self.skill_packet)
         result.route_info=self.route_info
         return result
 
@@ -231,6 +237,12 @@ class BudgetedClient:
         self.budget.data_events.append({**admission,'stage':(self.route_info or {}).get('stage',self.purpose),'status':'admitted'})
         request, record = self.budget.reserve(request,self.purpose,self.route_info)
         record['data_governance']=admission
+        if self.skill_packet:
+            from app.data_governance import scrub_urls
+            marker=scrub_urls(self.skill_packet.get('marker') or '')
+            if marker and any(isinstance(item.get('content'),str) and marker in item['content']
+                              for item in request.get('messages') or [] if isinstance(item,dict)):
+                record['method_context']={key:self.skill_packet[key] for key in ('stage','compilation_id','methods')}
         deadline = self.budget.call_deadline(self.purpose)
         if control:
             try:
@@ -298,3 +310,13 @@ class BudgetedClient:
 
 def budgeted_client(client, budget: ModelTokenBudget | None, purpose: str):
     return BudgetedClient(client,budget,purpose) if budget is not None else client
+
+
+def skill_context_client(client,packet=None):
+    """Mark only a known method-bearing request; never send metadata to a provider."""
+    if not isinstance(client,BudgetedClient):return client
+    selected=packet if packet is not None else client.budget.skill_packet
+    if not selected:return client
+    marked=BudgetedClient(client._client,client.budget,client.purpose,skill_packet=selected)
+    marked.route_info=client.route_info
+    return marked

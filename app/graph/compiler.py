@@ -388,6 +388,18 @@ def _stage_model_budget(state: ResearchState, stage: str) -> ModelTokenBudget:
     from app.data_governance import effective_context
     meter.data_governance=effective_context(state)
     meter.stage=stage
+    meter.skill_tracking=True
+    compilation=_skill_context(state).get('stage_compilation') or {}
+    profile_stage='planner' if stage=='replan' else stage
+    profile=(compilation.get('profiles') or {}).get(profile_stage) or {}
+    if compilation.get('ready') and profile.get('ready') and profile.get('prompt') and compilation.get('arbitration_policy'):
+        from app.security.prompt_security import research_method_context
+        methods=[{key:entry.get(key) for key in ('skill_id','version')}
+                 for entry in profile.get('entries',[]) if entry.get('has_model_content')]
+        if methods:
+            meter.skill_guidance=True
+            meter.skill_packet={'stage':profile_stage,'compilation_id':compilation.get('compilation_id'),
+                'methods':methods,'marker':research_method_context(profile['prompt'],guidance=True)}
     return meter
 
 

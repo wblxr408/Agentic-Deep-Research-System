@@ -53,6 +53,10 @@ def _required_packet(items,stage):
     return {'stage':stage,'instructions':mandatory,'agent_hints':hints}
 
 
+def _encoded_length(text):
+    return len(text.replace('<','&lt;').replace('>','&gt;'))
+
+
 def compile_stage_skills(selection: dict, *, task_tools: set[str], disciplines: list[str],
         template: str, char_budget: int, needed_stages: set[str] | None = None) -> dict:
     if not 2000 <= char_budget <= 32000:
@@ -116,7 +120,8 @@ def compile_stage_skills(selection: dict, *, task_tools: set[str], disciplines: 
                 reason='automatic_conflicts_with_required_tools'
             elif stage in task_tools and stage not in trial_allowed:
                 reason='automatic_disables_stage_tool'
-            elif len(json.dumps(_required_packet(trial,stage),ensure_ascii=False))>payload_budget:
+            elif (len(json.dumps(_required_packet(trial,stage),ensure_ascii=False))>payload_budget
+                  or _encoded_length(prefix+json.dumps(_required_packet(trial,stage),ensure_ascii=False))>32000):
                 reason='automatic_context_budget'
             else:
                 reason=None
@@ -170,6 +175,7 @@ def compile_stage_skills(selection: dict, *, task_tools: set[str], disciplines: 
             entry = {'skill_id': key, 'version': item['version'], 'content_identity': item.get('content_identity'),
                 'name': item.get('name', key), 'matched_reason': item.get('matched_reason'),
                 'activation': 'explicit_user_selection' if key in manual else 'registered_metadata_match',
+                'has_model_content':bool(content or stage_hints),
                 'loaded_references': loaded, 'required_tools': item.get('required_tools') or [],
                 'required_capability_status': 'permission_checked_runtime_availability_not_probed',
                 'restriction': item.get('tool_restrictions') if item.get('tool_restrictions') is not None else item.get('allowed_tools') or None}
@@ -178,18 +184,23 @@ def compile_stage_skills(selection: dict, *, task_tools: set[str], disciplines: 
             hints.extend(str(text) for text in stage_hints if str(text).strip())
         packet = {'stage': stage, 'instructions': mandatory, 'agent_hints': hints}
         mandatory_text = json.dumps(packet, ensure_ascii=False)
-        if active and len(mandatory_text) > payload_budget:
+        if active and (len(mandatory_text)>payload_budget or _encoded_length(prefix+mandatory_text)>32000):
             conflicts.append({'reason': 'required_skill_context_exceeds_budget', 'required_characters': len(prefix)+len(mandatory_text),
-                'limit': char_budget, 'action': 'select_fewer_skills_or_increase_bounded_skill_budget'})
+                'encoded_characters':_encoded_length(prefix+mandatory_text),
+                'limit': char_budget, 'encoded_limit':32000, 'action': 'select_fewer_skills_or_increase_bounded_skill_budget'})
         optional = []
         for overview in overviews:
             candidate = {**packet, 'optional_overviews': [*optional, overview]}
-            if len(json.dumps(candidate, ensure_ascii=False)) <= payload_budget:
+            candidate_text=json.dumps(candidate,ensure_ascii=False)
+            if len(candidate_text)<=payload_budget and _encoded_length(prefix+candidate_text)<=32000:
                 optional.append(overview)
             else:
                 omitted.append({'skill_id': overview['skill_id'], 'reason': 'overview_only_omitted_for_context_budget'})
         if optional:
             packet['optional_overviews'] = optional
+            overview_ids={item['skill_id'] for item in optional}
+            for entry in entries:
+                if entry['skill_id'] in overview_ids:entry['has_model_content']=True
         full_text = json.dumps(packet, ensure_ascii=False)
         blocked = bool(conflicts)
         prompt = '' if blocked or not active else prefix + full_text
@@ -235,7 +246,9 @@ def preparation_view(compilation:dict,selection:dict) -> list[dict]:
     for stage in STAGES:
         if stage not in compilation.get('needed_stages',[]):
             continue
-        profile=compilation['profiles'][stage]
+        profile=(compilation.get('profiles') or {}).get(stage)
+        if not isinstance(profile,dict):
+            continue
         entries=[{key:item.get(key) for key in ('skill_id','name','version','activation','matched_reason')}
                  for item in profile.get('entries',[])]
         omitted=[{'skill_id':item['skill_id'],'name':names.get(item['skill_id'],item['skill_id']),

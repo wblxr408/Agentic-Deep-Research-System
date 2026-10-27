@@ -13,7 +13,7 @@ from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 
 from app.config import get_settings
-from app.llm_budget import ModelTokenBudget, budgeted_client, TokenBudgetExceeded
+from app.llm_budget import ModelTokenBudget, budgeted_client, skill_context_client, TokenBudgetExceeded
 from app.graph.state import Citation, Evidence
 from app.guardrails import (
     build_guardrail_decision,
@@ -26,7 +26,7 @@ from app.llm_client import (
     create_llm_client,
     get_llm_model,
 )
-from app.security.prompt_security import untrusted_context
+from app.security.prompt_security import untrusted_context,research_method_context
 from app.claim_verification import audit_report, claim_evidence_context
 from app.organization_purpose import REPORT_WRITING_GUIDANCE, analysis_snapshot, assemble_module_report, module_report_instructions
 
@@ -180,7 +180,7 @@ class ReportAgent:
             self.request_budget = ModelTokenBudget(tokens,audit_reserve=min(12000,max(0,int(tokens*.2))),
                 deadline=verification_deadline,audit_seconds=min(90,max(0,verification_timeout_seconds*.2)))
         verification_deadline = self.request_budget.deadline or verification_deadline
-        active_client=self.client
+        active_client=skill_context_client(self.client) if skill_prompt else self.client
         output_tokens = min(budget['report_max_tokens'], max(1024, self.request_budget.available('report')//3))
         self.last_audit = None
         self.last_module_report = None
@@ -245,7 +245,7 @@ class ReportAgent:
                 "role": "user",
                 "content": f"""Research Topic: {user_query}
 
-{untrusted_context('skill_content', skill_prompt or '') if skill_prompt else ''}
+{research_method_context(skill_prompt or '',guidance=bool(getattr(self.request_budget,'skill_guidance',False))) if skill_prompt else ''}
 
 Analyst's Analysis:
 {untrusted_context('analyst_output', selected_analysis, limit=len(selected_analysis))}
@@ -308,6 +308,7 @@ Evidence Sources:
                 self._client=fallback_client
                 self.model=active_model
                 fallback_client = budgeted_client(fallback_client,self.request_budget,'report')
+                if skill_prompt:fallback_client=skill_context_client(fallback_client)
                 logger.warning("Primary report stream failed before output; using fallback: %s", type(primary_error).__name__)
                 consume(fallback_client.chat.completions.create(
                     model=active_model,

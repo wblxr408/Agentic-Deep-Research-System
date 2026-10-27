@@ -15,7 +15,7 @@ from typing import TYPE_CHECKING
 from openai import APIError
 
 from app.config import get_settings
-from app.llm_budget import budgeted_client, TokenBudgetExceeded
+from app.llm_budget import budgeted_client, skill_context_client, TokenBudgetExceeded
 from app.graph.state import Evidence
 from app.guardrails import build_guardrail_decision, build_prompt_profile_message
 from app.llm_client import (
@@ -23,7 +23,7 @@ from app.llm_client import (
     collect_usage_metrics,
     create_fallback_llm_client,
 )
-from app.security.prompt_security import untrusted_context
+from app.security.prompt_security import untrusted_context,research_method_context
 
 if TYPE_CHECKING:
     from openai import OpenAI
@@ -435,7 +435,7 @@ Return a JSON object with these fields:
                 "role": "user",
                 "content": f"""Research Question: {user_query}
 
-{untrusted_context('skill_content', skill_prompt or '') if skill_prompt else ''}
+{research_method_context(skill_prompt or '',guidance=bool(getattr(self.request_budget,'skill_guidance',False))) if skill_prompt else ''}
 
 Collected Evidence:
 {formatted_evidence}
@@ -447,7 +447,7 @@ Collected Evidence:
             return messages, manifest
         # Resolve the permitted context capacity before packing optional text.
         # This constructs a client but does not dispatch a model request.
-        active_client=self.client
+        active_client=skill_context_client(self.client) if skill_prompt else self.client
         if seed_manifest is not None:self.last_context_manifest={'publication_seed':seed_manifest}
         messages, self.last_context_manifest = fit_messages(build_messages, self.request_budget,
             'research', _output_tokens, max_bytes=int(repair.get('max_bytes') or (getattr(self,'context_expansion_bytes',36000) if organization_research else 10000)),
