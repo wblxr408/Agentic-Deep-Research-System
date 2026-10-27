@@ -500,8 +500,13 @@ async def get_source_chunk_plan(source_id:uuid.UUID,include_content:bool=False,p
         row=await conn.fetchrow('SELECT metadata,original_text FROM document_sources WHERE id=$1::uuid AND owner_id=$2::uuid',str(source_id),principal.id)
     if not row:raise HTTPException(404,'source_not_found')
     meta=_metadata(row['metadata'])
+    plan=meta.get('chunk_plan');summary=None
+    if plan and plan.get('source_summary'):
+        from app.evidence_chunks import materialize_summary
+        try:summary=materialize_summary(row['original_text'] or '',plan['source_summary'],meta.get('parse_version_id'))
+        except ValueError:summary=None
     return {'source_id':str(source_id),'parse_version_id':meta.get('parse_version_id'),'view':meta.get('chunk_plan'),
-        'text':row['original_text'] if include_content else None,'legacy_gap':not bool(meta.get('chunk_plan'))}
+        'text':row['original_text'] if include_content else None,'summary':summary,'legacy_gap':not bool(meta.get('chunk_plan'))}
 
 
 @router.get('/sources/{source_id}/features')

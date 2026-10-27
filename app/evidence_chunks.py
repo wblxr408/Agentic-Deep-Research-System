@@ -2,8 +2,10 @@
 from __future__ import annotations
 
 from datetime import date
+from collections import Counter
 import hashlib
 import json
+import math
 import re
 from typing import Annotated,Literal
 
@@ -28,6 +30,7 @@ class ChunkPolicy(ScopeRecord):
     disciplines:tuple[Label,...]=Field(default=(),max_length=8)
     taxonomy:TaxonomyRequest|None=None
     include_source_excerpt:bool=False
+    include_source_summary:bool=False
     retrieval_context:Literal['matched','parent']='matched'
 
     @model_validator(mode='after')
@@ -70,12 +73,50 @@ def semantic_units(text,size):
     return list(_ranges(text,0,len(text),unit_size,0,True))
 
 
+def extractive_summary(text,source_version):
+    """Rank bounded literal spans; no generated text or external model."""
+    from app.retrieval_features import lexical_view
+    ranges=semantic_units(text,400);selected_ranges=ranges[:1000];candidates=[];frequencies=Counter()
+    for start,end in selected_ranges:
+        value=text[start:end]
+        if len(value.strip())<30:continue
+        terms={term for term in lexical_view(value)['terms'] if len(term)>1}
+        if not terms:continue
+        candidates.append((start,end,terms));frequencies.update(terms)
+    total=len(candidates);ranked=[]
+    for start,end,terms in candidates:
+        score=sum(math.log1p(total/frequencies[term]) for term in terms)/math.sqrt(max(1,len(terms)))
+        ranked.append((score,start,end,terms))
+    chosen=[];used=set()
+    while ranked and len(chosen)<3:
+        best=max(ranked,key=lambda item:(item[0]-2*len(item[3]&used)/max(1,len(item[3])),-item[1]))
+        ranked.remove(best);chosen.append(best);used.update(best[3])
+    return {'kind':'extractive_source_spans','source_version':source_version,
+        'segments':[{'start':start,'end':end} for _,start,end,_ in sorted(chosen,key=lambda item:item[1])],
+        'method':'bounded_lexical_salience_with_diversity','candidate_count':total,'candidate_limit':1000,
+        'coverage_end':selected_ranges[-1][1] if selected_ranges else 0,'coverage_complete':len(ranges)<=1000}
+
+
+def materialize_summary(text,reference,source_version):
+    if not isinstance(reference,dict) or reference.get('source_version')!=source_version:
+        raise ValueError('source_summary_version_unavailable')
+    spans=reference.get('segments')
+    if (not isinstance(spans,list) or len(spans)>3 or any(not isinstance(span,dict)
+            or type(span.get('start')) is not int or type(span.get('end')) is not int
+            or not 0<=span['start']<span['end']<=len(text) or span['end']-span['start']>400 for span in spans)):
+        raise ValueError('source_summary_range_unavailable')
+    return {'kind':'extractive_source_spans','source_version':source_version,
+        'coverage_complete':reference.get('coverage_complete',False),
+        'segments':[{'start':span['start'],'end':span['end'],'text':text[span['start']:span['end']]} for span in spans]}
+
+
 def build_chunk_plan(text,parsed,source_version,*,size=400,overlap=80,policy=None,semantic_plan=None):
     policy=policy if isinstance(policy,ChunkPolicy) else ChunkPolicy.model_validate(policy or {})
     if not source_version or not isinstance(text,str):raise ValueError('chunk_plan_requires_actual_version_and_text')
     if not 100<=size<=4000 or not 0<=overlap<size or overlap>1000:raise ValueError('invalid_chunk_size_or_overlap')
     policy_data=policy.model_dump(mode='json')
     if policy.strategy!='semantic':policy_data.pop('semantic_similarity',None)
+    if not policy.include_source_summary:policy_data.pop('include_source_summary',None)
     if policy.strategy=='semantic':
         if not isinstance(semantic_plan,dict) or not isinstance(semantic_plan.get('boundaries'),list) or not semantic_plan.get('encoding_profile'):
             raise ValueError('semantic_chunking_requires_actual_local_encoding')
@@ -182,6 +223,7 @@ def build_chunk_plan(text,parsed,source_version,*,size=400,overlap=80,policy=Non
         'truncated':truncated,'unindexed_range':[children[-1]['end'] if children else 0,length] if truncated else None,
         'metadata_enrichment_bytes':enrichment_bytes,'metadata_enrichment_omitted_chunks':enrichment_omitted,
         'summary_excerpt':{'start':0,'end':min(400,length),'kind':'literal_source_lead_excerpt_not_generated_summary'} if policy.include_source_excerpt and text else None,
+        'source_summary':extractive_summary(text,source_version) if policy.include_source_summary and text else None,
         'storage_note':'parent_and_child_spans_reference_one_original_text_parents_not_embedded',
         'semantic_chunking':semantic_plan if policy.strategy=='semantic' else {'status':'not_selected'}}
 

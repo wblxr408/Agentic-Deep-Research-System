@@ -122,6 +122,7 @@ def source_chunk_metadata(metadata,source_id,index,*,name,group_name,source_type
         'temporal_view':features.get('temporal'),'dense_profile':metadata.get('dense_profile'),
         'context_preference':((metadata.get('chunking_profile') or {}).get('policy') or {}).get('retrieval_context','matched'),
         'summary_excerpt_reference':plan.get('summary_excerpt'),
+        'source_summary_reference':plan.get('source_summary'),
         'document_structure_reference':{'source_id':str(source_id),'parse_version_id':metadata.get('parse_version_id')},
         'group':group_name,'source_name':name,'source_type':source_type,'file_name':file_name,'file_ext':file_ext,
         'chunk_index':index,'chunk_count':len(plan['children'])}

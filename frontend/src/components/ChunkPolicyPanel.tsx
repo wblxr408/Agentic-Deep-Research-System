@@ -3,16 +3,16 @@ import TaxonomyEditor,{defaultTaxonomy,taxonomyRequest} from './TaxonomyEditor'
 import type {TaxonomyDraft} from './TaxonomyEditor'
 
 export interface ChunkDraft {
-  strategy:'fixed'|'sliding'|'recursive'|'structure'|'semantic';semanticSimilarity:number;context:'matched'|'parent';sourceExcerpt:boolean
+  strategy:'fixed'|'sliding'|'recursive'|'structure'|'semantic';semanticSimilarity:number;context:'matched'|'parent';sourceExcerpt:boolean;sourceSummary:boolean
   entities:Array<{id:string;name:string;kind:string}>;classification:boolean;disciplines:string;taxonomy:TaxonomyDraft
 }
-export const defaultChunkDraft:ChunkDraft={strategy:'structure',semanticSimilarity:0.65,context:'matched',sourceExcerpt:false,entities:[],classification:false,disciplines:'',taxonomy:{...defaultTaxonomy}}
+export const defaultChunkDraft:ChunkDraft={strategy:'structure',semanticSimilarity:0.65,context:'matched',sourceExcerpt:false,sourceSummary:false,entities:[],classification:false,disciplines:'',taxonomy:{...defaultTaxonomy}}
 export function chunkPolicyRequest(value:ChunkDraft) {
   if(value.entities.some(item=>item.name.trim().length<2))throw new Error(t("实体词典中的名称至少需要两个字符。"))
   const disciplines=[...new Set(value.disciplines.split(/[,，、]/).map(item=>item.trim()).filter(Boolean))]
   if(disciplines.length>8)throw new Error(t("块分类最多声明8个学科。"))
   if(value.classification&&!disciplines.length)throw new Error(t("启用块级分类时请填写适用学科。"))
-  return {strategy:value.strategy,...(value.strategy==='semantic'?{semantic_similarity:value.semanticSimilarity}:{}),retrieval_context:value.context,include_source_excerpt:value.sourceExcerpt,
+  return {strategy:value.strategy,...(value.strategy==='semantic'?{semantic_similarity:value.semanticSimilarity}:{}),retrieval_context:value.context,include_source_excerpt:value.sourceExcerpt,include_source_summary:value.sourceSummary,
     entity_terms:value.entities.map(item=>({entity_id:item.id,name:item.name.trim(),kind:item.kind})),
     disciplines:value.classification?disciplines:[],taxonomy:value.classification?taxonomyRequest(value.taxonomy):null}
 }
@@ -28,6 +28,7 @@ export default function ChunkPolicyPanel({value,onChange}:{value:ChunkDraft;onCh
     <label className="block text-xs">{t("检索时的上下文")}<select aria-label={t("检索时的上下文")} className="input-xm mt-1" value={value.context} onChange={event=>update({context:event.target.value as ChunkDraft['context']})}>
       <option value="matched">{t("只返回命中片段")}</option><option value="parent">{t("需要时返回有限父级上下文")}</option></select></label>
     <label className="flex items-start gap-2 text-xs"><input type="checkbox" checked={value.sourceExcerpt} onChange={event=>update({sourceExcerpt:event.target.checked})} />{t("检索时附上开头摘录")}</label>
+    <label className="flex items-start gap-2 text-xs"><input type="checkbox" checked={value.sourceSummary} onChange={event=>update({sourceSummary:event.target.checked})} />{t('检索时附上原文摘要')}</label>
     <details><summary className="cursor-pointer text-xs">{t("需要识别的名称")}</summary>
       <div className="mt-2 space-y-2">{value.entities.map((entity,index)=><div key={entity.id} className="flex gap-2">
         <select aria-label={t("实体{0}类型", index+1)} className="input-xm w-24 text-xs" value={entity.kind} onChange={event=>update({entities:value.entities.map(item=>item.id===entity.id?{...item,kind:event.target.value}:item)})}><option value="organization">{t("机构")}</option><option value="person">{t("人员")}</option><option value="location">{t("地域")}</option><option value="other">{t("其他")}</option></select>

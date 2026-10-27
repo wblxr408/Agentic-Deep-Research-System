@@ -6,6 +6,8 @@ export const documentProcessingEnglish:Record<string,string>={
   '图像细节':'Image detail','快速':'Fast','精细':'Detailed',
   '按语义变化':'By semantic change','主题相似程度':'Topic similarity','宽松':'Loose','均衡':'Balanced','紧密':'Close',
   '语义分块':'Semantic splitting','{0} 个原文单元':'{0} source units',
+  '检索时附上原文摘要':'Include an extractive source summary in retrieval',
+  '原文摘要':'Extractive summary','摘要来自已处理的部分':'Summary uses the processed portion',
   '使用已配置的本地编码模型，片段不重叠':'Uses the configured local encoder without overlap',
   '语义分块需要本地固定版本的编码模型，且全部片段须能完整编码。':'Semantic splitting requires a pinned local encoder and complete coverage of every passage.',
   '正在处理…':'Processing…','当前资料没有可选择的页面或内嵌图片':'No pages or embedded images are available for this source',

@@ -463,6 +463,22 @@ class RAGAgent:
                         meta['source_lead_excerpt']={'text':lead,'start':0,'end':len(lead),
                             'status':'literal_source_lead_not_generated_summary','source_id':actual_source_id,'parse_version_id':meta.get('parse_version_id')}
 
+                    summary_reference=meta.get('source_summary_reference')
+                    if isinstance(summary_reference,dict) and actual_source_id:
+                        async with pool.acquire() as conn:
+                            source=await conn.fetchrow('''SELECT original_text,metadata->>'parse_version_id' AS parse_version,
+                                metadata->'chunk_plan'->>'profile_id' AS chunk_profile FROM document_sources
+                                WHERE id=$1::uuid AND owner_id=$2::uuid AND status='active'
+                                AND ($3::text IS NULL OR group_name=$3::text)''',actual_source_id,owner_id,group)
+                        if not source:continue
+                        try:
+                            from app.evidence_chunks import materialize_summary
+                            if source['parse_version']!=meta.get('parse_version_id') or source['chunk_profile']!=meta.get('chunk_profile_id'):
+                                raise ValueError('source_summary_version_unavailable')
+                            meta['source_summary']={**materialize_summary(source['original_text'] or '',summary_reference,source['parse_version']),
+                                'source_id':actual_source_id,'parse_version_id':source['parse_version']}
+                        except ValueError:meta['source_summary_gap']='summary_version_or_original_range_unavailable'
+
                     if actual_source_id:
                         async with pool.acquire() as conn:
                             snapshot=await current_access(conn,actual_source_id,owner_id,session_id,group,row['source_access_revision'],with_snapshot=True)
