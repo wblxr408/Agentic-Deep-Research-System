@@ -580,8 +580,26 @@ def audit_report(report: str, evidence: list[Evidence], *, client: Any, model: s
             'bound_statistics':statistics,
             'task_method':task_context if any(row.get('allowed_method_ids') for row in batch) else None}
 
-    waiting, batch_records = [], []
+    waiting, batch_records, retry_batches = [], [], []
     max_payload_chars, max_batch_claims = 64000, 20
+
+    class AuditBatchOutputTruncated(ValueError):
+        pass
+
+    class AuditBatchStructureError(ValueError):
+        pass
+
+    def retry_smaller(batch, record, candidates=None):
+        """Retry a failed multi-claim response once, without regrouping it."""
+        candidates = candidates if candidates is not None else batch
+        if record['split_depth'] or len(batch) < 2 or not candidates:
+            return False
+        midpoint = (len(candidates)+1)//2
+        groups = [candidates[:midpoint],candidates[midpoint:]]
+        retry_batches.extend((group,1,record['claim_ids']) for group in groups if group)
+        record['status'] = 'retry_split_scheduled'
+        record['retry_claims'] = [row['claim_id'] for row in candidates]
+        return True
 
     def batch_request(batch):
         serialized = json.dumps(compact_payload(batch), ensure_ascii=False)
@@ -601,27 +619,31 @@ def audit_report(report: str, evidence: list[Evidence], *, client: Any, model: s
             continue
         waiting.append(row)
         standalone_sizes[row['claim_id']] = size
-    while waiting:
+    while waiting or retry_batches:
         # The oldest remaining claim starts each batch. Fill its remaining
         # space with the most shared context, even if report order separates
         # the claims. Keep the report-order rows and every verdict unchanged.
-        batch = [waiting.pop(0)]
-        size = len(json.dumps(compact_payload(batch), ensure_ascii=False))
-        available = client.budget.available('audit') if isinstance(client,BudgetedClient) else (remaining_tokens or 0)
-        while waiting and len(batch) < max_batch_claims:
-            candidates = []
-            for index, row in enumerate(waiting):
-                serialized, _, _, bound = batch_request([*batch, row])
-                joined_size = len(serialized)
-                if joined_size <= max_payload_chars and bound <= available:
-                    added = joined_size-size
-                    saved = standalone_sizes[row['claim_id']]-added
-                    candidates.append((saved, -added, -index, joined_size))
-            if not candidates:
-                break
-            _, _, negative_index, size = max(candidates)
-            batch.append(waiting.pop(-negative_index))
-        record = {'claim_ids':[row['claim_id'] for row in batch], 'status':'prepared'}
+        if retry_batches:
+            batch,depth,parent_ids = retry_batches.pop(0)
+        else:
+            batch = [waiting.pop(0)];depth=0;parent_ids=None
+            size = len(json.dumps(compact_payload(batch), ensure_ascii=False))
+            available = client.budget.available('audit') if isinstance(client,BudgetedClient) else (remaining_tokens or 0)
+            while waiting and len(batch) < max_batch_claims:
+                candidates = []
+                for index, row in enumerate(waiting):
+                    serialized, _, _, bound = batch_request([*batch, row])
+                    joined_size = len(serialized)
+                    if joined_size <= max_payload_chars and bound <= available:
+                        added = joined_size-size
+                        saved = standalone_sizes[row['claim_id']]-added
+                        candidates.append((saved, -added, -index, joined_size))
+                if not candidates:
+                    break
+                _, _, negative_index, size = max(candidates)
+                batch.append(waiting.pop(-negative_index))
+        record = {'claim_ids':[row['claim_id'] for row in batch], 'status':'prepared','split_depth':depth}
+        if parent_ids is not None:record['parent_claim_ids']=parent_ids
         batch_records.append(record)
         try:
             serialized, messages, output_cap, reservation = batch_request(batch)
@@ -642,10 +664,13 @@ def audit_report(report: str, evidence: list[Evidence], *, client: Any, model: s
             record['status'] = 'response_received'
             usage.append(collect_usage_metrics(response=response, model=model, messages=messages,
                                                completion_text=response.choices[0].message.content))
+            record['finish_reason'] = getattr(response.choices[0],'finish_reason',None)
+            if record['finish_reason']=='length':raise AuditBatchOutputTruncated('audit_output_truncated')
             data = json.loads(response.choices[0].message.content)
+            if not isinstance(data,dict):raise AuditBatchStructureError('invalid_verdicts_envelope')
             verdicts = data.get("verdicts", [])
             if not isinstance(verdicts, list):
-                raise ValueError("invalid_verdicts")
+                raise AuditBatchStructureError('invalid_verdicts')
             for row in batch:
                 matches = [v for v in verdicts if isinstance(v, dict) and v.get("claim_id") == row["claim_id"]]
                 if len(matches) != 1:
@@ -704,6 +729,15 @@ def audit_report(report: str, evidence: list[Evidence], *, client: Any, model: s
                     row["reason"] = "Source anchors are absent or invalid in this claim's selected cited passages; " + row["reason"]
                 if not assessed:
                     row['reason']='Missing or incompatible factual/inference/proposal grounding assessment; '+row['reason']
+            missing=[row for row in batch if row.get('model_verdict') is None]
+            if missing:
+                record['reason']='missing_or_invalid_verdicts'
+                retry_smaller(batch,record,missing)
+        except (json.JSONDecodeError,AuditBatchOutputTruncated,AuditBatchStructureError) as exc:
+            record.update(status='response_unavailable_or_invalid',reason=type(exc).__name__)
+            errors.append(type(exc).__name__)
+            if not retry_smaller(batch,record):
+                for row in batch:row['reason']='Verification unavailable: '+type(exc).__name__
         except TokenBudgetExceeded as exc:
             record.update(status='budget_blocked',reason=exc.reason)
             errors.append(exc.reason)

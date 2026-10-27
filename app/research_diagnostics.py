@@ -110,7 +110,15 @@ def diagnose_stop(state,*,active_execution=False):
             next_step='模型服务仍未恢复。' if attempts else '系统未取得可分类的服务错误，可选择另一已授权模型。',action='settings')
         if error_type in {'AuthenticationError','PermissionDeniedError'}:
             result.update(summary='模型服务拒绝当前凭证或访问权限',next_step='需要更新本账号的模型凭证或授权。',action='settings')
-    elif reason in {'final_audit_budget_exhausted','final_audit_incomplete','final_audit_reservation_not_released'}:
+    elif reason=='final_audit_incomplete' and any(item in {'JSONDecodeError','AuditBatchOutputTruncated','AuditBatchStructureError'} for item in (audit.get('errors') or [])):
+        unfinished=len(audit.get('unfinished_claim_ids') or [])
+        result.update(summary='报告核对结果格式不完整',next_step='已保留正文和已完成的核对结果。')
+        result['findings']=[{'text':f'仍有 {unfinished} 项未完成核对','detail':'模型返回的审核结果无法完整解析。'}]
+    elif reason=='final_audit_incomplete':
+        unfinished=len(audit.get('unfinished_claim_ids') or [])
+        result.update(summary='报告来源核对未完成',next_step='已保留正文和已完成的核对结果。')
+        result['findings']=[{'text':f'仍有 {unfinished} 项未完成核对','detail':'未取得完整的审核判断。'}]
+    elif reason in {'final_audit_budget_exhausted','final_audit_reservation_not_released'}:
         result.update(summary='报告来源核对未完成',next_step='需要保留足够的核对额度后再生成报告。')
         result['findings']=[{'text':'停止发生在报告核对阶段','detail':'总 Token 剩余不代表核对阶段还有可用份额。'}]
     elif state.get('pending_approvals') or state.get('runtime_status')=='awaiting_approval':
