@@ -43,11 +43,13 @@ CREATE TABLE IF NOT EXISTS retrieval_multimodal_features (
     source_version TEXT NOT NULL,model_profile JSONB NOT NULL,selection JSONB NOT NULL,
     dimension INTEGER NOT NULL CHECK(dimension BETWEEN 1 AND 4096),
     image_vector BYTEA NOT NULL,text_vectors BYTEA NOT NULL,text_windows JSONB NOT NULL,
+    image_preview BYTEA CHECK(octet_length(image_preview)<=1400000),
     FOREIGN KEY(owner_id,operation_id,source_id) REFERENCES document_processing_operations(owner_id,id,source_id) ON DELETE CASCADE,
     FOREIGN KEY(source_id,owner_id) REFERENCES document_sources(id,owner_id) ON DELETE CASCADE,
     CHECK(octet_length(image_vector)=dimension*4),
     CHECK(CASE WHEN jsonb_typeof(text_windows)='array' THEN octet_length(text_vectors)=jsonb_array_length(text_windows)*dimension*4 ELSE false END)
 );
+ALTER TABLE retrieval_multimodal_features ADD COLUMN IF NOT EXISTS image_preview BYTEA CHECK(octet_length(image_preview)<=1400000);
 CREATE INDEX IF NOT EXISTS idx_retrieval_multimodal_owner_source ON retrieval_multimodal_features(owner_id,source_id);
 CREATE UNIQUE INDEX IF NOT EXISTS uq_multimodal_identity_owner_source ON retrieval_multimodal_features(operation_id,owner_id,source_id);
 CREATE TABLE IF NOT EXISTS retrieval_multimodal_generations (

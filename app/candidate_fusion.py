@@ -10,7 +10,7 @@ from pydantic import Field, model_validator
 from app.research_scope import ScopeRecord
 
 VERSION = 'adrs-candidate-fusion-v1'
-ROUTES = {'literal', 'bm25', 'fts', 'dense', 'structure', 'stem', 'learned_sparse', 'paired_dense', 'late_interaction', 'web', 'platform'}
+ROUTES = {'literal', 'bm25', 'fts', 'dense', 'structure', 'stem', 'learned_sparse', 'paired_dense', 'late_interaction', 'multimodal', 'web', 'platform'}
 
 
 class FusionPolicy(ScopeRecord):

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import asyncio
+import base64
 import hashlib
 import json
 import logging
@@ -52,6 +53,7 @@ async def _begin(owner,source_id,request_id,parse_version,raw,selection,config):
         else:raise HTTPException(422,'visual_source_format_unsupported')
         text=source['original_text'] or ''
         if type(start) is not int or type(end) is not int or not 0<=start<=end<=len(text):start=end=0
+        source_range={'start':start,'end':end} if end>start else None
         selected=text[start:end]
         if await conn.fetchval("SELECT count(*) FROM document_processing_operations WHERE owner_id=$1::uuid AND status IN ('preparing','running')",str(owner))>=MAX_ACTIVE_PER_OWNER:
             raise HTTPException(429,'processing_active_limit')
@@ -63,12 +65,13 @@ async def _begin(owner,source_id,request_id,parse_version,raw,selection,config):
             parse_version,lifecycle_revision,model_provider,model_name,model_config_version,input_description,status,deadline_at)
             VALUES($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5,'image_embedding',$6,$7,'local',$8,$9,$10::jsonb,'running',NOW()+INTERVAL '240 seconds') RETURNING *''',
             uuid4(),str(owner),str(source_id),str(request_id),fingerprint,parse_version,source['lifecycle_revision'],
-            config['model'],identity(config),json.dumps({'selection':selection,'source_file_version':digest,'source_task_id':str(source['task_id']) if source['task_id'] else None}))
+            config['model'],identity(config),json.dumps({'selection':selection,'source_file_version':digest,'source_text_range':source_range,
+                'source_task_id':str(source['task_id']) if source['task_id'] else None}))
         return _public(row),{'format':fmt,'selection':actual,'text':selected[:16000],'text_start':start,'source_text_characters':len(selected),
             'lifecycle_revision':source['lifecycle_revision'],'file_version':digest}
 
 
-async def _complete(owner,source_id,operation_id,parse_version,job,encoded,config):
+async def _complete(owner,source_id,operation_id,parse_version,job,encoded,config,image):
     pool=await get_db_pool()
     async with pool.acquire() as conn,conn.transaction():
         await _active_owner(conn,owner)
@@ -84,12 +87,16 @@ async def _complete(owner,source_id,operation_id,parse_version,job,encoded,confi
             row=await conn.fetchrow("UPDATE document_processing_operations SET status='failed',error_category='processing_context_changed',updated_at=NOW() WHERE id=$1::uuid AND owner_id=$2::uuid RETURNING *",str(operation_id),str(owner))
             return _public(row)
         selection=_object(row['input_description']).get('selection') or {}
+        preview=base64.b64decode(image['data'],validate=True)
+        if len(preview)>1_400_000 or not preview.startswith(b'\xff\xd8\xff'):raise ValueError('multimodal_preview_invalid')
+        retained=await conn.fetchval('SELECT COALESCE(sum(octet_length(image_preview)),0) FROM retrieval_multimodal_features WHERE owner_id=$1::uuid AND source_id=$2::uuid',str(owner),str(source_id))
+        if retained+len(preview)>10*1024*1024:preview=None
         await conn.execute('''INSERT INTO retrieval_multimodal_features(operation_id,owner_id,source_id,source_version,model_profile,
-            selection,dimension,image_vector,text_vectors,text_windows) VALUES($1::uuid,$2::uuid,$3::uuid,$4,$5::jsonb,$6::jsonb,$7,$8,$9,$10::jsonb)''',
+            selection,dimension,image_vector,text_vectors,text_windows,image_preview) VALUES($1::uuid,$2::uuid,$3::uuid,$4,$5::jsonb,$6::jsonb,$7,$8,$9,$10::jsonb,$11)''',
             str(operation_id),str(owner),str(source_id),parse_version,json.dumps(encoded['profile']),json.dumps(selection),encoded['dimension'],
-            encoded['image_bytes'],encoded['text_bytes'],json.dumps(encoded['windows']))
+            encoded['image_bytes'],encoded['text_bytes'],json.dumps(encoded['windows']),preview)
         result={'status':'encoded','model_profile':encoded['profile'],'dimension':encoded['dimension'],'image_encoded':True,
-            'text_windows':encoded['windows'],'coverage':encoded['coverage'],'index_status':'not_published'}
+            'text_windows':encoded['windows'],'coverage':encoded['coverage'],'preview_retained':preview is not None,'index_status':'not_published'}
         row=await conn.fetchrow('''UPDATE document_processing_operations SET status='completed',result=$3::jsonb,
             usage='{"status":"local_computation","cost_status":"not_measured"}'::jsonb,updated_at=NOW()
             WHERE id=$1::uuid AND owner_id=$2::uuid RETURNING *''',str(operation_id),str(owner),json.dumps(result))
@@ -113,7 +120,7 @@ async def image_text_operation(owner,source_id,request_id,parse_version,raw,sele
     try:
         image=await asyncio.to_thread(_render,raw,job['format'],job['selection'])
         encoded=await asyncio.to_thread(encode_image_text,image,job['text'],job['text_start'],job['source_text_characters'])
-        return await _complete(owner,source_id,operation_id,parse_version,job,encoded,config)
+        return await _complete(owner,source_id,operation_id,parse_version,job,encoded,config,image)
     except HTTPException as error:
         return await _fail(owner,source_id,operation_id,error.detail if isinstance(error.detail,str) else 'multimodal_processing_failed')
     except (ValueError,ChannelError):

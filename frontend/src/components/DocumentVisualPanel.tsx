@@ -5,7 +5,7 @@ import {collectionRequest,jsonOptions} from './CollectionUI'
 
 type Figure=Record<string,unknown>
 interface Structure {format:string;pages?:Array<{number:number;start?:number;end?:number}>;figures:Figure[]}
-interface Observation {transcription:string;visual_summary:string;layout:string[];chart_observations:string[];uncertainties:string[];image_encoded?:boolean;dimension?:number;index_status?:string;text_windows?:Array<{start:number;end:number}>;coverage?:{total_token_windows:number;encoded_text_windows:number;source_text_characters:number;text_characters_considered:number}}
+interface Observation {transcription:string;visual_summary:string;layout:string[];chart_observations:string[];uncertainties:string[];image_encoded?:boolean;preview_retained?:boolean;dimension?:number;index_status?:string;text_windows?:Array<{start:number;end:number}>;coverage?:{total_token_windows:number;encoded_text_windows:number;source_text_characters:number;text_characters_considered:number}}
 interface Operation {operation_id:string;kind:string;status:string;parse_version:string;lifecycle_revision:number;input:{selection:{kind:string;page?:number;figure_id?:string}};
   result:Observation|null;usage:{status:string;total_tokens?:number}|null;error_category:string|null;model_name:string;created_at:string}
 const states:Record<string,string>=uiDefinition({preparing:'准备页面',running:'正在识别',completed:'识别完成',failed:'识别未完成',canceled:'已取消',interrupted:'处理中断'})
@@ -39,17 +39,17 @@ export default function DocumentVisualPanel({sourceId,parseVersion,structure,onC
     refetchInterval:value=>working||value.state.data?.items.some(item=>['preparing','running'].includes(item.status))?2000:false})
   const active=query.data?.items.some(item=>['preparing','running'].includes(item.status))||false
   const reset=()=>{requestId.current=crypto.randomUUID()}
-  async function start(kind:'vision'|'image_embedding'='vision'){
+  async function start(action:'vision'|'image_embedding'='vision'){
     if(guard.current||!file||!target)return
     guard.current=true;setWorking(true);setError('')
-    const form=new FormData(),split=target.indexOf(':'),kind=target.slice(0,split),selected=target.slice(split+1)
-    form.set('file',file);form.set('request_id',requestId.current);form.set('parse_version_id',parseVersion);form.set('target_kind',kind)
-    form.set(kind==='page'?'page':'figure_id',selected);form.set('language',locale);form.set('detail',detail)
+    const form=new FormData(),split=target.indexOf(':'),targetKind=target.slice(0,split),selected=target.slice(split+1)
+    form.set('file',file);form.set('request_id',requestId.current);form.set('parse_version_id',parseVersion);form.set('target_kind',targetKind)
+    form.set(targetKind==='page'?'page':'figure_id',selected);form.set('language',locale);form.set('detail',detail)
     try{
-      const response=await fetch(`/api/v1/documents/sources/${sourceId}/processing/${kind==='vision'?'vision':'multimodal-features'}`,{method:'POST',body:form})
+      const response=await fetch(`/api/v1/documents/sources/${sourceId}/processing/${action==='vision'?'vision':'multimodal-features'}`,{method:'POST',body:form})
       const data=await response.json().catch(()=>({}))
       if(!response.ok)throw new Error(typeof data.detail==='string'?data.detail:'processing_failed')
-      setExpanded(data.operation_id);reset();if(data.status==='failed')setError(explain(data.error_category)||t('处理未完成'));await client.invalidateQueries({queryKey:['document-processing',sourceId]});if(kind==='image_embedding'){await client.invalidateQueries({queryKey:['document-features',sourceId]});await client.invalidateQueries({queryKey:['source-index',sourceId]})}
+      setExpanded(data.operation_id);reset();if(data.status==='failed')setError(explain(data.error_category)||t('处理未完成'));await client.invalidateQueries({queryKey:['document-processing',sourceId]});if(action==='image_embedding'){await client.invalidateQueries({queryKey:['document-features',sourceId]});await client.invalidateQueries({queryKey:['source-index',sourceId]})}
     }catch(problem){const code=problem instanceof Error?problem.message:'';setError(explain(code)||t('处理未完成'));await client.invalidateQueries({queryKey:['document-processing',sourceId]})}
     finally{guard.current=false;setWorking(false)}
   }
@@ -69,7 +69,7 @@ export default function DocumentVisualPanel({sourceId,parseVersion,structure,onC
     }catch{setError(t('资料或模型配置已变化，本次结果未保存'))}
   }
   return <section className="document-visual-panel" aria-label={t('页面与图片理解')}>
-    <div className="document-visual-header"><div><h5>{t('页面与图片理解')}</h5><p>{t('选择原文件和页面，发送至你配置的模型。')}</p></div></div>
+    <div className="document-visual-header"><div><h5>{t('页面与图片理解')}</h5><p>{t('选择原文件和页面，进行理解或建立图文检索。')}</p></div></div>
     {options.length?<div className="document-visual-form"><label className="collection-field">{t('选择页面或图片')}<select value={target} disabled={working} onChange={event=>{setTarget(event.target.value);reset()}}><option value="">{t('请选择')}</option>{options.map(option=><option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
       <label className="collection-field">{t('选择相同版本的原文件')}<input type="file" accept={structure.format==='pdf'?'.pdf':'.docx'} disabled={working} onChange={event=>{setFile(event.target.files?.[0]||null);reset()}}/></label>
       <label className="collection-field">{t('图像细节')}<select value={detail} disabled={working} onChange={event=>{setDetail(event.target.value);reset()}}><option value="low">{t('快速')}</option><option value="high">{t('精细')}</option></select></label>
@@ -89,8 +89,8 @@ export default function DocumentVisualPanel({sourceId,parseVersion,structure,onC
       </div>}
     </article>)}</div>}
     {!!query.data?.items.some(item=>item.kind==='image_embedding')&&<div className="document-visual-history"><h5>{t('图文特征记录')}</h5>{query.data.items.filter(item=>item.kind==='image_embedding').map(item=><article key={item.operation_id}>
-      <div className="document-visual-row"><span>{item.input.selection.kind==='page'?t('第 {0} 页',item.input.selection.page):t('内嵌图片 {0}',item.input.selection.figure_id?.replace('figure:',''))} · {states[item.status]||item.status}</span><span>{item.model_name}</span>{['preparing','running'].includes(item.status)&&<button type="button" className="btn-ghost" onClick={()=>void cancel(item.operation_id)}>{t('取消处理')}</button>}</div>
-      {item.error_category&&<p>{explain(item.error_category)}</p>}{item.result?.image_encoded&&<p>{t('图像已编码 · 文本片段 {0}',item.result.text_windows?.length||0)}{item.result.index_status==='published'?` · ${t('已加入索引')}`:''}</p>}
+      <div className="document-visual-row"><span>{item.input.selection.kind==='page'?t('第 {0} 页',item.input.selection.page):t('内嵌图片 {0}',item.input.selection.figure_id?.replace('figure:',''))} · {item.status==='completed'?t('特征已生成'):states[item.status]||item.status}</span><span>{item.model_name}</span>{['preparing','running'].includes(item.status)&&<button type="button" className="btn-ghost" onClick={()=>void cancel(item.operation_id)}>{t('取消处理')}</button>}</div>
+      {item.error_category&&<p>{explain(item.error_category)}</p>}{item.result?.image_encoded&&<p>{t('图像已编码 · 文本片段 {0}',item.result.text_windows?.length||0)}{item.result.index_status==='published'?` · ${t('已加入索引')}`:''}{item.result.preview_retained?` · ${t('已保存预览')}`:''}</p>}
     </article>)}</div>}
   </section>
 }

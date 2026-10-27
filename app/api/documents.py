@@ -15,7 +15,7 @@ import asyncpg
 from pathlib import Path
 from typing import Annotated, Any, Literal
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, Response
 from pydantic import BaseModel, Field, model_validator
 
 from app.core.time import utc_now_naive
@@ -26,6 +26,7 @@ from app.evidence_chunks import ChunkPolicy,VERSION as CHUNK_VERSION,build_chunk
 from app.retrieval_features import FeaturePolicy,build_feature_plan,dense_configuration,validate_vectors,vector_parameter
 from app.retrieval_entity_link import EntityLinkAction
 from app.retrieval_temporal import TemporalTrendRequest
+from app.image_search import ImageSearchRequest
 from app.db.retrieval_indexes import IndexPolicy,IndexAction,initialize_source_index,apply_index_action,adjacency_view,index_choices,source_chunk_metadata,VERSION as INDEX_VERSION
 from app.source_lifecycle import (RetentionPolicy,LifecycleAction,SourceRevision,BatchPublication,lock_owner,
     initialize_lifecycle,apply_lifecycle_action,publish_batch,revise_source,lifecycle_view,bump_epoch)
@@ -436,6 +437,29 @@ async def list_sources(group_name: str | None = None,summary:bool=False, princip
 async def get_document_temporal_trends(payload:TemporalTrendRequest,principal:PrincipalDep=None):
     from app.retrieval_temporal import source_temporal_trend
     return await source_temporal_trend(principal.id,payload)
+
+
+@router.get('/image-features')
+async def list_document_images(group_name:str|None=None,task_id:uuid.UUID|None=None,principal:PrincipalDep=None):
+    from app.image_search import browse
+    if group_name is not None and (not group_name.strip() or len(group_name)>100):raise HTTPException(422,'image_search_group_invalid')
+    return await browse(principal.id,group_name.strip() if group_name else None,task_id)
+
+
+@router.get('/image-features/{operation_id}/preview')
+async def get_document_image_preview(operation_id:uuid.UUID,group_name:str|None=None,task_id:uuid.UUID|None=None,principal:PrincipalDep=None):
+    from app.image_search import preview
+    if group_name is not None and (not group_name.strip() or len(group_name)>100):raise HTTPException(422,'image_search_group_invalid')
+    data=await preview(principal.id,operation_id,group_name.strip() if group_name else None,task_id)
+    return Response(content=data,media_type='image/jpeg',headers={'Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff'})
+
+
+@router.post('/image-search')
+async def search_document_images(payload:ImageSearchRequest,principal:PrincipalDep=None):
+    from app.image_search import search
+    try:
+        async with asyncio.timeout(60):return await search(principal.id,payload)
+    except TimeoutError:raise HTTPException(504,'image_search_timeout') from None
 
 
 @router.get('/sources/{source_id}/parsing')

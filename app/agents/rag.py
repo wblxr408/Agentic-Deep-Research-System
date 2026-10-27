@@ -100,7 +100,7 @@ class RAGAgent:
     async def execute_async(self,plan_steps,user_query,group=None,owner_id=None,
                             context_mode='source_preference',session_id=None,filters=None,timeout_seconds=None,mode='hybrid',fusion=None,query_type=None,channels=None,channel_settings=None):
         selected=tuple(channels or ())
-        if any(item not in {'stem','sparse','paired','late'} for item in selected) or len(set(selected))!=len(selected):raise ValueError('unsupported_internal_retrieval_channels')
+        if any(item not in {'stem','sparse','paired','late','image'} for item in selected) or len(set(selected))!=len(selected):raise ValueError('unsupported_internal_retrieval_channels')
         deadline=time.monotonic()+timeout_seconds if timeout_seconds is not None else None
         try:
             async with asyncio.timeout(timeout_seconds):
@@ -257,6 +257,31 @@ class RAGAgent:
                         channel_status.setdefault('resource_usage',[]).append({'kind':'paired_query','execution':'local_model',
                             'status':status,'duration_ms':round((time.monotonic()-started)*1000),
                             'provider_charge_usd':None,'cost_basis':'local_compute_not_priced'})
+                image_query=None
+                if contracts['multimodal']['status']=='requested':
+                    from app.multimodal import configuration,encode_text_query
+                    from app.db.retrieval_image import has_image_index
+                    started=time.monotonic();status='failed'
+                    try:
+                        config=configuration()
+                        if (channel_settings or {}).get('image')!=config:raise ValueError('image_configuration_changed')
+                        async with pool.acquire() as conn:
+                            indexed=await has_image_index(conn,owner_id,group,session_id,filters,config)
+                        if not indexed:
+                            contracts['multimodal'].update(status='skipped',reason='no_anchored_image_index',result_count=0);status='skipped'
+                        else:
+                            available=max(0.0,deadline-time.monotonic()) if deadline is not None else 112.5
+                            remaining=min(45.0,available*.4)
+                            if remaining<1:raise ValueError('image_deadline_unavailable')
+                            image_query=await asyncio.to_thread(encode_text_query,step.target_query,timeout=remaining);status='completed'
+                    except (asyncpg.PostgresError,RuntimeError,ValueError,TypeError,OSError,ImportError) as error:
+                        category=getattr(error,'category',None)
+                        reason='model_configuration_changed' if str(error)=='image_configuration_changed' else category or 'local_model_or_configuration_unavailable'
+                        contracts['multimodal'].update(status='failed',reason=reason,result_count=0)
+                    finally:
+                        channel_status.setdefault('resource_usage',[]).append({'kind':'image_text_query','execution':'local_model',
+                            'status':status,'duration_ms':round((time.monotonic()-started)*1000),
+                            'provider_charge_usd':None,'cost_basis':'local_compute_not_priced'})
                 lexical_query=lexical_view(step.target_query)
                 query_terms=list(lexical_query['terms'])[:128]
                 channel_status['query_terms_used']=len(query_terms)
@@ -371,6 +396,21 @@ class RAGAgent:
                             for name in pair_routes:
                                 if contracts[name]['status']=='requested':contracts[name].update(status='failed',reason=type(error).__name__,result_count=0,
                                     duration_ms=int((time.monotonic()-started)*1000))
+                    image_rows=[]
+                    if image_query is not None:
+                        from app.db.retrieval_image import image_chunk_candidates,reference_image
+                        started=time.monotonic()
+                        try:
+                            found,coverage=await image_chunk_candidates(conn,owner_id,group,session_id,candidate_limit,filters,image_query,deadline)
+                            for row in found:
+                                current=await reference_image(conn,owner_id,group,session_id,row['image_operation_id'])
+                                if current and current['revision']==row['source_access_revision'] and current['generation_id']==row['index_generation_id']:
+                                    image_rows.append(row)
+                            contracts['multimodal'].update(status='completed' if image_rows else 'empty',result_count=len(image_rows),
+                                coverage=coverage,duration_ms=int((time.monotonic()-started)*1000))
+                        except (asyncpg.PostgresError,OSError,RuntimeError,ValueError,TypeError,ImportError) as error:
+                            contracts['multimodal'].update(status='failed',reason=type(error).__name__,result_count=0,
+                                duration_ms=int((time.monotonic()-started)*1000));image_rows=[]
                     channel_status['bm25']=contracts['bm25']['status']
 
                 # Build result lists
@@ -389,14 +429,15 @@ class RAGAgent:
                 sparse_results={str(row['id']):{'row':row,'score':float(row['auxiliary_score'])} for row in sparse_rows}
                 paired_results={str(row['id']):{'row':row,'score':float(row['auxiliary_score'])} for row in paired_rows}
                 late_results={str(row['id']):{'row':row,'score':float(row['auxiliary_score'])} for row in late_rows}
+                image_results={str(row['id']):{'row':row,'score':float(row['auxiliary_score'])} for row in image_rows}
                 failed=any(item['status']=='failed' for item in contracts.values())
                 usable=any(item['status'] in {'completed','empty'} for item in contracts.values())
                 channel_status['status']='partial' if failed and usable else 'failed' if failed else 'success'
 
                 # Fuse route memberships without treating score agreement as corroboration.
                 route_results={'literal':literal_results,'bm25':bm25_results,'fts':fts_results,'dense':vector_results,'structure':structure_results,
-                    'stem':stem_results,'learned_sparse':sparse_results,'paired_dense':paired_results,'late_interaction':late_results}
-                all_rows = {str(r['id']): r for r in vector_rows + fts_rows + bm25_rows + literal_rows + structure_rows + stem_rows + sparse_rows + paired_rows + late_rows}
+                    'stem':stem_results,'learned_sparse':sparse_results,'paired_dense':paired_results,'late_interaction':late_results,'multimodal':image_results}
+                all_rows = {str(r['id']): r for r in vector_rows + fts_rows + bm25_rows + literal_rows + structure_rows + stem_rows + sparse_rows + paired_rows + late_rows + image_rows}
                 fusion_channels={name:[{'id':key,'score':item['score'],'score_direction':'higher',
                     'score_meaning':contracts[name]['score_meaning'],'content':item['row']['content'],
                     'source_key':str(item['row']['document_source_id'] or key)} for key,item in channel.items()]
@@ -422,6 +463,10 @@ class RAGAgent:
                         row=all_rows[item]
                         source_id=row['document_source_id']
                         if source_id and not await current_access(conn,str(source_id),owner_id,session_id,group,row['source_access_revision']):continue
+                        if item in image_results:
+                            image_row=image_results[item]['row']
+                            current=await reference_image(conn,owner_id,group,session_id,image_row['image_operation_id'])
+                            if not current or current['revision']!=image_row['source_access_revision'] or current['generation_id']!=image_row['index_generation_id']:continue
                         retained.append(item)
                     top_ids=retained
 
@@ -498,6 +543,11 @@ class RAGAgent:
                         'raw_score':channel[doc_id]['score'],'score_meaning':contracts[name]['score_meaning'],
                         'filter_id':filtering['filter_id'],'candidate_limit':candidate_limit}
                         for name,channel in route_results.items() if doc_id in channel]
+                    if doc_id in image_results:
+                        match=image_results[doc_id]['row']
+                        meta['image_match']={'operation_id':match['image_operation_id'],'generation_id':str(match['index_generation_id']),
+                            'selection':match['image_selection'],'source_text_range':match['source_text_range'],
+                            'model_profile_id':match['image_profile_id'],'status':'image_similarity_signal_not_visual_interpretation'}
                     if doc_id in structure_results:
                         reference=meta.get('chunk_reference') or {}
                         seed_ids=[]
@@ -654,6 +704,10 @@ class RAGAgent:
                 if result.chunk_id not in permitted:continue
                 source_id=result.metadata.get('source_id')
                 if source_id and not await current_access(conn,source_id,owner_id,session_id,group,result.metadata.get('source_access_revision')):continue
+                if result.metadata.get('image_match'):
+                    from app.db.retrieval_image import reference_image
+                    match=result.metadata['image_match'];current=await reference_image(conn,owner_id,group,session_id,match['operation_id'])
+                    if not current or str(current['generation_id'])!=match['generation_id'] or current['revision']!=result.metadata.get('source_access_revision'):continue
                 if source_id:
                     from app.source_lifecycle import current_entity_annotations
                     result.metadata=await current_entity_annotations(conn,owner_id,source_id,result.metadata)
