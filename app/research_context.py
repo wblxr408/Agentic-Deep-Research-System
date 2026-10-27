@@ -363,6 +363,10 @@ def evidence_context(evidence, query: str, *, deep: bool, max_bytes: int, prefer
         image_match=meta.get('image_match')
         if isinstance(image_match,dict):record['image_locator']={'selection':image_match.get('selection'),
             'source_text_range':image_match.get('source_text_range'),'status':'search_signal_only_image_pixels_not_read'}
+        beam_path=meta.get('beam_path')
+        if isinstance(beam_path,dict):record['retrieval_path']={'depth':beam_path.get('depth'),
+            'edge_kinds':[item.get('kind') for item in (beam_path.get('edges') or []) if isinstance(item,dict)],
+            'status':'retrieval_signal_not_confirmed_identity_or_relationship'}
         if identity_only:
             pages=meta.get('pages') or []
             opening=max((page['end'] for page in pages[:2] if isinstance(page,dict)

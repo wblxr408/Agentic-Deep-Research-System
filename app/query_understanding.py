@@ -49,7 +49,7 @@ class QueryOptions(ScopeRecord):
     term_aliases: dict[Label,tuple[Label,...]] = Field(default_factory=dict,max_length=16)
     internal_filter:RetrievalFilter=Field(default_factory=RetrievalFilter)
     internal_retrieval_mode:Literal['hybrid','structured']='hybrid'
-    internal_channels:tuple[Literal['stem','sparse','paired','late','image'],...]=Field(default=(),max_length=5)
+    internal_channels:tuple[Literal['stem','sparse','paired','late','image','beam'],...]=Field(default=(),max_length=6)
     web_cache_hours:int=Field(default=24,ge=0,le=8760)
     web_read_mode:Literal['auto','source','rendered']='auto'
     candidate_fusion:FusionPolicy=Field(default_factory=FusionPolicy)

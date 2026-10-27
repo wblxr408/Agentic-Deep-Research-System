@@ -591,6 +591,10 @@ Collected Evidence:
                 acquisition['deduplication_summary']={'exact_groups':len(duplicates.get('exact_groups',[])),
                     'near_candidates':len(duplicates.get('near_candidates',[])),'automatic_content_removal':False}
             if 'pages' in acquisition:acquisition['pages']=acquisition['pages'][:8]
+            if isinstance(acquisition.get('beam_path'),dict):
+                path=acquisition['beam_path'];acquisition['beam_path']={'depth':path.get('depth'),
+                    'edge_kinds':[item.get('kind') for item in (path.get('edges') or []) if isinstance(item,dict)],
+                    'status':'retrieval_signal_not_confirmed_identity_or_relationship'}
             if acquisition.get('chunk_reference'):
                 chunk=acquisition['chunk_reference']
                 acquisition['chunk_reference']={key:chunk.get(key) for key in ('logical_chunk_id','source_version','start','end','parent_block_id','kind','title_path','metadata_quality')}

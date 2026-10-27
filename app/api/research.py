@@ -703,6 +703,9 @@ async def _prepare_query_understanding(conn, request: ResearchRequest, principal
         from app.multimodal import configuration as multimodal_configuration
         try:internal_settings['image']=multimodal_configuration()
         except ValueError:internal_settings['image']={'status':'unconfigured'}
+    if 'beam' in request.query_options.internal_channels:
+        from app.retrieval_beam import policy as beam_policy
+        internal_settings['beam']=beam_policy()
     limits = {'budget': budget, 'max_revision': request.max_revision,
         'document_parser_policy':{'schema_version':DOCUMENT_PARSER_VERSION,**{key:getattr(parsing,key)
             for key in ('ocr_enabled','ocr_language','max_ocr_pages','max_chars','timeout_seconds')}},

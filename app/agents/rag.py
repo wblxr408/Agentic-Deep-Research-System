@@ -100,7 +100,7 @@ class RAGAgent:
     async def execute_async(self,plan_steps,user_query,group=None,owner_id=None,
                             context_mode='source_preference',session_id=None,filters=None,timeout_seconds=None,mode='hybrid',fusion=None,query_type=None,channels=None,channel_settings=None):
         selected=tuple(channels or ())
-        if any(item not in {'stem','sparse','paired','late','image'} for item in selected) or len(set(selected))!=len(selected):raise ValueError('unsupported_internal_retrieval_channels')
+        if any(item not in {'stem','sparse','paired','late','image','beam'} for item in selected) or len(set(selected))!=len(selected):raise ValueError('unsupported_internal_retrieval_channels')
         deadline=time.monotonic()+timeout_seconds if timeout_seconds is not None else None
         try:
             async with asyncio.timeout(timeout_seconds):
@@ -411,6 +411,22 @@ class RAGAgent:
                         except (asyncpg.PostgresError,OSError,RuntimeError,ValueError,TypeError,ImportError) as error:
                             contracts['multimodal'].update(status='failed',reason=type(error).__name__,result_count=0,
                                 duration_ms=int((time.monotonic()-started)*1000));image_rows=[]
+                    beam_rows=[]
+                    if contracts['beam']['status']=='requested':
+                        from app.retrieval_beam import retrieve as beam_retrieve,policy as beam_policy,path_current as beam_path_current
+                        started=time.monotonic()
+                        try:
+                            if (channel_settings or {}).get('beam')!=beam_policy():raise ValueError('beam_policy_changed')
+                            seed_routes={'literal':literal_rows,'bm25':bm25_rows,'fts':fts_rows,'dense':vector_rows,
+                                'stem':stem_rows,'learned_sparse':sparse_rows,'paired_dense':paired_rows,'late_interaction':late_rows}
+                            found,coverage=await beam_retrieve(conn,seed_routes,step.target_query,owner_id,group,session_id,filters,candidate_limit,deadline)
+                            for row in found:
+                                if await beam_path_current(conn,row['beam_path'],owner_id,group,session_id,filters):beam_rows.append(row)
+                            contracts['beam'].update(status='completed' if beam_rows else 'empty',result_count=len(beam_rows),
+                                coverage=coverage,duration_ms=int((time.monotonic()-started)*1000))
+                        except (asyncpg.PostgresError,OSError,RuntimeError,ValueError,TypeError,ImportError) as error:
+                            contracts['beam'].update(status='failed',reason='policy_changed' if str(error)=='beam_policy_changed' else type(error).__name__,
+                                result_count=0,duration_ms=int((time.monotonic()-started)*1000));beam_rows=[]
                     channel_status['bm25']=contracts['bm25']['status']
 
                 # Build result lists
@@ -430,14 +446,15 @@ class RAGAgent:
                 paired_results={str(row['id']):{'row':row,'score':float(row['auxiliary_score'])} for row in paired_rows}
                 late_results={str(row['id']):{'row':row,'score':float(row['auxiliary_score'])} for row in late_rows}
                 image_results={str(row['id']):{'row':row,'score':float(row['auxiliary_score'])} for row in image_rows}
+                beam_results={str(row['id']):{'row':row,'score':float(row['auxiliary_score'])} for row in beam_rows}
                 failed=any(item['status']=='failed' for item in contracts.values())
                 usable=any(item['status'] in {'completed','empty'} for item in contracts.values())
                 channel_status['status']='partial' if failed and usable else 'failed' if failed else 'success'
 
                 # Fuse route memberships without treating score agreement as corroboration.
                 route_results={'literal':literal_results,'bm25':bm25_results,'fts':fts_results,'dense':vector_results,'structure':structure_results,
-                    'stem':stem_results,'learned_sparse':sparse_results,'paired_dense':paired_results,'late_interaction':late_results,'multimodal':image_results}
-                all_rows = {str(r['id']): r for r in vector_rows + fts_rows + bm25_rows + literal_rows + structure_rows + stem_rows + sparse_rows + paired_rows + late_rows + image_rows}
+                    'stem':stem_results,'learned_sparse':sparse_results,'paired_dense':paired_results,'late_interaction':late_results,'multimodal':image_results,'beam':beam_results}
+                all_rows = {str(r['id']): r for r in vector_rows + fts_rows + bm25_rows + literal_rows + structure_rows + stem_rows + sparse_rows + paired_rows + late_rows + image_rows + beam_rows}
                 fusion_channels={name:[{'id':key,'score':item['score'],'score_direction':'higher',
                     'score_meaning':contracts[name]['score_meaning'],'content':item['row']['content'],
                     'source_key':str(item['row']['document_source_id'] or key)} for key,item in channel.items()]
@@ -467,6 +484,7 @@ class RAGAgent:
                             image_row=image_results[item]['row']
                             current=await reference_image(conn,owner_id,group,session_id,image_row['image_operation_id'])
                             if not current or current['revision']!=image_row['source_access_revision'] or current['generation_id']!=image_row['index_generation_id']:continue
+                        if item in beam_results and not await beam_path_current(conn,beam_results[item]['row']['beam_path'],owner_id,group,session_id,filters):continue
                         retained.append(item)
                     top_ids=retained
 
@@ -548,6 +566,7 @@ class RAGAgent:
                         meta['image_match']={'operation_id':match['image_operation_id'],'generation_id':str(match['index_generation_id']),
                             'selection':match['image_selection'],'source_text_range':match['source_text_range'],
                             'model_profile_id':match['image_profile_id'],'status':'image_similarity_signal_not_visual_interpretation'}
+                    if doc_id in beam_results:meta['beam_path']=beam_results[doc_id]['row']['beam_path']
                     if doc_id in structure_results:
                         reference=meta.get('chunk_reference') or {}
                         seed_ids=[]
@@ -708,6 +727,9 @@ class RAGAgent:
                     from app.db.retrieval_image import reference_image
                     match=result.metadata['image_match'];current=await reference_image(conn,owner_id,group,session_id,match['operation_id'])
                     if not current or str(current['generation_id'])!=match['generation_id'] or current['revision']!=result.metadata.get('source_access_revision'):continue
+                if result.metadata.get('beam_path'):
+                    from app.retrieval_beam import path_current as beam_path_current
+                    if not await beam_path_current(conn,result.metadata['beam_path'],owner_id,group,session_id,filters):continue
                 if source_id:
                     from app.source_lifecycle import current_entity_annotations
                     result.metadata=await current_entity_annotations(conn,owner_id,source_id,result.metadata)
@@ -719,6 +741,9 @@ class RAGAgent:
             returned=[item for item in results if (item.metadata.get('retrieval_channel_status') or {}).get('query')==status.get('query')]
             status['returned_total']=len(returned)
             if 'requested_top_k' in status:status['returned_shortfall']=max(0,status['requested_top_k']-len(returned))
+            paths=[item.metadata['beam_path'] for item in returned if isinstance(item.metadata.get('beam_path'),dict)]
+            if paths:status['beam_paths']=[{'depth':path['depth'],'nodes':[{'source_id':node['source_id'],'chunk_id':node['chunk_id']} for node in path['nodes']],
+                'edge_kinds':[edge['kind'] for edge in path['edges']]} for path in paths[:8]]
             for item in returned:item.metadata['retrieval_channel_status']=dict(status)
         logger.info(f"RAG Agent: {len(results)} results retrieved")
         return results

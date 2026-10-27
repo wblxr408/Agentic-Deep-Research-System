@@ -419,7 +419,7 @@ async def current_synthesis_state(state):
         result={**state,'collected_evidence':[item for item in accepted if item is not None],'evidence_access_gaps':gaps}
         if new_gap:result.update(analysis='',verification=None,organization_result=None)
         return result
-    session=state.get('session') or {};memo={};refreshed={};invalid_images=set();annotations_changed=False
+    session=state.get('session') or {};memo={};refreshed={};invalid_images=set();invalid_paths=set();annotations_changed=False
     try:
         pool=await get_db_pool()
         async with asyncio.timeout(10),pool.acquire() as conn,conn.transaction(readonly=True):
@@ -437,13 +437,20 @@ async def current_synthesis_state(state):
                         operation_id=match.get('operation_id')
                         image=await reference_image(conn,session['owner_id'],state.get('rag_group'),session.get('session_id'),operation_id) if operation_id else None
                         if not image or str(image['generation_id'])!=match.get('generation_id') or image['revision']!=key[1]:invalid_images.add(position)
+                    path=acquisition.get('beam_path')
+                    if isinstance(path,dict):
+                        from app.retrieval_beam import path_current
+                        from app.retrieval_filters import frozen_filter_policy
+                        filtering=frozen_filter_policy((state.get('query_understanding') or {}).get('internal_filter'))
+                        if not await path_current(conn,path,session['owner_id'],state.get('rag_group'),session.get('session_id'),filtering):invalid_paths.add(position)
     except (asyncpg.PostgresError,TimeoutError,OSError,ValueError):memo={}
     for position,evidence in candidates:
         acquisition=evidence.get('acquisition') or {};key=(acquisition.get('source_document_id'),acquisition.get('source_access_revision'))
-        if memo.get(key) and position not in invalid_images:accepted[position]={**evidence,'acquisition':refreshed[position]} if position in refreshed else evidence
+        if memo.get(key) and position not in invalid_images and position not in invalid_paths:accepted[position]={**evidence,'acquisition':refreshed[position]} if position in refreshed else evidence
         else:
             gaps.append({'evidence_id':evidence.get('evidence_id'),'source_id':key[0],
-                'reason':'image_retrieval_generation_changed' if position in invalid_images else 'current_internal_source_access_not_established'})
+                'reason':'image_retrieval_generation_changed' if position in invalid_images else
+                    'beam_retrieval_path_changed' if position in invalid_paths else 'current_internal_source_access_not_established'})
             new_gap=True
     result={**state,'collected_evidence':[item for item in accepted if item is not None],'evidence_access_gaps':gaps}
     if new_gap or annotations_changed:result.update(analysis='',analysis_workflow=None,verification=None,organization_result=None)

@@ -31,7 +31,7 @@ def channel_contracts(query,*,mode,dense_enabled,limit,filter_id,selected=()):
     result={name:{'status':'requested','candidate_limit':limit,'filter_id':filter_id,
         'filter_support':'trusted_current_scope_AND_business_pre_filter',
         'deadline':'shared_original_retrieval_timeout','duration_ms':None,
-        'candidate_identity':'owned_document_chunk_uuid'} for name in ('literal','bm25','fts','dense','structure','stem','learned_sparse','paired_dense','late_interaction','multimodal')}
+        'candidate_identity':'owned_document_chunk_uuid'} for name in ('literal','bm25','fts','dense','structure','stem','learned_sparse','paired_dense','late_interaction','multimodal','beam')}
     result['literal'].update(representation=literal['kind'],score_meaning=literal['score_meaning'])
     result['bm25'].update(representation='versioned_literal_terms',score_meaning='scoped_BM25_higher_is_more_relevant')
     result['fts'].update(representation='postgres_plain_tsquery_plus_literal_terms',score_meaning='ts_rank_higher_is_more_relevant')
@@ -42,18 +42,21 @@ def channel_contracts(query,*,mode,dense_enabled,limit,filter_id,selected=()):
     result['paired_dense'].update(representation='explicit_paired_local_pooled_vectors',score_meaning='normalized_pooled_vector_dot_product')
     result['late_interaction'].update(representation='paired_source_token_vectors_over_bounded_pooled_seeds',score_meaning='sum_of_maximum_token_cosine_similarities')
     result['multimodal'].update(representation='local_clip_text_to_image_with_source_text_overlap',score_meaning='normalized_image_text_dot_product_not_visual_interpretation')
+    result['beam'].update(representation='bounded_search_from_current_scoped_seed_chunks',score_meaning='rank_and_literal_overlap_path_priority_not_fact_support')
     if 'stem' not in selected:result['stem'].update(status='skipped',reason='not_selected')
     if 'sparse' not in selected:result['learned_sparse'].update(status='skipped',reason='not_selected')
     if 'paired' not in selected:result['paired_dense'].update(status='skipped',reason='not_selected')
     if 'late' not in selected:result['late_interaction'].update(status='skipped',reason='not_selected')
     if 'image' not in selected:result['multimodal'].update(status='skipped',reason='not_selected')
+    if 'beam' not in selected:result['beam'].update(status='skipped',reason='not_selected')
     if literal['kind']=='none':result['literal'].update(status='skipped',reason='no_explicit_literal_selector')
     if literal['kind'] not in {'entity','chunk'}:result['structure'].update(status='skipped',reason='no_explicit_graph_seed')
     if not dense_enabled:result['dense'].update(status='skipped',reason='dense_not_enabled')
     if literal['kind'] in {'chunk','source','phrase','entity'}:
         for name in ('bm25','fts','dense','stem','learned_sparse','paired_dense','late_interaction','multimodal'):result[name].update(status='skipped',reason='explicit_selector_preserved')
+    if literal['kind'] in {'source','phrase'}:result['beam'].update(status='skipped',reason='explicit_selector_preserved')
     if mode=='structured':
-        for name in ('bm25','fts','dense','structure','stem','learned_sparse','paired_dense','late_interaction','multimodal'):result[name].update(status='skipped',reason='explicit_metadata_only_mode')
+        for name in ('bm25','fts','dense','structure','stem','learned_sparse','paired_dense','late_interaction','multimodal','beam'):result[name].update(status='skipped',reason='explicit_metadata_only_mode')
     for name,reason in {'behavioral':'no_authorized_behavior_dataset',
         'community_summary':'no_evidenced_need_or_versioned_GraphRAG_summary_index'}.items():
         result[name]={'status':'skipped','reason':reason}

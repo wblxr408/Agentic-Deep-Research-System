@@ -237,11 +237,14 @@ function ToolTrace({ events, records }: ToolTraceProps) {
           {isRecord(item.filter_selectivity)&&<p>{t("本人有效范围内观察 ")}{Number(item.filter_selectivity.observed_authorized_chunks)||0} {t("块， 其中")}{Number(item.filter_selectivity.retained_in_observed)||0} {t("块符合业务条件。")}{item.filter_selectivity.scope_complete===false&&t("此观察有数量上限，不代表整个资料集比例。")}</p>}
           {isRecord(item.channels)&&<div className="flex flex-wrap gap-2">{Object.entries(item.channels).filter(([,raw])=>isRecord(raw)&&(raw.status!=='skipped'||['no_matching_authorized_sparse_index','no_matching_authorized_paired_index','no_anchored_image_index'].includes(String(raw.reason)))).map(([name,raw])=>{
             if(!isRecord(raw))return null
-            const labels:Record<string,string>={literal:'精确匹配',bm25:'关键词',fts:'全文词语',dense:'语义线索',structure:'文档结构',stem:'英文词形',learned_sparse:'学习稀疏语义',paired_dense:'整体语义',late_interaction:'细粒度语义',multimodal:'图文匹配'}
+            const labels:Record<string,string>={literal:'精确匹配',bm25:'关键词',fts:'全文词语',dense:'语义线索',structure:'文档结构',stem:'英文词形',learned_sparse:'学习稀疏语义',paired_dense:'整体语义',late_interaction:'细粒度语义',multimodal:'图文匹配',beam:'拓展关联资料'}
             const state:Record<string,string>={requested:'准备中',completed:'已完成',empty:'无匹配',failed:'未完成',skipped:'无可用资料'}
             const reasons:Record<string,string>={local_model_or_configuration_unavailable:'本地模型不可用',model_configuration_changed:'模型设置已变化',timeout:'本次处理超时',output_limit:'结果超出限制'}
             return <span key={name} className="rounded-md border px-2 py-1">{t(labels[name]||name)} · {t(reasons[String(raw.reason)]||state[String(raw.status)]||'未完成')}{typeof raw.result_count==='number'?` ${raw.result_count}`:''}</span>
           })}</div>}
+          {Array.isArray(item.beam_paths)&&!!item.beam_paths.length&&<details><summary>{t('关联资料路径')}</summary>{item.beam_paths.filter(isRecord).map((path,index)=><p key={index}>
+            {Array.isArray(path.edge_kinds)?path.edge_kinds.map(kind=>t(kind==='same_source_parent'?'同一文档结构':'共同词面')).join(' → '):''} · {t('经过 {0} 个片段',Array.isArray(path.nodes)?path.nodes.length:0)}
+          </p>)}</details>}
           <details><summary>{t('查看检索细节')}</summary><pre className="whitespace-pre-wrap break-all text-xs">{JSON.stringify(item,null,2)}</pre></details>
         </div>)}
       </details>)}
