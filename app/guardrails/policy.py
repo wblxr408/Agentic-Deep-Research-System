@@ -91,7 +91,7 @@ def normalize_research_length(value: str | ResearchLength | None) -> ResearchLen
 def get_research_budget(value: str | ResearchLength | None) -> dict[str, int | float]:
     length = normalize_research_length(value)
     budget=dict(RESEARCH_LENGTH_BUDGETS[length])
-    budget.update(budget_policy_version=2,
+    budget.update(budget_policy_version=3,
         audit_token_reserve=60000 if length==ResearchLength.LONG else min(12000,int(budget['max_total_tokens'])//5),
         report_token_reserve=24000 if length==ResearchLength.LONG else min(12000,int(budget['max_total_tokens'])//5),
         audit_seconds_reserve=480 if length==ResearchLength.LONG else min(90,float(budget['max_wall_clock_seconds'])*.2))

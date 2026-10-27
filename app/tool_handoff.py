@@ -14,10 +14,17 @@ from app.external_evidence import matches_request
 
 
 def prepare_handoffs(state, dag, node_ids, remaining_calls, remaining_seconds):
+    from app.adaptive_budget import tool_allocation
     nodes = sorted((node for node in dag.nodes if node.node_id in node_ids), key=lambda node: node.node_type == 'rag')
     quotient, remainder = divmod(max(0, remaining_calls), max(1, len(nodes)))
-    result = {node.node_id: make_handoff(state, node, call_allowance=quotient+(index < remainder),
-        seconds=min(node.timeout_seconds, remaining_seconds)) for index, node in enumerate(nodes)}
+    result = {}
+    for index, node in enumerate(nodes):
+        share = quotient + (index < remainder)
+        allocation = tool_allocation(state,node.node_type,share)
+        result[node.node_id] = make_handoff(state, node,
+            call_allowance=allocation['call_allowance'] if allocation else share,
+            seconds=min(node.timeout_seconds, remaining_seconds))
+        if allocation: result[node.node_id]['budget_allocation'] = allocation
     for node in nodes:
         result[node.node_id]['evidence_refs'] = list(dict.fromkeys([*node.evidence_ids,
             *[item['evidence_id'] for item in state.get('collected_evidence', [])

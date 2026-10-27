@@ -824,6 +824,9 @@ async def create_research(
                 and _json_object(pending['review_status']).get('requires_confirmation')
                 and _same_research_request(_json_object(pending['request_payload']), request_payload)):
             original_review = _json_object(pending['review_status'])
+            # A pending request keeps the budget offered at creation.
+            # Pending records predating frozen budgets keep the prior v2 policy.
+            budget = deepcopy(original_review.get('initial_budget') or {**budget,'budget_policy_version':2})
             organization_research = original_review.get('organization_research')
             query_understanding = original_review.get('query_understanding')
             skill_context = _json_object(pending['skill_context'])
@@ -849,6 +852,7 @@ async def create_research(
         )
         review_status["organization_research"] = organization_research
         review_status['query_understanding'] = query_understanding
+        review_status['initial_budget'] = deepcopy(budget)
         inserted = await conn.fetchrow(
             """
             INSERT INTO research_sessions (id, user_query, status, guardrail_decision, guardrail_trace,
@@ -886,7 +890,10 @@ async def create_research(
                     and _same_research_request(_json_object(existing["request_payload"]), request_payload)):
                 raise HTTPException(status_code=409, detail="session_already_exists")
             skill_context = _json_object(existing["skill_context"])
-            organization_research = _json_object(existing["review_status"]).get("organization_research")
+            original_review = _json_object(existing["review_status"])
+            budget = deepcopy(original_review.get('initial_budget') or {**budget,'budget_policy_version':2})
+            review_status['initial_budget'] = deepcopy(budget)
+            organization_research = original_review.get("organization_research")
             review_status["organization_research"] = organization_research
             query_understanding = _json_object(existing['review_status']).get('query_understanding')
             review_status['query_understanding'] = query_understanding
@@ -922,6 +929,7 @@ async def create_research(
         execution_id=execution_id,
         organization_research=organization_research,
         query_understanding=query_understanding,
+        initial_budget=budget,
     )
 
     return ResearchResponse(
@@ -1986,6 +1994,7 @@ async def run_research_workflow(
     organization_research: dict[str, Any] | None = None,
     query_understanding: dict[str, Any] | None = None,
     resume_at: str = 'approval_resume',
+    initial_budget: dict[str, Any] | None = None,
 ):
     """
     Execute the LangGraph research workflow in background.
@@ -2001,7 +2010,7 @@ async def run_research_workflow(
     harness = None  # A file mirror failure cannot prevent root-state persistence.
 
     try:
-        budget = get_research_budget(output_length)
+        budget = deepcopy((resume_state or {}).get('budget_state') or initial_budget or get_research_budget(output_length))
         state = deepcopy(resume_state) if resume_state is not None else create_initial_state(query, session_id)
         await bind_owner_model(owner_id)
         if resume_state is None:

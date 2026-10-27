@@ -350,10 +350,12 @@ def _apply_llm_usage_to_state(
         float(budget_state.get("used_cost_usd", 0.0) or 0.0) + float(usage.get("cost_usd", 0.0) or 0.0),
         6,
     )
-    budget_state['llm_usage'] = [*(budget_state.get('llm_usage') or []), {
-        "agent": agent_name,
-        **usage,
-    }]
+    has_model_activity = bool(usage.get('model_requests')) or int(usage.get('total_tokens') or 0) > 0
+    if has_model_activity:
+        budget_state['llm_usage'] = [*(budget_state.get('llm_usage') or []), {
+            "agent": agent_name,
+            **usage,
+        }]
     if usage.get('model_requests'):
         budget_state['model_requests'] = [*(budget_state.get('model_requests') or []),
             *[{**row,'agent':agent_name} for row in usage['model_requests']]]
@@ -367,7 +369,7 @@ def _apply_llm_usage_to_state(
         budget_state['phase_events']=[*(budget_state.get('phase_events') or []),*usage['phase_events']][-64:]
     if usage.get('data_governance_events'):
         budget_state['data_governance_events']=[*(budget_state.get('data_governance_events') or []),*usage['data_governance_events']][-64:]
-    if usage.get('cost_known') is False:
+    if has_model_activity and usage.get('cost_known') is False:
         budget_state['cost_status'] = 'unknown_price_or_usage'
     budget_state = _build_budget_state({**state,'budget_state':budget_state})
     return session, budget_state
@@ -375,15 +377,19 @@ def _apply_llm_usage_to_state(
 
 def _stage_model_budget(state: ResearchState, stage: str) -> ModelTokenBudget:
     root = _build_budget_state(state)
-    remaining = max(0,int(root['max_total_tokens'])-int(root['used_total_tokens']))
-    audit = min(int(root['max_total_tokens']),max(0,int(root['audit_token_reserve'])))
-    report = min(max(0,int(root['max_total_tokens'])-audit),max(0,int(root['report_token_reserve'])))
+    from app.adaptive_budget import stage_allocation
+    allocation = stage_allocation(state,root,stage)
+    remaining = allocation['root_remaining'] if allocation else max(0,int(root['max_total_tokens'])-int(root['used_total_tokens']))
+    audit = allocation['audit_hold'] if allocation else min(int(root['max_total_tokens']),max(0,int(root['audit_token_reserve'])))
+    report = allocation['report_hold'] if allocation else min(max(0,int(root['max_total_tokens'])-audit),max(0,int(root['report_token_reserve'])))
     seconds = max(0,float(root['max_wall_clock_seconds'])-float(root['elapsed_wall_clock_seconds']))
     audit_seconds = min(float(root['max_wall_clock_seconds']),max(0,float(root['audit_seconds_reserve'])))
     meter=ModelTokenBudget(remaining if stage == 'report' else max(0,remaining-audit-report),
         audit_reserve=audit if stage == 'report' else 0,
         deadline=time.monotonic()+max(0,seconds-(0 if stage == 'report' else audit_seconds)),
         audit_seconds=audit_seconds if stage == 'report' else 0)
+    if allocation:
+        meter.phase_events.append({'phase':'stage_allocation',**allocation})
     meter.upgrade_history=list(root.get('capability_upgrades') or [])
     from app.data_governance import effective_context
     meter.data_governance=effective_context(state)
@@ -1096,6 +1102,7 @@ def dag_executor_node(state: ResearchState) -> dict:
         ] if deferred_retries else []) + [_append_trace_event(state, EventType.AGENT_COMPLETE, 'dag_executor',
             '已按依赖、条件和并发限制选择取证步骤。', {'kind':'batch_scheduled','node_ids':current_batch,
                 'parallel_limit':parallel_limit,'parallel_reason':'bounded_tool_requests_with_completed_declared_dependencies',
+                'budget_allocations':{key:value['budget_allocation'] for key,value in handoffs.items() if value.get('budget_allocation')},
                 'autonomous_research_subagents_created':0})],
     }
 
@@ -2337,7 +2344,7 @@ async def reflection_node(state: ResearchState) -> dict:
     except TokenBudgetExceeded as error:
         if (not agent.request_budget.calls and state.get('analysis') and error.reason in {
                 'token_budget_exhausted','insufficient_context_budget','model_time_reservation_exhausted'}):
-            session,budget_state = _apply_llm_usage_to_state(state,'reflection',None)
+            session,budget_state = _apply_llm_usage_to_state(state,'reflection',_agent_model_usage(agent))
             return {'session':session,'budget_state':budget_state,'revision_needed':False,
                 'verification':VerificationResult(needs_revision=False).model_dump(),
                 'iteration_control':{'action':'report','reason':'preserve_final_report_and_audit_allowance'},

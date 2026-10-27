@@ -59,6 +59,7 @@ def stage_allocation(state, root, stage):
             'root_limit': total, 'root_used': used, 'root_inflight': inflight, 'root_remaining': remaining,
             'audit_base': base_audit, 'audit_extra': audit_extra, 'audit_hold': audit_hold,
             'report_base': base_report, 'report_extra': report_extra, 'report_hold': report_hold,
+            'writing_available': max(0, remaining - audit_hold) if is_report else None,
             'stage_limit': local_limit, 'unchanged_root_limit': True,
             'semantics': 'bounded_holds_not_spend_or_quality_guarantee'}
 

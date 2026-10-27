@@ -29,6 +29,7 @@ import type {MethodUsage} from './SkillStageUsage'
 import ResearchPlanSummary from './ResearchPlanSummary'
 import ResearchConfigurationEditor from './ResearchConfigurationEditor'
 import ResearchQuality from './ResearchQuality'
+import BudgetAllocation,{type BudgetAllocationEvent} from './BudgetAllocation'
 import ResearchCancellation from './ResearchCancellation'
 import type { PlanSummaryProps } from './ResearchPlanSummary'
 import type { DeliveryView } from './ReportDeliveryView'
@@ -46,7 +47,7 @@ interface ResearchResult {
   analysis_progress?: {phase: string|null;status:string;completed_steps:number;stop_reason?:string|null;
     phases?:Array<{phase:string;status:string;summary:string;attempts:number}>;
     last_admission?:{prompt_bound?:number|null;requested_output_tokens?:number|null;available_tokens?:number|null;selected_sources?:number|null}|null}|null
-  budget_state?: {used_total_tokens?:number;max_total_tokens?:number;cost_status?:string;token_usage_estimated?:boolean;hard_stop_reason?:string|null;model_stop_reason?:string|null;inflight_model_requests?:number} | null
+  budget_state?: {used_total_tokens?:number;max_total_tokens?:number;cost_status?:string;token_usage_estimated?:boolean;hard_stop_reason?:string|null;model_stop_reason?:string|null;inflight_model_requests?:number;phase_events?:BudgetAllocationEvent[]} | null
   report_editorial?: { note?: string } | null
   delivery_view?: DeliveryView | null
   plan_manifest?: PlanSummaryProps['plan']
@@ -530,6 +531,7 @@ function ResearchDashboard({ onBack,ownerId }: ResearchDashboardProps) {
       {result&&<UnderstandingSummary value={result.query_understanding}/>}
       {result&&result.execution_id!==undefined&&<ResearchCancellation key={`cancel-${result.session_id}-${result.execution_id}`} sessionId={result.session_id} executionId={result.execution_id} status={result.status} inflight={result.budget_state?.inflight_model_requests} onRefresh={async()=>{const refreshed=await refetchResult();if(refreshed.error)throw refreshed.error}}/>}
       {result&&<ResearchPlanSummary status={result.status} plan={result.plan_manifest} dag={result.execution_plan} history={result.plan_history} control={result.iteration_control} failure={result.workflow_failure} operationalEvents={result.operational_events}/>}
+      {result?.budget_state?.phase_events&&<BudgetAllocation events={result.budget_state.phase_events}/>}
       {result&&['completed','paused','failed','canceled'].includes(result.status)&&<div ref={configuration}><ResearchConfigurationEditor key={`configure-${result.session_id}`} query={typeof result.restart_parameters?.query==='string'?result.restart_parameters.query:result.query} parameters={result.restart_parameters} previewSessionId={result.status==='completed'?result.session_id:undefined} ownerId={ownerId} operationScopeId={result.session_id} onStarted={handleRestartedResearch}/></div>}
       {result?.organization_research&&<section className="card p-5"><h3>{t("研究范围")}</h3><p className="mt-3">{result.organization_research.scope.entities.map(entity=>entity.name).join('、')||t("候选发现")} · {result.organization_research.scope.disciplines.join('、')}</p><p className="text-sm text-xmgray-600 mt-2">{result.organization_research.scope.start_date} — {result.organization_research.scope.end_date}</p>{typeof result.organization_result?.evidence_count==='number'&&<p className="text-sm mt-2">{result.organization_result.evidence_count} {t(" 条证据")}</p>}</section>}
       {result?.status==='completed'&&result.organization_research&&<ResearchMatchingPanel key={result.session_id} sessionId={result.session_id} query={typeof result.restart_parameters?.query==='string'?result.restart_parameters.query:result.query} scope={result.organization_research.scope} disciplines={result.organization_research.scope.disciplines} restartParameters={result.restart_parameters} purpose={result.organization_research.purpose} modules={result.organization_research.modules} corpus={result.organization_research.corpus} taxonomy={result.organization_research.taxonomy?.request} actionRequirements={result.organization_research.action_requirements} onStarted={handleRestartedResearch}/>}
