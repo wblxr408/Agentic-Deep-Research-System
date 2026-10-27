@@ -121,13 +121,18 @@ def compile_filter(value,*,start_parameter=7):
 
 def current_document_clause():
     return """(d.source_id IS NULL OR ((h.source_id IS NULL AND s.metadata->'index_policy' IS NULL)
-      OR (h.mode='lexical' AND EXISTS(SELECT 1 FROM retrieval_index_documents published
-        JOIN retrieval_index_generations generation ON generation.id=published.generation_id
-          AND generation.owner_id=published.owner_id AND generation.source_id=published.source_id
-        WHERE published.document_id=d.id AND published.owner_id=d.owner_id AND published.source_id=d.source_id
-          AND published.generation_id=h.generation_id AND generation.status='ready'
-          AND generation.source_version=s.metadata->>'parse_version_id'
-          AND generation.feature_profile_id=s.metadata->'feature_plan'->>'profile_id'))))"""
+      OR (h.mode='lexical' AND EXISTS(SELECT 1 FROM retrieval_index_generations generation
+        WHERE generation.id=h.generation_id AND generation.owner_id=d.owner_id AND generation.source_id=d.source_id
+          AND generation.status='ready' AND generation.source_version=s.metadata->>'parse_version_id'
+          AND generation.feature_profile_id=s.metadata->'feature_plan'->>'profile_id' AND (
+            EXISTS(SELECT 1 FROM retrieval_index_documents published WHERE published.generation_id=generation.id AND published.owner_id=d.owner_id AND published.document_id=d.id)
+            OR EXISTS(SELECT 1 FROM retrieval_sparse_postings sparse WHERE sparse.generation_id=generation.id AND sparse.owner_id=d.owner_id AND sparse.document_id=d.id)
+            OR EXISTS(SELECT 1 FROM retrieval_english_lexemes stems WHERE stems.generation_id=generation.id AND stems.owner_id=d.owner_id AND stems.document_id=d.id)
+            OR EXISTS(SELECT 1 FROM retrieval_model_features vectors WHERE vectors.document_id=d.id AND vectors.owner_id=d.owner_id AND vectors.source_id=d.source_id
+              AND vectors.source_version=generation.source_version AND vectors.feature_profile_id=generation.feature_profile_id
+              AND generation.manifest->'multivector'->>'status'='published' AND generation.manifest->'multivector'->>'pair_id'=vectors.pair_id)
+            OR EXISTS(SELECT 1 FROM retrieval_multimodal_generations images WHERE images.generation_id=generation.id AND images.owner_id=d.owner_id AND images.source_id=d.source_id)
+          )))))"""
 
 
 async def current_filtered_ids(conn,ids,owner_id,group,session_id,filters):
