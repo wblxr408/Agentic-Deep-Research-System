@@ -483,6 +483,8 @@ async def get_retained_source_chunk(source_id:uuid.UUID,logical_chunk_id:str,con
 
 @router.post("/sources")
 async def create_source(payload: DocumentSourceCreateRequest, principal: PrincipalDep = None):
+    if 'source_sync' in payload.metadata or payload.source_type=='web_sync':
+        raise HTTPException(422,'server_managed_intake_metadata:source_sync')
     content = payload.content or ""
     from app.config import get_settings
     from app.research_documents import read_document
@@ -556,7 +558,7 @@ async def create_source_revision(source_id:uuid.UUID,payload:SourceRevision,prin
                 feature_policy=FeaturePolicy.model_validate((metadata.get('feature_profile') or {}).get('policy') or {})
                 if index_policy.mode=='direct':feature_policy=feature_policy.model_copy(update={'dense':False})
                 return await _ingest_source(name=source['name'],group_name=source['group_name'],source_type='revision',content=parsed['text'],
-                    metadata=metadata,file_ext=payload.format,chunk_size=source['chunk_size'],chunk_overlap=source['chunk_overlap'],
+                    metadata={key:value for key,value in metadata.items() if key!='source_sync'},file_ext=payload.format,chunk_size=source['chunk_size'],chunk_overlap=source['chunk_overlap'],
                     owner_id=principal.id,connection=conn,parsed_document=parsed,
                     chunk_policy=ChunkPolicy.model_validate((metadata.get('chunking_profile') or {}).get('policy') or {}),
                     feature_policy=feature_policy,index_policy=index_policy,retention_policy=policy,revision_intake_key=str(payload.request_id))
@@ -582,7 +584,7 @@ async def update_source(source_id: str, payload: DocumentSourceUpdateRequest, pr
         next_group = payload.group_name or row["group_name"]
         old_metadata=json.loads(row['metadata']) if isinstance(row['metadata'],str) else row['metadata'] or {}
         next_metadata = dict(payload.metadata) if payload.metadata is not None else dict(old_metadata)
-        for field in ('content_hash','source_version','owner_scope','chunking_version','document_parse','parse_profile','parse_version_id','parsing_reviews','chunk_plan','chunking_profile','feature_plan','feature_profile','dense_profile','index_policy','retention_policy','revision_intake_key'):
+        for field in ('content_hash','source_version','owner_scope','chunking_version','document_parse','parse_profile','parse_version_id','parsing_reviews','chunk_plan','chunking_profile','feature_plan','feature_profile','dense_profile','index_policy','retention_policy','revision_intake_key','source_sync'):
             if field in next_metadata and next_metadata[field]!=old_metadata.get(field):
                 raise HTTPException(422,'server_managed_intake_metadata:'+field)
             if field in old_metadata:next_metadata[field]=old_metadata[field]
@@ -641,6 +643,7 @@ async def upload_source(
     retention_policy_json:str=Form(default='{}',max_length=4000),
     principal: PrincipalDep = None,
 ):
+    if source_type=='web_sync':raise HTTPException(422,'server_managed_source_type')
     suffix = Path(file.filename or "").suffix.lower().lstrip(".")
     if suffix not in ALLOWED_EXTENSIONS:
         raise HTTPException(status_code=400, detail=f"unsupported_file_type:{suffix}")

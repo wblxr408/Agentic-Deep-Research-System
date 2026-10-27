@@ -84,7 +84,7 @@ class HttpReader:
         return response.body.decode('utf-8',errors='replace')
 
     def read(self, url: str, *, method: str = "GET", timeout: float = 20, max_bytes: int = 1024 * 1024,on_request=None,
-             _github_api: bool = False,_github_credential=None) -> PublicResponse:
+             _github_api: bool = False,_github_credential=None,conditional: dict | None = None) -> PublicResponse:
         if method not in {"GET", "HEAD"}:
             raise ChannelError("read_only")
         deadline = time.monotonic() + timeout
@@ -116,6 +116,12 @@ class HttpReader:
             try:
                 check_execution()
                 headers={"User-Agent": "DeepIntel/1.0", "Accept": "application/json,text/plain,text/html,*/*", "Accept-Encoding": "identity"}
+                # Conditional values are restricted to validators obtained from
+                # an earlier response; they cannot introduce arbitrary headers.
+                for key,header in (('etag','If-None-Match'),('last_modified','If-Modified-Since')):
+                    value=(conditional or {}).get(key)
+                    if isinstance(value,str) and 0<len(value)<=512 and all(32<=ord(char)<=126 for char in value):
+                        headers[header]=value
                 if _github_api:
                     headers.update({'Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2026-03-10'})
                 if _github_credential is not None:

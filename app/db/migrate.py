@@ -21,6 +21,7 @@ from app.db.research_quality import SCHEMA_SQL as RESEARCH_QUALITY_SCHEMA_SQL
 from app.db.execution_control import SCHEMA_SQL as EXECUTION_CONTROL_SCHEMA_SQL
 from app.db.retrieval_indexes import RETRIEVAL_SCHEMA_SQL
 from app.source_lifecycle import SCHEMA_SQL as LIFECYCLE_SCHEMA_SQL
+from app.db.source_sync import SCHEMA_SQL as SOURCE_SYNC_SCHEMA_SQL
 
 logger = logging.getLogger(__name__)
 
@@ -413,6 +414,10 @@ async def run_migration(
             if drop_existing:
                 logger.warning("Dropping existing tables (drop_existing=True)")
                 await conn.execute("""
+                    DROP TABLE IF EXISTS source_sync_actions;
+                    DROP TABLE IF EXISTS source_sync_network_receipts;
+                    DROP TABLE IF EXISTS source_sync_runs;
+                    DROP TABLE IF EXISTS source_sync_subscriptions;
                     DROP TABLE IF EXISTS document_source_lifecycle;
                     DROP TABLE IF EXISTS source_access_epochs;
                     DROP TABLE IF EXISTS source_lifecycle_events;
@@ -460,6 +465,7 @@ async def run_migration(
             await conn.execute(EXECUTION_CONTROL_SCHEMA_SQL)
             await conn.execute(RETRIEVAL_SCHEMA_SQL)
             await conn.execute(LIFECYCLE_SCHEMA_SQL)
+            await conn.execute(SOURCE_SYNC_SCHEMA_SQL)
             logger.info("Database migration completed successfully")
 
 

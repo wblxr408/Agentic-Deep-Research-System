@@ -3,6 +3,26 @@
 .collection-eyebrow{font-size:12px;letter-spacing:.08em;color:var(--muted)}
 .collection-header h1{font:400 clamp(36px,4.2vw,58px)/1.25 var(--display);letter-spacing:-.035em;margin:7px 0 0}
 .collection-header-actions{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.source-sync-header-actions{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.source-sync-panel{display:grid;gap:18px;color:var(--ink)}
+.source-sync-intro{display:flex;align-items:center;justify-content:space-between;gap:18px}
+.source-sync-intro p,.source-sync-empty{font-size:13px;line-height:1.65;color:var(--muted);margin:0}
+.source-sync-form{padding:18px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+.source-sync-form-footer{display:flex;align-items:center;justify-content:space-between;gap:14px}
+.source-sync-form-footer span{color:var(--muted);font-size:12px;line-height:1.6}
+.source-sync-list{display:grid;border-top:1px solid var(--line)}
+.source-sync-item{padding:18px 0;border-bottom:1px solid var(--line);min-width:0}
+.source-sync-item-head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px}
+.source-sync-item-head>div{display:grid;gap:6px;min-width:0}
+.source-sync-item-head strong{font-size:14px}
+.source-sync-item-head small{color:var(--muted);font-size:12px;overflow-wrap:anywhere}
+.source-sync-item p,.source-sync-item>small{font-size:12px;color:var(--muted);line-height:1.6;margin:9px 0}
+.source-sync-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:13px}
+.source-sync-actions button{font-size:12px}
+.source-sync-actions select{min-width:0;border:1px solid var(--line);border-radius:9px;padding:8px 10px;background:var(--surface);color:var(--ink);font:inherit;font-size:12px}
+.source-sync-history{padding:8px 12px;margin-top:12px;background:var(--surface);border-radius:8px}
+.source-sync-history p{overflow-wrap:anywhere}
+@media(max-width:600px){.source-sync-intro,.source-sync-form-footer{align-items:flex-start;flex-direction:column}.source-sync-header-actions{justify-content:flex-end}}
 .collection-toolbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 22px}
 .collection-search{display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:11px;padding:11px 14px;background:var(--surface);flex:1;min-width:210px;color:var(--muted)}
 .collection-search>input{width:100%;min-width:0;padding:0;border:0;outline:0;background:none;color:var(--ink);font:inherit;font-size:14px}

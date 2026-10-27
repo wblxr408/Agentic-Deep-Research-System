@@ -24,6 +24,7 @@ from app.api import (
     skills_router,
     workspaces_router,
     personal_connections_router,
+    source_sync_router,
 )
 from app.api.config import load_runtime_llm_config_from_db
 from app.config import get_settings
@@ -90,12 +91,16 @@ async def lifespan(app: FastAPI):
     from app.layout_operations import LayoutDispatcher
     layout_dispatcher=LayoutDispatcher()
     layout_dispatcher.start()
+    from app.source_sync import SourceSyncDispatcher
+    source_sync_dispatcher=SourceSyncDispatcher()
+    source_sync_dispatcher.start()
     try:
         yield
     finally:
         # Stop child processes before releasing their database pool. A later
         # process can reclaim unfinished leases within the original deadline.
         logger.info("Shutting down DeepIntel API")
+        await source_sync_dispatcher.stop()
         await layout_dispatcher.stop()
         await close_db()
 
@@ -147,6 +152,7 @@ def create_app() -> FastAPI:
     app.include_router(skills_router)
     app.include_router(workspaces_router)
     app.include_router(personal_connections_router)
+    app.include_router(source_sync_router)
 
     # Root endpoint
     @app.get("/")
