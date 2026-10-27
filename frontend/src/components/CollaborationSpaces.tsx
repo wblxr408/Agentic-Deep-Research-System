@@ -49,14 +49,15 @@ function SharedReader({ownerId,spaceId,shareId,onClose}:{ownerId:string;spaceId:
 
 function SpaceDetail({ownerId,space,onAction}:{ownerId:string;space:Space;onAction:(path:string,method:string,body?:Record<string,unknown>,withId?:boolean)=>Promise<boolean>}) {
   const [username,setUsername]=useState(''),[choice,setChoice]=useState(''),[opened,setOpened]=useState<string|null>(null)
-  const detail=useQuery({queryKey:['collaboration',ownerId,space.id,'detail'],queryFn:({signal})=>request<Detail>(`/${space.id}`,{signal}),retry:false})
-  const available=useQuery({queryKey:['collaboration',ownerId,space.id,'available'],queryFn:({signal})=>request<Choices>(`/${space.id}/shareable`,{signal}),retry:false})
-  const shared=useQuery({queryKey:['collaboration',ownerId,space.id,'shares'],queryFn:({signal})=>request<{items:Share[]}>(`/${space.id}/shares`,{signal}),retry:false})
+  const detail=useQuery({queryKey:['collaboration',ownerId,space.id,'detail'],queryFn:({signal})=>request<Detail>(`/${space.id}`,{signal}),staleTime:0,refetchOnMount:'always',refetchInterval:30000,retry:false})
+  const available=useQuery({queryKey:['collaboration',ownerId,space.id,'available'],queryFn:({signal})=>request<Choices>(`/${space.id}/shareable`,{signal}),staleTime:0,refetchOnMount:'always',refetchInterval:30000,retry:false})
+  const shared=useQuery({queryKey:['collaboration',ownerId,space.id,'shares'],queryFn:({signal})=>request<{items:Share[]}>(`/${space.id}/shares`,{signal}),staleTime:0,refetchOnMount:'always',refetchInterval:30000,retry:false})
   const options=[...(available.data?.reports||[]).map(item=>({kind:'report' as const,...item})),
     ...(available.data?.documents||[]).map(item=>({kind:'document' as const,...item}))]
+  const selected=options.find(item=>JSON.stringify([item.kind,item.resource_id,item.version])===choice)
   async function invite(event:FormEvent) {event.preventDefault();if(await onAction(`/${space.id}/invitations`,'POST',{username:username.trim()},true))setUsername('')}
   async function share(event:FormEvent) {
-    event.preventDefault();const item=options[Number(choice)]
+    event.preventDefault();const item=selected
     if(!item)return
     if(await onAction(`/${space.id}/shares`,'POST',{resource_type:item.kind,resource_id:item.resource_id,version:item.version},true))setChoice('')
   }
@@ -78,9 +79,9 @@ function SpaceDetail({ownerId,space,onAction}:{ownerId:string;space:Space;onActi
     {available.error&&<p role="alert">{uiMessage(available.error.message)}</p>}
     {available.data&&<form className="collaboration-inline-form" onSubmit={share}><label className="sr-only" htmlFor="workspace-share">{t('选择本人内容')}</label>
       <select id="workspace-share" className="input-xm" value={choice} onChange={event=>setChoice(event.target.value)} required>
-        <option value="">{t('选择本人内容')}</option>{options.map((item,index)=><option key={`${item.kind}:${item.resource_id}:${item.version}`} value={String(index)}>
+        <option value="">{t('选择本人内容')}</option>{options.map(item=><option key={`${item.kind}:${item.resource_id}:${item.version}`} value={JSON.stringify([item.kind,item.resource_id,item.version])}>
           {item.kind==='report'?t('报告'):t('资料')} · {item.title}{item.sequence?` · ${t('版本 {0}',item.sequence)}`:''}{item.status==='saved_draft'?` · ${t('草稿')}`:''}</option>)}</select>
-      <button type="submit" className="btn-secondary" disabled={!choice}>{t('分享')}</button></form>}
+      <button type="submit" className="btn-secondary" disabled={!selected}>{t('分享')}</button></form>}
     {available.data&&<p className="field-hint">{t('资料需允许跨任务复用，列表显示最近 200 项。')}</p>}
     {shared.error&&<p role="alert">{uiMessage(shared.error.message)}</p>}
     {shared.data&&<div className="collaboration-list">{shared.data.items.length===0&&<p className="field-hint">{t('还没有共享内容。')}</p>}
@@ -97,8 +98,8 @@ export default function CollaborationSpaces({ownerId}:{ownerId:string}) {
   useLocale()
   const client=useQueryClient(), requests=useRef(new Map<string,string>())
   const [spaceId,setSpaceId]=useState<string|null>(null),[name,setName]=useState(''),[error,setError]=useState(''),[busy,setBusy]=useState(false)
-  const spaces=useQuery({queryKey:['collaboration',ownerId,'spaces'],queryFn:({signal})=>request<{items:Space[]}>('',{signal}),retry:false})
-  const invites=useQuery({queryKey:['collaboration',ownerId,'invitations'],queryFn:({signal})=>request<{items:Invitation[]}>('/invitations',{signal}),retry:false})
+  const spaces=useQuery({queryKey:['collaboration',ownerId,'spaces'],queryFn:({signal})=>request<{items:Space[]}>('',{signal}),staleTime:0,refetchOnMount:'always',refetchInterval:30000,retry:false})
+  const invites=useQuery({queryKey:['collaboration',ownerId,'invitations'],queryFn:({signal})=>request<{items:Invitation[]}>('/invitations',{signal}),staleTime:0,refetchOnMount:'always',refetchInterval:30000,retry:false})
   const selected=spaces.data?.items.find(item=>item.id===spaceId)
   async function action(path:string,method:string,body?:Record<string,unknown>,withId=false) {
     if(busy)return false
