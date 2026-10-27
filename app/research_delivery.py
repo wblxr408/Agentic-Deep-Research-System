@@ -278,6 +278,13 @@ def build_delivery_view(*, task_id: str, execution_id: str | None, query: str, r
             'markdown': markdown[:16000], 'content_match': match_basis if matched else 'not_found',
             'citation_ids': sorted(used & available_citations), 'charts': chart_refs, 'gaps': gaps,
             'semantics': 'report_excerpt_not_new_facts_or_independent_answer_verification'})
+    layout_binding = None
+    if frozen.get('layout') is not None:
+        from app.report_layout_binding import bind_layout
+        layout_binding, pages, charts = bind_layout(frozen['layout'], narrative=narrative, charts=charts,
+            statistics=statistics, citations=citations, result=result, slots=(understanding or {}).get('slots') or {},
+            task_id=task_id, execution_id=execution_id, descriptor_id=frozen.get('descriptor_id'),
+            chart_skill_ids=frozen.get('chart_skill_ids') or {})
     drawing_mode = frozen.get('drawing_mode', 'builtin')
     formats = frozen.get('formats') or ['markdown']
     drawing = {'requested_mode': drawing_mode, 'requested_skill_ids': frozen.get('drawing_skill_ids') or [],
@@ -303,8 +310,9 @@ def build_delivery_view(*, task_id: str, execution_id: str | None, query: str, r
                 and item.get('source_chart_id')==request_by_id[item['chart_id']]['source_chart_id']
                 and item.get('presentation')==request_by_id[item['chart_id']]['presentation']
                 and item.get('drawing_skill_id')==request_by_id[item['chart_id']].get('drawing_skill_id') for item in assets))
-        drawing.update(renderer=execution.get('adapter'),status='rendered' if valid_assets else 'blocked',
-            reason=None if valid_assets else execution.get('reason') or 'drawing_not_rendered_or_input_changed',
+        no_figures=bool(layout_binding is not None and not requests and not layout_binding['required_missing'])
+        drawing.update(renderer=execution.get('adapter'),status='not_needed' if no_figures else 'rendered' if valid_assets else 'blocked',
+            reason=None if valid_assets or no_figures else execution.get('reason') or 'drawing_not_rendered_or_input_changed',
             skills=policy.get('skills',[]),visual_review=execution.get('visual_review','not_run'))
         if valid_assets:
             for chart in charts:
@@ -312,7 +320,9 @@ def build_delivery_view(*, task_id: str, execution_id: str | None, query: str, r
                 if matches:chart['rendered_assets']=deepcopy(matches)
     view = {'schema_version': VERSION, 'task_id': task_id, 'execution_id': execution_id,
         'delivery_complete': not bool((result.get('module_report') or {}).get('issues'))
-            and drawing['status'] in {'ready','rendered'}
+            and drawing['status'] in {'ready','rendered','not_needed'}
+            and not (layout_binding and layout_binding['required_missing'])
+            and layout_binding is None  # 19.5 must install the actual layout renderer before publication.
             and bool(audit) and not audit.get('needs_review',True) and not audit.get('audit_incomplete',False),
         'template': template, 'theme': theme, 'descriptor_id': frozen.get('descriptor_id'),
         'configuration_origin': 'frozen_task' if frozen else 'legacy_report_readonly_compatibility',
@@ -322,6 +332,7 @@ def build_delivery_view(*, task_id: str, execution_id: str | None, query: str, r
         'main_report_markdown': main_report, 'appendix_markdown': appendix_report,
         'review_status':'draft_needs_review' if not audit or audit.get('needs_review',True) else 'automatic_review_completed_human_review_pending',
         'pages': pages, 'charts': charts, 'drawing': drawing,
+        **({'layout_binding':layout_binding} if layout_binding is not None else {}),
         'sources': all_sources, 'citations': citations, 'audit': deepcopy(audit),
         'statistics': deepcopy(statistics), 'module_results': {key: deepcopy(result.get(field)) for key, field in
             [('relationships', 'relationship_view'), ('deep_dive', 'technical_reading'), ('evolution', 'trend_view'), ('actions', 'actions')]},

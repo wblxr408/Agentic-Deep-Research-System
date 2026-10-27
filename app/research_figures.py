@@ -129,7 +129,7 @@ def figure_requests(charts,pages):
     """One stable artifact per data chart and requested presentation."""
     from app.query_understanding import identity
     by_id={chart['chart_id']:chart for chart in charts}
-    requests=[];seen=set()
+    requests=[];seen={}
     for page in pages:
         for reference in page.get('charts',[]):
             source_id=reference['chart_id']
@@ -138,12 +138,17 @@ def figure_requests(charts,pages):
             kind=reference['kind'] if reference['kind']!='auto' else chart['kind']
             skill_id=reference.get('drawing_skill_id')
             key=(source_id,kind,skill_id)
-            if key in seen:continue
-            seen.add(key)
+            block_id=reference.get('layout_block_id')
+            if key in seen:
+                if block_id and block_id not in requests[seen[key]].get('layout_block_ids',[]):
+                    requests[seen[key]].setdefault('layout_block_ids',[]).append(block_id)
+                continue
+            seen[key]=len(requests)
             binding={'chart':source_id,'presentation':kind}
             if skill_id:binding['drawing_skill_id']=skill_id
             requests.append({**chart,'source_chart_id':source_id,'presentation':kind,
                 **({'drawing_skill_id':skill_id} if skill_id else {}),
+                **({'layout_block_ids':[block_id]} if block_id else {}),
                 'chart_id':'figure-'+identity(binding)[:32]})
     return requests
 
@@ -206,7 +211,14 @@ def _execute_drawing(view, policy, *, client, model, budget):
     if policy.get('status')!='ready' or policy.get('version')!=VERSION:
         return {**record,'reason':policy.get('reason') or 'drawing_policy_unavailable'}
     if not selected:return {**record,'reason':'no_source_bound_chart_data'}
-    missing=set(policy.get('chart_skill_ids') or {})-{item['source_chart_id'] for item in selected}
+    represented={item['source_chart_id'] for item in selected}
+    represented.update(block for item in selected for block in item.get('layout_block_ids',[]))
+    # Optional slots with no compatible data obey their explicit omit/text
+    # policy; their per-slot Skill does not create data or force a model call.
+    represented.update(block['block_id'] for section in (view.get('layout_binding') or {}).get('sections',[])
+                       for block in section.get('blocks',[])
+                       if block.get('status') in {'missing','omitted','text_fallback'})
+    missing=set(policy.get('chart_skill_ids') or {})-represented
     if missing:return {**record,'reason':'drawing_override_chart_unavailable','chart_ids':sorted(missing)}
     if len(selected)>12:return {**record,'reason':'drawing_chart_limit_12'}
     packet=[]

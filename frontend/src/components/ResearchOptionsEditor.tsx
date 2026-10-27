@@ -7,6 +7,7 @@ import {setupRequest,setupSummary} from './researchSetup'
 import type {ResearchSetup} from './researchSetup'
 import {Icon} from './Interface'
 import {layoutProblem} from './reportLayouts'
+import {deliveryDraftRequest} from './QueryUnderstandingPanel'
 
 export type ChoiceSection='focus'|'scope'|'sources'|'report'|'more'
 export function choiceProblem(value:ResearchSetup):{section:ChoiceSection;message:string}|null {
@@ -16,6 +17,7 @@ export function choiceProblem(value:ResearchSetup):{section:ChoiceSection;messag
   if(org.enabled&&(!org.types.length||!org.disciplines.trim()))return {section:'scope',message:t("请选择对象类型和至少一个学科。")}
   if(org.enabled&&org.entities.some(entity=>!org.types.includes(entity.type)))return {section:'scope',message:t("有具体对象不在当前类型中，请调整类型或移除该对象。")}
   if(!draft.formats.length)return {section:'report',message:t("请至少选择一种下载形式。")}
+  if(Object.keys(deliveryDraftRequest(draft).chart_skill_ids).length>12)return {section:'report',message:t('单独指定的绘图方法最多 12 项。')}
   if(draft.layoutImportBusy)return {section:'report',message:t('请等待样例读取完成。')}
   if(draft.template==='custom'&&draft.layoutMode==='layout') {const problem=layoutProblem(draft.layout);if(problem)return {section:'report',message:problem}}
   else if(draft.template==='custom'&&(!draft.pages.length||draft.pages.some(page=>!page.title.trim())))return {section:'report',message:t("请为自定义报告填写章节标题。")}

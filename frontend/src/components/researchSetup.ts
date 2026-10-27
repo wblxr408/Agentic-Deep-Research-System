@@ -1,5 +1,5 @@
 import {uiDefinition,t,joinLabels} from '../i18n'
-import {defaultQueryDraft,queryDraftRequest} from './QueryUnderstandingPanel'
+import {defaultQueryDraft,deliveryDraftRequest,queryDraftRequest} from './QueryUnderstandingPanel'
 import type {QueryDraft} from './QueryUnderstandingPanel'
 import type {ReportLayout} from './reportLayouts'
 import {defaultOrganizationDraft,organizationRequest} from './OrganizationResearchPanel'
@@ -9,6 +9,7 @@ import type {WeightSelection} from './OrganizationWeightsPanel'
 export interface ResearchSetup {
   query:string;queryDraft:QueryDraft;organizationDraft:OrganizationDraft;weights?:WeightSelection
   outputLength:'short'|'medium'|'long';useInternal:boolean;group:string;channels:string[];enabled:string[];disabled:string[]
+  previewSessionId?:string
   original?:Record<string,unknown>
 }
 export const disciplineNames:Record<string,string>=uiDefinition({computer_science:'计算机科学',materials_science:'材料科学',electrical_engineering:'电子与电气',mechanical_engineering:'机械工程',physics:'物理学',chemistry:'化学',biology:'生命科学',medicine:'医学',mathematics:'数学',environmental_science:'环境科学',business:'商科',economics:'经济学',multidisciplinary:'跨学科'})
@@ -47,7 +48,7 @@ export function choosePeriod(value:ResearchSetup,years:number|'question'):Resear
 }
 const object=(value:unknown):Record<string,any>=>value&&typeof value==='object'&&!Array.isArray(value)?value as Record<string,any>:{}
 const strings=(value:unknown):string[]=>Array.isArray(value)?value.filter((item):item is string=>typeof item==='string'):[]
-export function setupFromRequest(parameters:Record<string,unknown>={},query=''):ResearchSetup {
+export function setupFromRequest(parameters:Record<string,unknown>={},query='',previewSessionId?:string):ResearchSetup {
   const q=object(parameters.query_options),delivery=object(parameters.delivery),policy=object(parameters.planning_policy)
   const org=object(parameters.organization_research),scope=object(org.scope),data=object(q.data_policy),corpus=object(org.corpus),taxonomy=object(org.taxonomy),action=object(org.action_requirements)
   const queryDraft:QueryDraft={...structuredClone(defaultQueryDraft),
@@ -74,10 +75,10 @@ export function setupFromRequest(parameters:Record<string,unknown>={},query=''):
   return {query:typeof parameters.query==='string'?parameters.query:query,queryDraft,organizationDraft,
     weights:org.weight_preset?{reference:org.weight_preset}:org.weights?{configuration:org.weights}:undefined,
     outputLength:parameters.output_length==='short'?'short':parameters.output_length==='long'?'long':'medium',useInternal:!!parameters.use_internal_docs,group:String(parameters.rag_group||''),
-    channels:strings(parameters.channels),enabled:strings(parameters.enabled_skill_ids),disabled:strings(parameters.disabled_skill_ids),original:structuredClone(parameters)}
+    channels:strings(parameters.channels),enabled:strings(parameters.enabled_skill_ids),disabled:strings(parameters.disabled_skill_ids),previewSessionId,original:structuredClone(parameters)}
 }
 export function setupRequest(value:ResearchSetup) {
-  const draft=value.queryDraft,drawingIds=draft.drawingMode==='builtin'?[]:[...(draft.drawingMode==='manual_skill'?draft.drawingSkillIds:[]),...Object.values(draft.chartSkillIds).filter(Boolean)]
+  const draft=value.queryDraft,drawingIds=draft.drawingMode==='builtin'?[]:[...(draft.drawingMode==='manual_skill'?draft.drawingSkillIds:[]),...Object.values(deliveryDraftRequest(draft).chart_skill_ids).filter(Boolean)]
   if(drawingIds.some(id=>value.disabled.includes(id)))throw new Error(t("所选绘图方法已设为不使用，请重新选择。"))
   const old=value.original||{},parts=queryDraftRequest(draft,value.organizationDraft.enabled)
   const org=organizationRequest(value.organizationDraft,value.query.trim(),value.weights),previous=object(old.organization_research)

@@ -7,6 +7,9 @@
 .layout-row-actions{display:flex;gap:4px}
 .layout-component-item{display:grid;gap:8px}
 .layout-component-item>.layout-field{margin-left:31px}
+.layout-component-options{margin-left:31px}
+.layout-component-options .layout-fields-row{margin-top:10px}
+.layout-data-preview{display:grid;gap:14px}.layout-data-preview>p{font-size:12px;color:var(--muted);margin:0}.layout-data-preview section{border:1px solid var(--line);border-radius:9px;padding:14px}.layout-data-preview h4{margin:0 0 10px;font-size:14px}.layout-data-row{display:grid;grid-template-columns:1fr auto;gap:5px 12px;border-top:1px solid var(--line);padding:10px 0;font-size:12px}.layout-data-row strong{font-weight:550;color:var(--accent)}.layout-data-row p{grid-column:1/-1;margin:0;color:var(--muted);overflow-wrap:anywhere}
 .layout-saved-area{display:grid;gap:12px}
 .layout-saved-area h4{margin:0;font-size:14px}
 @media(max-width:600px){.layout-component-row{grid-template-columns:20px minmax(0,1fr) minmax(0,1fr);gap:5px}.layout-row-actions{grid-column:2/-1;justify-content:flex-end}.layout-component-item>.layout-field{margin-left:25px}}

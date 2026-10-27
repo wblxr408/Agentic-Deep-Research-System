@@ -123,6 +123,11 @@ class DeliveryRequest(ScopeRecord):
             raise ValueError('custom pages require custom template')
         if self.layout is not None and (self.template != 'custom' or self.pages):
             raise ValueError('layout_requires_custom_template_without_legacy_pages')
+        if self.layout is not None:
+            figure_slots={block.block_id for section in self.layout.sections for block in section.blocks
+                          if block.kind in {'chart','table','image'}}
+            if any(key.startswith('block-') and key not in figure_slots for key in self.chart_skill_ids):
+                raise ValueError('layout_drawing_override_slot_missing')
         if len(set(self.formats)) != len(self.formats) or len(set(self.drawing_skill_ids)) != len(self.drawing_skill_ids):
             raise ValueError('delivery formats and skill IDs must be unique')
         if self.drawing_mode == 'manual_skill' and not self.drawing_skill_ids:

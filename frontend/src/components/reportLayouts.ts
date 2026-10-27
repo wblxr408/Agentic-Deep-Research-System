@@ -12,6 +12,8 @@ export interface LayoutSample {source_id:string;file_name:string;parse:{format:s
 export const layoutRoles=uiDefinition({overview:'概览',findings:'研究发现',evolution:'演进',comparison:'比较',relationships:'合作关系',recommendations:'建议',references:'参考资料',general:'正文'})
 export const layoutKinds=uiDefinition({text:'段落',heading:'小标题',list:'列表',metric:'指标',chart:'图表',table:'表格',image:'图像',callout:'重点摘记'})
 export const layoutInteractions=uiDefinition({contents:'目录',expand:'展开收起',sort:'表格排序',filter:'筛选',tooltip:'悬停提示',tabs:'标签页'})
+export const layoutBindings=uiDefinition({auto:'按章节匹配',narrative:'报告文字',statistics:'统计数据',relationships:'关系数据',technical_comparison:'技术对照',sources:'引用来源'})
+export const layoutMissing=uiDefinition({omit:'省略组件',text:'使用已有文字',require_data:'等待所需资料'})
 export function layoutRole(role:string){return (layoutRoles as Record<string,string>)[role]||t('正文')}
 export function nextLayoutId(prefix:string,ids:string[]){let n=1;while(ids.includes(`${prefix}-${n}`))n++;return `${prefix}-${n}`}
 export function newLayoutBlock(id:string,span=12):LayoutBlock{return {block_id:id,kind:'text',level:null,binding:'auto',chart_kind:'auto',span,aspect:'auto',missing:'text'}}

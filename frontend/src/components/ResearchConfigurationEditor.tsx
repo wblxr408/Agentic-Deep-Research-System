@@ -13,10 +13,10 @@ async function post(path:string,body:unknown) {
   if(!response.ok)throw new Error(typeof value.detail==='string'?value.detail:t("请检查对象、日期和报告选择后重新预览。"))
   return value
 }
-export default function ResearchConfigurationEditor({query,parameters,onStarted}:{query:string;parameters?:Record<string,unknown>;onStarted:(sessionId:string)=>void}) {
+export default function ResearchConfigurationEditor({query,parameters,previewSessionId,onStarted}:{query:string;parameters?:Record<string,unknown>;previewSessionId?:string;onStarted:(sessionId:string)=>void}) {
   useLocale()
 
-  const [value,setValue]=useState(()=>setupFromRequest(parameters,query)),[preview,setPreview]=useState<{key:string;value:UnderstandingSnapshot}|null>(null)
+  const [value,setValue]=useState(()=>setupFromRequest(parameters,query,previewSessionId)),[preview,setPreview]=useState<{key:string;value:UnderstandingSnapshot}|null>(null)
   const [busy,setBusy]=useState(false),[starting,setStarting]=useState(false),[error,setError]=useState('')
   const pending=useRef(false),current=useRef(value),input=useRef<HTMLTextAreaElement>(null);current.current=value
   const skills=useQuery<{items:Array<{id:string;name:string;enabled:boolean}>}>({queryKey:['skills'],queryFn:async()=>{const response=await fetch('/api/v1/skills');if(!response.ok)throw new Error(t("暂时无法读取研究方法"));return response.json()}})

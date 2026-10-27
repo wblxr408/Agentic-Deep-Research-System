@@ -64,11 +64,12 @@ export interface UnderstandingSnapshot {
 
 export function deliveryDraftRequest(draft:QueryDraft) {
   const layoutActive=draft.template==='custom'&&draft.layoutMode==='layout'&&draft.layout
+  const figureSlots=new Set(layoutActive?draft.layout!.sections.flatMap(section=>section.blocks.filter(block=>['chart','table','image'].includes(block.kind)).map(block=>block.block_id)):[])
   return {template:draft.template,theme:draft.theme,output_kind:draft.outputKind||'auto',copied_from_template:draft.copiedFromTemplate||null,
     pages:draft.template==='custom'&&!layoutActive?draft.pages.map((page,index)=>({page_id:`page-${index+1}`,title:page.title,module:page.module||null,question:page.question,chart_kind:page.chart})):[],
     ...(layoutActive?{layout:draft.layout}:{}),
     drawing_mode:draft.drawingMode,drawing_skill_ids:draft.drawingMode==='manual_skill'?draft.drawingSkillIds:[],
-    chart_skill_ids:draft.drawingMode==='builtin'?{}:Object.fromEntries(Object.entries(draft.chartSkillIds||{}).filter(([,id])=>id)),formats:draft.formats}
+    chart_skill_ids:draft.drawingMode==='builtin'?{}:Object.fromEntries(Object.entries(draft.chartSkillIds||{}).filter(([key,id])=>id&&(!key.startsWith('block-')||figureSlots.has(key)))),formats:draft.formats}
 }
 
 export function queryDraftRequest(draft: QueryDraft, organizationEnabled: boolean) {

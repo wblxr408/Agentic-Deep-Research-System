@@ -44,7 +44,14 @@ def diagnose_stop(state,*,active_execution=False):
         return result
     audit=review.get('final_report_audit') or {}
     revisions=audit.get('revision_requests') or []
-    if reason=='final_report_needs_revision':
+    if reason=='layout_required_data_missing':
+        result.update(summary='报告版式有组件缺少所需资料',next_step='可补充相关资料，或调整这些组件的缺失处理方式。',action='restart')
+        labels={'statistics':'缺少可核对的统计数据。','relationships':'缺少有来源的关系数据。',
+            'technical_comparison':'缺少有来源的技术对照。','sources':'缺少可引用的来源。',
+            'narrative':'缺少相应的报告文字。','auto':'缺少与组件匹配的资料。'}
+        result['findings']=[{'text':f"第 {item.get('section_index','?')} 章 · 第 {item.get('block_index','?')} 个组件",
+            'detail':labels.get(item.get('binding'),labels['auto'])} for item in (review.get('layout_missing') or [])[:96]]
+    elif reason=='final_report_needs_revision':
         result['summary']=f'报告核对发现 {len(revisions)} 项内容需要修订' if revisions else '报告核对发现需要修订的内容'
         for item in revisions[:100]:
             result['findings'].append({'text':str(item.get('text') or '')[:240],

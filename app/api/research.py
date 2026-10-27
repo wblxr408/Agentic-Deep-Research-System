@@ -1500,6 +1500,25 @@ async def get_research_result(session_id: str, principal: Principal = principal_
     return safe
 
 
+@router.post('/{session_id}/layout-preview')
+async def preview_report_layout(session_id:uuid.UUID, delivery:DeliveryRequest, principal:Principal=principal_dependency):
+    """Preview one owner's completed report against a declarative layout, without a model or writes."""
+    if delivery.layout is None:
+        raise HTTPException(422,'layout_preview_requires_layout')
+    retained=await get_research_result(str(session_id),principal)
+    if retained.get('status')!='completed' or not retained.get('report'):
+        raise HTTPException(409,'layout_preview_requires_completed_report')
+    understanding=deepcopy(retained.get('query_understanding') or {})
+    snapshot=delivery.model_dump(mode='json')
+    understanding['delivery']={**snapshot,'descriptor_id':identity(snapshot)}
+    from app.research_delivery import build_delivery_view
+    view=build_delivery_view(task_id=str(session_id),execution_id=retained.get('execution_id'),
+        query=retained.get('query') or '',report=retained['report'],citations=retained.get('citations') or [],
+        understanding=understanding,organization_result=retained.get('organization_result'),audit=retained.get('report_audit'))
+    return projection({'binding':view['layout_binding'],'charts':view['charts'],
+        'effects':{'model_calls':0,'network_calls':0,'permissions_changed':False}})
+
+
 @router.get("/{session_id}/tool-calls", response_model=list[ToolCallAuditRecord])
 async def get_research_tool_calls(session_id: str, principal: Principal = principal_dependency):
     """Get persisted per-call tool audit rows for a research session."""

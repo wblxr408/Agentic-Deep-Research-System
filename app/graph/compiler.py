@@ -2680,9 +2680,32 @@ async def report_node(state: ResearchState) -> dict:
         paused=_model_budget_pause(state,agent,'report',error,report=report,citations=citations)
         paused['organization_result']=organization_result
         return paused
-    drawing_mode=((state.get('query_understanding') or {}).get('delivery') or {}).get('drawing_mode','builtin')
+    delivery_snapshot=((state.get('query_understanding') or {}).get('delivery') or {})
+    drawing_mode=delivery_snapshot.get('drawing_mode','builtin')
+    layout_view=None
+    if delivery_snapshot.get('layout') is not None:
+        from app.research_delivery import build_delivery_view
+        current=await current_synthesis_state(state)
+        if current.get('collected_evidence')!=state.get('collected_evidence'):
+            state['evidence_access_gaps']=current.get('evidence_access_gaps',[])
+            return _model_budget_pause(state,agent,'report',TokenBudgetExceeded('report_sources_changed_before_publication'),report=report,citations=citations)
+        layout_view=build_delivery_view(task_id=str(state['task_id']),execution_id=state.get('session',{}).get('execution_id'),
+            query=state['user_query'],report=report,citations=[item.model_dump() for item in citations],
+            understanding=state.get('query_understanding'),organization_result=organization_result,audit=agent.last_audit)
+        binding=layout_view['layout_binding']
+        organization_result={**(organization_result or {}),'layout_binding_status':{
+            'schema_version':binding['schema_version'],'status':binding['status'],'missing':binding['missing']}}
+        if binding['required_missing']:
+            paused=_model_budget_pause(state,agent,'report',TokenBudgetExceeded('layout_required_data_missing'),report=report,citations=citations)
+            paused['organization_result']=organization_result
+            paused['review_status']['layout_missing']=binding['required_missing']
+            from app.research_diagnostics import diagnose_stop
+            paused['review_status']['pause_diagnosis']=diagnose_stop({**state,**paused})
+            paused['agent_trace'][-1]['content']=paused['review_status']['pause_diagnosis']['summary']
+            return paused
     rendering_trace=[]
-    if drawing_mode!='builtin':
+    layout_without_figures=layout_view is not None and not any(page.get('charts') for page in layout_view['pages'])
+    if drawing_mode!='builtin' and not layout_without_figures:
         from app.research_delivery import build_delivery_view
         from app.research_figures import execute_drawing
         # The next model phase must not receive newly revoked private data.
@@ -2690,7 +2713,7 @@ async def report_node(state: ResearchState) -> dict:
         if current.get('collected_evidence')!=state.get('collected_evidence'):
             state['evidence_access_gaps']=current.get('evidence_access_gaps',[])
             return _model_budget_pause(state,agent,'report',TokenBudgetExceeded('drawing_sources_changed'),report=report,citations=citations)
-        view=build_delivery_view(task_id=str(state['task_id']),execution_id=state.get('session',{}).get('execution_id'),
+        view=layout_view or build_delivery_view(task_id=str(state['task_id']),execution_id=state.get('session',{}).get('execution_id'),
             query=state['user_query'],report=report,citations=[item.model_dump() for item in citations],
             understanding=state.get('query_understanding'),organization_result=organization_result,audit=agent.last_audit)
         policy=((state.get('query_understanding') or {}).get('delivery') or {}).get('drawing_policy') or {}
