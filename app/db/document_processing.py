@@ -49,4 +49,23 @@ CREATE TABLE IF NOT EXISTS retrieval_multimodal_features (
     CHECK(CASE WHEN jsonb_typeof(text_windows)='array' THEN octet_length(text_vectors)=jsonb_array_length(text_windows)*dimension*4 ELSE false END)
 );
 CREATE INDEX IF NOT EXISTS idx_retrieval_multimodal_owner_source ON retrieval_multimodal_features(owner_id,source_id);
+CREATE TABLE IF NOT EXISTS source_entity_links (
+    id UUID PRIMARY KEY,owner_id UUID NOT NULL,source_id UUID NOT NULL,operation_id UUID NOT NULL,
+    parse_version TEXT NOT NULL,lifecycle_revision BIGINT NOT NULL,chunk_id TEXT NOT NULL,
+    entity_index INTEGER NOT NULL CHECK(entity_index BETWEEN 0 AND 99),entity_kind TEXT NOT NULL,
+    entity_name TEXT NOT NULL,span_start INTEGER NOT NULL,span_end INTEGER NOT NULL,
+    target_uri TEXT NOT NULL,state TEXT NOT NULL CHECK(state IN ('active','revoked')),revision BIGINT NOT NULL CHECK(revision>0),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE(owner_id,operation_id,entity_index,target_uri),
+    FOREIGN KEY(owner_id,operation_id,source_id) REFERENCES document_processing_operations(owner_id,id,source_id) ON DELETE CASCADE,
+    FOREIGN KEY(source_id,owner_id) REFERENCES document_sources(id,owner_id) ON DELETE CASCADE,
+    CHECK(span_start>=0 AND span_end>span_start)
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_active_entity_link_mention ON source_entity_links(owner_id,operation_id,entity_index) WHERE state='active';
+CREATE INDEX IF NOT EXISTS idx_entity_links_owner_source ON source_entity_links(owner_id,source_id,parse_version,chunk_id,state);
+CREATE TABLE IF NOT EXISTS source_entity_link_actions (
+    owner_id UUID NOT NULL,request_id UUID NOT NULL,source_id UUID NOT NULL,fingerprint TEXT NOT NULL,result JSONB NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),PRIMARY KEY(owner_id,request_id),
+    FOREIGN KEY(source_id,owner_id) REFERENCES document_sources(id,owner_id) ON DELETE CASCADE
+);
 """

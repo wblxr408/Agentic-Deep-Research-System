@@ -489,6 +489,16 @@ class RAGAgent:
                                 AND input_description->'primary'->>'chunk_profile_id'=$6
                                 ORDER BY accepted_at DESC,id LIMIT 1''',owner_id,actual_source_id,meta.get('parse_version_id'),
                                 row['source_access_revision'],chunk_id,meta.get('chunk_profile_id'))
+                            linked_entities=await conn.fetch('''SELECT l.entity_name,l.entity_kind,l.span_start,l.span_end,l.target_uri
+                                FROM source_entity_links l JOIN document_processing_operations o
+                                ON o.id=l.operation_id AND o.owner_id=l.owner_id AND o.source_id=l.source_id
+                                WHERE l.owner_id=$1::uuid AND l.source_id=$2::uuid AND l.parse_version=$3 AND l.lifecycle_revision=$4
+                                  AND l.chunk_id=$5 AND l.state='active' AND o.status='completed' AND o.accepted
+                                  AND o.input_description->'primary'->>'chunk_profile_id'=$6 ORDER BY l.created_at,l.id LIMIT 8''',
+                                owner_id,actual_source_id,meta.get('parse_version_id'),row['source_access_revision'],chunk_id,meta.get('chunk_profile_id'))
+                        if linked_entities:meta['linked_entities']=[{'name':item['entity_name'],'kind':item['entity_kind'],
+                            'start':item['span_start'],'end':item['span_end'],'uri':item['target_uri'],
+                            'origin':'user_declared_identity_not_independently_verified'} for item in linked_entities]
                         candidates=[]
                         for annotation in annotations:
                             value=json.loads(annotation['result']) if isinstance(annotation['result'],str) else annotation['result'] or {}

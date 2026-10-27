@@ -6,6 +6,7 @@ import {collectionRequest,jsonOptions} from './CollectionUI'
 interface Chunk {logical_chunk_id:string;start:number;end:number;title_path:Array<{title:string}>}
 interface Entity {name:string;kind:string;start:number;end:number}
 interface Relation {subject:string;predicate:string;object:string;evidence:string;start:number;end:number}
+interface EntityLink {id:string;operation_id:string;entity_index:number;target_uri:string;state:'active'|'revoked';revision:number}
 interface Operation {operation_id:string;kind:string;status:string;accepted:boolean;input:{primary:{chunk_id:string}};
   result:{entities:Entity[];relations:Relation[];omitted_unanchored_or_invalid:number}|null;model_name:string;
   error_category:string|null;usage:{status:string;total_tokens?:number}|null}
@@ -17,14 +18,17 @@ const errors:Record<string,string>=uiDefinition({processing_personal_model_requi
   processing_data_class_not_allowed:'资料包含受限内容，无法发送给当前模型',processing_sensitive_urls_not_allowed:'片段包含受限链接，请先处理链接',
   processing_model_request_rejected:'模型拒绝了本次请求',processing_model_invalid_response:'模型未返回可读取的结果',processing_model_busy:'模型暂时繁忙',
   processing_model_authentication_failed:'模型凭据未通过验证',processing_model_response_unknown:'模型响应未确认',processing_source_busy:'这份资料正在处理中',
-  processing_active_limit:'已有其他资料正在处理',processing_history_limit:'处理记录已达到上限'})
+  processing_active_limit:'已有其他资料正在处理',processing_history_limit:'处理记录已达到上限',entity_link_uri_invalid:'请输入 HTTPS 地址或 URN',
+  entity_link_already_has_target:'该实体已有链接，请先移除',entity_link_revision_conflict:'链接已变化，请重新读取',entity_link_candidate_unavailable:'实体候选已变化，请重新识别',
+  entity_link_source_span_changed:'原文位置已变化，请重新识别',entity_link_limit:'本资料的实体链接数量已达上限'})
 
 export default function ChunkEntityPanel({sourceId,parseVersion,profileId,chunks}:{sourceId:string;parseVersion:string;profileId:string;chunks:Chunk[]}){
-  const locale=useLocale(),client=useQueryClient(),[chunk,setChunk]=useState(''),[busy,setBusy]=useState(''),[error,setError]=useState(''),[expanded,setExpanded]=useState<string|null>(null)
-  const requestId=useRef(crypto.randomUUID()),guard=useRef(false)
+  const locale=useLocale(),client=useQueryClient(),[chunk,setChunk]=useState(''),[busy,setBusy]=useState(''),[error,setError]=useState(''),[expanded,setExpanded]=useState<string|null>(null),[uris,setUris]=useState<Record<string,string>>({})
+  const requestId=useRef(crypto.randomUUID()),linkRequests=useRef<Record<string,string>>({}),guard=useRef(false)
   const query=useQuery<{items:Operation[]}>({queryKey:['document-processing',sourceId],queryFn:({signal})=>collectionRequest(`/api/v1/documents/sources/${sourceId}/processing`,{signal}),
     refetchInterval:value=>busy==='start'||value.state.data?.items.some(item=>['preparing','running'].includes(item.status))?2000:false})
   const active=query.data?.items.some(item=>['preparing','running'].includes(item.status))||false
+  const links=useQuery<{items:EntityLink[]}>({queryKey:['document-entity-links',sourceId],queryFn:({signal})=>collectionRequest(`/api/v1/documents/sources/${sourceId}/entity-links`,{signal})})
   async function start(){
     if(!chunk||guard.current)return
     guard.current=true;setBusy('start');setError('')
@@ -45,18 +49,33 @@ export default function ChunkEntityPanel({sourceId,parseVersion,profileId,chunks
     try{await collectionRequest(`/api/v1/documents/sources/${sourceId}/processing/${item.operation_id}/cancel`,jsonOptions({}));await client.invalidateQueries({queryKey:['document-processing',sourceId]})}
     catch{setError(t('暂时无法完成，请重试'))}
   }
+  async function changeLink(item:Operation,index:number,current?:EntityLink){
+    const key=`${item.operation_id}:${index}`,uri=(uris[key]||'').trim()
+    if(guard.current||!current&&!uri)return
+    guard.current=true;setBusy(key);setError('');linkRequests.current[key]??=crypto.randomUUID()
+    const payload=current?{request_id:linkRequests.current[key],action:'revoke',link_id:current.id,expected_revision:current.revision}:
+      {request_id:linkRequests.current[key],action:'link',operation_id:item.operation_id,entity_index:index,target_uri:uri}
+    try{await collectionRequest(`/api/v1/documents/sources/${sourceId}/entity-links`,jsonOptions(payload));delete linkRequests.current[key]
+      await client.invalidateQueries({queryKey:['document-entity-links',sourceId]});await client.invalidateQueries({queryKey:['document-features',sourceId]})}
+    catch(problem){const code=problem instanceof Error?problem.message:'';setError(errors[code]||t('处理未完成'))}
+    finally{guard.current=false;setBusy('')}
+  }
   return <section className="document-visual-panel" aria-label={t('实体与关系候选')}>
     <div className="document-visual-header"><div><h5>{t('实体与关系候选')}</h5><p>{t('选择一个片段，让模型识别其中的人、机构、技术与关系。')}</p></div></div>
     <div className="document-visual-form"><label className="collection-field">{t('选择片段')}<select value={chunk} disabled={!!busy} onChange={event=>{setChunk(event.target.value);requestId.current=crypto.randomUUID()}}><option value="">{t('请选择')}</option>{chunks.map((item,index)=><option key={item.logical_chunk_id} value={item.logical_chunk_id}>{t('片段 {0}',index+1)} · {item.title_path.map(part=>part.title).join(' / ')||`${item.start}–${item.end}`}</option>)}</select></label>
       <button type="button" className="btn-secondary" disabled={!chunk||!!busy||active} onClick={()=>void start()}>{busy==='start'?t('正在处理…'):t('识别候选')}</button></div>
     {error&&<p role="alert">{uiMessage(error)}</p>}
+    {links.isError&&<p role="alert">{t('身份链接暂时无法读取')}</p>}
     {!!query.data?.items.length&&<div className="document-visual-history">{query.data.items.filter(item=>item.kind==='entity_extraction').map(item=><article key={item.operation_id}>
       <div className="document-visual-row"><button type="button" className="btn-ghost" onClick={()=>setExpanded(expanded===item.operation_id?null:item.operation_id)}>{t('实体与关系候选')} · {states[item.status]||item.status}</button><span>{item.model_name}</span>{['preparing','running'].includes(item.status)&&<button type="button" className="btn-ghost" onClick={()=>void cancel(item)}>{t('取消处理')}</button>}</div>
       {item.error_category&&<p>{errors[item.error_category]||t('处理未完成')}</p>}{item.usage&&<p>{item.usage.status==='reported'?t('实际用量 {0} Token',item.usage.total_tokens):t('用量待确认')}</p>}
-      {expanded===item.operation_id&&item.result&&<div className="document-visual-result"><section><strong>{t('识别的实体')}</strong>{item.result.entities.length?<ul>{item.result.entities.map((entity,index)=><li key={index}>{entity.name} · {kinds[entity.kind]||t('其他')}</li>)}</ul>:<p>{t('没有可定位的实体')}</p>}</section>
+      {expanded===item.operation_id&&item.result&&<div className="document-visual-result"><section><strong>{t('识别的实体')}</strong>{item.result.entities.length?<ul>{item.result.entities.map((entity,index)=>{
+        const key=`${item.operation_id}:${index}`,current=links.data?.items.find(link=>link.operation_id===item.operation_id&&link.entity_index===index&&link.state==='active')
+        return <li key={index} className="my-2"><p>{entity.name} · {kinds[entity.kind]||t('其他')}</p>{current?<div className="flex flex-wrap items-center gap-2"><span className="break-all text-xs">{current.target_uri}</span><button type="button" className="btn-ghost" disabled={!!busy} onClick={()=>void changeLink(item,index,current)}>{t('移除链接')}</button></div>:
+          <div className="flex flex-wrap items-center gap-2"><input className="input-xm text-xs" aria-label={t('身份链接')} placeholder={t('HTTPS 地址或 URN')} disabled={links.isPending||links.isError} value={uris[key]||''} onChange={event=>{setUris({...uris,[key]:event.target.value});delete linkRequests.current[key]}}/><button type="button" className="btn-ghost" disabled={!!busy||links.isPending||links.isError||!(uris[key]||'').trim()} onClick={()=>void changeLink(item,index)}>{t('关联身份')}</button></div>}</li>})}</ul>:<p>{t('没有可定位的实体')}</p>}</section>
         {!!item.result.relations.length&&<section><strong>{t('关系候选')}</strong><ul>{item.result.relations.map((relation,index)=><li key={index}>{relation.subject} · {relation.predicate} · {relation.object}<p>{relation.evidence}</p></li>)}</ul></section>}
         {!!item.result.omitted_unanchored_or_invalid&&<p>{t('有 {0} 项未能定位，未加入候选',item.result.omitted_unanchored_or_invalid)}</p>}
-        <button type="button" className="btn-secondary" disabled={!!busy} onClick={()=>void mark(item)}>{item.accepted?t('从后续研究移除'):t('用于后续研究')}</button></div>}
+        <p>{t('关联身份后，可选择用于后续研究。')}</p><button type="button" className="btn-secondary" disabled={!!busy} onClick={()=>void mark(item)}>{item.accepted?t('从后续研究移除'):t('用于后续研究')}</button></div>}
     </article>)}</div>}
   </section>
 }

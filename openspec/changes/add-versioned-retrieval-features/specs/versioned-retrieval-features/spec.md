@@ -52,3 +52,6 @@
 
 ### Requirement: Actual multivector and image representations
 系统 SHALL 仅在明确选择和实际编码后保存token级多向量、图像或图文表示，绑定来源、模型空间、输入版本和权限；未取得原图、未配置兼容模型或空间不匹配时不得标为可比较。
+
+### Requirement: User-declared source-anchored identity links
+系统 SHALL 允许本人为实际原文中已定位的实体候选声明和撤销稳定身份标识，绑定账号、资料版本、片段和原文位置；重复提交不得重复修改。身份声明必须区别于独立核验，只有本人选择的候选及仍有效链接才可进入后续研究。

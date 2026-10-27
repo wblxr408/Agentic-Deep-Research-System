@@ -24,6 +24,7 @@ from app.rag.embedder import Embedder
 from app.security.auth import Principal, require_principal
 from app.evidence_chunks import ChunkPolicy,VERSION as CHUNK_VERSION,build_chunk_plan,parent_window,_span
 from app.retrieval_features import FeaturePolicy,build_feature_plan,dense_configuration,validate_vectors,vector_parameter
+from app.retrieval_entity_link import EntityLinkAction
 from app.db.retrieval_indexes import IndexPolicy,IndexAction,initialize_source_index,apply_index_action,adjacency_view,index_choices,source_chunk_metadata,VERSION as INDEX_VERSION
 from app.source_lifecycle import (RetentionPolicy,LifecycleAction,SourceRevision,BatchPublication,lock_owner,
     initialize_lifecycle,apply_lifecycle_action,publish_batch,revise_source,lifecycle_view,bump_epoch)
@@ -513,6 +514,18 @@ async def create_multimodal_features(source_id:uuid.UUID,file:DocumentUpload,req
     return await image_text_operation(principal.id,source_id,request_id,parse_version_id,raw,selection)
 
 
+@router.get('/sources/{source_id}/entity-links')
+async def list_document_entity_links(source_id:uuid.UUID,principal:PrincipalDep=None):
+    from app.retrieval_entity_link import list_links
+    return await list_links(principal.id,source_id)
+
+
+@router.post('/sources/{source_id}/entity-links')
+async def change_document_entity_link(source_id:uuid.UUID,payload:EntityLinkAction,principal:PrincipalDep=None):
+    from app.retrieval_entity_link import apply_link
+    return await apply_link(principal.id,source_id,payload)
+
+
 @router.post('/sources/{source_id}/processing/text')
 async def process_document_text(source_id:uuid.UUID,payload:DocumentTextProcessingRequest,principal:PrincipalDep=None):
     from app.document_processing import text_operation
@@ -583,6 +596,12 @@ async def get_source_features(source_id:uuid.UUID,include_chunks:bool=False,prin
             ON o.id=f.operation_id AND o.owner_id=f.owner_id AND o.source_id=f.source_id
             WHERE f.source_id=$1::uuid AND f.owner_id=$2::uuid AND f.source_version=$3 AND o.status='completed'
             ORDER BY o.created_at DESC,o.id DESC LIMIT 21''',str(source_id),principal.id,row['parse_version'] if row else None)
+        links=await conn.fetchrow('''SELECT count(*) AS active_count,count(*) FILTER (WHERE o.accepted) AS research_count
+            FROM source_entity_links l JOIN document_processing_operations o ON o.id=l.operation_id AND o.owner_id=l.owner_id AND o.source_id=l.source_id
+            JOIN document_source_lifecycle lc ON lc.owner_id=l.owner_id AND lc.source_id=l.source_id
+            WHERE l.source_id=$1::uuid AND l.owner_id=$2::uuid AND l.parse_version=$3 AND l.lifecycle_revision=lc.revision
+              AND lc.is_current AND lc.state='retained' AND l.state='active' AND o.status='completed' ''',
+            str(source_id),principal.id,row['parse_version'] if row else None)
     if not row:raise HTTPException(404,'source_not_found')
     view=json.loads(row['feature_plan']) if isinstance(row['feature_plan'],str) else row['feature_plan']
     if view and view.get('source_version')!=row['parse_version']:raise HTTPException(409,'feature_source_version_conflict')
@@ -593,6 +612,10 @@ async def get_source_features(source_id:uuid.UUID,include_chunks:bool=False,prin
             'additional_image_features':len(image_rows)>20},
             'candidate_decisions':{**(view.get('candidate_decisions') or {}),'multimodal':{'status':'image_encoded_source_text_when_available',
                 'joint_image_text_encoding':any(item['result'].get('text_windows') for item in records),'index_status':'not_published'}}}
+    if view and links and links['active_count']:
+        view={**view,'candidate_decisions':{**(view.get('candidate_decisions') or {}),'entity_linking':{
+            'status':'user_declared_identity_links','active_count':links['active_count'],'selected_for_research':links['research_count'],
+            'identity_independently_verified':False}}}
     if view and not include_chunks:
         view={**view,'children':view.get('children',[])[:20],'display_limit':20,'complete_children_included':False}
     return {'source_id':str(source_id),'parse_version_id':row['parse_version'],'view':view,'legacy_gap':not bool(view),

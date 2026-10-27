@@ -356,6 +356,10 @@ def evidence_context(evidence, query: str, *, deep: bool, max_bytes: int, prefer
             'collected_at':source.collected_at,'source_time_declarations':meta.get('time_declarations'),
             'chunk_reference':meta.get('chunk_reference'),
             'offset_unit': 'task_retained_evidence_character', 'excerpts': []}
+        linked=[item for item in (meta.get('linked_entities') or []) if isinstance(item,dict)
+            and isinstance(item.get('uri'),str) and len(item['uri'])<=300][:2]
+        if linked:record['user_declared_entity_links']={'items':linked,'offset_unit':'retained_source_document_character',
+            'identity_verified':False}
         if identity_only:
             pages=meta.get('pages') or []
             opening=max((page['end'] for page in pages[:2] if isinstance(page,dict)
