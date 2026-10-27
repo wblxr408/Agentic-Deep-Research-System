@@ -177,6 +177,9 @@ async def remove_member(principal, workspace_id, target_id):
         if target['state']=='active':
             await conn.execute('''UPDATE collaboration_members SET state=$3,updated_at=NOW()
                 WHERE workspace_id=$1::uuid AND principal_id=$2::uuid''',str(workspace_id),str(target_id),state)
+            # A later invitation must not silently reactivate the departing member's grants.
+            await conn.execute('''UPDATE collaboration_shares SET revoked_at=NOW()
+                WHERE workspace_id=$1::uuid AND owner_id=$2::uuid AND revoked_at IS NULL''',str(workspace_id),str(target_id))
         return {'state':state if target['state']=='active' else target['state'],'replayed':target['state']!='active'}
 
 

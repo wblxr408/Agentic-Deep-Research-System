@@ -1,13 +1,14 @@
 """Authenticated collaboration spaces; never impersonate the owning user."""
 from __future__ import annotations
 
-from typing import Annotated
+from typing import Annotated, Literal
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
 from app.db import shared_workspaces as spaces
+from app.db import workspace_shares as shares
 from app.security.auth import Principal, require_principal
 
 router = APIRouter(prefix='/api/v1/workspaces',tags=['workspaces'])
@@ -27,13 +28,21 @@ class InviteMember(BaseModel):
     username: Annotated[str, StringConstraints(strip_whitespace=True,min_length=3,max_length=120,pattern=r'^[A-Za-z0-9_.-]+$')]
 
 
+class ShareResource(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    request_id: UUID
+    resource_type: Literal['report','document']
+    resource_id: UUID
+    version: Annotated[str, StringConstraints(min_length=1,max_length=200)]
+
+
 async def _call(operation):
     try: return await operation
     except ValueError as error:
         message = str(error)
         code = (401 if message in {'workspace_authentication_required','email_authentication_required'} else
                 403 if message=='workspace_owner_required' else
-                404 if message in {'workspace_not_found','workspace_account_not_found','workspace_member_not_found','workspace_invitation_not_found'} else 409)
+                404 if message in {'workspace_not_found','workspace_account_not_found','workspace_member_not_found','workspace_invitation_not_found','workspace_resource_not_found'} else 409)
         raise HTTPException(code,message) from None
 
 
@@ -65,6 +74,31 @@ async def decline_invitation(invite_id:UUID,principal: Principal = principal_dep
 @router.get('/{workspace_id}')
 async def get_space(workspace_id:UUID,principal: Principal = principal_dependency):
     return await _call(spaces.workspace_detail(principal,workspace_id))
+
+
+@router.get('/{workspace_id}/shareable')
+async def shareable_resources(workspace_id:UUID,principal: Principal = principal_dependency):
+    return await _call(shares.shareable(principal,workspace_id))
+
+
+@router.get('/{workspace_id}/shares')
+async def list_shares(workspace_id:UUID,principal: Principal = principal_dependency):
+    return {'items':await _call(shares.list_shares(principal,workspace_id))}
+
+
+@router.post('/{workspace_id}/shares',status_code=201)
+async def share_resource(workspace_id:UUID,payload:ShareResource,principal: Principal = principal_dependency):
+    return await _call(shares.create_share(principal,workspace_id,payload.request_id,payload.resource_type,payload.resource_id,payload.version))
+
+
+@router.get('/{workspace_id}/shares/{share_id}')
+async def read_share(workspace_id:UUID,share_id:UUID,principal: Principal = principal_dependency):
+    return await _call(shares.read_share(principal,workspace_id,share_id))
+
+
+@router.delete('/{workspace_id}/shares/{share_id}')
+async def revoke_share(workspace_id:UUID,share_id:UUID,principal: Principal = principal_dependency):
+    return await _call(shares.revoke_share(principal,workspace_id,share_id))
 
 
 @router.post('/{workspace_id}/invitations',status_code=201)

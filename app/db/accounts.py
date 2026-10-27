@@ -91,6 +91,24 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_collaboration_pending_invite
     ON collaboration_invitations(workspace_id,invitee_id) WHERE state='pending';
 CREATE INDEX IF NOT EXISTS idx_collaboration_invitations_invitee
     ON collaboration_invitations(invitee_id,state,created_at DESC);
+CREATE TABLE IF NOT EXISTS collaboration_shares (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    workspace_id UUID NOT NULL REFERENCES collaboration_workspaces(id) ON DELETE CASCADE,
+    owner_id UUID NOT NULL REFERENCES auth_principals(id) ON DELETE CASCADE,
+    resource_type TEXT NOT NULL CHECK(resource_type IN ('report','document')),
+    resource_id UUID NOT NULL,
+    resource_version TEXT NOT NULL,
+    request_id UUID NOT NULL,
+    request_fingerprint TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    revoked_at TIMESTAMPTZ,
+    UNIQUE(workspace_id,owner_id,request_id)
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_collaboration_active_share
+    ON collaboration_shares(workspace_id,owner_id,resource_type,resource_id,resource_version)
+    WHERE revoked_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_collaboration_shares_workspace
+    ON collaboration_shares(workspace_id,created_at DESC) WHERE revoked_at IS NULL;
 ALTER TABLE skill_meta DROP CONSTRAINT IF EXISTS skill_meta_slug_key;
 CREATE UNIQUE INDEX IF NOT EXISTS idx_skill_meta_owner_slug ON skill_meta(owner_id,slug);
 """
