@@ -8,6 +8,12 @@
 
 `GET /api/v1/auth/email` 读取本人已验证邮箱与服务配置状态；`POST /api/v1/auth/email/verification` 接收邮箱和当前密码后发送验证码，`POST /api/v1/auth/email/verify` 消费验证码。公开 `POST /api/v1/auth/password/forgot` 对存在与不存在的邮箱均返回 `check_email_if_account_exists`；`POST /api/v1/auth/password/reset` 消费代码和新密码。验证码失败、无配置、发信失败及限流分别返回错误；密码重置成功后须重新登录。该接口尚未经过真实请求，不代表邮箱恢复已可交付。
 
+## 组织空间源码进度（2026-10-27）
+
+本人可创建空间，通过应用内账号邀请其他人；只有受邀人接受后成为成员。空间所有者可撤回邀请、移除成员和归档空间，普通成员可退出；邀请七天有效。创建和邀请使用本人请求 UUID 保持重放身份，改变请求内容不能复用同一 UUID。默认管理员不是所有空间的成员，成员变更不删除或转移个人资料。空间最多 50 个／拥有者，每个空间最多 100 个活动成员与有效邀请。当前仅接入成员管理源码，资源分享与界面尚未完成，也未迁移或运行验证。
+
+`GET/POST /api/v1/workspaces` 列出／创建本人空间；`GET /api/v1/workspaces/invitations` 读取本人待处理邀请，`POST /api/v1/workspaces/invitations/{id}/accept` 或 `/decline` 处理。空间所有者通过 `POST /api/v1/workspaces/{id}/invitations` 指定用户名和 request_id 邀请，`DELETE /api/v1/workspaces/{id}/invitations/{invite_id}` 撤回；成员通过 `DELETE /api/v1/workspaces/{id}/members/{member_id}` 退出或由所有者移除，`DELETE /api/v1/workspaces/{id}` 归档空间。本人活动会话／角色在事务内复查，失效或不属于该空间不返回资源；邀请通过界面显示，不自动给他人发信。共享资料、报告和细节见同一 OpenSpec 后续任务。
+
 首次部署创建管理员；之后首页“注册”创建普通用户。已登录账号右上角显示用户名，点击进入账号页。登录后可使用自己的研究、资料、Skill、模板、权重预设和模型设置。用户名不区分大小写，密码至少 12 个字符且不超过 72 个 UTF-8 字节。
 
 ## 权限

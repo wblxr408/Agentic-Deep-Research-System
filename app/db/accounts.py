@@ -54,6 +54,43 @@ CREATE TABLE IF NOT EXISTS auth_email_rate_limits (
     PRIMARY KEY(key_hash,action)
 );
 CREATE INDEX IF NOT EXISTS idx_auth_email_rate_window ON auth_email_rate_limits(window_start);
+CREATE TABLE IF NOT EXISTS collaboration_workspaces (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    owner_id UUID NOT NULL REFERENCES auth_principals(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    request_id UUID NOT NULL,
+    request_fingerprint TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    archived_at TIMESTAMPTZ,
+    UNIQUE(owner_id,request_id)
+);
+CREATE TABLE IF NOT EXISTS collaboration_members (
+    workspace_id UUID NOT NULL REFERENCES collaboration_workspaces(id) ON DELETE CASCADE,
+    principal_id UUID NOT NULL REFERENCES auth_principals(id) ON DELETE CASCADE,
+    role TEXT NOT NULL CHECK(role IN ('owner','member')),
+    state TEXT NOT NULL CHECK(state IN ('active','removed','left')),
+    joined_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY(workspace_id,principal_id)
+);
+CREATE INDEX IF NOT EXISTS idx_collaboration_member ON collaboration_members(principal_id,state,workspace_id);
+CREATE TABLE IF NOT EXISTS collaboration_invitations (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    workspace_id UUID NOT NULL REFERENCES collaboration_workspaces(id) ON DELETE CASCADE,
+    inviter_id UUID NOT NULL REFERENCES auth_principals(id) ON DELETE CASCADE,
+    invitee_id UUID NOT NULL REFERENCES auth_principals(id) ON DELETE CASCADE,
+    request_id UUID NOT NULL,
+    request_fingerprint TEXT NOT NULL,
+    state TEXT NOT NULL CHECK(state IN ('pending','accepted','declined','revoked','expired')),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    expires_at TIMESTAMPTZ NOT NULL,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE(workspace_id,inviter_id,request_id)
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_collaboration_pending_invite
+    ON collaboration_invitations(workspace_id,invitee_id) WHERE state='pending';
+CREATE INDEX IF NOT EXISTS idx_collaboration_invitations_invitee
+    ON collaboration_invitations(invitee_id,state,created_at DESC);
 ALTER TABLE skill_meta DROP CONSTRAINT IF EXISTS skill_meta_slug_key;
 CREATE UNIQUE INDEX IF NOT EXISTS idx_skill_meta_owner_slug ON skill_meta(owner_id,slug);
 """

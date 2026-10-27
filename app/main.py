@@ -22,6 +22,7 @@ from app.api import (
     health_router,
     research_router,
     skills_router,
+    workspaces_router,
 )
 from app.api.config import load_runtime_llm_config_from_db
 from app.config import get_settings
@@ -143,6 +144,7 @@ def create_app() -> FastAPI:
     app.include_router(config_router)
     app.include_router(documents_router)
     app.include_router(skills_router)
+    app.include_router(workspaces_router)
 
     # Root endpoint
     @app.get("/")
