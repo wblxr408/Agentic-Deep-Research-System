@@ -37,15 +37,16 @@ def paired_configuration():
     return pair
 
 
-def encode_paired_texts(chunks,*,role='document'):
+def encode_paired_texts(chunks,*,role='document',timeout=180):
     if role not in {'document','query'}:raise ValueError('multivector_invalid_role')
     pair=paired_configuration();cfg=get_settings().rag
     if not 1<=len(chunks)<=200:raise ValueError('multivector_chunk_limit')
+    if not isinstance(timeout,(int,float)) or not 0<timeout<=180:raise ValueError('multivector_deadline_unavailable')
     options={'model':pair[role+'_model'],'revision':pair[role+'_revision'],'max_input_tokens':pair['maximum_input_tokens']}
     with tempfile.TemporaryDirectory(prefix='adrs-multivector-') as directory:
         path=Path(directory)/'chunks.json';path.write_text(json.dumps({'chunks':chunks,'prefix':getattr(cfg,'multivector_'+role+'_prefix')},ensure_ascii=False),encoding='utf-8')
         raw=CommandRunner().run([sys.executable,str(Path(__file__).with_name('multivector_worker.py')),
-            str(path),json.dumps(options,ensure_ascii=True)],timeout=180,max_bytes=18*1024*1024)
+            str(path),json.dumps(options,ensure_ascii=True)],timeout=timeout,max_bytes=18*1024*1024)
     try:payload=json.loads(raw)
     except ValueError:raise ValueError('multivector_local_model_unavailable') from None
     if not isinstance(payload,dict) or not payload.get('ok'):

@@ -82,7 +82,7 @@ def search_route(query,understanding,*,channels=None,remaining_calls,remaining_s
         'top_k':min(20,max(1,int(max_results))),
         'variant_limit':int(options.get('max_variants',1)),
         'representation':{'lexical':'literal_terms_and_explicit_aliases',
-            'learned_sparse':'not_configured_no_model_or_compatible_index',
+            'learned_sparse':'internal_opt_in_only_external_channels_receive_text_queries',
             'dense':'internal_retrieval_only_when_explicitly_enabled',
             'behavioral':'no_authorized_behavior_dataset_or_model'},
         'authority':'existing_owner_channels_source_policy_and_root_budget'}

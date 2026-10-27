@@ -62,3 +62,30 @@ def encode_image_text(image,text,text_start,source_text_characters):
     profile['profile_id']=identity(profile)
     return {'image_bytes':image_bytes,'text_bytes':text_bytes,'dimension':dimension,'windows':windows,
         'profile':profile,'coverage':coverage}
+
+
+def encode_text_query(text,*,timeout=180):
+    options=configuration()
+    if not isinstance(text,str) or not text.strip() or len(text)>4000:raise ValueError('multimodal_query_invalid')
+    if not isinstance(timeout,(int,float)) or not 0<timeout<=180:raise ValueError('multimodal_deadline_unavailable')
+    with tempfile.TemporaryDirectory(prefix='adrs-multimodal-query-') as directory:
+        path=Path(directory)/'query.txt';path.write_text(text,encoding='utf-8')
+        raw=CommandRunner().run([sys.executable,str(Path(__file__).with_name('multimodal_query_worker.py')),
+            str(path),json.dumps(options,ensure_ascii=True)],timeout=timeout,max_bytes=128*1024)
+    try:payload=json.loads(raw)
+    except ValueError:raise ValueError('multimodal_local_model_unavailable') from None
+    if not isinstance(payload,dict) or not payload.get('ok'):
+        raise ValueError(payload.get('error','multimodal_local_model_unavailable') if isinstance(payload,dict) else 'multimodal_local_model_unavailable')
+    result=payload.get('result')
+    if not isinstance(result,dict) or not isinstance(result.get('profile'),dict):raise ValueError('multimodal_invalid_output')
+    dimension=result.get('dimension');profile=result['profile']
+    if (type(dimension) is not int or not 1<=dimension<=4096 or profile.get('model')!=options['model']
+            or profile.get('revision')!=options['revision']):raise ValueError('multimodal_invalid_output')
+    try:vector=base64.b64decode(result['vector_f32le'],validate=True)
+    except (KeyError,TypeError,ValueError,binascii.Error):raise ValueError('multimodal_invalid_output') from None
+    if len(vector)!=dimension*4:raise ValueError('multimodal_invalid_output')
+    values=[item[0] for item in struct.iter_unpack('<f',vector)]
+    if any(not math.isfinite(value) for value in values) or not .98<=math.sqrt(sum(value*value for value in values))<=1.02:
+        raise ValueError('multimodal_invalid_output')
+    profile['profile_id']=identity(profile)
+    return {'vector':vector,'dimension':dimension,'profile':profile,'input_tokens':result.get('input_tokens')}
