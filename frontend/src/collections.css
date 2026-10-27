@@ -22,6 +22,16 @@
 .source-sync-actions select{min-width:0;border:1px solid var(--line);border-radius:9px;padding:8px 10px;background:var(--surface);color:var(--ink);font:inherit;font-size:12px}
 .source-sync-history{padding:8px 12px;margin-top:12px;background:var(--surface);border-radius:8px}
 .source-sync-history p{overflow-wrap:anywhere}
+.document-visual-panel{display:grid;gap:12px;margin:18px 0;padding:16px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+.document-visual-header h5,.document-visual-panel p{margin:0}.document-visual-panel p{font-size:12px;line-height:1.6;color:var(--muted)}
+.document-visual-header{display:flex;gap:12px;justify-content:space-between}.document-visual-header h5{font-size:14px}.document-visual-header p{margin-top:5px}
+.document-visual-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr)) minmax(100px,.6fr) auto;gap:10px;align-items:end}.document-visual-history{display:grid;gap:10px}
+.document-visual-history article{border-top:1px solid var(--line);padding-top:10px}.document-visual-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.document-visual-row span{color:var(--muted);font-size:12px}.document-visual-result{display:grid;gap:10px;padding:12px 8px;white-space:pre-wrap;overflow-wrap:anywhere}
+.document-visual-result strong{font-size:12px}.document-visual-result ul{margin:4px 0;padding-left:18px;font-size:12px;line-height:1.6;color:var(--muted)}
+.document-visual-result textarea{width:100%;min-height:110px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);padding:9px;font:inherit;resize:vertical}
+.document-visual-candidate{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid var(--line)}
+@media(max-width:700px){.document-visual-form{grid-template-columns:1fr}}
 .source-webhook{display:grid;gap:12px;padding:16px;margin-top:12px;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
 .source-webhook p{margin:0;color:var(--muted);font-size:12px;line-height:1.7}
 .source-webhook [role=alert]{color:var(--danger)}

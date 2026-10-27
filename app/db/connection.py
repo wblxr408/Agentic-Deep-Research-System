@@ -25,6 +25,7 @@ from app.db.accounts import migrate_accounts
 from app.db.skill_versions import SCHEMA_SQL as SKILL_VERSIONS_SCHEMA_SQL
 from app.db.source_sync import SCHEMA_SQL as SOURCE_SYNC_SCHEMA_SQL
 from app.db.source_cdc import SCHEMA_SQL as SOURCE_CDC_SCHEMA_SQL
+from app.db.document_processing import SCHEMA_SQL as DOCUMENT_PROCESSING_SCHEMA_SQL
 
 if TYPE_CHECKING:
     import redis.asyncio as redis
@@ -446,6 +447,7 @@ async def init_db() -> asyncpg.Pool:
         await conn.execute(LIFECYCLE_SCHEMA_SQL)
         await conn.execute(SOURCE_SYNC_SCHEMA_SQL)
         await conn.execute(SOURCE_CDC_SCHEMA_SQL)
+        await conn.execute(DOCUMENT_PROCESSING_SCHEMA_SQL)
 
     _db_pool = pool
     logger.info("Database initialized successfully")

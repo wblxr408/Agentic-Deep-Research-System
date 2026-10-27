@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import Annotated, Any, Literal
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from app.core.time import utc_now_naive
 from app.db.connection import get_db_pool
@@ -65,6 +65,32 @@ class ParseReviewRequest(BaseModel):
     parse_version_id:str=Field(min_length=1,max_length=260)
     status:Literal['accepted_structure','needs_correction','unreadable']
     note:str=Field(min_length=1,max_length=2000)
+
+
+class DocumentTextProcessingRequest(BaseModel):
+    request_id:uuid.UUID
+    parse_version_id:str=Field(min_length=1,max_length=260)
+    kind:Literal['cleaning','semantic_comparison']
+    block_id:str=Field(pattern=r'^block:[1-9][0-9]*$',max_length=40)
+    secondary_source_id:uuid.UUID|None=None
+    secondary_parse_version:str|None=Field(default=None,min_length=1,max_length=260)
+    secondary_block_id:str|None=Field(default=None,pattern=r'^block:[1-9][0-9]*$',max_length=40)
+    language:Literal['zh','en']='zh'
+
+    @model_validator(mode='after')
+    def validate_secondary(self):
+        complete=all((self.secondary_source_id,self.secondary_parse_version,self.secondary_block_id))
+        supplied=any((self.secondary_source_id,self.secondary_parse_version,self.secondary_block_id))
+        if self.kind=='semantic_comparison' and not complete or self.kind=='cleaning' and supplied:
+            raise ValueError('processing_secondary_selection_invalid')
+        return self
+
+
+class MarginCleaningRequest(BaseModel):
+    request_id:uuid.UUID
+    expected_parse_version:str=Field(min_length=1,max_length=260)
+    expected_revision:int=Field(ge=0)
+    candidate_id:str=Field(pattern=r'^margin:[1-9][0-9]*$',max_length=40)
 
 
 def _slug_group(name: str) -> str:
@@ -356,13 +382,15 @@ async def list_sources(group_name: str | None = None,summary:bool=False, princip
 async def get_source_parsing(source_id:uuid.UUID,include_content:bool=False,principal:PrincipalDep=None):
     pool=await get_db_pool()
     async with pool.acquire() as conn:
-        row=await conn.fetchrow('SELECT original_text,metadata FROM document_sources WHERE id=$1::uuid AND owner_id=$2::uuid',str(source_id),principal.id)
+        row=await conn.fetchrow('''SELECT s.original_text,s.metadata,COALESCE(l.revision,0) AS lifecycle_revision FROM document_sources s
+            LEFT JOIN document_source_lifecycle l ON l.source_id=s.id AND l.owner_id=s.owner_id
+            WHERE s.id=$1::uuid AND s.owner_id=$2::uuid''',str(source_id),principal.id)
     if not row:raise HTTPException(404,'source_not_found')
     meta=_metadata(row['metadata'])
     structure=meta.get('document_parse')
     if not isinstance(structure,dict) or not meta.get('parse_version_id') or any(not isinstance(structure.get(key),list) for key in ('blocks','tables','figures')):
         structure=None
-    return {'source_id':str(source_id),'parse_version_id':meta.get('parse_version_id'),'profile':meta.get('parse_profile'),
+    return {'source_id':str(source_id),'parse_version_id':meta.get('parse_version_id'),'lifecycle_revision':row['lifecycle_revision'],'profile':meta.get('parse_profile'),
         'structure':structure,'text':row['original_text'] if include_content else None,
         'reviews':meta.get('parsing_reviews',[]),'status':'retained' if structure else 'legacy_structure_not_retained',
         'semantics':'人工接受仅指该版本结构，不代表事实、表格数值或图像理解已核实。'}
@@ -390,6 +418,72 @@ async def record_parse_review(source_id:uuid.UUID,payload:ParseReviewRequest,pri
         await conn.execute("UPDATE document_sources SET metadata=jsonb_set(metadata,'{parsing_reviews}',$3::jsonb),updated_at=$4 WHERE id=$1::uuid AND owner_id=$2::uuid",
             str(source_id),principal.id,json.dumps(reviews+[record],ensure_ascii=False),utc_now_naive())
     return record
+
+
+@router.get('/sources/{source_id}/processing')
+async def document_processing_records(source_id:uuid.UUID,principal:PrincipalDep=None):
+    from app.document_processing import list_operations
+    return await list_operations(principal.id,source_id)
+
+
+@router.post('/sources/{source_id}/processing/{operation_id}/cancel')
+async def cancel_document_processing(source_id:uuid.UUID,operation_id:uuid.UUID,principal:PrincipalDep=None):
+    from app.document_processing import cancel_operation
+    return await cancel_operation(principal.id,source_id,operation_id)
+
+
+@router.post('/sources/{source_id}/processing/vision')
+async def parse_document_image(source_id:uuid.UUID,file:DocumentUpload,request_id:uuid.UUID=Form(...),
+        parse_version_id:str=Form(...,min_length=1,max_length=260),target_kind:Literal['page','figure']=Form(...),
+        page:int|None=Form(default=None,ge=1,le=500),figure_id:str|None=Form(default=None,max_length=100),
+        language:Literal['zh','en']=Form(default='zh'),detail:Literal['low','high']=Form(default='low'),principal:PrincipalDep=None):
+    from app.config import get_settings
+    from app.document_processing import visual_operation
+    if (target_kind=='page' and (page is None or figure_id is not None)
+            or target_kind=='figure' and (not figure_id or page is not None)):
+        raise HTTPException(422,'visual_target_invalid')
+    maximum=get_settings().security.upload_max_bytes
+    raw=await file.read(maximum+1)
+    if len(raw)>maximum:raise HTTPException(413,'upload_too_large')
+    selection={'kind':'page','page':page,'detail':detail} if target_kind=='page' else {'kind':'figure','figure_id':figure_id,'detail':detail}
+    return await visual_operation(principal.id,source_id,request_id,parse_version_id,raw,selection,language)
+
+
+@router.post('/sources/{source_id}/processing/text')
+async def process_document_text(source_id:uuid.UUID,payload:DocumentTextProcessingRequest,principal:PrincipalDep=None):
+    from app.document_processing import text_operation
+    secondary={'source_id':str(payload.secondary_source_id),'parse_version':payload.secondary_parse_version,
+        'block_id':payload.secondary_block_id} if payload.kind=='semantic_comparison' else None
+    return await text_operation(principal.id,source_id,payload.request_id,payload.parse_version_id,payload.kind,
+        payload.block_id,secondary,payload.language)
+
+
+@router.post('/sources/{source_id}/parsing/remove-repeated-margin',status_code=201)
+async def remove_repeated_margin(source_id:uuid.UUID,payload:MarginCleaningRequest,principal:PrincipalDep=None):
+    pool=await get_db_pool()
+    async with pool.acquire() as conn:
+        row=await conn.fetchrow('''SELECT original_text,metadata FROM document_sources WHERE id=$1::uuid AND owner_id=$2::uuid''',
+            str(source_id),principal.id)
+    if not row:raise HTTPException(404,'source_not_found')
+    metadata=_metadata(row['metadata'])
+    if metadata.get('parse_version_id')!=payload.expected_parse_version:raise HTTPException(409,'parsing_version_not_available')
+    candidates=((metadata.get('document_parse') or {}).get('cleaning') or {}).get('repeated_page_margin_candidates') or []
+    candidate=next((item for item in candidates if item.get('candidate_id')==payload.candidate_id),None)
+    if not candidate:raise HTTPException(422,'cleaning_candidate_not_available')
+    text=row['original_text'] or '';occurrences=candidate.get('occurrences') or [];ranges=[]
+    for item in occurrences:
+        start,end=item.get('start'),item.get('end')
+        if type(start) is not int or type(end) is not int or start<0 or end<=start or end>len(text) or text[start:end].strip()!=item.get('text'):
+            raise HTTPException(409,'cleaning_candidate_location_changed')
+        ranges.append((start,end))
+    ranges.sort()
+    if len(ranges)<3 or any(ranges[index][1]>ranges[index+1][0] for index in range(len(ranges)-1)):
+        raise HTTPException(409,'cleaning_candidate_location_changed')
+    for start,end in reversed(ranges):text=text[:start]+text[end:]
+    revision=SourceRevision(request_id=payload.request_id,expected_revision=payload.expected_revision,
+        expected_parse_version=payload.expected_parse_version,reason='repeated_page_margin:'+payload.candidate_id,
+        mode='replace',text=text,format='txt',publish=True)
+    return await create_source_revision(source_id,revision,principal)
 
 
 @router.get('/sources/{source_id}/chunk-plan')

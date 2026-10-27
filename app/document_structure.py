@@ -18,6 +18,29 @@ MAX_FIGURES = 200
 MAX_CELLS = 2000
 
 
+def repeated_margin_candidates(text,blocks):
+    """Locate repeated page-edge lines without changing the retained text."""
+    pages=defaultdict(list)
+    for block in blocks:
+        page=block.get('source_locator',{}).get('page')
+        if not isinstance(page,int) or block.get('kind') not in {'paragraph','ocr_text'}:continue
+        for match in re.finditer(r'[^\n]+',text[block['start']:block['end']]):
+            value=match.group().strip()
+            if 3<=len(value)<=160 and not value.isdecimal():
+                pages[page].append((value,block['start']+match.start(),block['start']+match.end()))
+    occurrences=defaultdict(list)
+    for page,lines in pages.items():
+        selected=lines[:2]+lines[-2:]
+        seen=set()
+        for value,start,end in selected:
+            key=re.sub(r'\s+',' ',value).casefold()
+            if key in seen:continue
+            seen.add(key);occurrences[key].append({'page':page,'start':start,'end':end,'text':value})
+    return [{'candidate_id':f'margin:{index+1}','occurrences':items[:40],'total_pages':len(items),
+        'truncated':len(items)>40,'status':'repeated_page_edge_candidate','automatically_removed':False}
+        for index,items in enumerate([items for items in occurrences.values() if len(items)>=3][:30])]
+
+
 def normalize_text(raw, limit):
     """Piecewise character map, including CRLF contraction and visible errors."""
     pieces, mapping, raw_end, size = [], [], 0, 0
@@ -135,6 +158,8 @@ class DocumentBuilder:
                 'warnings':self.warnings,'retained_characters':len(text),'replacement_characters':replacements,
                 'replacement_ratio':replacements/max(1,len(text)),'pages_without_text':empty,
                 'semantic_confidence':None,'human_review':'not_reviewed'},
+            'cleaning':{'repeated_page_margin_candidates':repeated_margin_candidates(text,self.blocks),
+                'automatic_removal':False},
             'deduplication':{'exact_groups':exact,'near_candidates':candidates,'semantic_deduplication':'not_enabled_no_validated_semantic_merge_rule',
                 'candidate_comparisons':comparisons,'near_scope':'first_250_blocks_previous_25_at_most_2000_comparisons_40_candidates',
                 'automatic_content_removal':False},**extra}

@@ -47,3 +47,21 @@
 #### Scenario: Owner flags a parsing problem
 - **WHEN** 拥有者对某解析版本登记问题
 - **THEN** 保存独立审核记录；另一主体不可写入，该标记不改变已保存正文或原报告
+
+### Requirement: Explicit vision-based document observations
+系统 SHALL 允许本人选择匹配来源版本的原文件及页面或嵌入图，经有界本地渲染后调用本人授权的兼容视觉模型，保存版面、文字、图表和图片观察及实际页／图像来源。模型结果是独立派生记录，不覆盖原文、自动跟随外链或冒充已核验的图表数值。
+
+#### Scenario: Source changes while an observation is running
+- **WHEN** 视觉模型请求发出后来源版本、权限或账号状态发生变化
+- **THEN** 不把迟到结果写入该来源；既有原文、图像指针与报告保持原样
+
+#### Scenario: Image-capable provider is unavailable
+- **WHEN** 选择的模型不支持图片或请求失败
+- **THEN** 显示明确失败与实际／未知用量，不把源alt或图注伪装成模型观察
+
+### Requirement: Reversible model-assisted cleaning and semantic comparison
+系统 SHALL 允许本人选择有界原文块请求修复建议或语义相似分析；每项建议绑定具体源版本与原块，并与未修改的原文一同保存。任何采纳应通过已有显式来源修订建立新版本，语义相近不得触发跨来源自动合并。
+
+#### Scenario: Model proposes a different passage
+- **WHEN** 返回与原块不同的修复建议
+- **THEN** 提供前后内容和位置供本人选择，未明确应用前原文、原引用与既有报告不变
