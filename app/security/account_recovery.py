@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import re
 
 import asyncpg
@@ -39,6 +40,30 @@ async def current_email(principal_id: str):
     async with pool.acquire() as conn:
         row = await conn.fetchrow('SELECT address,verified_at FROM auth_verified_emails WHERE principal_id=$1::uuid', principal_id)
     return None if not row else {'address': row['address'], 'verified_at': row['verified_at'].isoformat()}
+
+
+async def rate_limit(action: str, scope: str, value: str, limit: int, *, window_seconds: int = 600):
+    """Shared database window; unknown addresses consume the same quota."""
+    key = hashlib.sha256((scope + ':' + value).encode('utf-8')).hexdigest()
+    pool = await get_db_pool()
+    async with pool.acquire() as conn:
+        count = await conn.fetchval('''INSERT INTO auth_email_rate_limits(key_hash,action,window_start,requests)
+            VALUES($1,$2,NOW(),1) ON CONFLICT(key_hash,action) DO UPDATE SET
+            requests=CASE WHEN auth_email_rate_limits.window_start<=NOW()-($3::int * INTERVAL '1 second')
+                THEN 1 ELSE auth_email_rate_limits.requests+1 END,
+            window_start=CASE WHEN auth_email_rate_limits.window_start<=NOW()-($3::int * INTERVAL '1 second')
+                THEN NOW() ELSE auth_email_rate_limits.window_start END RETURNING requests''', key,action,window_seconds)
+        # Bounded opportunistic cleanup; no background service or unbounded delete.
+        if int(key[:2],16) == 0:
+            await conn.execute('''DELETE FROM auth_email_rate_limits WHERE (key_hash,action) IN
+                (SELECT key_hash,action FROM auth_email_rate_limits WHERE window_start<NOW()-INTERVAL '2 days' LIMIT 200)''')
+    if count > limit: raise ValueError('email_rate_limited')
+
+
+async def invalidate_challenge(token: str):
+    pool = await get_db_pool()
+    async with pool.acquire() as conn:
+        await conn.execute('UPDATE auth_email_challenges SET consumed_at=NOW() WHERE token_hash=$1 AND consumed_at IS NULL', token_hash(token))
 
 
 async def issue_verification(principal: Principal, email: str, current_password: str):

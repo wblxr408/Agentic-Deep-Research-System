@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import asyncio
+import logging
 from datetime import UTC, datetime
 from uuid import UUID
 from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, Response, status
 from pydantic import BaseModel, Field, ConfigDict, field_validator
 
 from app.config import get_settings
@@ -28,6 +30,8 @@ from app.security.auth import (
 
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 principal_dependency = Depends(get_principal)
+logger = logging.getLogger(__name__)
+_recovery_mail_slots = asyncio.Semaphore(4)
 
 
 class BootstrapRequest(BaseModel):
@@ -63,10 +67,31 @@ class TokenCreateRequest(BaseModel):
     expires_in_days: int | None = Field(default=None, ge=1, le=365)
 
 
+class EmailBindingRequest(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    email: str = Field(min_length=3, max_length=254)
+    current_password: str = Field(min_length=1, max_length=256)
+
+
+class EmailRequest(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    email: str = Field(min_length=3, max_length=254)
+
+
+class EmailCodeRequest(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    token: str = Field(min_length=32, max_length=256)
+
+
+class PasswordResetRequest(EmailCodeRequest):
+    new_password: str = Field(min_length=12, max_length=256)
+
+
 @router.get("/status")
 async def auth_status():
+    from app.security.recovery_mail import configured
     return {"initialized": await is_initialized(), "auth_enabled": get_settings().security.auth_enabled,
-            "registration_enabled": await registration_enabled()}
+            "registration_enabled": await registration_enabled(), 'email_recovery_available': configured()}
 
 
 def _set_session_cookie(response: Response, token: str, expires_at: datetime) -> None:
@@ -142,6 +167,94 @@ async def change_password(payload: PasswordChangeRequest, principal: Principal =
     except ValueError as exc:
         raise HTTPException(422, str(exc)) from None
     return {"status": "password_changed_all_credentials_revoked"}
+
+
+def _request_client(request: Request):
+    return request.client.host if request.client else 'unknown'
+
+
+async def _email_limit(action, scope, value, limit):
+    from app.security.account_recovery import rate_limit
+    try: await rate_limit(action,scope,value,limit)
+    except ValueError: raise HTTPException(429,'email_rate_limited') from None
+
+
+@router.get('/email')
+async def get_email(principal: Principal = principal_dependency):
+    from app.security.account_recovery import current_email
+    from app.security.recovery_mail import configured
+    return {'email': await current_email(principal.id), 'available': configured()}
+
+
+@router.post('/email/verification')
+async def request_email_verification(payload: EmailBindingRequest, request: Request, principal: Principal = principal_dependency):
+    from app.security.account_recovery import issue_verification, invalidate_challenge, normalize_email
+    from app.security.recovery_mail import configured, send_challenge
+    if not configured(): raise HTTPException(503,'email_service_unavailable')
+    try: address = normalize_email(payload.email)
+    except ValueError: raise HTTPException(422,'email_invalid') from None
+    await _email_limit('verify_send','ip',_request_client(request),10)
+    await _email_limit('verify_send','owner',principal.id,5)
+    await _email_limit('verify_send','address',address,5)
+    challenge = None
+    try:
+        async with _recovery_mail_slots:
+            challenge = await issue_verification(principal,address,payload.current_password)
+            await asyncio.to_thread(send_challenge,challenge)
+    except ValueError as error:
+        raise HTTPException(401 if str(error) in {'invalid_credentials','email_authentication_required'} else 422,str(error)) from None
+    except Exception:
+        if challenge: await invalidate_challenge(challenge['token'])
+        logger.warning('Email verification delivery failed')
+        raise HTTPException(503,'email_delivery_unavailable') from None
+    return {'status':'sent','expires_in_seconds':1800}
+
+
+@router.post('/email/verify')
+async def complete_email_verification(payload: EmailCodeRequest, request: Request, principal: Principal = principal_dependency):
+    from app.security.account_recovery import verify_email
+    await _email_limit('verify_complete','ip',_request_client(request),20)
+    await _email_limit('verify_complete','owner',principal.id,10)
+    try: return await verify_email(principal,payload.token.strip())
+    except ValueError as error:
+        raise HTTPException(409 if str(error)=='email_unavailable' else 400,str(error)) from None
+
+
+async def _deliver_password_reset(address):
+    from app.security.account_recovery import issue_reset, invalidate_challenge
+    from app.security.recovery_mail import send_challenge
+    challenge = None
+    try:
+        async with _recovery_mail_slots:
+            challenge = await issue_reset(address)
+            if challenge: await asyncio.to_thread(send_challenge,challenge)
+    except Exception:
+        if challenge:
+            try: await invalidate_challenge(challenge['token'])
+            except Exception: pass
+        logger.warning('Password recovery delivery failed')
+
+
+@router.post('/password/forgot', status_code=status.HTTP_202_ACCEPTED)
+async def request_password_reset(payload: EmailRequest, request: Request, background_tasks: BackgroundTasks):
+    from app.security.account_recovery import normalize_email
+    from app.security.recovery_mail import configured
+    if not configured(): raise HTTPException(503,'email_service_unavailable')
+    try: address = normalize_email(payload.email)
+    except ValueError: raise HTTPException(422,'email_invalid') from None
+    await _email_limit('reset_send','ip',_request_client(request),10)
+    await _email_limit('reset_send','address',address,5)
+    background_tasks.add_task(_deliver_password_reset,address)
+    return {'status':'check_email_if_account_exists'}
+
+
+@router.post('/password/reset')
+async def complete_password_reset(payload: PasswordResetRequest, request: Request):
+    from app.security.account_recovery import reset_password
+    await _email_limit('reset_complete','ip',_request_client(request),20)
+    try: return await reset_password(payload.token.strip(),payload.new_password)
+    except ValueError as error:
+        raise HTTPException(400 if str(error)=='email_challenge_invalid' else 422,str(error)) from None
 
 
 @router.post("/tokens", status_code=status.HTTP_201_CREATED)

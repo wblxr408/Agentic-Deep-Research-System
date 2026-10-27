@@ -46,6 +46,14 @@ CREATE TABLE IF NOT EXISTS auth_email_challenges (
 );
 CREATE INDEX IF NOT EXISTS idx_auth_email_challenge_principal
     ON auth_email_challenges(principal_id,kind,created_at DESC);
+CREATE TABLE IF NOT EXISTS auth_email_rate_limits (
+    key_hash TEXT NOT NULL,
+    action TEXT NOT NULL,
+    window_start TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    requests INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY(key_hash,action)
+);
+CREATE INDEX IF NOT EXISTS idx_auth_email_rate_window ON auth_email_rate_limits(window_start);
 ALTER TABLE skill_meta DROP CONSTRAINT IF EXISTS skill_meta_slug_key;
 CREATE UNIQUE INDEX IF NOT EXISTS idx_skill_meta_owner_slug ON skill_meta(owner_id,slug);
 """

@@ -2,7 +2,11 @@
 
 ## 邮箱恢复源码进度（2026-10-27）
 
-邮箱验证和找回的持久化内核已接入源码：邮箱按账号唯一，待验证时不替换原邮箱；只保存高熵单次挑战的摘要与有效期，验证和密码重置按账号事务串行。绑定时复查当前凭据并要求当前密码；重置成功同时更新密码版本、撤销该用户会话和 API token，并作废其剩余挑战。发信、请求限流、API 和界面尚未接入，因此目前不能使用邮箱找回；数据库迁移和统一端到端均未运行。[实施计划](../openspec/changes/extend-account-workspaces/tasks.md)
+邮箱验证和找回的持久化内核、发信接口已接入源码：邮箱按账号唯一，待验证时不替换原邮箱；只保存高熵单次挑战的摘要与有效期，验证和密码重置按账号事务串行。绑定时复查当前凭据并要求当前密码；重置成功同时更新密码版本、撤销该用户会话和 API token，并作废其剩余挑战。找回请求对存在和不存在的邮箱返回相同结果，来源／账号／邮箱按动作限流；邮件服务未启用或配置不足返回不可用。当前界面尚未接入，数据库迁移、真实发信和统一端到端均未运行。[实施计划](../openspec/changes/extend-account-workspaces/tasks.md)
+
+部署者可通过 `SECURITY_EMAIL_RECOVERY_ENABLED`、`SECURITY_SMTP_HOST`、`SECURITY_SMTP_PORT`、`SECURITY_SMTP_MODE`（`tls` 或 `starttls`）、`SECURITY_SMTP_FROM`、`SECURITY_SMTP_USERNAME`、`SECURITY_SMTP_PASSWORD` 和 `SECURITY_SMTP_TIMEOUT_SECONDS` 配置自己的 SMTP 服务；凭据只放在部署环境。发送连接校验证书，邮件给出一次性代码，不依赖请求 Host 或把代码放到 URL。服务公开状态只说明配置是否齐全，不能据此确认 SMTP 可连接或邮件已送达。
+
+`GET /api/v1/auth/email` 读取本人已验证邮箱与服务配置状态；`POST /api/v1/auth/email/verification` 接收邮箱和当前密码后发送验证码，`POST /api/v1/auth/email/verify` 消费验证码。公开 `POST /api/v1/auth/password/forgot` 对存在与不存在的邮箱均返回 `check_email_if_account_exists`；`POST /api/v1/auth/password/reset` 消费代码和新密码。验证码失败、无配置、发信失败及限流分别返回错误；密码重置成功后须重新登录。该接口尚未经过真实请求，不代表邮箱恢复已可交付。
 
 首次部署创建管理员；之后首页“注册”创建普通用户。已登录账号右上角显示用户名，点击进入账号页。登录后可使用自己的研究、资料、Skill、模板、权重预设和模型设置。用户名不区分大小写，密码至少 12 个字符且不超过 72 个 UTF-8 字节。
 

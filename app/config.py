@@ -10,7 +10,7 @@ from __future__ import annotations
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import Field
+from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 ProviderName = Literal["qwen", "deepseek", "openai", "ollama", "anthropic"]
@@ -135,6 +135,14 @@ class SecuritySettings(BaseSettings):
     upload_rate_limit: int = Field(default=30, ge=1, le=500)
     upload_max_bytes: int = Field(default=25 * 1024 * 1024, ge=1024)
     upload_max_pages: int = Field(default=500, ge=1, le=10000)
+    email_recovery_enabled: bool = Field(default=False)
+    smtp_host: str = Field(default="", max_length=255)
+    smtp_port: int = Field(default=465, ge=1, le=65535)
+    smtp_mode: Literal['tls', 'starttls'] = Field(default='tls')
+    smtp_username: str = Field(default="", max_length=320)
+    smtp_password: SecretStr = Field(default=SecretStr(""))
+    smtp_from: str = Field(default="", max_length=254)
+    smtp_timeout_seconds: int = Field(default=15, ge=2, le=60)
 
     model_config = SettingsConfigDict(env_prefix="SECURITY_", env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
