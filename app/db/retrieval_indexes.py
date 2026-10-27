@@ -8,11 +8,13 @@ from uuid import UUID,uuid4
 
 from pydantic import Field,model_validator
 from app.research_scope import ScopeRecord
-from app.retrieval_features import VERSION as FEATURE_VERSION,TOKENIZER_VERSION,normalize_term
+from app.retrieval_features import VERSION as FEATURE_VERSION,TOKENIZER_VERSION,normalize_term,validate_sparse_output
 from app.evidence_chunks import identity,VERSION as CHUNK_VERSION
 
 VERSION='adrs-index-generation-v1'
 MAX_POSTINGS=200000
+MAX_SPARSE_POSTINGS=120000
+MAX_STEM_POSTINGS=200000
 
 RETRIEVAL_SCHEMA_SQL="""
 ALTER TABLE documents ADD COLUMN IF NOT EXISTS owner_id UUID;
@@ -41,6 +43,23 @@ CREATE TABLE IF NOT EXISTS retrieval_index_terms (
 CREATE INDEX IF NOT EXISTS idx_retrieval_terms_owner_term ON retrieval_index_terms(owner_id,term,generation_id,document_id);
 CREATE UNIQUE INDEX IF NOT EXISTS uq_documents_identity_owner_source ON documents(id,owner_id,source_id);
 CREATE UNIQUE INDEX IF NOT EXISTS uq_document_sources_identity_owner ON document_sources(id,owner_id);
+CREATE TABLE IF NOT EXISTS retrieval_sparse_postings (
+    generation_id UUID NOT NULL,document_id UUID NOT NULL,owner_id UUID NOT NULL,source_id UUID NOT NULL,
+    model_profile_id TEXT NOT NULL,vocabulary_id TEXT NOT NULL,token_id INTEGER NOT NULL CHECK(token_id>=0),
+    weight REAL NOT NULL CHECK(weight>0 AND weight<'Infinity'::real),
+    PRIMARY KEY(generation_id,document_id,token_id),
+    FOREIGN KEY(generation_id,owner_id,source_id) REFERENCES retrieval_index_generations(id,owner_id,source_id) ON DELETE CASCADE,
+    FOREIGN KEY(document_id,owner_id,source_id) REFERENCES documents(id,owner_id,source_id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_sparse_postings_lookup ON retrieval_sparse_postings(owner_id,model_profile_id,vocabulary_id,token_id,generation_id,document_id);
+CREATE TABLE IF NOT EXISTS retrieval_english_lexemes (
+    generation_id UUID NOT NULL,document_id UUID NOT NULL,owner_id UUID NOT NULL,source_id UUID NOT NULL,
+    configuration_id TEXT NOT NULL,lexeme TEXT NOT NULL CHECK(length(lexeme) BETWEEN 1 AND 512),
+    PRIMARY KEY(generation_id,document_id,lexeme),
+    FOREIGN KEY(generation_id,owner_id,source_id) REFERENCES retrieval_index_generations(id,owner_id,source_id) ON DELETE CASCADE,
+    FOREIGN KEY(document_id,owner_id,source_id) REFERENCES documents(id,owner_id,source_id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_english_lexemes_lookup ON retrieval_english_lexemes(owner_id,configuration_id,lexeme,generation_id,document_id);
 CREATE TABLE IF NOT EXISTS retrieval_model_features (
     document_id UUID PRIMARY KEY,source_id UUID NOT NULL,owner_id UUID NOT NULL,
     source_version TEXT NOT NULL,feature_profile_id TEXT NOT NULL,pair_id TEXT NOT NULL,
@@ -158,6 +177,16 @@ async def publish_source_index(conn,source_id,owner_id):
     entries={entry['logical_chunk_id']:entry for entry in features['children']}
     if len(entries)!=len(features['children']) or len(entries)>4000:raise ValueError('index_chunk_identity_or_limit_conflict')
     if {chunk['logical_chunk_id'] for chunk in plan.get('children',[])}!=set(entries) or len(plan.get('children',[]))!=len(entries):raise ValueError('index_chunk_feature_membership_conflict')
+    policy=(features.get('profile') or {}).get('policy') or {}
+    sparse_selected=policy.get('sparse') is True;stem_selected=policy.get('english_stemming') is True
+    sparse_profile=(features.get('profile') or {}).get('sparse_configuration') if sparse_selected else None
+    stem_profile=(features.get('profile') or {}).get('stemming_configuration') if stem_selected else None
+    if sparse_selected:
+        coverage=(features.get('learned_sparse') or {}).get('coverage')
+        vectors=[entries[chunk['logical_chunk_id']].get('learned_sparse') for chunk in plan['children']]
+        validate_sparse_output({'profile':sparse_profile,'coverage':coverage,'vectors':vectors},len(entries))
+    if stem_selected and (not isinstance(stem_profile,dict) or stem_profile.get('configuration')!='pg_catalog.english'):
+        raise ValueError('index_stemming_configuration_invalid')
     rows=await conn.fetch('SELECT id,content,metadata FROM documents WHERE source_id=$1::uuid AND owner_id=$2::uuid ORDER BY chunk_index',str(source_id),str(owner_id))
     if not rows and entries:
         if ((metadata.get('feature_profile') or {}).get('policy') or {}).get('dense'):
@@ -174,7 +203,8 @@ async def publish_source_index(conn,source_id,owner_id):
             VALUES($1::uuid,$2::uuid,$3,$4,$5,$6,$7,$8::jsonb,$9::uuid)''',records)
         rows=await conn.fetch('SELECT id,content,metadata FROM documents WHERE source_id=$1::uuid AND owner_id=$2::uuid ORDER BY chunk_index',str(source_id),str(owner_id))
     if len(rows)!=len(entries):raise ValueError('index_source_chunk_count_conflict')
-    generation=uuid4();documents=[];postings=[];truncated=0;omitted=0;seen=set()
+    generation=uuid4();documents=[];postings=[];sparse_postings=[];stem_postings=[]
+    truncated=0;omitted=0;seen=set();stem_omitted=0;stem_partial=0;sparse_truncated=0
     for row in rows:
         chunk_meta=_object(row['metadata']);reference=chunk_meta.get('chunk_reference') or {}
         logical=reference.get('logical_chunk_id');entry=entries.get(logical)
@@ -186,6 +216,21 @@ async def publish_source_index(conn,source_id,owner_id):
             raise ValueError('index_original_range_unavailable')
         if (source['original_text'] or '')[start:end]!=row['content'] or reference.get('start')!=start or reference.get('end')!=end:
             raise ValueError('index_original_version_text_conflict')
+        if sparse_selected:
+            vector=entry['learned_sparse'];terms=vector['terms'];sparse_truncated+=int(vector['top_k_truncated'])
+            if len(sparse_postings)+len(terms)>MAX_SPARSE_POSTINGS:raise ValueError('index_sparse_postings_limit')
+            sparse_postings.extend((str(generation),str(row['id']),str(owner_id),str(source_id),identity(sparse_profile),
+                sparse_profile['tokenizer_vocabulary_id'],term['token_id'],float(term['weight'])) for term in terms)
+        if stem_selected:
+            stem=entry.get('stemmed_english');terms=stem.get('lexemes') if isinstance(stem,dict) else None
+            if (not isinstance(terms,list) or len(terms)>1024 or any(not isinstance(term,str) or not term for term in terms)
+                    or len(set(terms))!=len(terms) or type(stem.get('truncated')) is not bool
+                    or type(stem.get('lexeme_count_before_limit')) is not int or stem['lexeme_count_before_limit']<len(terms)):
+                raise ValueError('index_stemming_representation_invalid')
+            retained=[term for term in terms if len(term)<=512]
+            stem_partial+=int(stem['truncated'] or len(retained)!=len(terms))
+            if len(stem_postings)+len(retained)>MAX_STEM_POSTINGS:stem_omitted+=1
+            else:stem_postings.extend((str(generation),str(row['id']),str(owner_id),str(source_id),identity(stem_profile),term) for term in retained)
         lexical=entry.get('lexical')
         if lexical is None:omitted+=1;continue
         terms=lexical.get('terms');length=lexical.get('length')
@@ -205,12 +250,21 @@ async def publish_source_index(conn,source_id,owner_id):
         'coverage':'unavailable' if rows and not documents else 'partial' if omitted or truncated else 'complete_retained_lexical_policy',
         'algorithm':'owned_postings_bm25_v1','bm25':{'k1':1.2,'b':.75,'statistics':'current_authorized_published_generations'},
         'tokenizer_version':TOKENIZER_VERSION,'parent_vectors_duplicated':False,
+        'learned_sparse':{'status':'published' if sparse_selected else 'not_selected','postings':len(sparse_postings),
+            'model_profile_id':identity(sparse_profile) if sparse_selected else None,'vocabulary_id':sparse_profile['tokenizer_vocabulary_id'] if sparse_selected else None,
+            'top_k_truncated_documents':sparse_truncated},
+        'english_stemming':{'status':'published' if stem_selected else 'not_selected','postings':len(stem_postings),
+            'configuration_id':identity(stem_profile) if stem_selected else None,'partial_documents':stem_partial,'omitted_documents':stem_omitted},
         'vector_access':'filtered_exact_only_no_new_ann','preparation_elapsed_seconds':round(time.monotonic()-started,6),
         'effects':{'scope':'index_construction_only','model_calls':0,'embedding_calls':0,'source_text_modified':False,'old_reports_modified':False}}
     await conn.execute("INSERT INTO retrieval_index_generations(id,owner_id,source_id,source_version,feature_profile_id,tokenizer_version,status,manifest) VALUES($1::uuid,$2::uuid,$3::uuid,$4,$5,$6,'ready',$7::jsonb)",
         str(generation),str(owner_id),str(source_id),metadata['parse_version_id'],features['profile_id'],TOKENIZER_VERSION,json.dumps(manifest,ensure_ascii=False))
     if documents:await conn.executemany('INSERT INTO retrieval_index_documents(generation_id,document_id,owner_id,source_id,length,token_coverage) VALUES($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5,$6)',documents)
     if postings:await conn.executemany('INSERT INTO retrieval_index_terms(generation_id,document_id,owner_id,term,tf) VALUES($1::uuid,$2::uuid,$3::uuid,$4,$5)',postings)
+    if sparse_postings:await conn.executemany('''INSERT INTO retrieval_sparse_postings(generation_id,document_id,owner_id,source_id,model_profile_id,vocabulary_id,token_id,weight)
+        VALUES($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5,$6,$7,$8)''',sparse_postings)
+    if stem_postings:await conn.executemany('''INSERT INTO retrieval_english_lexemes(generation_id,document_id,owner_id,source_id,configuration_id,lexeme)
+        VALUES($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5,$6)''',stem_postings)
     head=await _set_head(conn,source_id,owner_id,'lexical',generation)
     if before and before['generation_id']:
         await conn.execute("UPDATE retrieval_index_generations SET status='retired' WHERE id=$1::uuid AND owner_id=$2::uuid AND source_id=$3::uuid",str(before['generation_id']),str(owner_id),str(source_id))
@@ -248,6 +302,13 @@ async def apply_index_action(conn,source_id,owner_id,request):
         materialized=await conn.fetchval('SELECT count(*) FROM retrieval_index_documents WHERE generation_id=$1::uuid AND owner_id=$2::uuid AND source_id=$3::uuid',str(request.target_generation_id),str(owner_id),str(source_id))
         retained_postings=await conn.fetchval('SELECT count(*) FROM retrieval_index_terms WHERE generation_id=$1::uuid AND owner_id=$2::uuid',str(request.target_generation_id),str(owner_id))
         if materialized!=manifest['document_count'] or retained_postings!=manifest['postings']:raise ValueError('retained_target_generation_no_longer_complete')
+        sparse_manifest=manifest.get('learned_sparse') or {};stem_manifest=manifest.get('english_stemming') or {}
+        if sparse_manifest.get('status')=='published':
+            count=await conn.fetchval('SELECT count(*) FROM retrieval_sparse_postings WHERE generation_id=$1::uuid AND owner_id=$2::uuid AND source_id=$3::uuid',str(request.target_generation_id),str(owner_id),str(source_id))
+            if count!=sparse_manifest.get('postings'):raise ValueError('retained_target_sparse_generation_no_longer_complete')
+        if stem_manifest.get('status')=='published':
+            count=await conn.fetchval('SELECT count(*) FROM retrieval_english_lexemes WHERE generation_id=$1::uuid AND owner_id=$2::uuid AND source_id=$3::uuid',str(request.target_generation_id),str(owner_id),str(source_id))
+            if count!=stem_manifest.get('postings'):raise ValueError('retained_target_stem_generation_no_longer_complete')
         head=await _set_head(conn,source_id,owner_id,'lexical',request.target_generation_id)
         await conn.execute("UPDATE retrieval_index_generations SET status=CASE WHEN id=$3::uuid THEN 'ready' ELSE 'retired' END WHERE source_id=$1::uuid AND owner_id=$2::uuid",str(source_id),str(owner_id),str(request.target_generation_id))
         result={**manifest,'mode':head['mode'],'revision':head['revision']}
@@ -319,7 +380,8 @@ async def scoped_bm25(conn,owner_id,group,terms,top_k,session_id=None,filters=No
 
 def index_choices():
     return {'exact':{'selected':'UUID_primary_BTree_scoped_source_version_lookup'},
-        'lexical':{'selected':'versioned_weighted_postings_and_FTS_GIN','learned_sparse':'not_selected_no_frozen_sparse_model'},
+        'lexical':{'selected':'versioned_weighted_postings_and_FTS_GIN','learned_sparse':'published_when_explicitly_encoded_with_frozen_model_profile',
+            'english_stemming':'separate_lexeme_postings_when_explicitly_selected'},
         'metadata_time':{'selected':'JSONB_GIN_and_owner_source_group_status_version_time_BTree','bitmap_roaring':'not_selected_no_measured_need'},
         'relations':{'selected':'bounded_source_structure_adjacency','confirmed_entity_graph':False},
         'vector':{'selected':'authorized_compatible_materialized_scope_exact_distance','existing_ann_indexes_removed':False,

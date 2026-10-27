@@ -29,6 +29,8 @@ export const documentProcessingEnglish:Record<string,string>={
   '起始日期不能晚于结束日期':'The start date must be before the end date','时间分布暂时无法读取':'The timeline is temporarily unavailable',
   '所选范围没有带日期的资料':'No dated sources in this selection','衰减权重 {0}':'Decayed weight {0}','仅显示前 20 份资料':'Showing the first 20 sources',
   '日期未填 {0} · 词项覆盖不完整 {1}':'Undated {0} · Incomplete term coverage {1}','未来日期 {0}':'Future dates {0}','资料范围已截取':'Source selection truncated',
+  '稀疏权重 {0}':'Sparse weights {0}','英文词形 {0}':'English lexemes {0}',
+  '所选代际的稀疏索引不完整。':'The selected generation has incomplete sparse postings.','所选代际的词形索引不完整。':'The selected generation has incomplete word-form postings.',
   '查看这份资料的词汇、模型与时间特征。':'Explore lexical, model, and time features for this source.',
   '词项统计':'Term statistics','稠密编码':'Dense encoding','学习稀疏':'Learned sparse','时间依据':'Time features',
   '模态覆盖':'Modalities','候选与未采用原因':'Available and inactive options','冻结策略':'Saved settings',
