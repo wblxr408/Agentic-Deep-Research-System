@@ -2,7 +2,7 @@
 
 ## 邮箱恢复源码进度（2026-10-27）
 
-邮箱验证和找回的持久化内核、发信接口已接入源码：邮箱按账号唯一，待验证时不替换原邮箱；只保存高熵单次挑战的摘要与有效期，验证和密码重置按账号事务串行。绑定时复查当前凭据并要求当前密码；重置成功同时更新密码版本、撤销该用户会话和 API token，并作废其剩余挑战。找回请求对存在和不存在的邮箱返回相同结果，来源／账号／邮箱按动作限流；邮件服务未启用或配置不足返回不可用。当前界面尚未接入，数据库迁移、真实发信和统一端到端均未运行。[实施计划](../openspec/changes/extend-account-workspaces/tasks.md)
+邮箱验证和找回的持久化内核、发信接口与界面已接入源码：邮箱按账号唯一，待验证时不替换原邮箱；只保存高熵单次挑战的摘要与有效期，验证和密码重置按账号事务串行。绑定时复查当前凭据并要求当前密码；重置成功同时更新密码版本、撤销该用户会话和 API token，并作废其剩余挑战。找回请求对存在和不存在的邮箱返回相同结果，来源／账号／邮箱按动作限流；邮件服务未启用或配置不足返回不可用。账号页可输入邮箱和当前密码并粘贴邮件代码；登录页可请求找回，已有代码时即使邮件服务临时不可用仍可尝试重置。数据库迁移、真实发信、界面和统一端到端均未运行。[实施计划](../openspec/changes/extend-account-workspaces/tasks.md)
 
 部署者可通过 `SECURITY_EMAIL_RECOVERY_ENABLED`、`SECURITY_SMTP_HOST`、`SECURITY_SMTP_PORT`、`SECURITY_SMTP_MODE`（`tls` 或 `starttls`）、`SECURITY_SMTP_FROM`、`SECURITY_SMTP_USERNAME`、`SECURITY_SMTP_PASSWORD` 和 `SECURITY_SMTP_TIMEOUT_SECONDS` 配置自己的 SMTP 服务；凭据只放在部署环境。发送连接校验证书，邮件给出一次性代码，不依赖请求 Host 或把代码放到 URL。服务公开状态只说明配置是否齐全，不能据此确认 SMTP 可连接或邮件已送达。
 

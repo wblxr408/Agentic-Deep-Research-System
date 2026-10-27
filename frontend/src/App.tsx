@@ -92,7 +92,7 @@ function Workspace() {
     try {
       const response = await fetch('/api/v1/auth/status', { credentials: 'include', signal: controller.signal })
       if (!response.ok) throw new Error(t("无法读取登录状态，请重试。"))
-      const status = await response.json() as { initialized?: unknown; registration_enabled?: boolean; auth_enabled?: boolean }
+      const status = await response.json() as { initialized?: unknown; registration_enabled?: boolean; auth_enabled?: boolean;email_recovery_available?:boolean }
       if (typeof status.initialized !== 'boolean') throw new Error(t("登录状态无效，请重试。"))
       let authenticated = false
       let user: Account | undefined
@@ -110,7 +110,7 @@ function Workspace() {
         if (request !== authRequest.current) return
         identity.current = user?.id || null
         identityKnown.current = true
-        setAuth({ initialized: status.initialized, authenticated, user, registration_enabled: status.registration_enabled === true, auth_enabled: status.auth_enabled })
+        setAuth({ initialized: status.initialized, authenticated, user, registration_enabled: status.registration_enabled === true, auth_enabled: status.auth_enabled,email_recovery_available:status.email_recovery_available===true })
       }
     } catch (error) {
       if (request === authRequest.current) {
