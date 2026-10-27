@@ -1,6 +1,7 @@
 import {useLocale,t,uiMessage} from '../i18n'
 import {useState} from 'react'
 import {useMutation,useQuery} from '@tanstack/react-query'
+import ChunkEntityPanel from './ChunkEntityPanel'
 
 interface Chunk {logical_chunk_id:string;start:number;end:number;parent_block_id:string;kind:string;title_path:Array<{title:string}>;source_locators:unknown[];labels:unknown[];entity_mentions:unknown[];date_mentions:unknown[];reference_mentions:unknown[];metadata_quality:Record<string,unknown>}
 interface Plan {schema_version:string;profile_id:string;source_version:string;profile:Record<string,unknown>;parents:Array<{parent_block_id:string;parent_id:string|null;kind:string;start:number;end:number;title:string|null}>;children:Chunk[];issues:unknown[];issue_count:number;truncated:boolean;unindexed_range:number[]|null;metadata_enrichment_omitted_chunks:number;summary_excerpt:unknown;semantic_chunking?:{status:string;unit_count?:number;threshold?:number;encoding_profile?:{model:string}}}
@@ -42,6 +43,7 @@ export default function ChunkPlanPanel({sourceId,groupName}:{sourceId:string;gro
       <p className="break-all text-xs">{plan.schema_version} · {query.data?.parse_version_id}</p>
       {plan.semantic_chunking?.status==='encoded_local_source_units'&&<p>{t('语义分块')} · {plan.semantic_chunking.encoding_profile?.model} · {t('{0} 个原文单元',plan.semantic_chunking.unit_count)}</p>}
       {query.data?.summary&&<details><summary>{t('原文摘要')}</summary>{query.data.summary.segments.map(segment=><p key={`${segment.start}:${segment.end}`}>{segment.text}</p>)}{!query.data.summary.coverage_complete&&<p>{t('摘要来自已处理的部分')}</p>}</details>}
+      {query.data?.parse_version_id&&<ChunkEntityPanel sourceId={sourceId} parseVersion={query.data.parse_version_id} profileId={plan.profile_id} chunks={plan.children}/>}
       <p>{plan.parents.length} {t(" 个父级范围，")}{plan.children.length} {t(" 个计划小块；是否发布检索见索引状态。字符范围采用规范原文的起点（含）至终点（不含）。")}</p>
       {plan.truncated&&<p className="text-amber-800">{t("达到分块上限，未索引区间：")}{plan.unindexed_range?.join('–')}{t("；完整保留文字见下载。")}</p>}
       {!!plan.metadata_enrichment_omitted_chunks&&<p className="text-amber-800">{plan.metadata_enrichment_omitted_chunks} {t(" 个块因元数据上限省略标签／提及，不能据此判断不存在相关内容。")}</p>}

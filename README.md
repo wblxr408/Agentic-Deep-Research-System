@@ -52,7 +52,7 @@ ADRS 面向企业、高校和科研实验室的研究发展分析：从公开论
 
 资料解析新增本人可选的页面／内嵌图理解、文字修复建议与跨资料语义比较；结果和原文分开，应用修订时建立新版本。实际图片模型与完整流程仍待统一端到端，见[结构化解析](docs/structured-document-parsing.md)。
 
-分块新增可选本地语义切分，使用事先准备的固定版本编码模型并保留实际断点；详情见[版本化分块](docs/versioned-evidence-chunks.md)。
+分块新增可选本地语义切分、可回原文的抽取式摘要，以及本人选用的实体／关系候选；详情见[版本化分块](docs/versioned-evidence-chunks.md)。
 
 [主TODO](docs/OPTIMIZATION_TODO.md) · [实施账本与选型](docs/IMPLEMENTATION_LEDGER.md) · [统一真实旅程及失败记录](docs/acceptance/unified-research-20261023.md) · [当前使用说明](docs/organization-research-guide.md)
 

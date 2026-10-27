@@ -70,8 +70,10 @@ class ParseReviewRequest(BaseModel):
 class DocumentTextProcessingRequest(BaseModel):
     request_id:uuid.UUID
     parse_version_id:str=Field(min_length=1,max_length=260)
-    kind:Literal['cleaning','semantic_comparison']
-    block_id:str=Field(pattern=r'^block:[1-9][0-9]*$',max_length=40)
+    kind:Literal['cleaning','semantic_comparison','entity_extraction']
+    block_id:str|None=Field(default=None,pattern=r'^block:[1-9][0-9]*$',max_length=40)
+    chunk_id:str|None=Field(default=None,pattern=r'^chunk:[0-9a-f]{64}$',max_length=70)
+    chunk_profile_id:str|None=Field(default=None,pattern=r'^[0-9a-f]{64}$',max_length=64)
     secondary_source_id:uuid.UUID|None=None
     secondary_parse_version:str|None=Field(default=None,min_length=1,max_length=260)
     secondary_block_id:str|None=Field(default=None,pattern=r'^block:[1-9][0-9]*$',max_length=40)
@@ -81,9 +83,15 @@ class DocumentTextProcessingRequest(BaseModel):
     def validate_secondary(self):
         complete=all((self.secondary_source_id,self.secondary_parse_version,self.secondary_block_id))
         supplied=any((self.secondary_source_id,self.secondary_parse_version,self.secondary_block_id))
-        if self.kind=='semantic_comparison' and not complete or self.kind=='cleaning' and supplied:
+        if (self.kind=='semantic_comparison' and not complete or self.kind!='semantic_comparison' and supplied
+                or self.kind=='entity_extraction' and (not self.chunk_id or not self.chunk_profile_id or self.block_id is not None)
+                or self.kind!='entity_extraction' and (not self.block_id or self.chunk_id is not None or self.chunk_profile_id is not None)):
             raise ValueError('processing_secondary_selection_invalid')
         return self
+
+
+class DocumentAnnotationRequest(BaseModel):
+    accepted:bool
 
 
 class MarginCleaningRequest(BaseModel):
@@ -462,7 +470,13 @@ async def process_document_text(source_id:uuid.UUID,payload:DocumentTextProcessi
     secondary={'source_id':str(payload.secondary_source_id),'parse_version':payload.secondary_parse_version,
         'block_id':payload.secondary_block_id} if payload.kind=='semantic_comparison' else None
     return await text_operation(principal.id,source_id,payload.request_id,payload.parse_version_id,payload.kind,
-        payload.block_id,secondary,payload.language)
+        payload.block_id,secondary,payload.language,payload.chunk_id,payload.chunk_profile_id)
+
+
+@router.post('/sources/{source_id}/processing/{operation_id}/annotation')
+async def change_document_annotation(source_id:uuid.UUID,operation_id:uuid.UUID,payload:DocumentAnnotationRequest,principal:PrincipalDep=None):
+    from app.document_processing import change_annotation
+    return await change_annotation(principal.id,source_id,operation_id,payload.accepted)
 
 
 @router.post('/sources/{source_id}/parsing/remove-repeated-margin',status_code=201)

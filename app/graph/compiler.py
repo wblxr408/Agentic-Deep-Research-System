@@ -2034,6 +2034,7 @@ def rag_node(state: ResearchState) -> dict:
                         'returned_span':r.metadata.get('returned_span'),'parent_context_gap':r.metadata.get('parent_context_gap'),
                         'source_lead_excerpt':r.metadata.get('source_lead_excerpt'),
                         'source_summary':r.metadata.get('source_summary'),'source_summary_gap':r.metadata.get('source_summary_gap'),
+                        'model_entity_candidates':r.metadata.get('model_entity_candidates'),
                         'feature_profile_id':r.metadata.get('feature_profile_id'),
                         'dense_profile':r.metadata.get('dense_profile'),'dense_input_coverage':r.metadata.get('dense_input_coverage'),
                         'retrieval_channel_status':r.metadata.get('retrieval_channel_status'),'temporal_view':r.metadata.get('temporal_view'),

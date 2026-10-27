@@ -479,6 +479,33 @@ class RAGAgent:
                                 'source_id':actual_source_id,'parse_version_id':source['parse_version']}
                         except ValueError:meta['source_summary_gap']='summary_version_or_original_range_unavailable'
 
+                    chunk_id=(meta.get('chunk_reference') or {}).get('logical_chunk_id')
+                    if actual_source_id and chunk_id and meta.get('chunk_profile_id'):
+                        async with pool.acquire() as conn:
+                            annotations=await conn.fetch('''SELECT id,result FROM document_processing_operations
+                                WHERE owner_id=$1::uuid AND source_id=$2::uuid AND kind='entity_extraction'
+                                AND status='completed' AND accepted AND parse_version=$3 AND lifecycle_revision=$4
+                                AND input_description->'primary'->>'chunk_id'=$5
+                                AND input_description->'primary'->>'chunk_profile_id'=$6
+                                ORDER BY accepted_at DESC,id LIMIT 1''',owner_id,actual_source_id,meta.get('parse_version_id'),
+                                row['source_access_revision'],chunk_id,meta.get('chunk_profile_id'))
+                        candidates=[]
+                        for annotation in annotations:
+                            value=json.loads(annotation['result']) if isinstance(annotation['result'],str) else annotation['result'] or {}
+                            if not isinstance(value,dict):continue
+                            entities=[];seen=set()
+                            for entity in value.get('entities',[]):
+                                if not isinstance(entity,dict):continue
+                                key=(entity.get('name'),entity.get('kind'))
+                                if key in seen:continue
+                                seen.add(key);entities.append(entity)
+                                if len(entities)>=4:break
+                            relations=[item for item in value.get('relations',[]) if isinstance(item,dict)
+                                and isinstance(item.get('evidence'),str) and len(item['evidence'])<=250][:1]
+                            candidates.append({'operation_id':str(annotation['id']),'origin':'model_candidate_unverified',
+                                'entities':entities,'relations':relations,'context_limit':'four_entities_one_short_relation'})
+                        if candidates:meta['model_entity_candidates']=candidates
+
                     if actual_source_id:
                         async with pool.acquire() as conn:
                             snapshot=await current_access(conn,actual_source_id,owner_id,session_id,group,row['source_access_revision'],with_snapshot=True)

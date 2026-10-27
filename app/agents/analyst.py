@@ -601,7 +601,7 @@ Collected Evidence:
                 acquisition['public_links']=[url for url in acquisition['public_links'] if len(url)<=1000 and re.search(r'contact|people|author|faculty|orcid',url,re.I)][:3]
             metadata=json.dumps(acquisition,ensure_ascii=False)
             if len(metadata)>2400:
-                acquisition={key:acquisition.get(key) for key in ('format','coverage','truncated','source_document_id','parse_version_id','returned_span','document_links','source_lead_excerpt','source_summary')}
+                acquisition={key:acquisition.get(key) for key in ('format','coverage','truncated','source_document_id','parse_version_id','returned_span','document_links','source_lead_excerpt','source_summary','model_entity_candidates')}
                 acquisition['context_note']='metadata_excerpt_only_full_metadata_retained_by_evidence_id'
                 metadata=json.dumps(acquisition,ensure_ascii=False)
                 if len(metadata)>2400:

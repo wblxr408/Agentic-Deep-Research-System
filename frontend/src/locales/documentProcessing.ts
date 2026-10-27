@@ -46,4 +46,10 @@ export const documentProcessingEnglish:Record<string,string>={
   '应用并生成新版本':'Apply and create a new version','两个来源会分别保留。':'Both sources will be retained separately.',
   '应用后将替换这一页的保留文字，并创建新版本。':'Applying this replaces the retained text for this page in a new version.',
   '应用识别文字':'Apply recognized text',
+  '实体与关系候选':'Entity and relation candidates','选择一个片段，让模型识别其中的人、机构、技术与关系。':'Choose a passage to identify people, organizations, technologies, and relations.',
+  '选择片段':'Choose a passage','片段 {0}':'Passage {0}','识别候选':'Identify candidates',
+  '片段版本已变化，请重新读取':'The passage version changed; reload it','片段暂时不可用':'The passage is unavailable',
+  '识别的实体':'Identified entities','没有可定位的实体':'No entities could be located','关系候选':'Candidate relations',
+  '有 {0} 项未能定位，未加入候选':'{0} items could not be located and were omitted',
+  '从后续研究移除':'Remove from future research','用于后续研究':'Use in future research','技术':'Technology',
 }
