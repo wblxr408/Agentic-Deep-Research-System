@@ -339,8 +339,6 @@ def interpret_query(query: str, options: QueryOptions, delivery: DeliveryRequest
     resolved_skills = [{key: item.get(key) for key in ('skill_id', 'version', 'slug')}
         for item in skill_context.get('resolved_skills', [])]
     available_skills = {item['skill_id'] for item in resolved_skills}
-    if delivery.layout is not None:
-        questions.append({'id': 'layout_binding_pending', 'message': '版式已保存，报告呈现尚未接入；请暂选已有报告样式。'})
     if any(key not in available_skills for key in delivery.drawing_skill_ids):
         questions.append({'id': 'drawing_skill_not_selected', 'message': '手选绘图Skill须在当前会话显式启用并通过注册表解析。'})
     if modules and any(page.module and page.module not in modules for page in delivery.pages):
@@ -355,7 +353,8 @@ def interpret_query(query: str, options: QueryOptions, delivery: DeliveryRequest
         'url_hints': re.findall(r'https?://[^\s<>"，。；]+', query)[:10]}
     delivery_snapshot = {'schema_version': DELIVERY_VERSION, **delivery.model_dump(mode='json'),
         'descriptor_id': identity(delivery.model_dump(mode='json')), 'skill_versions': resolved_skills,
-        'renderer_status': 'builtin_declarative_view' if delivery.drawing_mode == 'builtin' else 'drawing_adapter_unavailable',
+        'renderer_status': ('layout_declarative_view' if delivery.layout is not None else 'builtin_declarative_view')
+            if delivery.drawing_mode == 'builtin' else 'drawing_adapter_unavailable',
         'permission_effect': 'none; current tool grants and source limits remain authoritative'}
     from app.research_figures import freeze_drawing_policy
     drawing_policy=freeze_drawing_policy(delivery,skill_context)

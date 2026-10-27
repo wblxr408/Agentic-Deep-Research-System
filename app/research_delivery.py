@@ -281,7 +281,12 @@ def build_delivery_view(*, task_id: str, execution_id: str | None, query: str, r
     layout_binding = None
     if frozen.get('layout') is not None:
         from app.report_layout_binding import bind_layout
-        layout_binding, pages, charts = bind_layout(frozen['layout'], narrative=narrative, charts=charts,
+        # The layout supplies its own cover title; do not repeat the Markdown
+        # document heading inside its first narrative slot.
+        layout_narrative = deepcopy(narrative)
+        if layout_narrative and layout_narrative[0]['title'] == '报告概览':
+            layout_narrative[0]['markdown'] = re.sub(r'^\s*#\s+[^\n]+\n?', '', layout_narrative[0]['markdown'], count=1)
+        layout_binding, pages, charts = bind_layout(frozen['layout'], narrative=layout_narrative, charts=charts,
             statistics=statistics, citations=citations, result=result, slots=(understanding or {}).get('slots') or {},
             task_id=task_id, execution_id=execution_id, descriptor_id=frozen.get('descriptor_id'),
             chart_skill_ids=frozen.get('chart_skill_ids') or {})
@@ -322,7 +327,6 @@ def build_delivery_view(*, task_id: str, execution_id: str | None, query: str, r
         'delivery_complete': not bool((result.get('module_report') or {}).get('issues'))
             and drawing['status'] in {'ready','rendered','not_needed'}
             and not (layout_binding and layout_binding['required_missing'])
-            and layout_binding is None  # 19.5 must install the actual layout renderer before publication.
             and bool(audit) and not audit.get('needs_review',True) and not audit.get('audit_incomplete',False),
         'template': template, 'theme': theme, 'descriptor_id': frozen.get('descriptor_id'),
         'configuration_origin': 'frozen_task' if frozen else 'legacy_report_readonly_compatibility',
@@ -338,8 +342,12 @@ def build_delivery_view(*, task_id: str, execution_id: str | None, query: str, r
             [('relationships', 'relationship_view'), ('deep_dive', 'technical_reading'), ('evolution', 'trend_view'), ('actions', 'actions')]},
         'gaps': list(dict.fromkeys(str(gap) for gap in [*(summary.get('gaps') or []), *(result.get('gaps') or []),
             *(['未保存正文来源支持审核，不能把已生成报告标为已核实。'] if not audit else [])])),
-        'formats': [{'format': name, 'status': 'ready' if name in {'markdown', 'html', 'json'} else 'adapter_unavailable',
-            'alternative': 'browser_print_to_pdf' if name == 'pdf' else None} for name in formats],
+        'formats': [{'format': name, 'status': 'ready' if name in {'markdown', 'html', 'json'} else
+            'browser_print' if name == 'pdf' else 'adapter_unavailable',
+            'alternative': 'browser_print_to_pdf' if name == 'pdf' else None,
+            'presentation': 'static_print_from_same_report' if name == 'pdf' else
+                'standalone_interactive' if name == 'html' else 'source_text' if name == 'markdown' else
+                'structured_data' if name == 'json' else None} for name in formats],
         'full_report_available': True, 'effects': {'model_calls': 0, 'network_calls': 0, 'permissions_changed': False}}
     view['artifact_id'] = identity({'view': view, 'report': report})
     return view

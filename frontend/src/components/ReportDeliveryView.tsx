@@ -2,10 +2,12 @@ import {useLocale,t,uiMessage} from '../i18n'
 import { useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { Icon, Modal } from './Interface'
+import type {LayoutBinding} from './ReportLayoutView'
 
 interface Point { label: string; value: number | null; metric_id?: string | null }
 interface RelationEdge {
   source: string; target: string; label: string; kind?: string; status?: string
+  citation_ids?:string[]
   proofs?: Array<{ evidence_id: string; source_url: string; start?: number; end?: number; quote?: string }>
 }
 export interface DeliveryChart {
@@ -23,7 +25,8 @@ export interface DeliveryView {
   report_markdown?: string
   delivery_complete?: boolean
   main_report_markdown?: string; appendix_markdown?: string
-  citations?: Array<{ citation_id: string; source_title?: string; source_url: string }>
+  citations?: Array<{ citation_id: string; source_title?: string; source_url: string; extracted_evidence?:string }>
+  layout_binding?: LayoutBinding | null
   configuration_origin: string; pages: Array<{
     page_id: string; title: string; question: string; module: string | null; markdown: string
     content_match: string; citation_ids: string[]; charts: Array<{ chart_id: string; kind: string; drawing_skill_id?:string }>; gaps: string[]
@@ -36,7 +39,7 @@ export interface DeliveryView {
   module_results: Record<string, unknown>
 }
 
-const styles = `
+export const deliveryStyles = `
 .adrs-delivery{--paper:var(--surface);--ink:rgb(var(--neutral-900));--soft:var(--accent-soft);--line:rgb(var(--neutral-200));--accent:rgb(var(--accent-500));color:var(--ink);background:var(--paper);padding:0;font:16px/1.9 'Segoe UI','Microsoft YaHei',sans-serif}
 
 
@@ -58,7 +61,7 @@ const styles = `
 .adrs-delivery pre{max-height:none;overflow:visible}.adrs-delivery figure{break-inside:avoid}}
 `
 
-function Chart({ chart, kind,skillId,expanded=false }: { chart: DeliveryChart; kind: string;skillId?:string;expanded?:boolean }) {
+export function Chart({ chart, kind,skillId,expanded=false,renderTable }: { chart: DeliveryChart; kind: string;skillId?:string;expanded?:boolean;renderTable?:(chart:DeliveryChart)=>ReactNode }) {
   useLocale()
 
   const [selected, setSelected] = useState('')
@@ -86,7 +89,7 @@ function Chart({ chart, kind,skillId,expanded=false }: { chart: DeliveryChart; k
     <figcaption>{chart.title}{chart.unit_label&&<> · {chart.unit_label}</>}</figcaption>
     {!expanded&&<div data-app-only className="chart-actions"><button type="button" onClick={()=>setEnlarged(true)}><Icon name="fit" size={16}/>{t("放大")}</button><button type="button" onClick={downloadData}><Icon name="download" size={16}/>{t("数据 CSV")}</button></div>}
     {chart.note&&<details className="chart-method"><summary>{t("统计口径")}</summary><p>{chart.note}</p></details>}
-    {!expanded&&<Modal open={enlarged} onClose={()=>setEnlarged(false)} title={chart.title} wide><Chart chart={chart} kind={kind} skillId={skillId} expanded/></Modal>}
+    {!expanded&&<Modal open={enlarged} onClose={()=>setEnlarged(false)} title={chart.title} wide><Chart chart={chart} kind={kind} skillId={skillId} expanded renderTable={renderTable}/></Modal>}
     {asset && <>
       <img src={asset.svg} alt={chart.title} style={{width:'100%',height:'auto'}} />
       {!!asset.notes?.length&&<details data-app-only><summary>{t("绘图记录")}</summary>{asset.notes.map((note,index)=><p key={index}>{note}</p>)}</details>}
@@ -96,24 +99,24 @@ function Chart({ chart, kind,skillId,expanded=false }: { chart: DeliveryChart; k
         {asset.pdf && <a href={asset.pdf} download={`${chart.chart_id}-${kind}.pdf`}>{t("下载图表PDF")}</a>}
       </div>
     </>}
-    {chart.rows && <div className="chart-frame"><table>
+    {chart.rows && (renderTable?renderTable(chart):<div className="chart-frame"><table>
       <thead><tr>{chart.columns?.map(column=><th key={column}>{column}</th>)}<th>{t("来源")}</th></tr></thead>
       <tbody>{chart.rows.map((row,index)=><tr key={index}>{row.values.map((value,column)=><td key={column}>{value}</td>)}
         <td>{row.citation_ids.map(id=>`[${id.replace('citation:','')}]`).join(' ')}</td></tr>)}</tbody>
-    </table></div>}
+    </table></div>)}
     {chart.truncated && <p>{t("图中展示前")}{points.length || edges.length}{t("项，共")}{chart.total_points || chart.total_edges}{t("项。")}</p>}
     {!asset && kind !== 'table' && !chart.rows && <div className="chart-frame">
       {kind === 'network' ? <svg viewBox="0 0 760 450" role="img" aria-label={chart.title}>
         {edges.map((edge, index) => {
           const from = positions.get(edge.source), to = positions.get(edge.target)
-          return from && to ? <line key={index} x1={from.x} y1={from.y} x2={to.x} y2={to.y}
+          return from && to ? <line data-chart-edge key={index} x1={from.x} y1={from.y} x2={to.x} y2={to.y}
             stroke={selected && ![edge.source, edge.target].includes(selected) ? '#a0a0a0' : 'var(--accent)'} strokeWidth="1.5" opacity=".7"><title>{edge.label} · {edge.status}</title></line> : null
         })}
         {nodes.map(node => {
           const position = positions.get(node.id)!
           return <g key={node.id} role="button" tabIndex={0} aria-label={node.label} aria-pressed={selected === node.id}
             onClick={() => choose(node.id)} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); choose(node.id) } }}>
-            <circle cx={position.x} cy={position.y} r={selected === node.id ? 9 : 6} fill="var(--accent)" />
+            <circle data-chart-radius="6" cx={position.x} cy={position.y} r={selected === node.id ? 9 : 6} fill="var(--accent)" />
             <text x={position.x + 10} y={position.y + 4}>{node.label.slice(0, 18)}{node.label.length > 18 ? '…' : ''}</text><title>{node.label}</title>
           </g>
         })}
@@ -125,7 +128,7 @@ function Chart({ chart, kind,skillId,expanded=false }: { chart: DeliveryChart; k
           const previous = points[index-1], previousX = 60 + (index-1)*670/Math.max(1,points.length-1)
           return <g key={`${point.label}-${index}`}>
             {point.value !== null && previous && previous.value !== null && <line x1={previousX} y1={280-previous.value/max*220} x2={x} y2={y} stroke="var(--accent)" strokeWidth="2" />}
-            {point.value !== null ? <circle cx={x} cy={y} r={selected === point.label ? 6 : 4} fill="var(--accent)" role="button" tabIndex={0} aria-label={`${point.label}: ${point.value}`}
+            {point.value !== null ? <circle data-chart-radius="4" cx={x} cy={y} r={selected === point.label ? 6 : 4} fill="var(--accent)" role="button" tabIndex={0} aria-label={`${point.label}: ${point.value}`}
               onClick={() => choose(point.label)} onKeyDown={event => { if (event.key === 'Enter') choose(point.label) }}><title>{point.label}: {point.value}</title></circle>
               : <text x={x} y="266" textAnchor="middle">?</text>}
             {(index % Math.max(1, Math.ceil(points.length/10)) === 0 || index === points.length-1) && <text x={x} y="310" textAnchor="middle">{point.label}</text>}
@@ -137,23 +140,23 @@ function Chart({ chart, kind,skillId,expanded=false }: { chart: DeliveryChart; k
           aria-label={`${point.label}: ${point.value === null ? t("未覆盖") : point.value}`} onClick={() => choose(point.label)}
           onKeyDown={event => { if (event.key === 'Enter') choose(point.label) }}>
           <text x={plotLeft-8} y={index*30+23} textAnchor="end">{point.label.slice(0,23)}{point.label.length>23?'…':''}</text>
-          <rect x={plotLeft} y={index*30+8} width={(point.value || 0)/max*(plotRight-plotLeft-50)} height="20" fill={selected===point.label?'rgb(var(--accent-700))':'var(--accent)'} />
+          <rect data-chart-bar x={plotLeft} y={index*30+8} width={(point.value || 0)/max*(plotRight-plotLeft-50)} height="20" fill="var(--accent)" opacity={selected && selected !== point.label ? 0.45 : 1} stroke={selected===point.label?'var(--ink)':undefined} />
           <text x={plotLeft+(point.value||0)/max*(plotRight-plotLeft-50)+6} y={index*30+23}>{point.value === null ? t("未覆盖") : point.value}</text>
           <title>{point.label}: {point.value === null ? t("未覆盖") : point.value}</title>
         </g>)}
       </svg>}
     </div>}
     {points.length > 30 && kind === 'bar' && <p>{t("条形图展示前30项，数据表保留本视图全部条目。")}</p>}
-    {selected && <p role="status">{nodes.find(node => node.id === selected)?.label || selected}
+    {selected && <p data-chart-selection role="status">{nodes.find(node => node.id === selected)?.label || selected}
       {selectedPoint && `：${selectedPoint.value === null ? t("未覆盖") : selectedPoint.value}`}</p>}
-    {!chart.rows && <details open={kind === 'table'}><summary>{t("查看图表数据")}</summary>
-      {points.length > 0 && <div style={{overflowX:'auto'}}><table><thead><tr><th>{t("条目")}</th><th>{chart.unit_label}</th></tr></thead><tbody>
+    {!chart.rows && <details data-chart-table={kind==='table'?'true':undefined} open={kind === 'table'}><summary>{t("查看图表数据")}</summary>
+      {renderTable?renderTable(chart):<>{points.length > 0 && <div style={{overflowX:'auto'}}><table><thead><tr><th>{t("条目")}</th><th>{chart.unit_label}</th></tr></thead><tbody>
         {points.map((point,index) => <tr key={index}><td>{point.label}</td><td>{point.value === null ? t("未覆盖") : point.value}</td></tr>)}
       </tbody></table></div>}
       {edges.length > 0 && <table><thead><tr><th>{t("关系观察")}</th><th>{t("参与方")}</th><th>{t("状态与依据")}</th></tr></thead><tbody>{edges.map((edge,index)=><tr key={index}>
         <td>{edge.label}<br />{edge.kind}</td><td>{nodes.find(node=>node.id===edge.source)?.label} → {nodes.find(node=>node.id===edge.target)?.label}</td>
         <td>{edge.proofs?.map((proof, i)=><p key={i}>{proof.quote}<br /><SafeSource url={proof.source_url} /></p>)}</td>
-      </tr>)}</tbody></table>}
+      </tr>)}</tbody></table>}</>}
     </details>}
   </figure>
 }
@@ -177,7 +180,7 @@ export default function ReportDeliveryView({view,renderMarkdown}:{view:DeliveryV
     catch { setError(t("当前浏览器未允许全屏；可使用全部页面阅读或下载HTML。")) }
   }
   return <div ref={root} className="adrs-delivery" data-theme={view.theme} aria-label={t("图文研究报告")}>
-    <style>{styles}</style>
+    <style>{deliveryStyles}</style>
     <h2>{view.title}</h2>
     <div data-app-only className="flex flex-wrap gap-2"><button type="button" onClick={()=>setAll(value=>!value)}>{all?t("逐页阅读"):t("显示全部页面")}</button><button type="button" onClick={()=>void fullscreen()}>{t("全屏 / 退出")}</button></div>
     {error&&<p role="alert">{uiMessage(error)}</p>}
@@ -198,8 +201,8 @@ export default function ReportDeliveryView({view,renderMarkdown}:{view:DeliveryV
     {view.appendix_markdown && <details data-report-appendix><summary>{t("技术附录：方法、实验与资源")}</summary>
       {renderMarkdown(view.appendix_markdown)}
     </details>}
-    {!!view.citations?.length && <details aria-label={t("参考资料")}><summary>{t("参考资料")}</summary>
-      {view.citations.map(citation=><p key={citation.citation_id}>[{citation.citation_id.replace('citation:','')}] {citation.source_title}<br /><SafeSource url={citation.source_url}/></p>)}
+    {!!view.citations?.length && <details data-report-references aria-label={t("参考资料")}><summary>{t("参考资料")}</summary>
+      {view.citations.map(citation=><p id={`report-source-${citation.citation_id.replace(/[^a-zA-Z0-9-]/g,'-')}`} key={citation.citation_id}>[{citation.citation_id.replace('citation:','')}] {citation.source_title}<br /><SafeSource url={citation.source_url}/></p>)}
     </details>}
   </div>
 }

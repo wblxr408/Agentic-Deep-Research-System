@@ -1,5 +1,6 @@
 import {t,useLocale,uiMessage} from '../i18n'
 import { useState } from 'react'
+import {safeExternalUrl} from './Interface'
 
 export interface ReportArtifact {
   session_id: string; query: string; status: string; report: string | null
@@ -19,7 +20,71 @@ export interface ReportArtifact {
   export_view?: unknown
 }
 
-const css = t("\nbody{margin:0;background:#fafafa;color:#252525;font:16px/1.8 system-ui,sans-serif}\nmain{max-width:1000px;margin:32px auto;padding:36px;background:white;border:1px solid #e5e5e5;border-radius:16px}\nh1,h2,h3{line-height:1.4;margin:1.6em 0 .6em}h1{font-size:2em}h2{font-size:1.45em}h3{font-size:1.15em}\na{color:#b44c00;overflow-wrap:anywhere}p,li{overflow-wrap:anywhere}table{border-collapse:collapse;width:100%;margin:1em 0}\nth,td{border:1px solid #ddd;text-align:left;padding:8px}th{background:#f6f6f6}details{padding:12px;border:1px solid #ddd;border-radius:10px;margin:12px 0}\nsummary{cursor:pointer;font-weight:600}pre{white-space:pre-wrap;overflow-wrap:anywhere;padding:14px;background:#f6f6f6;overflow:auto}\nblockquote{margin-left:0;padding-left:16px;border-left:3px solid #e87924}section[aria-label=\"报告口径与冻结配置\"]{padding:20px;background:#fff9f4;border:1px solid #e6d7cb;border-radius:12px}\n@media(max-width:600px){main{margin:0;padding:18px}table{display:block;overflow:auto}}\n@media print{body{background:white}main{border:0;margin:0;padding:0}details{break-inside:avoid}a{color:inherit}[data-print-duplicate=\"true\"]{display:none}}\n")
+const css = `
+:root{--neutral-900:37 37 37;--neutral-200:220 220 220;--accent-500:52 125 116;--surface:#fff;--accent-soft:#edf3f2}
+body{margin:0;background:#fafafa;color:#252525;font:16px/1.8 system-ui,sans-serif}
+main{max-width:1400px;margin:32px auto;padding:36px;background:white;border:1px solid #e5e5e5;border-radius:16px}
+h1,h2,h3{line-height:1.4;margin:1.6em 0 .6em}h1{font-size:2em}h2{font-size:1.45em}h3{font-size:1.15em}
+a{color:#b44c00;overflow-wrap:anywhere}p,li{overflow-wrap:anywhere}table{border-collapse:collapse;width:100%;margin:1em 0}
+th,td{border:1px solid #ddd;text-align:left;padding:8px}th{background:#f6f6f6}details{padding:12px;border:1px solid #ddd;border-radius:10px;margin:12px 0}
+summary{cursor:pointer;font-weight:600}pre{white-space:pre-wrap;overflow-wrap:anywhere;padding:14px;background:#f6f6f6;overflow:auto}
+blockquote{margin-left:0;padding-left:16px;border-left:3px solid #e87924}
+@media(max-width:600px){main{margin:0;padding:0;border:0}table{max-width:100%}}
+@media print{body{background:white}main{border:0;margin:0;padding:0;max-width:none}[data-full-report],[data-print-duplicate="true"]{display:none!important}a{color:inherit}}
+`
+
+// This fixed application script operates only on exported report controls.
+// No script, handler, HTML, CSS or URL is taken from an imported sample.
+const offlineScript = `
+(()=>{
+  const activate=(root,index)=>{
+    const tabs=Array.from(root.querySelectorAll('[data-layout-tab]'));
+    if(!tabs.length||index<0||index>=tabs.length)return;
+    tabs.forEach((tab,i)=>{tab.setAttribute('aria-selected',String(i===index));tab.tabIndex=i===index?0:-1});
+    root.querySelectorAll('[data-layout-panel]').forEach(panel=>{panel.hidden=Number(panel.dataset.layoutPanel)!==index});
+  };
+  document.querySelectorAll('.layout-report').forEach(root=>{const tab=root.querySelector('[data-layout-tab][aria-selected="true"]');if(tab)activate(root,Number(tab.dataset.layoutTab))});
+  document.addEventListener('click',event=>{
+    const target=event.target;if(!(target instanceof Element))return;
+    const tab=target.closest('[data-layout-tab]'),nav=target.closest('[data-layout-nav]'),sort=target.closest('[data-layout-sort]');
+    if(tab){const root=tab.closest('.layout-report');if(root)activate(root,Number(tab.dataset.layoutTab))}
+    if(nav){const root=nav.closest('.layout-report');if(root)activate(root,Number(nav.dataset.layoutNav));const panel=document.getElementById(nav.getAttribute('href').slice(1));if(panel&&panel.tagName==='DETAILS')panel.open=true}
+    if(sort){
+      const box=sort.closest('[data-layout-table]'),table=box&&box.querySelector('table'),body=table&&table.tBodies[0];
+      if(!body)return;
+      const column=Number(sort.dataset.layoutSort),head=sort.closest('th'),previous=head&&head.getAttribute('aria-sort'),direction=previous==='ascending'?-1:1;
+      table.querySelectorAll('th[aria-sort]').forEach(item=>item.removeAttribute('aria-sort'));
+      if(head)head.setAttribute('aria-sort',direction===1?'ascending':'descending');
+      Array.from(body.rows).map((row,index)=>({row,index})).sort((a,b)=>{
+        const left=a.row.cells[column]?.textContent||'',right=b.row.cells[column]?.textContent||'';
+        return left.localeCompare(right,undefined,{numeric:true,sensitivity:'base'})*direction||a.index-b.index;
+      }).forEach(item=>body.append(item.row));
+    }
+    const link=target.closest('a[href^="#report-source-"]');
+    if(link){const destination=document.getElementById(link.getAttribute('href').slice(1));const panel=destination&&destination.closest('[data-layout-panel]'),root=panel&&panel.closest('.layout-report');if(root&&panel)activate(root,Number(panel.dataset.layoutPanel));for(let item=destination;item;item=item.parentElement)if(item.tagName==='DETAILS')item.open=true}
+  });
+  document.addEventListener('input',event=>{
+    const field=event.target;if(!(field instanceof HTMLInputElement)||!field.matches('[data-layout-filter]'))return;
+    const box=field.closest('[data-layout-table]'),term=field.value.trim().toLocaleLowerCase();
+    if(box)box.querySelectorAll('tbody tr').forEach(row=>{row.hidden=!!term&&!(row.dataset.layoutSearch||row.textContent).toLocaleLowerCase().includes(term)});
+  });
+  document.addEventListener('keydown',event=>{
+    const tab=event.target;if(!(tab instanceof HTMLButtonElement)||!tab.matches('[data-layout-tab]')||!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;
+    const root=tab.closest('.layout-report'),tabs=root&&Array.from(root.querySelectorAll('[data-layout-tab]'));if(!root||!tabs||!tabs.length)return;
+    const i=tabs.indexOf(tab),next=event.key==='Home'?0:event.key==='End'?tabs.length-1:(i+(event.key==='ArrowRight'?1:-1)+tabs.length)%tabs.length;
+    event.preventDefault();activate(root,next);tabs[next].focus();
+  });
+  let details=[],hidden=[];
+  window.addEventListener('beforeprint',()=>{
+    details=Array.from(document.querySelectorAll('details')).map(item=>[item,item.open]);
+    hidden=Array.from(document.querySelectorAll('[data-layout-panel],tbody tr')).map(item=>[item,item.hidden]);
+    details.forEach(([item])=>{item.open=true});hidden.forEach(([item])=>{item.hidden=false});
+  });
+  window.addEventListener('afterprint',()=>{
+    details.forEach(([item,open])=>{item.open=open});hidden.forEach(([item,wasHidden])=>{item.hidden=wasHidden});details=[];hidden=[];
+  });
+})();
+`
 
 export default function ReportDownloads({ result, reportElement }: { result: ReportArtifact; reportElement: HTMLDivElement | null }) {
   useLocale()
@@ -45,23 +110,48 @@ export default function ReportDownloads({ result, reportElement }: { result: Rep
       }
       else {
         if (!reportElement) throw new Error(t("报告预览尚未就绪，请稍后重试。"))
-        // Reuse the actual rendered report. Native details remain usable without
-        // React, hydration, CDN scripts or network access in the downloaded file.
+        // Export the already-rendered current report; the standalone controls
+        // are backed by the fixed application script above, never sample code.
         const clone = reportElement.cloneNode(true) as HTMLDivElement
         if (format === 'print-main') clone.querySelectorAll('[data-report-appendix],[data-full-report]').forEach(element=>element.remove())
         if (format === 'print-appendix') {
           const appendix = clone.querySelector('[data-report-appendix]')
           if (!appendix) throw new Error(t("本报告没有单独的技术附录。"))
-          const sources = clone.querySelector(t("section[aria-label=\"参考资料\"]"))
+          const sources = clone.querySelector('[data-report-references]')
           const styles = Array.from(clone.querySelectorAll('style'))
           clone.replaceChildren(...styles, appendix, ...(sources ? [sources] : []))
         }
-        clone.querySelectorAll('[data-app-only],button,script,iframe,object,embed').forEach(element => element.remove())
-        clone.querySelectorAll('[data-report-page]').forEach(element => element.removeAttribute('hidden'))
+        // The online evidence buttons become links to the same retained
+        // citations in the offline document before other React controls leave.
+        const citationRows=Array.isArray(result.citations)?result.citations:[]
+        const missing=citationRows.filter((citation:unknown)=>{
+          if(!citation||typeof citation!=='object'||!('citation_id' in citation))return false
+          const id=String(citation.citation_id).replace(/[^a-zA-Z0-9-]/g,'-')
+          return !clone.querySelector(`[id="report-source-${id}"]`)
+        }) as Array<{citation_id:string;source_title?:string;source_url?:string;extracted_evidence?:string}>
+        if(missing.length){
+          const references=document.createElement('details'),heading=document.createElement('summary'),list=document.createElement('ol')
+          references.setAttribute('data-report-references','');heading.textContent=t('参考资料');references.append(heading,list)
+          missing.forEach(citation=>{const item=document.createElement('li');item.id='report-source-'+citation.citation_id.replace(/[^a-zA-Z0-9-]/g,'-');item.textContent=`[${citation.citation_id.replace('citation:','')}] ${citation.source_title||''}`
+            const url=safeExternalUrl(citation.source_url);if(url){const link=document.createElement('a');link.href=url;link.textContent=' · '+t('查看来源');link.target='_blank';link.rel='noopener noreferrer';item.append(link)}
+            if(citation.extracted_evidence){const quote=document.createElement('p');quote.textContent=citation.extracted_evidence;item.append(quote)}list.append(item)})
+          clone.append(references)
+        }
+        clone.querySelectorAll<HTMLElement>('.citation-button[data-citation-id]').forEach(element=>{
+          const id=element.dataset.citationId||'',link=document.createElement('a')
+          link.href='#report-source-'+id.replace(/[^a-zA-Z0-9-]/g,'-');link.textContent=element.textContent;link.className='citation-button';element.replaceWith(link)
+        })
+        clone.querySelectorAll('[data-app-only],button:not([data-report-offline]),script,iframe,object,embed,.evidence-cards').forEach(element => element.remove())
+        clone.querySelectorAll('[data-report-page],tbody tr').forEach(element => element.removeAttribute('hidden'))
+        clone.querySelectorAll<HTMLInputElement>('[data-layout-filter]').forEach(element=>{element.value='';element.removeAttribute('value')})
+        clone.querySelectorAll('[data-chart-edge]').forEach(element=>element.setAttribute('stroke','var(--accent)'))
+        clone.querySelectorAll('[data-chart-radius]').forEach(element=>element.setAttribute('r',element.getAttribute('data-chart-radius')||'4'))
+        clone.querySelectorAll('[data-chart-bar]').forEach(element=>{element.setAttribute('opacity','1');element.removeAttribute('stroke')})
+        clone.querySelectorAll('[data-chart-selection]').forEach(element=>element.remove())
         clone.querySelectorAll('[role="button"]').forEach(element => {
           element.removeAttribute('role'); element.removeAttribute('tabindex'); element.removeAttribute('aria-pressed')
         })
-        clone.querySelectorAll('details').forEach(element => element.removeAttribute('open'))
+        clone.querySelectorAll('details').forEach(element => element.classList.contains('layout-section')||element.hasAttribute('data-chart-table')?element.setAttribute('open',''):element.removeAttribute('open'))
         // The full text remains in a native disclosure; avoid duplicating the
         // whole report beneath the visual pages on first offline opening.
         // Keep offline export self-contained. Paper images remain explicit
@@ -73,11 +163,13 @@ export default function ReportDownloads({ result, reportElement }: { result: Rep
           }
         })
         const doc = document.implementation.createHTMLDocument(result.delivery_view?.title || result.query)
-        doc.documentElement.lang = 'zh-CN'
+        doc.documentElement.lang = document.documentElement.lang || 'zh-CN'
         const charset = doc.createElement('meta'); charset.setAttribute('charset', 'utf-8'); doc.head.prepend(charset)
         const viewport = doc.createElement('meta'); viewport.name = 'viewport'; viewport.content = 'width=device-width,initial-scale=1'; doc.head.append(viewport)
+        const csp=doc.createElement('meta');csp.httpEquiv='Content-Security-Policy';csp.content="default-src 'none'; img-src data:; style-src 'unsafe-inline'; script-src 'unsafe-inline'; base-uri 'none'; form-action 'none'";doc.head.append(csp)
         const style = doc.createElement('style'); style.textContent = css; doc.head.append(style)
         const main = doc.createElement('main'); main.append(...Array.from(clone.childNodes)); doc.body.append(main)
+        const script=doc.createElement('script');script.textContent=offlineScript;doc.body.append(script)
         content = '<!doctype html>\n' + doc.documentElement.outerHTML
       }
       if (printing) {

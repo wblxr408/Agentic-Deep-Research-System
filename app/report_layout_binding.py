@@ -282,7 +282,8 @@ def bind_layout(layout_data, *, narrative, charts, statistics, citations, result
         refs = [row['data']['reference'] for row in slot_rows if row['data'] and row['data'].get('kind') == 'chart']
         section_title = (matched or {}).get('title') or ROLE_LABELS[section.role]
         sections.append({'section_id': section.section_id, 'role': section.role, 'level': section.level,
-                         'columns': section.columns, 'title': section_title, 'blocks': slot_rows})
+                         'columns': section.columns, 'title': section_title,
+                         'title_origin': 'current_report' if matched else 'role_default', 'blocks': slot_rows})
         pages.append({'page_id': section.section_id, 'declared_page_id': section.section_id,
                       'title': section_title, 'question': '', 'module': None,
                       'markdown': '\n\n'.join(row['data']['markdown'] for row in slot_rows

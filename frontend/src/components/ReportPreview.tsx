@@ -15,6 +15,8 @@ import { EvidenceCards, EvidenceDialog } from './EvidenceViewer'
 import { Icon, Modal, safeExternalUrl, TraceLoader } from './Interface'
 import type { RetainedCitation } from './RetainedCitations'
 import ReportDeliveryView from './ReportDeliveryView'
+import ReportLayoutView from './ReportLayoutView'
+import ReportMarkdownTable from './ReportMarkdownTable'
 import ContextEvidenceSummary from './ContextEvidenceSummary'
 import type { DeliveryView } from './ReportDeliveryView'
 
@@ -66,7 +68,12 @@ function ReportPreview({
   },[readerReport])
   const structured=Boolean(deliveryView&&deliveryView.template!=='markdown-v1')
 
-  function renderMarkdown(text:string,withIds=false) {
+  function renderCitation(id:string) {
+    const citation=citations.find(item=>item.citation_id===id),label=`[${id.replace('citation:','')}]`
+    return citation?<button type="button" className="citation-button" data-citation-id={id} onClick={()=>setSelectedCitation(citation)} aria-label={t('查看来源：{0}',citation.source_title)}>{label}</button>:label
+  }
+
+  function renderMarkdown(text:string,withIds=false,interactions:string[]=[]) {
     let headingIndex=0
     const heading=(level:number,children:ReactNode)=>createElement('h'+level,{id:withIds?`reader-${prefix}-${headingIndex++}`:undefined,tabIndex:withIds?-1:undefined},children)
     return <ReactMarkdown remarkPlugins={[remarkGfm]} components={{
@@ -77,9 +84,10 @@ function ReportPreview({
         const numberedMatches=numbered&&(safeExternalUrl(numbered.source_url)===safeExternalUrl(href)&&Boolean(safeExternalUrl(href))||href===`#retained-${prefix}-${numbered.citation_id.replace('citation:','')}`)
         const citation=numberedMatches?numbered:citations.find(item=>safeExternalUrl(item.source_url)===safeExternalUrl(href)&&Boolean(safeExternalUrl(href)))
         const url=href?.startsWith('#')?href:safeExternalUrl(href)
-        return citation?<button type="button" className="citation-button" onClick={()=>setSelectedCitation(citation)} aria-label={t("查看来源：{0}", citation.source_title)}>{number?`[${number[1]}]`:children}</button>:<a href={url} target={url?.startsWith('#')?undefined:'_blank'} rel="noopener noreferrer">{children}</a>
+        return citation?<button type="button" className="citation-button" data-citation-id={citation.citation_id} onClick={()=>setSelectedCitation(citation)} aria-label={t("查看来源：{0}", citation.source_title)}>{number?`[${number[1]}]`:children}</button>:<a href={url} target={url?.startsWith('#')?undefined:'_blank'} rel="noopener noreferrer">{children}</a>
       },
       img:({src,alt})=><a href={safeExternalUrl(src)} target="_blank" rel="noopener noreferrer">{alt||t("查看原图")}</a>,
+      table:({children})=>interactions.some(item=>item==='sort'||item==='filter')?<ReportMarkdownTable interactions={interactions}>{children}</ReportMarkdownTable>:<table>{children}</table>,
       code:({node:_node,className,children,...props})=>{
         const language=/language-(\w+)/.exec(className||'')
         return language?<SyntaxHighlighter style={oneDark} language={language[1]} PreTag="div">{String(children).replace(/\n$/,'')}</SyntaxHighlighter>:<code className={className} {...props}>{children}</code>
@@ -91,9 +99,11 @@ function ReportPreview({
   return <div className="report-reader">
     {!structured&&headings.length>1&&<nav className="reader-toc" aria-label={t("报告目录")}>{headings.map((item,index)=><a key={index} href={`#reader-${prefix}-${index}`} data-level={item.level}>{item.title}</a>)}</nav>}
     <div className="report-content">
-      {structured&&deliveryView&&<ReportDeliveryView key={deliveryView.artifact_id} view={deliveryView} renderMarkdown={text=>renderMarkdown(text)}/>}
+      {structured&&deliveryView&&(deliveryView.layout_binding?.schema_version==='adrs-report-layout-binding-v1'
+        ?<ReportLayoutView key={deliveryView.artifact_id} view={deliveryView} renderMarkdown={text=>renderMarkdown(text,false,deliveryView.layout_binding?.layout.interactions||[])} renderCitation={renderCitation}/>
+        :<ReportDeliveryView key={deliveryView.artifact_id} view={deliveryView} renderMarkdown={text=>renderMarkdown(text)}/>)}
       {!structured&&<article className="reader-prose">{renderMarkdown(readerReport,true)}</article>}
-      {structured&&<details className="reader-fulltext"><summary>{t("全文")}</summary><article className="reader-prose">{renderMarkdown(readerReport)}</article></details>}
+      {structured&&<details className="reader-fulltext" data-full-report><summary>{t("全文")}</summary><article className="reader-prose">{renderMarkdown(readerReport)}</article></details>}
     </div>
     <EvidenceCards citations={citations} onSelect={setSelectedCitation}/>
     <EvidenceDialog key={`${sessionId||''}-${selectedCitation?.citation_id||''}`} citation={selectedCitation} sessionId={sessionId} onClose={()=>setSelectedCitation(null)}/>
@@ -110,6 +120,7 @@ function ReportPreview({
           {!!budgetState.model_requests?.some(item=>item.routing)&&<details><summary>{t("模型路径")}</summary>{budgetState.model_requests.filter(item=>item.routing).slice(-50).map((item,index)=><p key={index}>{item.routing?.stage} · {item.routing?.provider} / {item.routing?.model} · {item.routing?.reason}</p>)}</details>}
           {!!budgetState.routing_decisions?.length&&<details><summary>{t("路由调整")}</summary>{budgetState.routing_decisions.map((item,index)=><p key={item.upgrade_id||index}>{item.stage} · {item.status} · {item.reason}{item.to_model&&` · ${item.from_model} → ${item.to_model}`}</p>)}</details>}
         </section>}
+        {!!deliveryView?.layout_binding?.missing?.length&&<details><summary>{t('版式资料')}</summary><ul>{deliveryView.layout_binding.missing.map((item,index)=><li key={index}>{t('第 {0} 章 · 第 {1} 个组件',item.section_index,item.block_index)} · {item.status==='omitted'?t('已省略'):item.status==='required_missing'?t('等待资料'):t('暂无匹配资料')}</li>)}</ul></details>}
         {deliveryView&&<details><summary>{t("生成与交付记录")}</summary><p>{t("产物：")}{deliveryView.artifact_id}</p>{reportEditorial?.note&&<p>{reportEditorial.note}</p>}{deliveryView.gaps.map((gap,index)=><p key={index}>{gap}</p>)}
           <pre>{JSON.stringify({audit:deliveryView.audit,module_results:deliveryView.module_results,drawing:deliveryView.drawing,formats:deliveryView.formats},null,2)}</pre>
         </details>}
