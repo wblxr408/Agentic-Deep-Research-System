@@ -5,7 +5,7 @@ import {collectionRequest,jsonOptions} from './CollectionUI'
 
 type Figure=Record<string,unknown>
 interface Structure {format:string;pages?:Array<{number:number;start?:number;end?:number}>;figures:Figure[]}
-interface Observation {transcription:string;visual_summary:string;layout:string[];chart_observations:string[];uncertainties:string[];image_encoded?:boolean;dimension?:number;text_windows?:Array<{start:number;end:number}>;coverage?:{total_token_windows:number;encoded_text_windows:number;source_text_characters:number;text_characters_considered:number}}
+interface Observation {transcription:string;visual_summary:string;layout:string[];chart_observations:string[];uncertainties:string[];image_encoded?:boolean;dimension?:number;index_status?:string;text_windows?:Array<{start:number;end:number}>;coverage?:{total_token_windows:number;encoded_text_windows:number;source_text_characters:number;text_characters_considered:number}}
 interface Operation {operation_id:string;kind:string;status:string;parse_version:string;lifecycle_revision:number;input:{selection:{kind:string;page?:number;figure_id?:string}};
   result:Observation|null;usage:{status:string;total_tokens?:number}|null;error_category:string|null;model_name:string;created_at:string}
 const states:Record<string,string>=uiDefinition({preparing:'准备页面',running:'正在识别',completed:'识别完成',failed:'识别未完成',canceled:'已取消',interrupted:'处理中断'})
@@ -49,7 +49,7 @@ export default function DocumentVisualPanel({sourceId,parseVersion,structure,onC
       const response=await fetch(`/api/v1/documents/sources/${sourceId}/processing/${kind==='vision'?'vision':'multimodal-features'}`,{method:'POST',body:form})
       const data=await response.json().catch(()=>({}))
       if(!response.ok)throw new Error(typeof data.detail==='string'?data.detail:'processing_failed')
-      setExpanded(data.operation_id);reset();if(data.status==='failed')setError(explain(data.error_category)||t('处理未完成'));await client.invalidateQueries({queryKey:['document-processing',sourceId]});if(kind==='image_embedding')await client.invalidateQueries({queryKey:['document-features',sourceId]})
+      setExpanded(data.operation_id);reset();if(data.status==='failed')setError(explain(data.error_category)||t('处理未完成'));await client.invalidateQueries({queryKey:['document-processing',sourceId]});if(kind==='image_embedding'){await client.invalidateQueries({queryKey:['document-features',sourceId]});await client.invalidateQueries({queryKey:['source-index',sourceId]})}
     }catch(problem){const code=problem instanceof Error?problem.message:'';setError(explain(code)||t('处理未完成'));await client.invalidateQueries({queryKey:['document-processing',sourceId]})}
     finally{guard.current=false;setWorking(false)}
   }
@@ -90,7 +90,7 @@ export default function DocumentVisualPanel({sourceId,parseVersion,structure,onC
     </article>)}</div>}
     {!!query.data?.items.some(item=>item.kind==='image_embedding')&&<div className="document-visual-history"><h5>{t('图文特征记录')}</h5>{query.data.items.filter(item=>item.kind==='image_embedding').map(item=><article key={item.operation_id}>
       <div className="document-visual-row"><span>{item.input.selection.kind==='page'?t('第 {0} 页',item.input.selection.page):t('内嵌图片 {0}',item.input.selection.figure_id?.replace('figure:',''))} · {states[item.status]||item.status}</span><span>{item.model_name}</span>{['preparing','running'].includes(item.status)&&<button type="button" className="btn-ghost" onClick={()=>void cancel(item.operation_id)}>{t('取消处理')}</button>}</div>
-      {item.error_category&&<p>{explain(item.error_category)}</p>}{item.result?.image_encoded&&<p>{t('图像已编码 · 文本片段 {0}',item.result.text_windows?.length||0)}</p>}
+      {item.error_category&&<p>{explain(item.error_category)}</p>}{item.result?.image_encoded&&<p>{t('图像已编码 · 文本片段 {0}',item.result.text_windows?.length||0)}{item.result.index_status==='published'?` · ${t('已加入索引')}`:''}</p>}
     </article>)}</div>}
   </section>
 }

@@ -203,6 +203,30 @@ async def publish_source_index(conn,source_id,owner_id):
             VALUES($1::uuid,$2::uuid,$3,$4,$5,$6,$7,$8::jsonb,$9::uuid)''',records)
         rows=await conn.fetch('SELECT id,content,metadata FROM documents WHERE source_id=$1::uuid AND owner_id=$2::uuid ORDER BY chunk_index',str(source_id),str(owner_id))
     if len(rows)!=len(entries):raise ValueError('index_source_chunk_count_conflict')
+    multivector_selected=policy.get('multivector') is True
+    multi_config=(features.get('profile') or {}).get('multivector_configuration') if multivector_selected else None
+    multi_pair=(multi_config or {}).get('pair') or {}
+    multi_rows=[]
+    if multivector_selected:
+        multi_rows=await conn.fetch('''SELECT document_id,source_version,feature_profile_id,pair_id,token_dimension,pooled_dimension,
+            token_count,octet_length(token_vectors)+octet_length(pooled_vector) AS bytes FROM retrieval_model_features
+            WHERE owner_id=$1::uuid AND source_id=$2::uuid''',str(owner_id),str(source_id))
+        if (not multi_pair.get('pair_id') or {str(item['document_id']) for item in multi_rows}!={str(item['id']) for item in rows}
+                or any(item['source_version']!=metadata['parse_version_id'] or item['feature_profile_id']!=features['profile_id']
+                    or item['pair_id']!=multi_pair['pair_id'] for item in multi_rows)):
+            raise ValueError('index_multivector_representation_unavailable')
+    image_rows=await conn.fetch('''SELECT f.operation_id,f.model_profile FROM retrieval_multimodal_features f
+        JOIN document_processing_operations o ON o.id=f.operation_id AND o.owner_id=f.owner_id AND o.source_id=f.source_id
+        JOIN document_source_lifecycle lc ON lc.source_id=f.source_id AND lc.owner_id=f.owner_id
+        WHERE f.owner_id=$1::uuid AND f.source_id=$2::uuid AND f.source_version=$3 AND o.status='completed'
+        AND o.parse_version=$3 AND o.lifecycle_revision=lc.revision AND lc.is_current AND lc.state='retained'
+        ORDER BY o.created_at,o.id LIMIT 201''',str(owner_id),str(source_id),metadata['parse_version_id'])
+    if len(image_rows)>200:raise ValueError('index_multimodal_feature_limit')
+    image_links=[]
+    for item in image_rows:
+        model_profile=_object(item['model_profile']);profile_id=model_profile.get('profile_id')
+        if not isinstance(profile_id,str) or len(profile_id)!=64:raise ValueError('index_multimodal_profile_invalid')
+        image_links.append((str(item['operation_id']),profile_id))
     generation=uuid4();documents=[];postings=[];sparse_postings=[];stem_postings=[]
     truncated=0;omitted=0;seen=set();stem_omitted=0;stem_partial=0;sparse_truncated=0
     for row in rows:
@@ -255,6 +279,10 @@ async def publish_source_index(conn,source_id,owner_id):
             'top_k_truncated_documents':sparse_truncated},
         'english_stemming':{'status':'published' if stem_selected else 'not_selected','postings':len(stem_postings),
             'configuration_id':identity(stem_profile) if stem_selected else None,'partial_documents':stem_partial,'omitted_documents':stem_omitted},
+        'multivector':{'status':'published' if multivector_selected else 'not_selected','documents':len(multi_rows),
+            'pair_id':multi_pair.get('pair_id'),'stored_bytes':sum(item['bytes'] for item in multi_rows)},
+        'multimodal':{'status':'published' if image_links else 'not_selected','images':len(image_links),
+            'model_profiles':sorted({profile for _,profile in image_links})},
         'vector_access':'filtered_exact_only_no_new_ann','preparation_elapsed_seconds':round(time.monotonic()-started,6),
         'effects':{'scope':'index_construction_only','model_calls':0,'embedding_calls':0,'source_text_modified':False,'old_reports_modified':False}}
     await conn.execute("INSERT INTO retrieval_index_generations(id,owner_id,source_id,source_version,feature_profile_id,tokenizer_version,status,manifest) VALUES($1::uuid,$2::uuid,$3::uuid,$4,$5,$6,'ready',$7::jsonb)",
@@ -265,6 +293,8 @@ async def publish_source_index(conn,source_id,owner_id):
         VALUES($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5,$6,$7,$8)''',sparse_postings)
     if stem_postings:await conn.executemany('''INSERT INTO retrieval_english_lexemes(generation_id,document_id,owner_id,source_id,configuration_id,lexeme)
         VALUES($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5,$6)''',stem_postings)
+    if image_links:await conn.executemany('''INSERT INTO retrieval_multimodal_generations(generation_id,operation_id,owner_id,source_id,model_profile_id)
+        VALUES($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5)''',[(str(generation),operation,str(owner_id),str(source_id),profile) for operation,profile in image_links])
     head=await _set_head(conn,source_id,owner_id,'lexical',generation)
     if before and before['generation_id']:
         await conn.execute("UPDATE retrieval_index_generations SET status='retired' WHERE id=$1::uuid AND owner_id=$2::uuid AND source_id=$3::uuid",str(before['generation_id']),str(owner_id),str(source_id))
@@ -309,6 +339,16 @@ async def apply_index_action(conn,source_id,owner_id,request):
         if stem_manifest.get('status')=='published':
             count=await conn.fetchval('SELECT count(*) FROM retrieval_english_lexemes WHERE generation_id=$1::uuid AND owner_id=$2::uuid AND source_id=$3::uuid',str(request.target_generation_id),str(owner_id),str(source_id))
             if count!=stem_manifest.get('postings'):raise ValueError('retained_target_stem_generation_no_longer_complete')
+        multi_manifest=manifest.get('multivector') or {};image_manifest=manifest.get('multimodal') or {}
+        if multi_manifest.get('status')=='published':
+            count=await conn.fetchval('''SELECT count(*) FROM retrieval_model_features WHERE owner_id=$1::uuid AND source_id=$2::uuid
+                AND source_version=$3 AND feature_profile_id=$4 AND pair_id=$5''',str(owner_id),str(source_id),request.expected_source_version,
+                request.expected_feature_profile_id,multi_manifest.get('pair_id'))
+            if count!=multi_manifest.get('documents'):raise ValueError('retained_target_multivector_generation_no_longer_complete')
+        if image_manifest.get('status')=='published':
+            count=await conn.fetchval('SELECT count(*) FROM retrieval_multimodal_generations WHERE generation_id=$1::uuid AND owner_id=$2::uuid AND source_id=$3::uuid',
+                str(request.target_generation_id),str(owner_id),str(source_id))
+            if count!=image_manifest.get('images'):raise ValueError('retained_target_image_generation_no_longer_complete')
         head=await _set_head(conn,source_id,owner_id,'lexical',request.target_generation_id)
         await conn.execute("UPDATE retrieval_index_generations SET status=CASE WHEN id=$3::uuid THEN 'ready' ELSE 'retired' END WHERE source_id=$1::uuid AND owner_id=$2::uuid",str(source_id),str(owner_id),str(request.target_generation_id))
         result={**manifest,'mode':head['mode'],'revision':head['revision']}
@@ -385,6 +425,8 @@ def index_choices():
         'metadata_time':{'selected':'JSONB_GIN_and_owner_source_group_status_version_time_BTree','bitmap_roaring':'not_selected_no_measured_need'},
         'relations':{'selected':'bounded_source_structure_adjacency','confirmed_entity_graph':False},
         'vector':{'selected':'authorized_compatible_materialized_scope_exact_distance','existing_ann_indexes_removed':False,
-            'not_selected':['HNSW','Vamana','IVF_Flat','IVF_PQ','PQ','OPQ','SQ','DiskANN','token_multi_vector_late_interaction'],
+            'token_vectors':'source_bound_payload_with_generation_manifest_and_pair_identity;_late_interaction_pending',
+            'image_vectors':'source_bound_payload_with_generation_membership_and_model_identity;_cross_modal_query_pending',
+            'not_selected':['HNSW','Vamana','IVF_Flat','IVF_PQ','PQ','OPQ','SQ','DiskANN'],
             'reconsider_when':'measured_scale_latency_and_recall_cost_benefit_with_owner_filtering_and_rollback_evidence'},
         'training':'not_required_for_selected_lexical_or_exact_distance','default_ann_build':False}

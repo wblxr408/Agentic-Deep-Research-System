@@ -543,6 +543,7 @@ U3实际冻结的科研绘图Skill已装入constraints和stage:render，选用�
 2026-10-21：[索引选择、原子代际与范围统计](versioned-retrieval-indexes.md)已接入代码、尚未迁移／运行。十三候选逐项选择：真实词项倒排、当前授权范围BM25、精确／属性／时间索引、有界原位邻接及direct／lexical选择；当前向量采用兼容范围精确距离，停止新建默认固定IVF，保留旧索引。重建／关闭／回滚绑定源版本、head revision和幂等ID，旧报告依据不变。六项纯实施及最后统一验收见[OpenSpec](../openspec/changes/add-versioned-retrieval-indexes/tasks.md)；主TODO复合项继续未验收，下一OPT-06。
 
 - [x] 05.a 已选学习稀疏权重与英文词形分别建立有界倒排，随来源索引代际原子发布／回滚，记录版本和覆盖；查询交接及统一端到端待完成。
+- [x] 05.b 配对整体／token和图文向量绑定来源版本与索引代际；当前数据条件下保留ANN、压缩及磁盘索引的重选依据。查询和统一端到端待完成。
 
 - [ ] 05.1 精确索引：B-Tree、Hash、精确匹配索引。
 - [ ] 05.2 关键词索引：倒排索引、Posting List。

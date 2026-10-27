@@ -49,6 +49,14 @@ CREATE TABLE IF NOT EXISTS retrieval_multimodal_features (
     CHECK(CASE WHEN jsonb_typeof(text_windows)='array' THEN octet_length(text_vectors)=jsonb_array_length(text_windows)*dimension*4 ELSE false END)
 );
 CREATE INDEX IF NOT EXISTS idx_retrieval_multimodal_owner_source ON retrieval_multimodal_features(owner_id,source_id);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_multimodal_identity_owner_source ON retrieval_multimodal_features(operation_id,owner_id,source_id);
+CREATE TABLE IF NOT EXISTS retrieval_multimodal_generations (
+    generation_id UUID NOT NULL,operation_id UUID NOT NULL,owner_id UUID NOT NULL,source_id UUID NOT NULL,
+    model_profile_id TEXT NOT NULL,PRIMARY KEY(generation_id,operation_id),
+    FOREIGN KEY(generation_id,owner_id,source_id) REFERENCES retrieval_index_generations(id,owner_id,source_id) ON DELETE CASCADE,
+    FOREIGN KEY(operation_id,owner_id,source_id) REFERENCES retrieval_multimodal_features(operation_id,owner_id,source_id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_multimodal_generations_owner_profile ON retrieval_multimodal_generations(owner_id,model_profile_id,generation_id);
 CREATE TABLE IF NOT EXISTS source_entity_links (
     id UUID PRIMARY KEY,owner_id UUID NOT NULL,source_id UUID NOT NULL,operation_id UUID NOT NULL,
     parse_version TEXT NOT NULL,lifecycle_revision BIGINT NOT NULL,chunk_id TEXT NOT NULL,

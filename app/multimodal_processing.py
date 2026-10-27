@@ -93,6 +93,14 @@ async def _complete(owner,source_id,operation_id,parse_version,job,encoded,confi
         row=await conn.fetchrow('''UPDATE document_processing_operations SET status='completed',result=$3::jsonb,
             usage='{"status":"local_computation","cost_status":"not_measured"}'::jsonb,updated_at=NOW()
             WHERE id=$1::uuid AND owner_id=$2::uuid RETURNING *''',str(operation_id),str(owner),json.dumps(result))
+        head=await conn.fetchrow('SELECT mode FROM source_index_heads WHERE source_id=$1::uuid AND owner_id=$2::uuid',str(source_id),str(owner))
+        if head and head['mode']=='lexical':
+            from app.db.retrieval_indexes import publish_source_index
+            generation=await publish_source_index(conn,source_id,owner)
+            if row['deadline_at']<=datetime.now(UTC):raise HTTPException(409,'processing_context_changed')
+            result.update(index_status='published',generation_id=generation['generation_id'])
+            row=await conn.fetchrow('''UPDATE document_processing_operations SET result=$3::jsonb,updated_at=NOW()
+                WHERE id=$1::uuid AND owner_id=$2::uuid RETURNING *''',str(operation_id),str(owner),json.dumps(result))
         return _public(row)
 
 

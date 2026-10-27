@@ -316,11 +316,8 @@ async def _ingest_source(
         if len(chunks)!=len(embeddings):raise HTTPException(502,'embedding_count_mismatch_no_source_committed')
         result=await _persist_ingested_source(conn,name=name,group_name=group_name,source_type=source_type,
             file_name=file_name,file_ext=file_ext,text=text,chunk_size=chunk_size,chunk_overlap=chunk_overlap,
-            metadata=source_metadata,owner_id=owner_id,chunks=chunks,embeddings=embeddings,dense_coverage=coverage)
-        if multivector_output is not None:
-            from app.db.retrieval_multivector import persist_document_vectors
-            await persist_document_vectors(conn,owner_id,result['source_id'],result['document_ids'],
-                source_metadata['parse_version_id'],features['profile_id'],multivector_output)
+            metadata=source_metadata,owner_id=owner_id,chunks=chunks,embeddings=embeddings,dense_coverage=coverage,
+            multivector_output=multivector_output)
         return {**result,'parse_version_id':source_metadata['parse_version_id'],'parse_quality':(parsed_document or {}).get('quality'),
             'representation':{'dense_status':features['dense']['status'],'semantic_local_encoding_calls':int(semantic_plan is not None),**features['effects']}}
 
@@ -347,6 +344,7 @@ async def _persist_ingested_source(
     chunks: list[str],
     embeddings: list[list[float]|None],
     dense_coverage:list[dict]|None=None,
+    multivector_output:dict|None=None,
 ) -> dict[str, Any]:
     source = await conn.fetchrow(
         """INSERT INTO document_sources (
@@ -392,6 +390,13 @@ async def _persist_ingested_source(
         )
         created_doc_ids.append(str(document["id"]))
 
+    if multivector_output is not None:
+        from app.db.retrieval_multivector import persist_document_vectors
+        try:await persist_document_vectors(conn,owner_id,source_id,created_doc_ids,metadata['parse_version_id'],
+            metadata['feature_plan']['profile_id'],multivector_output)
+        except asyncpg.PostgresError as error:
+            logger.warning('Multivector persistence failed without source commit: %s',type(error).__name__)
+            raise HTTPException(503,'multivector_persistence_failed_no_source_committed') from None
     try:index_result=await initialize_source_index(conn,source_id,owner_id,IndexPolicy.model_validate(metadata.get('index_policy') or {}))
     except ValueError as error:raise HTTPException(409,str(error)) from None
     except asyncpg.PostgresError as error:
@@ -598,11 +603,15 @@ async def get_source_features(source_id:uuid.UUID,include_chunks:bool=False,prin
     async with pool.acquire() as conn:
         row=await conn.fetchrow('''SELECT metadata->'feature_plan' AS feature_plan,metadata->>'parse_version_id' AS parse_version
             FROM document_sources WHERE id=$1::uuid AND owner_id=$2::uuid''',str(source_id),principal.id)
-        image_rows=await conn.fetch('''SELECT f.operation_id,f.selection,f.model_profile,f.dimension,o.result,o.created_at
+        image_rows=await conn.fetch('''SELECT f.operation_id,f.selection,f.model_profile,f.dimension,o.result,o.created_at,g.generation_id AS current_generation_id
             FROM retrieval_multimodal_features f JOIN document_processing_operations o
             ON o.id=f.operation_id AND o.owner_id=f.owner_id AND o.source_id=f.source_id
+            JOIN document_source_lifecycle lc ON lc.source_id=f.source_id AND lc.owner_id=f.owner_id
+            LEFT JOIN source_index_heads h ON h.source_id=f.source_id AND h.owner_id=f.owner_id AND h.mode='lexical'
+            LEFT JOIN retrieval_multimodal_generations g ON g.generation_id=h.generation_id AND g.operation_id=f.operation_id AND g.owner_id=f.owner_id
             WHERE f.source_id=$1::uuid AND f.owner_id=$2::uuid AND f.source_version=$3 AND o.status='completed'
-            ORDER BY o.created_at DESC,o.id DESC LIMIT 21''',str(source_id),principal.id,row['parse_version'] if row else None)
+            AND lc.is_current AND lc.state='retained' AND o.lifecycle_revision=lc.revision
+            ORDER BY (g.generation_id IS NOT NULL) DESC,o.created_at DESC,o.id DESC LIMIT 21''',str(source_id),principal.id,row['parse_version'] if row else None)
         links=await conn.fetchrow('''SELECT count(*) AS active_count,count(*) FILTER (WHERE o.accepted) AS research_count
             FROM source_entity_links l JOIN document_processing_operations o ON o.id=l.operation_id AND o.owner_id=l.owner_id AND o.source_id=l.source_id
             JOIN document_source_lifecycle lc ON lc.owner_id=l.owner_id AND lc.source_id=l.source_id
@@ -614,11 +623,13 @@ async def get_source_features(source_id:uuid.UUID,include_chunks:bool=False,prin
     if view and view.get('source_version')!=row['parse_version']:raise HTTPException(409,'feature_source_version_conflict')
     if view and image_rows:
         records=[{'operation_id':str(item['operation_id']),'selection':_metadata(item['selection']),'model_profile':_metadata(item['model_profile']),
-            'dimension':item['dimension'],'result':_metadata(item['result']),'created_at':item['created_at'].isoformat()} for item in image_rows[:20]]
+            'dimension':item['dimension'],'result':_metadata(item['result']),'created_at':item['created_at'].isoformat(),
+            'current_generation_id':str(item['current_generation_id']) if item['current_generation_id'] else None} for item in image_rows[:20]]
         view={**view,'modality':{**(view.get('modality') or {}),'image_embeddings':True,'image_features':records,
             'additional_image_features':len(image_rows)>20},
             'candidate_decisions':{**(view.get('candidate_decisions') or {}),'multimodal':{'status':'image_encoded_source_text_when_available',
-                'joint_image_text_encoding':any(item['result'].get('text_windows') for item in records),'index_status':'not_published'}}}
+                'joint_image_text_encoding':any(item['result'].get('text_windows') for item in records),
+                'index_status':'published_for_current_head' if any(item['current_generation_id'] for item in records) else 'not_published'}}}
     if view and links and links['active_count']:
         view={**view,'candidate_decisions':{**(view.get('candidate_decisions') or {}),'entity_linking':{
             'status':'user_declared_identity_links','active_count':links['active_count'],'selected_for_research':links['research_count'],
