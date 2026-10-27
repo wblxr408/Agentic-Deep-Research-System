@@ -60,7 +60,10 @@ class LayoutUploadLimitMiddleware:
             self._slots.release()
 
     async def _accept(self,scope,receive,send):
-        maximum=2*1024*1024+32768
+        # The endpoint applies the smaller HTML/DOCX limit after multipart
+        # parsing; the boundary accommodates an allowed PDF plus framing.
+        from app.report_layout import MAX_PDF_SAMPLE_BYTES
+        maximum=MAX_PDF_SAMPLE_BYTES+32768
         chunks=[];size=0
         try:
             async with asyncio.timeout(45):

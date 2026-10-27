@@ -13,7 +13,7 @@ import tempfile
 from uuid import UUID, uuid4
 
 from app.db.connection import get_db_pool
-from app.report_layout import MAX_SAMPLE_BYTES, ReportLayout, VERSION as LAYOUT_VERSION
+from app.report_layout import sample_byte_limit, ReportLayout, VERSION as LAYOUT_VERSION
 
 logger = logging.getLogger(__name__)
 OPERATION_SECONDS = 45
@@ -26,9 +26,13 @@ MAX_OWNER_OPERATIONS = 500
 TERMINAL = frozenset({'completed', 'failed', 'canceled'})
 STAGES = frozenset({'reading', 'cleaning', 'preview'})
 DIFFERENCES = frozenset({'complex_css_requires_adjustment','source_scripts_not_used','external_assets_omitted',
-                         'source_images_omitted','floating_objects_require_adjustment'})
+                         'source_images_omitted','floating_objects_require_adjustment',
+                         'pdf_geometry_is_approximate','pdf_pages_limited','pdf_detail_limited',
+                         'pdf_page_without_text','pdf_vector_graphics_require_adjustment',
+                         'pdf_images_limited','pdf_multiple_images_require_adjustment'})
 PARSER_FAILURES = frozenset({'layout_sample_size_limit','layout_requires_utf8','layout_format_not_supported',
     'layout_structure_not_found','layout_invalid_docx','layout_docx_xml_limit','layout_docx_expansion_limit',
+    'layout_invalid_pdf','layout_pdf_encrypted',
     'layout_document_complexity_limit','layout_component_limit','layout_section_limit','layout_style_limit',
     'layout_style_complexity_limit','layout_invalid_document','layout_parser_internal'})
 
@@ -46,7 +50,7 @@ def public_operation(row):
         'attempts':row['attempts'], 'max_attempts':row['max_attempts'],
         'error_code':row['error_code'], 'error_category':row['error_category'],
         'deadline_at':row['deadline_at'].isoformat(), 'updated_at':row['updated_at'].isoformat(),
-        'budget':{'max_bytes':MAX_SAMPLE_BYTES,'max_attempts':row['max_attempts'],
+        'budget':{'max_bytes':sample_byte_limit(row['format']),'max_attempts':row['max_attempts'],
                   'attempt_seconds':ATTEMPT_SECONDS,'operation_seconds':OPERATION_SECONDS,
                   'model_calls':0,'network_calls':0}}
 
@@ -72,9 +76,9 @@ async def _prune_owner(conn, owner_id):
 
 
 async def submit_operation(owner_id, operation_id:UUID, name:str, format:str, raw:bytes):
-    if format not in {'html','htm','docx'}:
+    if format not in {'html','htm','docx','pdf'}:
         raise LayoutOperationError(415,'layout_format_not_supported')
-    if not raw or len(raw)>MAX_SAMPLE_BYTES:
+    if not raw or len(raw)>sample_byte_limit(format):
         raise LayoutOperationError(413,'layout_sample_size_limit')
     fingerprint=hashlib.sha256(raw).hexdigest()
     pool=await get_db_pool()
@@ -191,7 +195,7 @@ def _sanitize_result(parsed,format):
     metadata=parsed.get('parse')
     if not isinstance(metadata,dict) or metadata.get('parser_version')!=LAYOUT_VERSION or metadata.get('model_calls')!=0:
         raise ValueError('layout_invalid_document')
-    if metadata.get('format')!=('html' if format in {'html','htm'} else 'docx') or metadata.get('source_content_retained_in_layout') is not False:
+    if metadata.get('format')!=('html' if format in {'html','htm'} else format) or metadata.get('source_content_retained_in_layout') is not False:
         raise ValueError('layout_invalid_document')
     allowed_ids={section.section_id for section in layout.sections}|{block.block_id for section in layout.sections for block in section.blocks}
     locations=metadata.get('locations')
@@ -199,7 +203,7 @@ def _sanitize_result(parsed,format):
         raise ValueError('layout_invalid_document')
     clean_locations={}
     for key,value in locations.items():
-        if not isinstance(value,dict) or set(value)-{'line','column','element'} or any(
+        if not isinstance(value,dict) or set(value)-{'line','column','element','page'} or any(
                 isinstance(item,bool) or not isinstance(item,int) or not 0<=item<=2_000_000 for item in value.values()):
             raise ValueError('layout_invalid_document')
         clean_locations[key]=value

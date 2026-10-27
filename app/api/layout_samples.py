@@ -12,7 +12,7 @@ from sse_starlette.sse import EventSourceResponse
 from app.config import get_settings
 from app.db.connection import get_db_pool
 from app.layout_operations import LayoutOperationError, cancel_operation, read_operation, submit_operation
-from app.report_layout import MAX_SAMPLE_BYTES
+from app.report_layout import sample_byte_limit
 from app.security.auth import Principal, require_principal
 
 router = APIRouter(prefix='/layout-samples', dependencies=[Depends(require_principal)])
@@ -29,10 +29,11 @@ async def _upload(file:UploadFile):
     if not name or len(name)>240 or any(ord(char)<32 for char in name):
         raise HTTPException(422,'layout_invalid_file_name')
     format=PurePath(name).suffix.lower().lstrip('.')
-    if format not in {'html','htm','docx'}:
+    if format not in {'html','htm','docx','pdf'}:
         raise HTTPException(415,'layout_format_not_supported')
-    raw=await file.read(MAX_SAMPLE_BYTES+1)
-    if not raw or len(raw)>MAX_SAMPLE_BYTES:
+    limit=sample_byte_limit(format)
+    raw=await file.read(limit+1)
+    if not raw or len(raw)>limit:
         raise HTTPException(413,'layout_sample_size_limit')
     return name,format,raw
 

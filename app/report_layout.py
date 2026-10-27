@@ -2,8 +2,11 @@
 from __future__ import annotations
 
 import re
+import math
+from collections import Counter
 from html.parser import HTMLParser
 from io import BytesIO
+from statistics import median
 from typing import Annotated, Literal
 from xml.etree import ElementTree as ET
 from zipfile import BadZipFile, ZipFile
@@ -13,6 +16,11 @@ from app.research_scope import ScopeRecord
 
 VERSION = 'adrs-report-layout-v1'
 MAX_SAMPLE_BYTES = 2 * 1024 * 1024
+MAX_PDF_SAMPLE_BYTES = 10 * 1024 * 1024
+
+
+def sample_byte_limit(format: str) -> int:
+    return MAX_PDF_SAMPLE_BYTES if format == 'pdf' else MAX_SAMPLE_BYTES
 SectionId = Annotated[str, StringConstraints(pattern=r'^section-[1-9][0-9]{0,2}$')]
 BlockId = Annotated[str, StringConstraints(pattern=r'^block-[1-9][0-9]{0,3}$')]
 Color = Annotated[str, StringConstraints(pattern=r'^#[0-9a-f]{6}$')]
@@ -327,13 +335,150 @@ def _parse_docx(raw, progress=None):
         running_footer=section is not None and section.find(namespace + 'footerReference') is not None)
 
 
+def _pdf_color(value):
+    """Map only numeric PDF color components to a permitted six-digit token."""
+    if isinstance(value,(int,float)) and not isinstance(value,bool):value=(value,value,value)
+    if not isinstance(value,(tuple,list)) or len(value)!=3:return None
+    try:components=[float(part) for part in value]
+    except (TypeError,ValueError):return None
+    if any(not math.isfinite(part) or part<0 or part>1 for part in components):return None
+    return '#'+''.join(f'{round(part*255):02x}' for part in components)
+
+
+def _pdf_luminance(color):
+    parts=[int(color[index:index+2],16)/255 for index in (1,3,5)]
+    return sum(weight*(part/12.92 if part<=.04045 else ((part+.055)/1.055)**2.4)
+        for weight,part in zip((.2126,.7152,.0722),parts))
+
+
+def _parse_pdf(raw, progress=None):
+    """Create editable layout slots from page geometry, never from PDF words."""
+    if not raw.startswith(b'%PDF-'):raise ValueError('layout_invalid_pdf')
+    if progress:progress('reading')
+    import pdfplumber
+    from pdfminer.pdfdocument import PDFPasswordIncorrect
+    builder=_Builder();tokens={};differences={'source_images_omitted','pdf_geometry_is_approximate'}
+    figure_count=0;meaningful=False;body_sizes=[];heading_sizes=[];colors=[];fonts=[]
+    try:
+        with pdfplumber.open(BytesIO(raw)) as document:
+            if len(document.pages)>24:differences.add('pdf_pages_limited')
+            if progress:progress('cleaning')
+            for index,page in enumerate(document.pages[:24]):
+                width,height=float(page.width),float(page.height)
+                if not math.isfinite(width) or not math.isfinite(height) or width<=0 or height<=0:
+                    raise ValueError('layout_invalid_pdf')
+                chars=page.chars
+                if len(chars)>30000:differences.add('pdf_detail_limited')
+                glyphs=[]
+                for char in chars[:30000]:
+                    # Glyph text is used only to ignore whitespace and is never
+                    # copied to a result, location, diagnostic, or model input.
+                    if not str(char.get('text') or '').strip():continue
+                    try:
+                        x0,x1,top,size=(float(char.get(key,0)) for key in ('x0','x1','top','size'))
+                    except (TypeError,ValueError):continue
+                    if not all(math.isfinite(value) for value in (x0,x1,top,size)) or size<=0:continue
+                    glyphs.append((top,x0,x1,size,char.get('non_stroking_color'),str(char.get('fontname') or '')))
+                buckets={}
+                for glyph in glyphs:buckets.setdefault(round(glyph[0]/3),[]).append(glyph)
+                lines=[]
+                for bucket in sorted(buckets):
+                    current=[]
+                    for glyph in sorted(buckets[bucket],key=lambda item:item[1]):
+                        if current and glyph[1]-current[-1][2]>max(24,current[-1][3]*2.5):
+                            lines.append(current);current=[]
+                        current.append(glyph)
+                    if current:lines.append(current)
+                lines.sort(key=lambda line:(line[0][0],line[0][1]))
+                base=median([glyph[3] for glyph in glyphs]) if glyphs else 12
+                headings=[line for line in lines if line[0][0]<height*.3
+                    and median([glyph[3] for glyph in line])>=max(base*1.3,base+3)]
+                heading_ids={id(line) for line in headings}
+                body=[line for line in lines if id(line) not in heading_ids]
+                body_sizes.extend(glyph[3] for line in body for glyph in line)
+                heading_sizes.extend(glyph[3] for line in headings for glyph in line)
+                colors.extend(color for glyph in glyphs if (color:=_pdf_color(glyph[4])))
+                fonts.extend(glyph[5].lower() for glyph in glyphs)
+                left=[line for line in body if max(glyph[2] for glyph in line)<=width*.52]
+                right=[line for line in body if min(glyph[1] for glyph in line)>=width*.48]
+                columns=2 if len(left)>=3 and len(right)>=3 else 1
+                builder.section(level=1 if index==0 else 2,columns=columns,position={'page':index+1})
+                slots=[]
+                if body:
+                    meaningful=True
+                    groups=[left,right] if columns==2 else [body]
+                    for number,group in enumerate(groups):
+                        if group:slots.append((min(line[0][0] for line in group),'text',{'page':index+1,'element':number},{}))
+                elif headings:
+                    meaningful=True
+                images=[]
+                for image in page.images[:100]:
+                    try:iw=float(image['x1'])-float(image['x0']);ih=float(image['bottom'])-float(image['top'])
+                    except (KeyError,TypeError,ValueError):continue
+                    if all(math.isfinite(value) for value in (iw,ih)) and iw>0 and ih>0 and iw*ih>=width*height*.03:
+                        images.append((iw*ih,float(image['top']),iw,ih))
+                if len(page.images)>100:differences.add('pdf_detail_limited')
+                if not glyphs:differences.add('pdf_page_without_text')
+                if page.curves or page.lines:differences.add('pdf_vector_graphics_require_adjustment')
+                if images:
+                    meaningful=True
+                    if figure_count<12:
+                        _,top,iw,ih=max(images)
+                        aspect='wide' if iw/ih>=1.4 else 'portrait' if ih/iw>=1.4 else 'square'
+                        slots.append((top,'image',{'page':index+1,'element':len(slots)},{'aspect':aspect}))
+                        figure_count+=1
+                    else:differences.add('pdf_images_limited')
+                    if len(images)>1:differences.add('pdf_multiple_images_require_adjustment')
+                elif not glyphs and (page.curves or page.lines or page.rects):
+                    meaningful=True
+                    differences.add('pdf_vector_graphics_require_adjustment')
+                    if figure_count<12:
+                        slots.append((0,'image',{'page':index+1,'element':0},{'aspect':'auto'}));figure_count+=1
+                    else:differences.add('pdf_images_limited')
+                for _,kind,position,options in sorted(slots,key=lambda item:item[0]):
+                    builder.block(kind,position,columns,**options)
+                if index==0:
+                    if width>height:tokens['width']='wide'
+                    backgrounds=[]
+                    for rect in page.rects[:10000]:
+                        try:area=float(rect['width'])*float(rect['height'])
+                        except (KeyError,TypeError,ValueError):continue
+                        color=_pdf_color(rect.get('non_stroking_color'))
+                        if color and area>=width*height*.85:backgrounds.append((area,color))
+                    if backgrounds:tokens['background']=max(backgrounds)[1]
+                page.close()
+        if not meaningful:raise ValueError('layout_structure_not_found')
+        if body_sizes:tokens['body_px']=max(14,min(24,round(median(body_sizes)*4/3)))
+        if heading_sizes:tokens['title_px']=max(24,min(96,round(median(heading_sizes)*4/3)))
+        background=tokens.get('background','#f8fafb')
+        foreground=Counter(colors).most_common(1)[0][0] if colors else '#183039'
+        light,dark=sorted((_pdf_luminance(background),_pdf_luminance(foreground)),reverse=True)
+        if (light+.05)/(dark+.05)<2.5:
+            foreground='#f8fafb' if _pdf_luminance(background)<.2 else '#183039'
+        tokens['foreground']=foreground
+        if fonts:
+            family=Counter(fonts).most_common(1)[0][0]
+            tokens['font']='mono' if any(part in family for part in ('mono','courier','consolas')) else (
+                'serif' if any(part in family for part in ('serif','times','songti','mincho')) and 'sans' not in family else 'sans')
+        return builder.result(tokens,format='pdf',differences=sorted(differences))
+    except PDFPasswordIncorrect:
+        raise ValueError('layout_pdf_encrypted') from None
+    except ValueError as error:
+        if str(error).startswith('layout_'):raise
+        raise ValueError('layout_invalid_pdf') from None
+    except Exception:
+        raise ValueError('layout_invalid_pdf') from None
+
+
 def parse_layout_sample(raw: bytes, format: str, progress=None):
-    if not raw or len(raw) > MAX_SAMPLE_BYTES:
+    if not raw or len(raw) > sample_byte_limit(format):
         raise ValueError('layout_sample_size_limit')
     if format in {'html', 'htm'}:
         result = _parse_html(raw, progress)
     elif format == 'docx':
         result = _parse_docx(raw, progress)
+    elif format == 'pdf':
+        result = _parse_pdf(raw, progress)
     else:
         raise ValueError('layout_format_not_supported')
     if progress:

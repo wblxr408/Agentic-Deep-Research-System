@@ -23,8 +23,8 @@ def main():
     timer.daemon = True
     timer.start()
     try:
-        from app.report_layout import MAX_SAMPLE_BYTES, parse_layout_sample
-        raw = sys.stdin.buffer.read(MAX_SAMPLE_BYTES + 1)
+        from app.report_layout import sample_byte_limit, parse_layout_sample
+        raw = sys.stdin.buffer.read(sample_byte_limit(sys.argv[1]) + 1)
         result = parse_layout_sample(raw, sys.argv[1], progress=lambda stage: emit({'event':'stage','stage':stage}))
         emit({'event':'result','result':result})
     except ValueError as error:
