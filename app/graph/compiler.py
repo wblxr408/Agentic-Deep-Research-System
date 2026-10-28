@@ -972,6 +972,20 @@ def dag_executor_node(state: ResearchState) -> dict:
         deserialize_dag(state["dag"]), state["user_query"],
         use_internal_docs=bool(state.get("use_internal_docs", False)), ensure_sources=False,
     )
+    from app.discovery_handoff import extend_reads
+    remaining_calls, remaining_seconds = _channel_budget(state, [])
+    dag, discovery_manifest, discovery_reads = extend_reads(state, dag,
+        remaining_calls=remaining_calls, remaining_seconds=remaining_seconds,
+        allowed_tools=_effective_tool_allowlist(state, state.get('guardrail_decision') or {}))
+    state = {**state, 'plan_manifest': discovery_manifest or state.get('plan_manifest')}
+    plan_history = list(state.get('plan_history') or [])
+    discovery_trace = []
+    if discovery_reads:
+        plan_history = [*plan_history, {key: discovery_manifest[key] for key in
+            ('plan_version','revision','reason','strategy','adjustments')}][-32:]
+        discovery_trace.append(_append_trace_event(state, EventType.AGENT_COMPLETE, 'dag_executor',
+            f'从已保留线索安排 {len(discovery_reads)} 次正文读取。',
+            {'kind':'plan_changed','plan_manifest':discovery_manifest,'source_reads':discovery_reads}))
     execution_order = dependency_batches(dag.nodes)
     budget_state = _build_budget_state(state)
     failure_memory = state.get("failure_memory")
@@ -986,7 +1000,7 @@ def dag_executor_node(state: ResearchState) -> dict:
             all_completed.add(node.node_id)
     current_batch = []
     deferred_retries: list[dict[str, Any]] = []
-    scheduling_trace = []
+    scheduling_trace = list(discovery_trace)
     policy = PlanningPolicy.model_validate(state.get('planning_policy') or {})
     remaining_calls, remaining_seconds = _channel_budget(state, [])
     parallel_limit = min(policy.max_parallel, max(0, remaining_calls))
@@ -1073,7 +1087,8 @@ def dag_executor_node(state: ResearchState) -> dict:
                 f"Deferred {len(deferred_retries)} retryable node(s) by exponential backoff.",
                 {"deferred_retries": deferred_retries},
             ))
-        return {"dag": serialize_dag(dag), "completed_nodes": list(all_completed), "current_executing_nodes": [], "agent_trace": trace}
+        return {"dag": serialize_dag(dag), "completed_nodes": list(all_completed), "current_executing_nodes": [],
+            'plan_manifest':state.get('plan_manifest'),'plan_history':plan_history, "agent_trace": trace}
 
     emit_event(
         state, EventType.AGENT_START, "dag_executor",
@@ -1090,7 +1105,7 @@ def dag_executor_node(state: ResearchState) -> dict:
     handoffs = prepare_handoffs({**state,'plan_manifest':manifest}, dag, current_batch, remaining_calls, remaining_seconds)
     return {
         "dag": serialize_dag(dag),
-        'plan_manifest':manifest, 'tool_handoffs':handoffs,
+        'plan_manifest':manifest, 'plan_history':plan_history, 'tool_handoffs':handoffs,
         "current_executing_nodes": current_batch,
         "completed_nodes": list(all_completed),
         "agent_trace": scheduling_trace + ([

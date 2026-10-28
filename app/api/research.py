@@ -1525,7 +1525,12 @@ async def get_research_result(session_id: str, principal: Principal = principal_
         'analysis_recovery_available':bool(row['status']=='paused' and workflow.get('status')=='paused'
             and workflow.get('schema_version')=='adrs-analysis-questions-v2'
             and workflow.get('stop_reason') in {'analysis_output_incomplete','analysis_provider_unavailable','model_output_limit','insufficient_context_budget'}
-            and int((workflow.get('attempts') or {}).get(workflow.get('active_phase'),10))<10),
+            and int((workflow.get('attempts') or {}).get(workflow.get('active_phase'),10))<10
+            and bool(pause_diagnosis and not pause_diagnosis.get('blockers')
+                and (pause_diagnosis.get('remaining_seconds') or 0)>0
+                and (pause_diagnosis.get('remaining_tokens') or 0)>=1024)
+            and not any((item.get('admission') or {}).get('reason')=='no_acquired_source_fits'
+                for item in ((workflow.get('failed_attempts') or {}).get(workflow.get('active_phase')) or [])[-1:])),
         'report_recovery_available':bool(row['status'] in {'failed','paused'} and workflow.get('status')=='completed'
             and review_status.get('output_stage')=='report' and review_status.get('report_payload_kind')=='partial_response'
             and (((review_status.get('organization_result') or {}).get('module_report') or {}).get('issues')
@@ -1937,6 +1942,9 @@ async def _resume_retained_synthesis(session_id, background_tasks, principal, *,
             and state.get('runtime_status')=='analysis_paused' and workflow.get('status')=='paused'
             and isinstance(phase,str)
             and reason in {'analysis_output_incomplete','analysis_provider_unavailable','model_output_limit','insufficient_context_budget'})
+        failures=(workflow.get('failed_attempts') or {}).get(phase) or []
+        if failures and (failures[-1].get('admission') or {}).get('reason')=='no_acquired_source_fits':
+            raise HTTPException(409,'analysis_source_acquisition_required')
     if (not recoverable or str(root.get('owner_id'))!=str(principal.id)
             or str(root.get('session_id'))!=session_id or str(state.get('task_id'))!=session_id
             or root.get('execution_id')!=str(record['execution_id'])

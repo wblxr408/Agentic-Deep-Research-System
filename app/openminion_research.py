@@ -80,11 +80,13 @@ class _PageText(HTMLParser):
         self.stack = []
         self.in_main = 0
         self.links = []
+        self.active_link = None
 
     def handle_starttag(self, tag, attrs):
         attrs = dict(attrs)
         if tag == "a" and attrs.get("href"):
-            self.links.append({"href": attrs["href"]})
+            self.active_link = {"href": attrs["href"], "text": ""}
+            self.links.append(self.active_link)
         if tag == "meta" and attrs.get("name", "").lower() == "citation_pdf_url" and attrs.get("content"):
             self.links.append({"href": attrs["content"]})
         hide = tag in {"script", "style", "noscript", "nav", "header", "footer"} or attrs.get("role") in {"navigation", "banner", "contentinfo"}
@@ -100,6 +102,8 @@ class _PageText(HTMLParser):
                 self.main_parts.append("\n")
 
     def handle_endtag(self, tag):
+        if tag == 'a':
+            self.active_link = None
         index = next((i for i in range(len(self.stack)-1, -1, -1) if self.stack[i][0] == tag), None)
         if index is not None:
             closed = self.stack[index:]
@@ -108,6 +112,8 @@ class _PageText(HTMLParser):
             self.in_main = max(0, self.in_main-sum(t in {"main", "article"} for t, _ in closed))
 
     def handle_data(self, data):
+        if self.active_link is not None:
+            self.active_link['text'] = (self.active_link['text'] + data)[:240]
         if not self.hidden:
             self.parts.append(data)
             if self.in_main:

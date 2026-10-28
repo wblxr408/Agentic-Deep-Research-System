@@ -20,6 +20,7 @@ DEFAULT_BASE_URLS = {
     "openai": "https://api.openai.com/v1",
     "ollama": "http://localhost:11434/v1",
     "anthropic": "https://api.anthropic.com",
+    "agnes": "https://api.agnes-ai.cn/v1",
 }
 
 
@@ -46,4 +47,5 @@ def provider_catalog() -> list[dict[str, Any]]:
         {"id": "openai", "name": "OpenAI", "api_base_default": DEFAULT_BASE_URLS["openai"]},
         {"id": "ollama", "name": "Ollama", "api_base_default": DEFAULT_BASE_URLS["ollama"]},
         {"id": "anthropic", "name": "Anthropic", "api_base_default": DEFAULT_BASE_URLS["anthropic"]},
+        {"id": "agnes", "name": "Agnes", "api_base_default": DEFAULT_BASE_URLS["agnes"]},
     ]

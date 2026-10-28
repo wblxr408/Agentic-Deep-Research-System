@@ -152,13 +152,15 @@ def analysis_input_matches(state, query, skills, hints, evidence):
         research_strategy_version=workflow.get('research_strategy_version'))
 
 
-def identity_batches(evidence):
+def identity_batches(evidence, *, acquired_only=False):
     """Keep acquired full text with retained publisher links, two groups/call.
 
     Grouping only selects reading context. It does not prove work identity or
     transfer affiliation/date authority between different publications.
     """
     from app.organization_findings import _publication_url
+    if acquired_only:
+        evidence=[item for item in evidence if (item.acquisition or {}).get('coverage')!='discovery_only']
     primary=[item for item in evidence if (item.acquisition or {}).get('coverage')=='full_text']
     publishers=[item for item in evidence if (item.acquisition or {}).get('publisher_metadata') or (
         (item.acquisition or {}).get('coverage') != 'discovery_only' and

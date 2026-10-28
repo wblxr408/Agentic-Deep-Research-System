@@ -74,6 +74,9 @@ def tool_allocation(state, node_type, share):
     if signals['deep_reading_selected'] and node_type == 'browser': cap = max(cap, 8)
     if signals['specific_gap']: cap += min(2, len(signals['gap_reasons']))
     if node_type == 'search':
+        followup=((state.get('query_understanding') or {}).get('research_strategy') or {}).get('source_followup') or {}
+        if followup.get('version')=='adrs-discovery-handoff-v1':
+            cap=3
         channels = list(dict.fromkeys((state.get('session') or {}).get('channels') or []))
         options = (state.get('query_understanding') or {}).get('query_rewriting') or {}
         variants = max(1, min(4, _nonnegative(options.get('max_variants')) or 1))

@@ -205,7 +205,8 @@ Return JSON with analysis_text and any additional fields explicitly required bel
                     'context':deepcopy(self.last_context_manifest)}
                 failures=workflow.setdefault('failed_attempts',{}).setdefault(key,[])
                 if not failures or failures[-1]!=failed:failures.append(failed)
-                if workflow['attempts'][key]<2 and error.reason in {'analysis_output_incomplete','model_output_limit','insufficient_context_budget'}:
+                if workflow['attempts'][key]<2 and error.reason in {'analysis_output_incomplete','model_output_limit','insufficient_context_budget'} and (
+                        (getattr(error,'admission',None) or {}).get('reason')!='no_acquired_source_fits'):
                     from app.model_routing import prepare_capability_upgrade
                     trigger='output_truncated' if error.reason=='model_output_limit' else (
                         'context_gap' if error.reason=='insufficient_context_budget' else 'format_failure')
@@ -222,7 +223,8 @@ Return JSON with analysis_text and any additional fields explicitly required bel
         data={};extractions=[]
         selected_entities={item['entity_id'] for item in configuration['scope'].get('entities',[])}
         from app.query_understanding import identity
-        for index,ids in enumerate(identity_batches(evidence_list)):
+        acquired_only=bool((getattr(self,'research_strategy',None) or {}).get('source_followup'))
+        for index,ids in enumerate(identity_batches(evidence_list,acquired_only=acquired_only)):
             phase_id=f'extract_publications:{index+1}'
             record=phase(phase_id,extract_config,'extraction',{'identity_evidence_ids':ids})
             proposal=deepcopy(record['organization_data']);extractions.append(record)

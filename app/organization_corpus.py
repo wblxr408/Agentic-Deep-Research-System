@@ -259,6 +259,8 @@ def _read_corpus_source(url: str, configuration: dict, *, timeout: float,on_requ
                 and '.pdf' in urlsplit(urljoin(response.url,item['href'])).path.lower()))[:100]
             acquisition['public_links'] = list(dict.fromkeys(urljoin(response.url,item['href']) for item in parser.links
                 if urlsplit(urljoin(response.url,item['href'])).scheme in {'http','https'}))[:200]
+            acquisition['public_link_records'] = [{'url': urljoin(response.url,item['href']), 'label': item.get('text','').strip()}
+                for item in parser.links if urlsplit(urljoin(response.url,item['href'])).scheme in {'http','https'}][:200]
             from app.organization_taxonomy import publisher_abstract_spans
             acquisition['publisher_abstract_spans'] = publisher_abstract_spans(raw_html, text[:160000])
             acquisition['format'] = 'html'

@@ -15,7 +15,7 @@ import asyncpg
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field, field_validator
 
-from app.config import get_settings
+from app.config import get_settings, ProviderName
 from app.core.time import utc_now_naive
 from app.db.connection import get_db_pool
 from app.db.json import dumps_json
@@ -34,7 +34,7 @@ principal_dependency = Depends(require_principal)
 
 class LLMConfigRequest(BaseModel):
     """Request body for updating LLM configuration."""
-    provider: Literal["qwen", "deepseek", "openai", "ollama", "anthropic"] = Field(
+    provider: Literal["qwen", "deepseek", "openai", "ollama", "anthropic", "agnes"] = Field(
         ...,
         description="LLM provider: qwen, deepseek, or openai"
     )
@@ -66,7 +66,7 @@ class LLMConfigRequest(BaseModel):
         description="Max tokens for generation"
     )
     # Fallback settings
-    fallback_provider: Literal["qwen", "deepseek", "openai", "ollama", "anthropic"] | None = Field(
+    fallback_provider: Literal["qwen", "deepseek", "openai", "ollama", "anthropic", "agnes"] | None = Field(
         default=None,
         description="Fallback provider when primary fails"
     )
@@ -315,6 +315,64 @@ async def update_llm_config(config: LLMConfigRequest, principal: Principal = pri
     )
 
 
+def _profile_key(owner_id: str, provider: str) -> str:
+    from app.endpoint_resolver import DEFAULT_BASE_URLS
+    if provider not in DEFAULT_BASE_URLS:
+        raise HTTPException(400, 'unsupported_model_profile')
+    return f'mp:{owner_id}:{provider}'
+
+
+@router.get('/llm/profiles')
+async def saved_model_profiles(principal: Principal = principal_dependency):
+    pool = await get_db_pool()
+    async with pool.acquire() as conn:
+        records = await conn.fetch('''SELECT config_data, updated_at FROM system_config
+            WHERE owner_id=$1::uuid AND config_key LIKE $2 ORDER BY updated_at DESC''',
+            principal.id, f'mp:{principal.id}:%')
+    result = []
+    for row in records:
+        data = row['config_data']
+        data = json.loads(data) if isinstance(data, str) else dict(data)
+        result.append({'provider': data['provider'], 'model': data['model'], 'api_base': data.get('api_base'),
+            'has_api_key': bool(data.get('api_key')), 'updated_at': row['updated_at'].isoformat()})
+    return {'profiles': result}
+
+
+@router.post('/llm/profiles/{provider}')
+async def save_model_profile(provider: ProviderName, config: LLMConfigRequest, principal: Principal = principal_dependency):
+    key = _profile_key(principal.id, provider)
+    if config.provider != provider:
+        raise HTTPException(400, 'model_profile_provider_mismatch')
+    pool = await get_db_pool()
+    data = {**config.model_dump(), 'api_key': encrypt_secret(config.api_key),
+            'fallback_api_key': encrypt_secret(config.fallback_api_key or '')}
+    async with pool.acquire() as conn:
+        updated = await conn.fetchval('''INSERT INTO system_config(config_key, config_data, owner_id, updated_at)
+            VALUES($1,$2::jsonb,$3::uuid,$4) ON CONFLICT(config_key) DO UPDATE
+            SET config_data=EXCLUDED.config_data, updated_at=EXCLUDED.updated_at
+            WHERE system_config.owner_id=EXCLUDED.owner_id RETURNING updated_at''',
+            key, dumps_json(data), principal.id, utc_now_naive())
+    if updated is None:
+        raise HTTPException(409, 'model_profile_owner_conflict')
+    return {'provider': provider, 'model': config.model, 'api_base': config.api_base,
+            'has_api_key': True, 'updated_at': updated.isoformat()}
+
+
+@router.post('/llm/profiles/{provider}/activate', response_model=LLMConfigResponse)
+async def activate_model_profile(provider: ProviderName, principal: Principal = principal_dependency):
+    key = _profile_key(principal.id, provider)
+    pool = await get_db_pool()
+    async with pool.acquire() as conn:
+        record = await conn.fetchval('SELECT config_data FROM system_config WHERE config_key=$1 AND owner_id=$2::uuid',
+                                    key, principal.id)
+    if record is None:
+        raise HTTPException(404, 'model_profile_not_found')
+    data = json.loads(record) if isinstance(record, str) else dict(record)
+    data['api_key'] = decrypt_secret(data.get('api_key'))
+    data['fallback_api_key'] = decrypt_secret(data.get('fallback_api_key'))
+    return await update_llm_config(LLMConfigRequest.model_validate(data), principal)
+
+
 @router.get("/llm/status", response_model=LLMConfigStatus)
 async def get_llm_status(principal: Principal = principal_dependency):
     """
@@ -369,6 +427,18 @@ async def get_available_providers():
     """
     return {
         "providers": [
+            {
+                "id": "agnes",
+                "name": "Agnes",
+                "description": "文本与代码任务，中国站接口",
+                "models": [
+                    {"id": "agnes-3.0-flash", "name": "Agnes 3.0 Flash", "description": "文本、代码与工具调用"},
+                    {"id": "agnes-2.5-flash", "name": "Agnes 2.5 Flash", "description": "通用文本与代码任务"},
+                    {"id": "agnes-2.5-pro", "name": "Agnes 2.5 Pro", "description": "复杂分析与推理"},
+                ],
+                "api_base_default": "https://api.agnes-ai.cn/v1",
+                "recommended": False,
+            },
             {
                 "id": "qwen",
                 "name": "通义千问 (Qwen)",

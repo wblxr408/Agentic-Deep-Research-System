@@ -102,6 +102,8 @@ def module_report_instructions(configuration: dict) -> str:
         'The exact JSON shape is {"title":"short research title","summary":[{"text":"key judgement and implications","kind":"interpretation","citations":[1]}],"modules":[{"module_id":"selected ID",'
         '"paragraphs":[{"text":"plain prose without headings or inline citation markers",'
         '"kind":"observation|interpretation|gap","citations":[1]}],"appendix":[{"text":"detailed methods, experiments or resources","kind":"observation","citations":[1]}]}]}. '
+        'Keep modules in the single top-level modules array; never use module IDs as top-level keys, '
+        'and never emit separate JSON objects after title/summary. Top-level fields are title, summary and modules only. '
         'Use the existing citation numbers, never invent IDs. Observations need source numbers; '
         'every observation paragraph must have at least one integer in citations. '
         'Use kind=gap only for this task\'s frozen inputs or actual retained-material coverage, '
@@ -186,7 +188,7 @@ def report_prose(text: str) -> str:
 
 
 def normalize_report_envelope(raw: str, selected: list[str], citation_count: int) -> tuple[str, list[dict]]:
-    """Preserve prose and reference identity for two unambiguous format slips.
+    """Preserve prose and reference identity for unambiguous format slips.
 
     No new paragraphs, sources, statistics or module IDs are generated. Unknown
     shapes are left for the existing strict contract and bounded correction.
@@ -208,6 +210,23 @@ def normalize_report_envelope(raw: str, selected: list[str], citation_count: int
                 changes.append({'kind':'singleton_citation_array','path':[*path,index,'citations']})
     paragraphs(value.get('summary'),['summary'])
     paragraphs(value.get('appendix'),['appendix'])
+    if ('modules' not in value and selected and len(selected)==len(set(selected))
+            and set(value)=={'title','summary',*selected} and isinstance(value['summary'],list)
+            and all(isinstance(value[key],dict) and 'paragraphs' in value[key]
+                and set(value[key])<={'paragraphs','appendix'} for key in selected)):
+        candidate={'title':value['title'],'summary':value['summary'],
+            'modules':[{'module_id':key,**value[key]} for key in selected]}
+        try:
+            draft=ModuleReportDraft.model_validate(candidate)
+            proof_paragraphs=[*draft.summary,*[paragraph for module in draft.modules
+                for paragraph in (*module.paragraphs,*module.appendix)]]
+            valid_references=all(number<=citation_count for paragraph in proof_paragraphs for number in paragraph.citations)
+        except ValueError:
+            valid_references=False
+        if valid_references:
+            value=candidate
+            changes.append({'kind':'selected_module_mapping_to_array','module_ids':list(selected),
+                            'prose_changed':False,'citations_changed':False})
     modules=value.get('modules')
     if isinstance(modules,list):
         for index,module in enumerate(modules):

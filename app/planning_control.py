@@ -177,6 +177,8 @@ def tool_query_context(state:dict,node_type:str) -> dict:
     view={key:deepcopy(original[key]) for key in ('schema_version','interpretation_id') if key in original}
     view['slots']={'additional_constraints':slots.get('additional_constraints','')}
     if node_type=='search':
+        followup=(original.get('research_strategy') or {}).get('source_followup')
+        if followup:view['source_followup']=deepcopy(followup)
         view['slots'].update({key:deepcopy(slots[key]) for key in ('entities','time_window') if key in slots})
         if 'query_rewriting' in original:view['query_rewriting']=deepcopy(original['query_rewriting'])
     if node_type=='rag':

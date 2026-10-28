@@ -13,7 +13,7 @@ from typing import Literal
 from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-ProviderName = Literal["qwen", "deepseek", "openai", "ollama", "anthropic"]
+ProviderName = Literal["qwen", "deepseek", "openai", "ollama", "anthropic", "agnes"]
 
 
 class LLMSettings(BaseSettings):

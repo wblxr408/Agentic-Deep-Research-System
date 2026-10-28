@@ -1,4 +1,4 @@
-import {useLocale,t,uiMessage} from '../i18n'
+import {useLocale,t,uiMessage,systemMessage} from '../i18n'
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useSSE } from '../hooks/useSSE'
@@ -201,6 +201,7 @@ function ResearchDashboard({ onBack,ownerId }: ResearchDashboardProps) {
           analysis_phase_attempt_limit:t("当前问题已达到两次尝试上限。"),
           analysis_checkpoint_changed:t("任务状态已变化，请刷新后查看。"),
           analysis_checkpoint_not_recoverable:t("当前任务没有可继续的分析检查点。"),
+          analysis_source_acquisition_required:t("需要先取得相关正文，重复分析不会补充资料。"),
           analysis_original_deadline_unavailable:t("原任务的期限记录不完整，无法恢复。"),
           report_original_allowance_exhausted:t("原任务的额度或期限已用完，无法继续生成报告。"),
           report_resume_attempt_limit:t("本次报告已达到一次续作上限，当前资料和原稿已保留。"),
@@ -515,7 +516,7 @@ function ResearchDashboard({ onBack,ownerId }: ResearchDashboardProps) {
       <div className="workspace-summary-row">
         <section className="workspace-summary"><span className="eyebrow">{t("当前阶段")}</span><h2>{isStreaming ? currentStage : stoppedLabel}</h2>
           {analysisProgress&&<p>{analysisPhase}{progressParts[2]==='conditions'?t(" · 条件补读"):''}{analysisBatch?t(" · 第 {0} 组", analysisBatch):''} · {analysisProgress.completed_steps} {t(" 步已保存")}</p>}
-          {analysisProgress?.stop_reason==='insufficient_context_budget'&&<p className="text-sm">{t("本阶段剩余上下文额度不足。")}</p>}
+          {analysisProgress?.stop_reason==='insufficient_context_budget'&&<p className="text-sm">{result?.pause_diagnosis?.summary?systemMessage(result.pause_diagnosis.summary):t("当前问题没有足够的可用原文或上下文空间。")}</p>}
         </section>
         <section className="workspace-summary"><span className="eyebrow">{t("Token 额度")}</span><h2>{result?.budget_state?.used_total_tokens?.toLocaleString()??'—'}<small> / {result?.budget_state?.max_total_tokens?.toLocaleString()??'—'}</small></h2>
           {typeof result?.budget_state?.used_total_tokens==='number'&&typeof result.budget_state.max_total_tokens==='number'&&<progress aria-label={t("已用 Token 额度")} value={result.budget_state.used_total_tokens} max={Math.max(1,result.budget_state.max_total_tokens)}/>}

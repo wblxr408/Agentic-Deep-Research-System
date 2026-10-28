@@ -53,7 +53,8 @@ def freeze_strategy(query, configuration, slots):
         'collection_mode':corpus.get('collection_mode','open_discovery'),
         'representative_works':'select_after_discovery_not_preloaded_examples',
         'analysis_order':[key for key in ORDER if key in slots.get('modules',[])],
-        'purpose':slots.get('purpose'),'depth':slots.get('depth'),'model_calls_added':0}
+        'purpose':slots.get('purpose'),'depth':slots.get('depth'),'model_calls_added':0,
+        'source_followup':{'version':'adrs-discovery-handoff-v1','max_sources':12,'max_depth':2}}
 
 
 def discovery_instructions(strategy):

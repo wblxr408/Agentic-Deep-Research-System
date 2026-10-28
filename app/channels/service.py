@@ -124,6 +124,14 @@ class ChannelService:
                              if backend=='github-api' and authenticated else self.backends.collect(request, backend, config, remaining, budget))
                     budget.remaining()
                     normalized = self._items(items, request, spec, backend, timestamp,authenticated=authenticated and backend=='github-api')
+                    if request.channel == 'web' and request.operation == 'search':
+                        from app.evidence_selection import _terms
+                        terms=set(_terms(request.query))
+                        if terms and normalized:
+                            matching=[item for item in normalized if terms & set(_terms(item.title+' '+item.content+' '+item.url))]
+                            if not matching:
+                                raise ChannelError('irrelevant_results')
+                            normalized=matching
                     if not normalized:
                         raise ChannelError("empty_content")
                     result.items = normalized

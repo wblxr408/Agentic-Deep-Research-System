@@ -1,4 +1,6 @@
 export const researchJudgmentsEnglish:Record<string,string>={
+  '当前问题没有足够的可用原文或上下文空间。':'The current question needs usable source text or more context space.',
+  '需要先取得相关正文，重复分析不会补充资料。':'Relevant source text must be acquired before analysis can continue.',
   '研究判断与依据':'Research judgments and evidence','原始研究问题':'Original research question',
   '仅研究指定样本':'Specified samples only','沿当前来源范围发现研究':'Discover research within the selected source scope',
   '研究来源':'Research source','观察':'Observations','推导':'Reasoning','研究意义':'Research implications',

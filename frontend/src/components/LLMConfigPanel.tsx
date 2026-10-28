@@ -55,6 +55,10 @@ interface ProvidersResponse {
   }
 }
 
+interface SavedModelProfile {
+  provider:string;model:string;api_base:string|null;has_api_key:boolean;updated_at:string
+}
+
 async function readErrorMessage(res: Response, fallback: string) {
   const text = await res.text()
   try {
@@ -111,6 +115,15 @@ function LLMConfigPanel({ onClose }: LLMConfigPanelProps) {
     },
   })
 
+  const savedProfiles = useQuery<{profiles:SavedModelProfile[]}>({
+    queryKey:['llm-profiles'],
+    queryFn:async()=>{
+      const response=await fetch('/api/v1/config/llm/profiles')
+      if(!response.ok)throw new Error(t('无法读取已保存模型'))
+      return response.json()
+    },
+  })
+
   // Fetch available providers
   const {
     data: providers,
@@ -156,6 +169,28 @@ function LLMConfigPanel({ onClose }: LLMConfigPanelProps) {
     },
   })
 
+  const saveProfileMutation=useMutation({
+    mutationFn:async(data:Parameters<typeof updateMutation.mutate>[0])=>{
+      const response=await fetch(`/api/v1/config/llm/profiles/${encodeURIComponent(data.provider)}`,{
+        method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)})
+      if(!response.ok)throw new Error(await readErrorMessage(response,t('无法保存可选配置')))
+      return response.json()
+    },
+    onSuccess:()=>{setApiKey('');void queryClient.invalidateQueries({queryKey:['llm-profiles']})},
+  })
+  const activateProfileMutation=useMutation({
+    mutationFn:async(selected:string)=>{
+      const response=await fetch(`/api/v1/config/llm/profiles/${encodeURIComponent(selected)}/activate`,{method:'POST'})
+      if(!response.ok)throw new Error(await readErrorMessage(response,t('无法应用模型配置')))
+      return response.json()
+    },
+    onSuccess:()=>{
+      setApiKey('');setFallbackApiKey('')
+      void queryClient.invalidateQueries({queryKey:['llm-config']})
+      void queryClient.invalidateQueries({queryKey:['llm-status']})
+    },
+  })
+
   // Reset config mutation
   const resetMutation = useMutation({
     mutationFn: async () => {
@@ -195,7 +230,7 @@ function LLMConfigPanel({ onClose }: LLMConfigPanelProps) {
   const loadError = (providersError || configError) as Error | null
 
   // Handle save
-  const handleSave = useCallback(() => {
+  const handleSave = useCallback((target:'active'|'profile'='active') => {
     if (!apiKey.trim()) {
       alert(t("请输入 API Key"))
       return
@@ -211,7 +246,7 @@ function LLMConfigPanel({ onClose }: LLMConfigPanelProps) {
       return
     }
 
-    updateMutation.mutate({
+    const payload={
       provider,
       model,
       api_key: apiKey,
@@ -222,11 +257,13 @@ function LLMConfigPanel({ onClose }: LLMConfigPanelProps) {
       fallback_model: enableFallback ? fallbackModel : null,
       fallback_api_key: enableFallback ? fallbackApiKey : null,
       routing,
-    })
+    }
+    if(target==='profile')saveProfileMutation.mutate(payload)
+    else updateMutation.mutate(payload)
   }, [
     provider, model, apiKey, apiBase, temperature, maxTokens,
     enableFallback, fallbackProvider, fallbackModel, fallbackApiKey,
-    updateMutation,routingText
+    updateMutation,saveProfileMutation,routingText
   ])
 
   // Handle reset
@@ -276,6 +313,16 @@ function LLMConfigPanel({ onClose }: LLMConfigPanelProps) {
             {t("重新加载")}</button>
         </div>
       )}
+
+      {!!savedProfiles.data?.profiles.length&&<section className="card p-6 mb-4" aria-label={t('已保存的模型')}>
+        <h3 className="text-sm font-medium mb-3">{t('已保存的模型')}</h3>
+        {savedProfiles.data.profiles.map(profile=><div key={profile.provider} className="flex flex-wrap items-center justify-between gap-3 border-b border-xmgray-200 py-3 last:border-0">
+          <div><p className="font-medium">{profile.provider==='agnes'?'Agnes':profile.provider} · {profile.model}</p><p className="text-xs text-xmgray-500">{profile.api_base}</p></div>
+          <button type="button" className="btn-secondary text-sm" disabled={activateProfileMutation.isPending}
+            onClick={()=>activateProfileMutation.mutate(profile.provider)}>{t('应用此配置')}</button>
+        </div>)}
+      </section>}
+      {(savedProfiles.error||activateProfileMutation.error)&&<p role="alert" className="mb-4 text-sm text-red-700">{uiMessage((savedProfiles.error||activateProfileMutation.error)?.message||'')}</p>}
 
       {/* Provider Selection */}
       <div className="card p-6 mb-4">
@@ -387,7 +434,7 @@ function LLMConfigPanel({ onClose }: LLMConfigPanelProps) {
       {/* API Key */}
       <div className="card p-6 mb-4">
         <label className="block text-sm font-medium text-xmgray-700 mb-3">
-          API Key {config?.api_key_masked && <span className="text-xmgray-400">{t("(当前: ")}{config.api_key_masked})</span>}
+          API Key {config?.provider===provider&&config?.api_key_masked && <span className="text-xmgray-400">{t("(当前: ")}{config.api_key_masked})</span>}
         </label>
         <div className="relative">
           <input
@@ -585,8 +632,11 @@ function LLMConfigPanel({ onClose }: LLMConfigPanelProps) {
             <button onClick={onClose} className="btn-secondary">
               {t("取消")}</button>
           )}
+          <button type="button" className="btn-secondary" onClick={()=>handleSave('profile')}
+            disabled={saveProfileMutation.isPending||updateMutation.isPending||!apiKey.trim()}>
+            {saveProfileMutation.isPending?t('保存中'):t('保存为可选配置')}</button>
           <button
-            onClick={handleSave}
+            onClick={()=>handleSave()}
             disabled={updateMutation.isPending || !apiKey.trim()}
             className="btn-primary"
           >
@@ -602,6 +652,8 @@ function LLMConfigPanel({ onClose }: LLMConfigPanelProps) {
       </div>
 
       {/* Success/Error Messages */}
+      {saveProfileMutation.isSuccess&&<p role="status" className="mt-4 text-sm text-emerald-700">{t('可选模型配置已保存')}</p>}
+      {saveProfileMutation.error&&<p role="alert" className="mt-4 text-sm text-red-700">{uiMessage(saveProfileMutation.error.message)}</p>}
       {updateMutation.isSuccess && (
         <div className="mt-4 p-3 rounded-xl bg-emerald-50 border border-emerald-100">
           <p className="text-sm text-emerald-700">{t("✓ 配置已保存并立即生效")}</p>
