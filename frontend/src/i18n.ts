@@ -13,7 +13,8 @@ import {documentProcessingEnglish} from './locales/documentProcessing'
 import {systemMessages} from './locales/system'
 import {researchJudgmentsEnglish} from './locales/researchJudgments'
 import {modelProfilesEnglish} from './locales/modelProfiles'
-const english:Record<string,string>={...baseEnglish,...layoutEnglish,...skillVersionsEnglish,...skillStagesEnglish,...questionQualityEnglish,...budgetAllocationEnglish,...accountRecoveryEnglish,...collaborationEnglish,...sourceSyncEnglish,...sourceCdcEnglish,...documentProcessingEnglish,...researchJudgmentsEnglish,...modelProfilesEnglish}
+import {researchBudgetsEnglish} from './locales/researchBudgets'
+const english:Record<string,string>={...baseEnglish,...layoutEnglish,...skillVersionsEnglish,...skillStagesEnglish,...questionQualityEnglish,...budgetAllocationEnglish,...accountRecoveryEnglish,...collaborationEnglish,...sourceSyncEnglish,...sourceCdcEnglish,...documentProcessingEnglish,...researchJudgmentsEnglish,...modelProfilesEnglish,...researchBudgetsEnglish}
 export type Locale='zh'|'en'
 const key='deepintel.appearance.v1'
 let language:Locale=(()=>{try{return JSON.parse(localStorage.getItem(key)||'{}').language==='en'?'en':'zh'}catch{return 'zh'}})()

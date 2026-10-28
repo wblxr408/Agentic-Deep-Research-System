@@ -403,6 +403,9 @@ def _normalize_tool_audit_rows(
 # Request/Response Models
 # ==============================================================
 
+from app.research_limits import ResearchLimits, BudgetRevision, recommend_limits, selected_budget, read_budget, revise_budget
+
+
 class ResearchRequest(BaseModel):
     """Request body for starting a research task."""
     query: str = Field(..., min_length=5, max_length=2000, description="Research query")
@@ -412,6 +415,7 @@ class ResearchRequest(BaseModel):
     delivery: DeliveryRequest = Field(default_factory=DeliveryRequest)
     query_preview_id: str | None = Field(default=None, pattern=r'^[0-9a-f]{64}$')
     planning_policy: PlanningPolicy = Field(default_factory=PlanningPolicy)
+    budget_limits: ResearchLimits | None = None
 
     @field_validator('query')
     @classmethod
@@ -494,7 +498,7 @@ def _same_research_request(stored, current):
     previous, actual = dict(stored), dict(current)
     defaults = {'query_options': QueryOptions().model_dump(mode='json'),
         'delivery': DeliveryRequest().model_dump(mode='json'), 'query_preview_id': None,
-        'planning_policy': PlanningPolicy().model_dump(mode='json')}
+        'planning_policy': PlanningPolicy().model_dump(mode='json'),'budget_limits':None}
     for key, default in defaults.items():
         if key not in previous and actual.get(key) == default:
             actual.pop(key, None)
@@ -648,6 +652,8 @@ async def stream_research(session_id: str, request: Request, principal: Principa
 
 async def _prepare_query_understanding(conn, request: ResearchRequest, principal: Principal,
         skill_context: dict, budget: dict, decision):
+    effective=selected_budget(budget,request.budget_limits)
+    budget.clear();budget.update(effective)
     selected_preset = None
     selected_template = None
     if request.delivery.copied_from_template:
@@ -765,10 +771,40 @@ async def _prepare_query_understanding(conn, request: ResearchRequest, principal
         snapshot['ready'] = False
         snapshot['clarifications'].append({'id': 'no_eligible_evidence_tools',
             'message': '当前任务与技能限制的交集中没有可用取证工具，请调整选择；系统不会扩大许可启动研究。'})
+    advice=recommend_limits(request.model_dump(mode='json'))
+    snapshot['budget_advice']={**advice,'selected':{key:budget[key] for key in ResearchLimits.model_fields},
+                               'selection':'manual' if request.budget_limits else 'default'}
     snapshot['interpretation_id'] = identity({'query_contract': snapshot['interpretation_id'],
         'skill_compilation_id': compilation['compilation_id'],
+        'budget_limits':snapshot['budget_advice']['selected'],
         **({'template_revision':snapshot['delivery']['template_revision']} if selected_template else {})})
     return organization, snapshot
+
+
+@router.post('/budget/recommendation')
+async def recommend_research_budget(request:ResearchRequest,principal:Principal=principal_dependency):
+    return recommend_limits(request.model_dump(mode='json'))
+
+
+@router.get('/{session_id}/budget')
+async def get_research_budget_view(session_id:uuid.UUID,principal:Principal=principal_dependency):
+    pool=await get_db_pool()
+    try:
+        async with pool.acquire() as conn:
+            _,_,_,view=await read_budget(conn,session_id,principal.id)
+        return view
+    except ValueError as error:
+        raise HTTPException(404,'budget_task_not_found') from error
+
+
+@router.post('/{session_id}/budget')
+async def update_research_budget(session_id:uuid.UUID,payload:BudgetRevision,principal:Principal=principal_dependency):
+    pool=await get_db_pool()
+    try:
+        async with pool.acquire() as conn,conn.transaction():
+            return await revise_budget(conn,session_id,principal.id,payload)
+    except ValueError as error:
+        raise HTTPException(404 if str(error)=='budget_task_not_found' else 409,str(error)) from None
 
 
 @router.post('/understanding')

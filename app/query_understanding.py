@@ -22,6 +22,16 @@ DELIVERY_VERSION = 'adrs-delivery-contract-v1'
 QueryType = Literal['fact', 'aggregate', 'comparison', 'multi_hop', 'exploration']
 
 
+def query_classification(query,explicit=None):
+    """Shared model-free query signals for interpretation and initial budgets."""
+    patterns = [('multi_hop', r'多跳|通过.{0,60}(?:寻找|找出|识别)|合作.{0,30}(?:教授|学者|团队)|\bmulti.hop\b'),
+        ('comparison', r'比较|对比|异同|差异|\b(?:compare|versus|vs\.?|comparison)\b'),
+        ('aggregate', r'统计|数量|多少|分布|占比|排名|\b(?:count|distribution|total|aggregate)\b'),
+        ('fact', r'是什么|是谁|何时|哪一年|定义|\b(?:what is|who is|when did|define)\b')]
+    matched=[kind for kind,pattern in patterns if re.search(pattern,query,re.I)]
+    return explicit or next(iter(matched),'exploration'),matched
+
+
 class EntityHint(ScopeRecord):
     entity_id: Identifier
     name: Label
@@ -331,12 +341,7 @@ def interpret_query(query: str, options: QueryOptions, delivery: DeliveryRequest
     if as_of and window and str(as_of) < window['start_date']:
         questions.append({'id': 'asof_before_window', 'message': '观察截止日期早于研究起始日期，请调整。'})
 
-    patterns = [('multi_hop', r'多跳|通过.{0,60}(?:寻找|找出|识别)|合作.{0,30}(?:教授|学者|团队)|\bmulti.hop\b'),
-        ('comparison', r'比较|对比|异同|差异|\b(?:compare|versus|vs\.?|comparison)\b'),
-        ('aggregate', r'统计|数量|多少|分布|占比|排名|\b(?:count|distribution|total|aggregate)\b'),
-        ('fact', r'是什么|是谁|何时|哪一年|定义|\b(?:what is|who is|when did|define)\b')]
-    matched_rules = [kind for kind, pattern in patterns if re.search(pattern, query, re.I)]
-    query_type = options.query_type or next(iter(matched_rules), 'exploration')
+    query_type,matched_rules = query_classification(query,options.query_type)
     purpose = (organization or {}).get('purpose') or options.purpose or 'general_research'
     modules = list((organization or {}).get('modules') or (resolve_modules(options.purpose, options.modules) if options.purpose else options.modules or []))
     if organization and (options.purpose and options.purpose != purpose or options.modules and list(options.modules) != modules):

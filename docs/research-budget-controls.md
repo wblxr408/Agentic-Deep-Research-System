@@ -1,0 +1,35 @@
+# 研究额度配置
+
+研究入口“本次额度”可展开修改总Token、工具请求和总时长，或采用建议／恢复默认。工作区Token卡片提供同一入口；运行中的研究先暂停，保存不启动模型，随后仍使用原恢复入口。
+
+## 初步建议
+
+`app/research_limits.py`复用问题类型识别，结合显式对象数、模块数、研究深度及图文交付估算用量。简单／适中／复杂分别在估计值上预留35%／50%／75%并向上取整，覆盖补证、重试及审核。页面区分预计用量和建议总额。建议不调用模型，不自动加额；未知费用保持未知。
+
+Token范围4,000—2,000,000；工具请求1—256次；总时长60—21,600秒（界面以分钟编辑）。工具按真实收据计数，包含重试和通道请求，不能用卡片数代替。总时长从最初创建时间计算，包含暂停时间。
+
+## 接口契约
+
+所有接口使用已登录主体。
+
+| 接口 | 输入／输出与副作用 |
+| --- | --- |
+| `POST /api/v1/research/budget/recommendation` | ResearchRequest返回complexity、estimated、headroom_percent、recommended、defaults、basis；无模型、工具或数据库写入 |
+| `POST /api/v1/research/understanding` | 可选budget_limits在解释前生效；返回budget_advice.selected／selection，进入冻结预览身份 |
+| `POST /api/v1/research` | 同一budget_limits进入根预算；报告／审核预留属于总额 |
+| `GET /api/v1/research/{id}/budget` | 只读本人任务，合并收据，返回limits、usage、revision、execution_id、advice、adjustments |
+| `POST /api/v1/research/{id}/budget` | limits、expected_revision、execution_id、request_id；本人暂停且无在途调用的根，在原事务更新快照、预算JSON和数值视图 |
+
+修改保留原created_at、累计用量、未知收据及恢复尝试数；记录旧／新限额、原停止原因、当时用量、授权人与时间。相同request_id及参数重放只产生一次调整；运行状态、错误执行身份、过期版本或在途调用拒绝写入。前端网络结果不确定后复用同一请求ID，数值变化才产生新ID。
+
+404为budget_task_not_found；409包括budget_pause_required、budget_execution_changed、budget_revision_changed、budget_request_conflict、budget_requests_inflight、budget_below_used_allowance及budget_new_research_required；非法数值由请求模型拒绝。达到本轮Token、工具或六小时时长边界后须新建研究。
+
+这是用户显式授权的根预算修订。自动恢复仍沿冻结总量，不得自行补额。预算不足的未完成审核可回到原审核恢复入口，但保存不补判主张、不发布原稿、不重置恢复次数。成本、来源、模型及资料权限仍由原控制点裁决。历史请求未填写budget_limits时沿原默认；旧待确认记录兼容新增空字段。
+
+## 设计引用与验证范围
+
+沿用A2ABreak **v1.0**全11项既有评估。本增量采用 **A2AB-03《上下文归属与跨租户隔离》工程解决方案1—3**（本人根及收据）；**A2AB-06《并发状态版本与审批绑定》工程1—4**（owner／execution／revision行锁与幂等）；**A2AB-08《结构化授权请求与权限不放大》工程1—4**（建议不授予工具／来源权限）；**A2AB-10《委派环路检测与全链预算》工程1—3**（同一根显式修订、消费与有界恢复）；**A2AB-11《中断任务租约与有界资源回收》工程1／4**（在途调用、原时间起点及有界的新显式授权）。其余01／02／04／05／07／09沿原评估，本次无新增身份信任、Agent Card、Webhook、产物传输、换证或跨组织委派控制面。它们是待项目验证的工程建议。
+
+按本轮约束仅审阅源码与调用链，模块完成后一次真实额度配置旅程，不做局部／回归／构建检查或额外付费研究。合法单用户旅程不能代替拒绝／并发／未知收据竞态验证，完整研究交付仍见TODO的M1—M3。
+
+2026-10-28合法额度旅程已完成，详见[实际记录](acceptance/budget-controls-20261028.md)；未据此补记其他边界或研究交付通过。

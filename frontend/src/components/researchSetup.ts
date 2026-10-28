@@ -5,8 +5,10 @@ import type {ReportLayout} from './reportLayouts'
 import {defaultOrganizationDraft,organizationRequest} from './OrganizationResearchPanel'
 import type {OrganizationDraft,OrganizationType} from './OrganizationResearchPanel'
 import type {WeightSelection} from './OrganizationWeightsPanel'
+import type {ResearchLimits} from './ResearchBudgetPicker'
 
 export interface ResearchSetup {
+  budgetLimits?:ResearchLimits
   query:string;queryDraft:QueryDraft;organizationDraft:OrganizationDraft;weights?:WeightSelection
   outputLength:'short'|'medium'|'long';useInternal:boolean;group:string;channels:string[];enabled:string[];disabled:string[]
   previewSessionId?:string
@@ -74,7 +76,7 @@ export function setupFromRequest(parameters:Record<string,unknown>={},query='',p
     ...(org.corpus?{corpus:{enabled:!!(corpus.seed_urls?.length||corpus.search_terms?.length||corpus.output_types?.length||corpus.source_scope||corpus.allow_ocr||corpus.collection_mode==='seeds_only'),mode:corpus.collection_mode||'search_and_seeds',group:corpus.source_scope?.official_domains?.length?'official':'publishers',domains:(corpus.source_scope?.official_domains||corpus.source_scope?.publisher_domains||[]).join(','),seeds:strings(corpus.seed_urls).join('\n'),terms:strings(corpus.search_terms).join('\n'),outputTypes:strings(corpus.output_types).join(','),allowOcr:!!corpus.allow_ocr}}:{}),
     ...(org.taxonomy?{taxonomy:{preset:taxonomy.preset||'auto',version:taxonomy.version||'topic-policy-v1',customText:JSON.stringify(taxonomy.nodes||[])}}:{}),
     ...(org.action_requirements?{actionRequirements:{research_goal:action.research_goal||'',cooperation_goal:action.cooperation_goal||'',offering:action.offering||'',time_window:action.time_window||'',constraints:strings(action.constraints).join('\n'),required_relations:action.required_relations||[],metricConditions:JSON.stringify(action.required_metrics||[])}}:{})}
-  return {query:typeof parameters.query==='string'?parameters.query:query,queryDraft,organizationDraft,
+  return {query:typeof parameters.query==='string'?parameters.query:query,queryDraft,organizationDraft,budgetLimits:parameters.budget_limits||undefined,
     weights:org.weight_preset?{reference:org.weight_preset}:org.weights?{configuration:org.weights}:undefined,
     outputLength:parameters.output_length==='short'?'short':parameters.output_length==='long'?'long':'medium',useInternal:!!parameters.use_internal_docs,group:String(parameters.rag_group||''),
     channels:strings(parameters.channels),enabled:strings(parameters.enabled_skill_ids),disabled:strings(parameters.disabled_skill_ids),previewSessionId,ownerId,operationScopeId,original:structuredClone(parameters)}
@@ -100,7 +102,7 @@ export function setupRequest(value:ResearchSetup) {
     })
   }
   parts.query_options.entities=parts.query_options.entities.map(entity=>{const existing=(object(old.query_options).entities||[]).find((item:any)=>item.name===entity.name);return existing?{...existing,...entity,entity_id:existing.entity_id}:entity})
-  const body:Record<string,unknown>={...old,query:value.query.trim(),use_internal_docs:value.useInternal,rag_group:value.useInternal?value.group.trim()||null:null,
+  const body:Record<string,unknown>={...old,query:value.query.trim(),budget_limits:value.budgetLimits||null,use_internal_docs:value.useInternal,rag_group:value.useInternal?value.group.trim()||null:null,
     output_length:value.outputLength,enabled_skill_ids:[...new Set([...value.enabled,...drawingIds])],disabled_skill_ids:value.disabled,channels:value.channels,organization_research:organization,
     planning_policy:{...object(old.planning_policy),...parts.planning_policy},query_options:{...object(old.query_options),...parts.query_options,
       ...(!value.useInternal?{internal_filter:{any_of:[]},internal_retrieval_mode:'hybrid',internal_channels:[]}:{})},delivery:{...object(old.delivery),...parts.delivery}}

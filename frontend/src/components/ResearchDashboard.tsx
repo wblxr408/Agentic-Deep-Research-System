@@ -30,6 +30,8 @@ import ResearchPlanSummary from './ResearchPlanSummary'
 import ResearchConfigurationEditor from './ResearchConfigurationEditor'
 import ResearchQuality from './ResearchQuality'
 import BudgetAllocation,{type BudgetAllocationEvent} from './BudgetAllocation'
+import {TaskBudgetEditor,validLimits} from './ResearchBudgetPicker'
+import type {ResearchLimits} from './ResearchBudgetPicker'
 import ResearchCancellation from './ResearchCancellation'
 import type { PlanSummaryProps } from './ResearchPlanSummary'
 import type { DeliveryView } from './ReportDeliveryView'
@@ -127,6 +129,7 @@ function ResearchDashboard({ onBack,ownerId }: ResearchDashboardProps) {
   const [ragGroup, setRagGroup] = useState('')
   const [useInternalDocs, setUseInternalDocs] = useState(false)
   const [outputLength, setOutputLength] = useState<'short' | 'medium' | 'long'>('medium')
+  const [budgetLimits,setBudgetLimits]=useState<ResearchLimits>()
   const [activeSessionId, setActiveSessionId] = useState<string | null>(() => new URLSearchParams(window.location.search).get('session'))
   const [isStreaming, setIsStreaming] = useState(false)
   const [streamRunKey, setStreamRunKey] = useState('')
@@ -140,7 +143,7 @@ function ResearchDashboard({ onBack,ownerId }: ResearchDashboardProps) {
   const [understanding, setUnderstanding] = useState<UnderstandingSnapshot | null>(null)
   const [understandingKey, setUnderstandingKey] = useState('')
   const requestDraftKey = JSON.stringify({ query, queryDraft, organizationDraft, weightSelection, useInternalDocs,
-    ragGroup, outputLength, enabledSkillIds, disabledSkillIds, selectedChannels })
+    ragGroup, outputLength, enabledSkillIds, disabledSkillIds, selectedChannels,budgetLimits })
   const requestKeyRef = useRef(requestDraftKey)
   requestKeyRef.current = requestDraftKey
   const inputRef = useRef<HTMLTextAreaElement>(null)
@@ -227,7 +230,7 @@ function ResearchDashboard({ onBack,ownerId }: ResearchDashboardProps) {
   })
 
   function currentSetup(q=query):ResearchSetup {
-    return {query:q,queryDraft,organizationDraft,weights:weightSelection,outputLength,useInternal:useInternalDocs,group:ragGroup,channels:selectedChannels,enabled:enabledSkillIds,disabled:disabledSkillIds,ownerId}
+    return {query:q,queryDraft,organizationDraft,weights:weightSelection,outputLength,useInternal:useInternalDocs,group:ragGroup,channels:selectedChannels,enabled:enabledSkillIds,disabled:disabledSkillIds,ownerId,budgetLimits}
   }
   function buildRequest(q:string) { return setupRequest(currentSetup(q)) }
 
@@ -299,6 +302,7 @@ function ResearchDashboard({ onBack,ownerId }: ResearchDashboardProps) {
       if(previewMutation.error&&!previewMutation.isPending)previewMutation.reset()
     }
     setQuery(value.query);setQueryDraft(value.queryDraft);setOrganizationDraft(value.organizationDraft)
+    setBudgetLimits(value.budgetLimits)
     if(value.weights)applyWeightSelection(value.weights);else{previousWeightSelection.current='';setWeightSelection(undefined)}
     setOutputLength(value.outputLength);setUseInternalDocs(value.useInternal);setRagGroup(value.group)
     setSelectedChannels(value.channels);setEnabledSkillIds(value.enabled);setDisabledSkillIds(value.disabled)
@@ -387,9 +391,9 @@ function ResearchDashboard({ onBack,ownerId }: ResearchDashboardProps) {
   const toolCallCount = toolAudit.data?.length
 
   const handleStart = useCallback(() => {
-    if (query.trim().length < 5 || startMutation.isPending || previewMutation.isPending) return
+    if (query.trim().length < 5 || startMutation.isPending || previewMutation.isPending || (budgetLimits&&!validLimits(budgetLimits))) return
     startMutation.mutate(query.trim())
-  }, [query, startMutation, previewMutation.isPending])
+  }, [query, startMutation, previewMutation.isPending,budgetLimits])
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
@@ -413,6 +417,7 @@ function ResearchDashboard({ onBack,ownerId }: ResearchDashboardProps) {
     setActivePanel('workflow')
     setQuery('')
     setQueryDraft(defaultQueryDraft)
+    setBudgetLimits(undefined)
     setUnderstanding(null)
     setUnderstandingKey('')
     setRagGroup('')
@@ -521,6 +526,7 @@ function ResearchDashboard({ onBack,ownerId }: ResearchDashboardProps) {
         <section className="workspace-summary"><span className="eyebrow">{t("Token 额度")}</span><h2>{result?.budget_state?.used_total_tokens?.toLocaleString()??'—'}<small> / {result?.budget_state?.max_total_tokens?.toLocaleString()??'—'}</small></h2>
           {typeof result?.budget_state?.used_total_tokens==='number'&&typeof result.budget_state.max_total_tokens==='number'&&<progress aria-label={t("已用 Token 额度")} value={result.budget_state.used_total_tokens} max={Math.max(1,result.budget_state.max_total_tokens)}/>}
           <p>{t("模型与工具累计用量")}</p>
+          {result&&<TaskBudgetEditor sessionId={result.session_id} status={result.status} onSaved={async()=>{await refetchResult()}}/>}
         </section>
       </div>
     </section>

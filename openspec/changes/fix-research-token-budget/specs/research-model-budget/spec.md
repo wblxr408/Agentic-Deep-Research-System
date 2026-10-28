@@ -6,6 +6,24 @@
 
 ## ADDED Requirements
 
+### Requirement: Manual limits with headroom recommendations
+系统 SHALL 根据当前对象、模块、研究深度和交付形式给出初步复杂度、预计用量、冗余比例及建议上限，不增加模型调用或自动加额。用户 SHALL 可手动设置Token、工具次数和从原创建时间计的总执行时长，预览及实际执行 MUST 使用同一有效配置。
+
+#### Scenario: A deep multi-module research request
+- **WHEN** 用户选择深入研究与多个模块
+- **THEN** 建议为重试、补证及完整审核预留35%—75%冗余，显示估算与总额的区别；采用建议是明确用户操作
+
+### Requirement: Owner-authorized paused budget revisions
+系统 SHALL 允许本人在任务暂停且无在途请求时，按当前execution、budget_revision及幂等request_id修订上限。系统 MUST 保留累计用量、未知收据、原创建时间和恢复次数，保存旧／新配置与授权时间；建议或自动恢复不能自行修订额度。
+
+#### Scenario: An owner raises a paused task's limit
+- **WHEN** 本人提交有效新上限且状态、execution及revision仍匹配
+- **THEN** 原事务更新根快照和数值视图，累计用量不变、原期限起点不变；不自动启动模型，后续继续原恢复与来源校验
+
+#### Scenario: Another user or stale revision edits limits
+- **WHEN** 任务不属于当前用户、状态仍运行、存在在途请求或revision过期
+- **THEN** 变更不生效，不重置已发生用量；相同请求参数重放只产生一次预算修订
+
 ### Requirement: Pre-request token admission
 系统 SHALL 在每次实际模型请求前预占输入及最大输出，并调整输出上限或拒绝请求；备用尝试 SHALL 重新准入。未知失败用量 MUST NOT 自动当作零消费。
 
