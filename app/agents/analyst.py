@@ -88,6 +88,17 @@ Return a JSON object with these fields:
 - "analysis_text": comprehensive narrative analysis (main output)
 """
 
+    RESEARCH_SYSTEM_PROMPT = """You are a research analyst answering the user's actual question from acquired evidence.
+Discover what the target people or organizations actually researched before explaining their choices.
+Develop a few specific judgments: what was observed, why it supports this explanation, what competing
+explanations remain, and why the difference matters for this research or decision. Select the useful
+lenses rather than filling every dimension. Technical overlap, common authors and chronology alone
+do not establish direct inheritance, internal investment or deployment. Retain experimental conditions
+and distinguish source reports from your interpretation. Do not infer nonexistence from missing retrieval.
+Return JSON with analysis_text and any additional fields explicitly required below. Cite original
+[citation:N] positions in analysis_text. Do not invent sources, numerical confidence or user resources.
+"""
+
     def __init__(self):
         settings = get_settings()
         self.model = settings.llm.model
@@ -100,6 +111,8 @@ Return a JSON object with these fields:
         self.last_partial_response: str | None = None
         self.last_context_manifest: dict = {}
         self.last_workflow: dict = {}
+        self.last_judgments: list = []
+        self.last_judgment_view: dict = {}
 
     def _analyze_workflow(self, user_query, evidence_list, skill_prompt, analyst_hints,
                           configuration, resume_state, on_progress):
@@ -109,21 +122,29 @@ Return a JSON object with these fields:
         from app.organization_purpose import MODULES
         from app.organization_findings import build_organization_findings
         modules=list(configuration.get('modules') or [])
+        from app.research_judgments import VERSION as JUDGMENT_VERSION, ORDER, build_judgments
+        strategy_version=(resume_state or {}).get('research_strategy_version') if resume_state else (
+            (getattr(self,'research_strategy',None) or {}).get('version'))
+        if strategy_version not in {None,JUDGMENT_VERSION}:
+            raise TokenBudgetExceeded('analysis_context_contract_changed')
+        self.active_research_strategy_version=strategy_version
         packing_version=workflow_packing_version(resume_state) if resume_state else CONTEXT_PACKING_VERSION
         if packing_version not in {CONTEXT_PACKING_VERSION,LEGACY_CONTEXT_PACKING_VERSION}:
             self.last_workflow=deepcopy(resume_state)
             raise TokenBudgetExceeded('analysis_context_contract_changed')
         self.context_packing_version=packing_version
         binding=analysis_binding(user_query,configuration,skill_prompt,analyst_hints,evidence_list,
-            packing_version=packing_version)
+            packing_version=packing_version,research_strategy_version=strategy_version)
         if isinstance(resume_state,dict) and resume_state and resume_state.get('question_seed_version')!=QUESTION_SEED_VERSION:
             self.last_workflow=deepcopy(resume_state)
             raise TokenBudgetExceeded('analysis_context_contract_changed')
         workflow=deepcopy(resume_state) if isinstance(resume_state,dict) and resume_state.get('binding')==binding else {
             'schema_version':'adrs-analysis-questions-v2','binding':binding,'question_seed_version':QUESTION_SEED_VERSION,
             'context_packing_version':packing_version,
+            **({'research_strategy_version':strategy_version} if strategy_version else {}),
             'completed':{},'attempts':{},'status':'running'}
         self.last_workflow=workflow
+        accepted={}
 
         def progress():
             if on_progress:on_progress(deepcopy(workflow))
@@ -145,6 +166,10 @@ Return a JSON object with these fields:
                     _phase=kind,_seed=seed,_output_tokens=output_tokens)
                 record={'analysis_text':text,'organization_data':deepcopy(self.last_organization_data or {}),
                     'context':deepcopy(self.last_context_manifest),'extraction':deepcopy(self.last_extraction_status)}
+                if strategy_version and kind!='extraction':
+                    record['judgments']=build_judgments(self.last_judgments,
+                        [item.model_dump(mode='json') for item in evidence_list],self.last_context_manifest,
+                        configuration=configuration,findings=accepted,phase=key)
                 workflow.setdefault('attempt_records',{}).setdefault(key,[]).append({
                     'attempt':workflow['attempts'][key],**record})
                 if workflow['attempts'][key]<2 and not (
@@ -240,7 +265,7 @@ Return a JSON object with these fields:
         allowed={'landscape':('interpretations',),'relationships':('relationship_entities','research_relationships','geographies'),
             'deep_dive':('technical_cards',),'evolution':('trend_observations',),'validation':('trend_observations',),
             'actions':('action_cards',)}
-        texts=[];contexts=[]
+        texts={};contexts=[];judgments=[];judgment_gaps=[];prior_records=[]
         technical_by_output={}
         retained_evidence=[item.model_dump(mode='json') for item in evidence_list]
         def retain_technical(record, batch):
@@ -262,7 +287,9 @@ Return a JSON object with these fields:
                     normalized={'label':figure['label'],'page':figure['page'],'proof':{
                         'evidence_id':figure['proof']['evidence_id'],'quote':figure['proof']['quote']}}
                     if normalized not in target['figure_references']:target['figure_references'].append(normalized)
-        for module in modules:
+        analysis_modules=[key for key in ORDER if key in modules] if strategy_version else modules
+        workflow['analysis_module_order']=analysis_modules
+        for module in analysis_modules:
             batches=[seed]
             if module=='deep_dive' and len(seed['outputs'])>2:
                 batches=[{**seed,'outputs':seed['outputs'][index:index+2]} for index in range(0,len(seed['outputs']),2)]
@@ -271,7 +298,18 @@ Return a JSON object with these fields:
                 batch={**batch,'publication_metadata':{item['output_id']:seed['publication_metadata'].get(item['output_id'],{})
                     for item in batch['outputs']}}
                 phase_id='question:'+module+(f':{index+1}' if len(batches)>1 else '')
+                if strategy_version and module in {'evolution','validation','actions'}:
+                    batch={**batch,'_analysis_handoff':{'technical':technical_by_output,
+                        'judgments':judgments,'prior_records':prior_records}}
                 record=phase(phase_id,{**configuration,'modules':[module]},'question',batch)
+                if strategy_version:
+                    judgments.extend(record.get('judgments',{}).get('records',[]))
+                    judgment_gaps.extend(record.get('judgments',{}).get('pending_records',[]))
+                    for key in ('research_relationships','trend_observations'):
+                        candidates=record['organization_data'].get(key,[])
+                        for candidate in candidates[:3] if isinstance(candidates,list) else []:
+                            if not isinstance(candidate,dict):continue
+                            prior_records.append({'kind':key,'phase':phase_id,'candidate':candidate})
                 module_texts.append(record['analysis_text'])
                 contexts.append({'module':module,'phase_id':phase_id,**record['context']})
                 if module=='deep_dive':
@@ -295,11 +333,13 @@ Return a JSON object with these fields:
                     if isinstance(record['organization_data'].get(key),list):
                         if not isinstance(data.get(key),list):data[key]=[]
                         data.setdefault(key,[]).extend(record['organization_data'][key])
-            texts.append('## '+MODULES[module][0]+'\n\n'+'\n\n'.join(module_texts))
+            texts[module]='## '+MODULES[module][0]+'\n\n'+'\n\n'.join(module_texts)
         if 'deep_dive' in modules:data['technical_cards']=list(technical_by_output.values())
         workflow.update(status='completed',active_phase=None)
         self.last_workflow=workflow
         self.last_organization_data=data
+        self.last_judgment_view={'version':JUDGMENT_VERSION,'records':list(reversed(judgments)),'pending_records':judgment_gaps,
+            'semantics':'source_locations_checked_analysis_candidates_not_final_verdicts'} if strategy_version else {}
         self.last_context_manifest={'schema_version':'adrs-analysis-questions-v2','phases':contexts,
             'publication_contexts':[record['context'] for record in extractions],
             'conclusion_coverage':'question_responses_not_semantic_certification'}
@@ -307,7 +347,7 @@ Return a JSON object with these fields:
             for source in record['context'].get('sources',[])))
         self.last_extraction_status={'status':'returned','phase_count':len(workflow['completed']),'finish_reason':'all_question_responses_retained'}
         progress()
-        return '\n\n'.join(texts)
+        return '\n\n'.join(texts[module] for module in modules)
 
     @property
     def client(self) -> OpenAI:
@@ -351,7 +391,11 @@ Return a JSON object with these fields:
         decision = build_guardrail_decision(user_query)
         # The complete frozen question is already in the user message. Keep
         # only the enforcement/profile instructions in the system message.
-        system_prompt = f"{build_prompt_profile_message(decision)}\n\n{self.SYSTEM_PROMPT}"
+        from app.research_judgments import VERSION as JUDGMENT_VERSION
+        current_strategy=getattr(self,'active_research_strategy_version',None) if organization_research else (
+            (getattr(self,'research_strategy',None) or {}).get('version'))
+        base_prompt=self.RESEARCH_SYSTEM_PROMPT if current_strategy==JUDGMENT_VERSION else self.SYSTEM_PROMPT
+        system_prompt = f"{build_prompt_profile_message(decision)}\n\n{base_prompt}"
         repair=getattr(self,'phase_repair',{})
         if repair.get('instruction'):system_prompt+='\n'+repair['instruction']
         if analyst_hints:
@@ -371,7 +415,9 @@ Return a JSON object with these fields:
         self.last_extraction_status = {'status': 'not_returned'}
         self.last_partial_response = None
         self.last_context_manifest = {}
-        context_seed=_seed or {}
+        self.last_judgments=[]
+        context_seed=dict(_seed or {})
+        handoff_seed=context_seed.pop('_analysis_handoff',None)
         seed_manifest=None
         if organization_research:
             from app.organization_findings import EXTRACTION_INSTRUCTIONS
@@ -382,7 +428,7 @@ Return a JSON object with these fields:
                     'Cite existing source numbers, preserve experiment conditions, and use literal proof excerpts for structured fields. '
                     'Prefix new observation/event IDs with the selected module name to avoid cross-question collisions.')
                 from app.research_context import question_seed, encoded
-                seed,seed_manifest=question_seed(_seed,deep='deep_dive' in organization_research.get('modules',[]))
+                seed,seed_manifest=question_seed(context_seed,deep='deep_dive' in organization_research.get('modules',[]))
                 seed_text=encoded(seed)
                 context_seed=seed
                 system_prompt += '\n'+untrusted_context('retained_publication_records',seed_text,limit=len(seed_text))
@@ -421,7 +467,13 @@ Return a JSON object with these fields:
             system_prompt += action_instructions(organization_research)
             if 'actions' in organization_research.get('modules',[]):
                 system_prompt += '\nUser action requirements (do not invent missing values): ' + json.dumps(organization_research.get('action_requirements') or {},ensure_ascii=False)
-        from app.research_context import evidence_context, fit_messages, CONTEXT_PACKING_VERSION
+        from app.research_context import evidence_context, fit_messages, CONTEXT_PACKING_VERSION, encoded
+        from app.research_judgments import VERSION as JUDGMENT_VERSION, judgment_instructions, stage_handoff, handoff_spans
+        strategy_version=getattr(self,'active_research_strategy_version',None) if organization_research else (
+            (getattr(self,'research_strategy',None) or {}).get('version'))
+        if strategy_version==JUDGMENT_VERSION and _phase!='extraction' and (
+                not organization_research or set(organization_research.get('modules',[]))&{'landscape','evolution','validation','actions'}):
+            system_prompt+=judgment_instructions()
         phase_request = (
             'Answer only the currently selected module question. Return the short analysis_text lead and complete '
             'organization_data with literal source proofs; do not draft the final report.' if _phase=='question' else
@@ -430,6 +482,10 @@ Return a JSON object with these fields:
             'Please provide a comprehensive analysis addressing the research question. Use [citation:N] format to '
             'attribute claims to evidence items (e.g., [citation:1] for the first evidence item). Also provide the structured JSON output.')
         def build_messages(allowance):
+            handoff=stage_handoff(handoff_seed.get('technical',{}),handoff_seed.get('judgments',[]),
+                min(4000,int(allowance*.12)),prior_records=handoff_seed.get('prior_records',[])) if handoff_seed else None
+            handoff_text=encoded(handoff) if handoff else ''
+            spans=handoff_spans(handoff,evidence_list) if handoff else None
             preferred=[]
             preferred.extend(context_seed.get('identity_evidence_ids',[]))
             groups={}
@@ -438,9 +494,11 @@ Return a JSON object with these fields:
                 preferred.extend(identifiers)
                 groups[output['output_id']]=identifiers
             text, manifest = evidence_context(evidence_list, user_query,
-                deep='deep_dive' in (organization_research or {}).get('modules', []), max_bytes=allowance,
+                deep=bool(spans) or 'deep_dive' in (organization_research or {}).get('modules', []) or (
+                    strategy_version==JUDGMENT_VERSION and (getattr(self,'research_strategy',None) or {}).get('depth')=='deep'),
+                max_bytes=max(0,allowance-len(handoff_text.encode('utf-8'))),located_spans=spans,
                 preferred_ids=preferred,focus=context_seed.get('reading_focus'),identity_only=_phase=='extraction',
-                required_groups=groups if _phase=='question' else None,
+                required_groups=groups if _phase=='question' and 'deep_dive' in (organization_research or {}).get('modules',[]) else None,
                 packing_version=getattr(self,'context_packing_version',CONTEXT_PACKING_VERSION))
             self.last_evidence_ids = [row['evidence_id'] for row in manifest['sources']]
             formatted_evidence = untrusted_context('external_evidence', text, limit=len(text))
@@ -455,17 +513,24 @@ Return a JSON object with these fields:
 Collected Evidence:
 {formatted_evidence}
 
+{untrusted_context('prior_question_analysis',handoff_text,limit=len(handoff_text)) if handoff_text else ''}
+
 {phase_request}"""
             },
             ]
             if seed_manifest is not None:manifest['publication_seed']=seed_manifest
+            if handoff:manifest['analysis_handoff']={'selected_records':len(handoff['records']),
+                'records':handoff['records'],
+                'omitted_record_ids':handoff['omitted_record_ids'],'semantic_support':'not_established'}
             return messages, manifest
         # Resolve the permitted context capacity before packing optional text.
         # This constructs a client but does not dispatch a model request.
         active_client=skill_context_client(self.client) if skill_prompt else self.client
         if seed_manifest is not None:self.last_context_manifest={'publication_seed':seed_manifest}
         messages, self.last_context_manifest = fit_messages(build_messages, self.request_budget,
-            'research', _output_tokens, max_bytes=int(repair.get('max_bytes') or (getattr(self,'context_expansion_bytes',36000) if organization_research else 10000)),
+            'research', _output_tokens, max_bytes=int(repair.get('max_bytes') or (
+                getattr(self,'context_expansion_bytes',36000) if organization_research or (
+                    strategy_version==JUDGMENT_VERSION and (getattr(self,'research_strategy',None) or {}).get('depth')=='deep') else 10000)),
             request_extra={'response_format': {'type': 'json_object'}} if organization_research else None)
         missing=self.last_context_manifest.get('missing_full_text_outputs') or []
         if missing:
@@ -522,6 +587,8 @@ Collected Evidence:
                     structured = {}
                 if isinstance(structured.get('organization_data'), dict):
                     self.last_organization_data = structured['organization_data']
+                if strategy_version==JUDGMENT_VERSION:
+                    self.last_judgments=structured.get('research_judgments',[])
                 self.last_extraction_status = {
                     'status': 'returned' if self.last_organization_data is not None else 'missing_organization_data',
                     'response_fields': list(structured),

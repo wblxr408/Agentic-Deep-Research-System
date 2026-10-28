@@ -26,7 +26,8 @@ LEGACY_CONTEXT_PACKING_VERSION = 'adrs-context-packing-v1'
 CONTEXT_PACKING_VERSION = 'adrs-context-packing-v2'
 
 
-def analysis_binding(query, configuration, skills, hints, evidence, *, packing_version=CONTEXT_PACKING_VERSION):
+def analysis_binding(query, configuration, skills, hints, evidence, *, packing_version=CONTEXT_PACKING_VERSION,
+                     research_strategy_version=None):
     """Bind retained question phases to their exact frozen model inputs."""
     from app.query_understanding import identity
     from app.evidence_selection import VERSION as SELECTION_VERSION
@@ -41,6 +42,8 @@ def analysis_binding(query, configuration, skills, hints, evidence, *, packing_v
     # bind the packing contract before any phase is checkpointed.
     if packing_version != LEGACY_CONTEXT_PACKING_VERSION:
         bound['context_packing_version']=packing_version
+    if research_strategy_version:
+        bound['research_strategy_version']=research_strategy_version
     return identity(bound)
 
 
@@ -84,7 +87,7 @@ def capture_retained_synthesis(state, query, skills, hints):
     identifiers=[item.evidence_id for item in evidence]
     if (_bound_evidence_subset(evidence,identifiers) is None
             or workflow.get('binding')!=analysis_binding(query,state.get('organization_research'),skills,hints,evidence,
-                packing_version=workflow_packing_version(workflow))):
+                packing_version=workflow_packing_version(workflow),research_strategy_version=workflow.get('research_strategy_version'))):
         return None
     return deepcopy({'version':RETAINED_SYNTHESIS_VERSION,**identity,
         'material_version':retained_evidence_version(state),'evidence_ids':identifiers,
@@ -111,14 +114,15 @@ def reuse_retained_synthesis(state, query, skills, hints):
     evidence=[deserialize_evidence(item) for item in state.get('collected_evidence',[])]
     subset=_bound_evidence_subset(evidence,frame.get('evidence_ids'))
     if (subset is None or workflow.get('binding')!=analysis_binding(
-            query,state.get('organization_research'),skills,hints,subset,packing_version=workflow_packing_version(workflow))):
+            query,state.get('organization_research'),skills,hints,subset,packing_version=workflow_packing_version(workflow),
+            research_strategy_version=workflow.get('research_strategy_version'))):
         return None
     workflow=deepcopy(workflow)
     workflow['retained_material_reuse']={'version':RETAINED_SYNTHESIS_VERSION,**identity,
         'original_binding':workflow['binding'],'evidence_ids':list(frame['evidence_ids']),
         'material_version':frame['material_version'],
         'current_binding':analysis_binding(query,state.get('organization_research'),skills,hints,evidence,
-            packing_version=workflow_packing_version(workflow))}
+            packing_version=workflow_packing_version(workflow),research_strategy_version=workflow.get('research_strategy_version'))}
     return {'analysis':frame['analysis'],'analysis_workflow':workflow,
         'organization_result':deepcopy(frame.get('organization_result')),
         'verification':deepcopy(frame.get('verification'))}
@@ -129,7 +133,8 @@ def analysis_input_matches(state, query, skills, hints, evidence):
     from app.planning_control import retained_evidence_version
     workflow=state.get('analysis_workflow') or {}
     packing_version=workflow_packing_version(workflow)
-    expected=analysis_binding(query,state.get('organization_research'),skills,hints,evidence,packing_version=packing_version)
+    expected=analysis_binding(query,state.get('organization_research'),skills,hints,evidence,packing_version=packing_version,
+        research_strategy_version=workflow.get('research_strategy_version'))
     if workflow.get('binding')==expected:
         return True
     reuse=workflow.get('retained_material_reuse') or {}
@@ -143,7 +148,8 @@ def analysis_input_matches(state, query, skills, hints, evidence):
         return False
     subset=_bound_evidence_subset(evidence,reuse.get('evidence_ids'))
     return subset is not None and workflow['binding']==analysis_binding(
-        query,state.get('organization_research'),skills,hints,subset,packing_version=packing_version)
+        query,state.get('organization_research'),skills,hints,subset,packing_version=packing_version,
+        research_strategy_version=workflow.get('research_strategy_version'))
 
 
 def identity_batches(evidence):

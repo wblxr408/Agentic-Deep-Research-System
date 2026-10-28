@@ -282,6 +282,8 @@ Return a JSON object with dag_name, nodes, and edges."""
         from app.organization_purpose import analysis_instructions
         system_prompt += analysis_instructions(organization_research)
         system_prompt += corpus_instructions(organization_research)
+        from app.research_judgments import discovery_instructions
+        system_prompt += discovery_instructions(getattr(self,'research_strategy',None))
         user_prompt = self.USER_TEMPLATE.format(query=query)
         if query_contract:
             if len(query_contract) > 48000:
@@ -422,6 +424,11 @@ Return a JSON object with dag_name, nodes, and edges."""
     def _fixed_research_dag(self, query: str, organization: dict | None) -> DAGDefinition:
         entities = ((organization or {}).get('scope') or {}).get('entities') or []
         questions = [f"{item['name']} {query}" for item in entities] or [query]
+        from app.research_judgments import VERSION as JUDGMENT_VERSION
+        if (getattr(self,'research_strategy',None) or {}).get('version')==JUDGMENT_VERSION and (
+                self.research_strategy.get('investigation')=='organization_and_work'):
+            questions=[question+' '+facet for question in questions[:4]
+                for facet in ('研究团队 个人主页 publications','论文 出版来源 research papers')]
         nodes = [PlanNode(node_id=f'fixed_{index+1}', node_type='search', query=text,
             depends_on=[], parallel=True) for index, text in enumerate(questions)]
         return DAGDefinition(dag_name='固定问题取证流程', nodes=nodes)
@@ -433,6 +440,8 @@ Return a JSON object with dag_name, nodes, and edges."""
         Ensures the system can still make progress with basic research.
         """
         logger.warning("Planner: Using fallback DAG")
+        if getattr(self,'research_strategy',None):
+            return self._fixed_research_dag(query,None)
 
         return DAGDefinition(
             dag_name=f"Fallback-Research-{query[:20]}",

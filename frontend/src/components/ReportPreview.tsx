@@ -18,6 +18,7 @@ import ReportDeliveryView from './ReportDeliveryView'
 import ReportLayoutView from './ReportLayoutView'
 import ReportMarkdownTable from './ReportMarkdownTable'
 import ContextEvidenceSummary from './ContextEvidenceSummary'
+import ResearchJudgmentsView from './ResearchJudgmentsView'
 import type { DeliveryView } from './ReportDeliveryView'
 
 interface ReportPreviewProps {
@@ -34,7 +35,7 @@ interface ReportPreviewProps {
   reportSummary?: OrganizationReportSnapshot | null
   deliveryView?: DeliveryView | null
   reportEditorial?: { note?: string } | null
-  contextEvidence?:{analyst?:unknown;report?:unknown}
+  contextEvidence?:{analyst?:unknown;report?:unknown;judgments?:unknown;strategy?:unknown}
   budgetState?: {used_total_tokens?:number;max_total_tokens?:number;cost_status?:string;token_usage_estimated?:boolean;hard_stop_reason?:string|null;model_stop_reason?:string|null;
     routing_decisions?:Array<{upgrade_id?:string;stage:string;trigger:string;status:string;reason:string;from_model?:string;to_model?:string}>;
     model_requests?:Array<{routing?:{stage?:string;provider?:string;model?:string;reason?:string};cost_basis?:string}>} | null
@@ -110,6 +111,7 @@ function ReportPreview({
     <div data-app-only className="reader-record-link"><button type="button" className="btn-ghost" onClick={()=>setRecords(true)}><Icon name="source" size={16}/>{t("研究记录")}</button></div>
     <Modal open={records} onClose={()=>setRecords(false)} title={t("研究记录")} wide>
       <div className="report-records">
+        <ResearchJudgmentsView value={contextEvidence?.judgments} strategy={contextEvidence?.strategy} sessionId={sessionId}/>
         <ContextEvidenceSummary analyst={contextEvidence?.analyst} report={contextEvidence?.report} sessionId={sessionId}/>
         {reportAudit&&<section><h3>{t("内容核对")}</h3><p>{reportAudit.supported_claims??0} / {reportAudit.total_claims??0} {t(" 项支持")}</p>
           {typeof reportAudit.source_supported_claims==='number'&&<p>{t("原文支持 ")}{reportAudit.source_supported_claims} {t(" · 方法依据 ")}{reportAudit.method_supported_claims??0}</p>}

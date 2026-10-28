@@ -159,6 +159,7 @@ class ReportAgent:
         query_understanding:dict|None=None,
         technical_reading: dict | None = None,
         analysis_workflow: dict | None = None,
+        research_judgments: dict | None = None,
     ) -> tuple[str, list[Citation]]:
         """
         Generate the final research report.
@@ -231,10 +232,27 @@ class ReportAgent:
             workflow_packing_version, CONTEXT_PACKING_VERSION)
         located_spans=reading_source_spans(technical_reading,evidence_list,analysis_workflow)
         packing_version=workflow_packing_version(analysis_workflow) if analysis_workflow else CONTEXT_PACKING_VERSION
+        from app.research_judgments import judgment_context,handoff_spans
+        if research_judgments:
+            research_judgments={'records':judgment_context(research_judgments,200_000,evidence=evidence_list)['records']}
+        if research_judgments and research_judgments.get('records'):
+            instructions=('\nUse the supplied research judgments as analytical candidates, not as verified source facts. '
+                'Choose the few judgments that answer the original question; connect specific observations, explanation '
+                'and implications. Where a choice is requested explain what it is preferable to and what would change '
+                'that choice. Keep source conditions and test competing explanations where material. Do not mechanically '
+                'reproduce the judgment schema, add confidence labels or invent an internal strategy. Main prose prioritizes '
+                'the argument; detailed per-work inventory and complete setups belong in appendix. Every factual premise '
+                'and inferential link remains subject to the same source audit.')
+            system_prompt+=instructions
+            for evidence_id,spans in handoff_spans({'records':research_judgments.get('records',[])},evidence_list).items():
+                located_spans.setdefault(evidence_id,[]).extend(spans)
         def build_messages(allowance):
-            selected_analysis, omitted = analysis_context(analysis, int(allowance*.18))
+            judgments=judgment_context(research_judgments,int(allowance*.12)) if research_judgments and research_judgments.get('records') else None
+            judgment_text=encoded(judgments) if judgments else ''
+            selected_analysis, omitted = analysis_context(analysis, int(allowance*(.14 if judgments else .18)))
             formatted_evidence, manifest = evidence_context(evidence_list, user_query,
-                deep=module_mode and 'deep_dive' in organization_research['modules'], max_bytes=int(allowance*.75),
+                deep=bool(located_spans) or module_mode and 'deep_dive' in organization_research['modules'],
+                max_bytes=int(allowance*(.67 if judgments else .75)),
                 located_spans=located_spans,packing_version=packing_version)
             stats = dict(computed_statistics) if computed_statistics else None
             if stats:
@@ -253,6 +271,8 @@ class ReportAgent:
 Analyst's Analysis:
 {untrusted_context('analyst_output', selected_analysis, limit=len(selected_analysis))}
 
+{untrusted_context('research_judgments',judgment_text,limit=len(judgment_text)) if judgment_text else ''}
+
 {untrusted_context('computed_statistics', encoded(stats), limit=len(encoded(stats))) if stats else ''}
 
 Evidence Sources:
@@ -264,6 +284,8 @@ Evidence Sources:
             },
             ]
             manifest['omitted_analysis_blocks'] = omitted
+            if judgments:manifest['research_judgments']={'selected_ids':[row['judgment_id'] for row in judgments['records']],
+                'omitted_ids':judgments['omitted_judgment_ids'],'semantic_support':'requires_final_report_audit'}
             manifest['omitted_metrics'] = stats.get('omitted_metrics', 0) if stats else 0
             return messages, manifest
         messages, self.last_context_manifest = fit_messages(build_messages, self.request_budget, 'report',

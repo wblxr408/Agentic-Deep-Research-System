@@ -900,6 +900,7 @@ def planner_node(state: ResearchState) -> dict:
     agent = PlannerAgent()
     agent.request_budget = _stage_model_budget(state,'planner')
     agent.model_routing=state.get('model_routing')
+    agent.research_strategy=(state.get('query_understanding') or {}).get('research_strategy')
     planning_hints = _format_failure_memory_notes(state.get("failure_memory"))
     try:
         dag: DAGDefinition = agent.create_dag(
@@ -2220,6 +2221,7 @@ async def analyst_node(state: ResearchState) -> dict:
     agent = AnalystAgent()
     agent.request_budget = _stage_model_budget(state,'analyst')
     agent.model_routing=state.get('model_routing')
+    agent.research_strategy=(state.get('query_understanding') or {}).get('research_strategy')
     loop=asyncio.get_running_loop()
     checkpoint_sequence=int(state.get('session',{}).get('checkpoint_seq') or 0)
     async def save_question(progress):
@@ -2270,12 +2272,20 @@ async def analyst_node(state: ResearchState) -> dict:
     organization_result = build_organization_findings(
         state.get("organization_research"), state.get("collected_evidence", []), agent.last_organization_data,
     )
-    if organization_result:
+    from app.research_judgments import VERSION as JUDGMENT_VERSION, build_judgments
+    actual_strategy=getattr(agent,'active_research_strategy_version',None) if state.get('organization_research') else (
+        (agent.research_strategy or {}).get('version'))
+    if actual_strategy==JUDGMENT_VERSION:
+        judgments=agent.last_judgment_view or build_judgments(agent.last_judgments,
+            state.get('collected_evidence',[]),agent.last_context_manifest,
+            configuration=state.get('organization_research'),findings=organization_result)
+        organization_result={**(organization_result or {}),'research_judgments':judgments}
+    if organization_result and 'source_checks' in organization_result:
         organization_result['source_checks']['analyst_excerpt_evidence_ids'] = agent.last_evidence_ids
         organization_result['extraction'] = agent.last_extraction_status
         organization_result['analyst_context'] = agent.last_context_manifest
     elif agent.last_context_manifest:
-        organization_result={'analyst_context':agent.last_context_manifest}
+        organization_result={**(organization_result or {}),'analyst_context':agent.last_context_manifest}
     previous_drawing=(state.get('organization_result') or {}).get('chart_rendering')
     if isinstance(previous_drawing,dict) and previous_drawing.get('cache_id'):
         # Carry only a prior trusted result as a cache candidate. The renderer
@@ -2439,6 +2449,7 @@ def replan_node(state: ResearchState) -> dict:
     agent = PlannerAgent()
     agent.request_budget = _stage_model_budget(state,'replan')
     agent.model_routing=state.get('model_routing')
+    agent.research_strategy=(state.get('query_understanding') or {}).get('research_strategy')
     try:
         dag = agent.create_dag(state['user_query'],query_contract=_plan_contract(state),
             planning_strategy=PlanningPolicy.model_validate(state.get('planning_policy') or {}).strategy,
@@ -2644,6 +2655,7 @@ async def report_node(state: ResearchState) -> dict:
             report, citations = await asyncio.to_thread(agent.generate_stream,
                 user_query=_synthesis_question(state),
                 analysis=state["analysis"] + findings_context(organization_result),
+                research_judgments=(organization_result or {}).get('research_judgments'),
                 evidence_list=evidence_list,
                 reflection=verification,
                 output_length=state.get("output_length") or state.get("session", {}).get("output_length"),

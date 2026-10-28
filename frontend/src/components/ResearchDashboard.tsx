@@ -101,8 +101,9 @@ interface ResearchResult {
     effective_weights: { effective_weights: Record<string, number> }
   } | null
   organization_result?: { evidence_count?: number; counting_unit?: string; gaps?: string[]; report_summary?: OrganizationReportSnapshot;
-    analyst_context?:unknown;report_context?:unknown;
+    analyst_context?:unknown;report_context?:unknown;research_judgments?:unknown;
     chart_rendering?:{status:string;reason?:string|null}} | null
+  query_understanding?:{research_strategy?:unknown}|null
 }
 
 interface SkillItem {
@@ -529,7 +530,8 @@ function ResearchDashboard({ onBack,ownerId }: ResearchDashboardProps) {
         streaming={isStreaming} emptyTitle={isStreaming?t("正在{0}", currentStage):emptyReportTitle}
         emptyDescription={emptyReportDescription} reportSummary={result?.organization_result?.report_summary}
         deliveryView={result?.delivery_view} reportEditorial={result?.report_editorial} budgetState={result?.budget_state} reportAudit={result?.report_audit}
-        contextEvidence={{analyst:result?.organization_result?.analyst_context,report:result?.organization_result?.report_context}}/></div>
+        contextEvidence={{analyst:result?.organization_result?.analyst_context,report:result?.organization_result?.report_context,
+          judgments:result?.organization_result?.research_judgments,strategy:result?.query_understanding?.research_strategy}}/></div>
     </section>
     <section hidden={activePanel!=='records'} className="workspace-records" aria-label={t("研究记录视图")}>
       <ExecutionFeed events={traceEvents} connection={sseStatus} status={sessionStatus||'pending'}/>

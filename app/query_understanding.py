@@ -403,9 +403,11 @@ def interpret_query(query: str, options: QueryOptions, delivery: DeliveryRequest
             'skills': resolved_skills, 'registry_revision': skill_context.get('registry_revision'),
             'effective_tool_allowlist': request_limits.get('effective_tool_allowlist', [])}}
     from app.report_planning import build_writing_plan
+    from app.research_judgments import freeze_strategy
     from app.data_governance import freeze_policy as freeze_data_policy
     result['data_governance']=freeze_data_policy(query,options.data_policy,request_limits,organization,result)
     result['writing_plan']=build_writing_plan(result,organization)
+    result['research_strategy']=freeze_strategy(query,organization,slots)
     result['ready'] = not result['clarifications']
     result['interpretation_id'] = identity(_stable_configuration(result))
     result['captured_at'] = datetime.now(UTC).isoformat()
@@ -416,6 +418,8 @@ def query_contract_text(snapshot: dict | None) -> str:
     if not snapshot:
         return ''
     view = {key: snapshot.get(key) for key in ('schema_version', 'interpretation_id', 'query_type', 'slots', 'temporal', 'complexity')}
+    if 'research_strategy' in snapshot:
+        view['research_strategy'] = snapshot['research_strategy']
     delivery = snapshot.get('delivery') or {}
     view['delivery_pages'] = {key: delivery.get(key) for key in ('template', 'pages')}
     view['internal_filter']=snapshot.get('internal_filter')

@@ -11,7 +11,8 @@ import {sourceSyncEnglish} from './locales/sourceSync'
 import {sourceCdcEnglish} from './locales/sourceCdc'
 import {documentProcessingEnglish} from './locales/documentProcessing'
 import {systemMessages} from './locales/system'
-const english:Record<string,string>={...baseEnglish,...layoutEnglish,...skillVersionsEnglish,...skillStagesEnglish,...questionQualityEnglish,...budgetAllocationEnglish,...accountRecoveryEnglish,...collaborationEnglish,...sourceSyncEnglish,...sourceCdcEnglish,...documentProcessingEnglish}
+import {researchJudgmentsEnglish} from './locales/researchJudgments'
+const english:Record<string,string>={...baseEnglish,...layoutEnglish,...skillVersionsEnglish,...skillStagesEnglish,...questionQualityEnglish,...budgetAllocationEnglish,...accountRecoveryEnglish,...collaborationEnglish,...sourceSyncEnglish,...sourceCdcEnglish,...documentProcessingEnglish,...researchJudgmentsEnglish}
 export type Locale='zh'|'en'
 const key='deepintel.appearance.v1'
 let language:Locale=(()=>{try{return JSON.parse(localStorage.getItem(key)||'{}').language==='en'?'en':'zh'}catch{return 'zh'}})()
