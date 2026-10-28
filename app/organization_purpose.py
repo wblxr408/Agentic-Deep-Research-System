@@ -245,7 +245,8 @@ def normalize_report_envelope(raw: str, selected: list[str], citation_count: int
     return (json.dumps(value,ensure_ascii=False),changes) if changes else (raw,[])
 
 
-def assemble_module_report(raw: str, configuration: dict, citation_count: int, *, statistics: dict | None = None) -> tuple[str, dict]:
+def assemble_module_report(raw: str, configuration: dict, citation_count: int, *, statistics: dict | None = None,
+                           allowed_citations: set[int] | None = None) -> tuple[str, dict]:
     """Untrusted prose cannot add report pages or replace selected module IDs."""
     selected = configuration['modules']
     issues, proposed, rejected = [], {}, []
@@ -339,7 +340,8 @@ def assemble_module_report(raw: str, configuration: dict, citation_count: int, *
         paragraphs = []
         for item in items:
             numbers = list(dict.fromkeys(item.citations))
-            if any(number > citation_count for number in numbers) or (item.kind == 'observation' and not numbers):
+            if (any(number > citation_count or allowed_citations is not None and number not in allowed_citations for number in numbers)
+                    or item.kind == 'observation' and not numbers):
                 issues.append(f'invalid_source_numbers:{key}')
                 rejected.append({'module_id': key, 'reason': 'invalid_source_numbers', 'paragraph': item.model_dump(mode='json')})
                 continue

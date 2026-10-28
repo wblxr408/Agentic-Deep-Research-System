@@ -7,7 +7,8 @@ from app.recovery_policy import recovery_plan, ROOT_RECOVERY_LIMIT
 TRANSIENT = {'APIConnectionError', 'APITimeoutError', 'InternalServerError', 'RateLimitError'}
 PHASES = {'planner':'研究规划','analyst':'研究分析','report':'报告生成','reflection':'来源核对',
           'extract_publications':'成果整理','landscape':'研究布局','evolution':'研究演进',
-          'deep_dive':'成果深读','relationships':'组织与学者关系','actions':'合作建议','validation':'来源核对'}
+          'deep_dive':'成果深读','relationships':'组织与学者关系','actions':'合作建议','validation':'来源核对',
+          'discovery':'研究成果发现'}
 
 
 def diagnose_stop(state,*,active_execution=False):
@@ -83,6 +84,12 @@ def diagnose_stop(state,*,active_execution=False):
             result['next_step']='核对问题无法定位到可自动修改的正文段落，已保留具体主张。'
         else:result['next_step']='需补充对应来源并修订正文。'
         result['revision_count']=len(revisions)
+    elif reason=='research_discovery_incomplete':
+        gap=workflow.get('discovery_gap') or {}
+        result.update(summary='本轮取证尚未确认可深读的研究成果',action='sources',
+            next_step='系统已保留搜索线索和已读页面；后续需沿成果来源补取正文，未继续生成空泛章节。')
+        result['findings']=[{'text':'可深读成果 0 项',
+            'detail':f"已取得 {gap.get('acquired_sources',0)} 份来源正文；来源页面不等于已确认的目标成果。"}]
     elif reason in {'insufficient_context_budget','model_context_capability_exceeded'}:
         failures=(workflow.get('failed_attempts') or {}).get(active) or []
         admission=(failures[-1].get('admission') if failures else None) or {}

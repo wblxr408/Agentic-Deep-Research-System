@@ -264,6 +264,23 @@ Return JSON with analysis_text and any additional fields explicitly required bel
             for item in (accepted.get('scope_result') or {}).get('outputs',[])],
             'publication_metadata':accepted.get('publication_metadata',{}),
             'pending_records':accepted.get('pending_records',[])[:10]}
+        followup=(getattr(self,'research_strategy',None) or {}).get('source_followup') or {}
+        if (followup.get('require_work_before_deep_analysis') and 'deep_dive' in modules and not seed['outputs']):
+            # Empty accepted work inputs cannot support six substantive research
+            # chapters. Preserve the discovery outcome before spending the
+            # remaining model/audit allowance on generic prose.
+            gap={'reason':'no_accepted_research_work','accepted_works':0,
+                 'acquired_sources':sum((item.acquisition or {}).get('coverage')!='discovery_only' for item in evidence_list),
+                 'pending_records':len(accepted.get('pending_records',[])),
+                 'next_step':'follow_retained_work_sources_within_original_acquisition_limits'}
+            workflow.update(status='paused',active_phase='discovery',stop_reason='research_discovery_incomplete',
+                            discovery_gap=gap)
+            self.last_discovery_findings=accepted
+            self.last_organization_data=data
+            self.last_context_manifest={'schema_version':'adrs-analysis-questions-v2',
+                'publication_contexts':[record['context'] for record in extractions],'discovery_gap':gap}
+            progress()
+            raise TokenBudgetExceeded('research_discovery_incomplete')
         allowed={'landscape':('interpretations',),'relationships':('relationship_entities','research_relationships','geographies'),
             'deep_dive':('technical_cards',),'evolution':('trend_observations',),'validation':('trend_observations',),
             'actions':('action_cards',)}
@@ -501,7 +518,8 @@ Return JSON with analysis_text and any additional fields explicitly required bel
                 max_bytes=max(0,allowance-len(handoff_text.encode('utf-8'))),located_spans=spans,
                 preferred_ids=preferred,focus=context_seed.get('reading_focus'),identity_only=_phase=='extraction',
                 required_groups=groups if _phase=='question' and 'deep_dive' in (organization_research or {}).get('modules',[]) else None,
-                packing_version=getattr(self,'context_packing_version',CONTEXT_PACKING_VERSION))
+                packing_version=getattr(self,'context_packing_version',CONTEXT_PACKING_VERSION),
+                acquired_only=bool(organization_research and ((getattr(self,'research_strategy',None) or {}).get('source_followup') or {}).get('require_work_before_deep_analysis')))
             self.last_evidence_ids = [row['evidence_id'] for row in manifest['sources']]
             formatted_evidence = untrusted_context('external_evidence', text, limit=len(text))
             messages = [

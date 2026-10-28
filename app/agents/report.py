@@ -187,6 +187,10 @@ class ReportAgent:
         self.last_audit = None
         self.last_module_report = None
         module_mode = analysis_snapshot(organization_research) is not None
+        followup=(((query_understanding or {}).get('research_strategy') or {}).get('source_followup') or {})
+        acquired_only=bool(module_mode and followup.get('require_work_before_deep_analysis'))
+        allowed_citations=({number for number,source in enumerate(evidence_list,1)
+                            if (source.acquisition or {}).get('coverage')!='discovery_only'} if acquired_only else None)
         from app.report_planning import writing_plan,writing_instructions
         self.last_writing_plan=writing_plan(query_understanding,organization_research)
         instructions = module_report_instructions(organization_research) if module_mode else (
@@ -194,6 +198,8 @@ class ReportAgent:
             else 'You write source-grounded research answers in Chinese Markdown. Every factual claim uses the original [citation:N].')
         instructions+=writing_instructions(self.last_writing_plan)
         system_prompt = f"{build_prompt_profile_message(decision)}\n\n{instructions}"
+        if allowed_citations is not None:
+            system_prompt+='\nCite acquired source text only. Allowed original citation IDs: '+json.dumps(sorted(allowed_citations))+'. Search snippets are discovery leads, not acquired source text. Omit unsupported details rather than replacing their citations with unrelated sources.'
         if report_hints:
             system_prompt = (
                 f"{system_prompt}\n\n## Report Skill Instructions\n"
@@ -253,7 +259,7 @@ class ReportAgent:
             formatted_evidence, manifest = evidence_context(evidence_list, user_query,
                 deep=bool(located_spans) or module_mode and 'deep_dive' in organization_research['modules'],
                 max_bytes=int(allowance*(.67 if judgments else .75)),
-                located_spans=located_spans,packing_version=packing_version)
+                located_spans=located_spans,packing_version=packing_version,acquired_only=acquired_only)
             stats = dict(computed_statistics) if computed_statistics else None
             if stats:
                 stats['metric_registry'] = dict(stats['metric_registry'])
@@ -354,7 +360,7 @@ Evidence Sources:
                 from app.organization_purpose import normalize_report_envelope
                 normalized_raw,normalizations=normalize_report_envelope(content,organization_research['modules'],len(citations))
                 content=normalized_raw
-                content, self.last_module_report = assemble_module_report(content, organization_research, len(citations), statistics=organization_statistics)
+                content, self.last_module_report = assemble_module_report(content, organization_research, len(citations), statistics=organization_statistics,allowed_citations=allowed_citations)
                 if normalizations:self.last_module_report['envelope_normalizations']=normalizations
                 if self.last_module_report['issues']:
                     first_record = self.last_module_report
@@ -413,7 +419,7 @@ Evidence Sources:
                                     paragraph['text'] = text
                         repaired_raw = json.dumps(original, ensure_ascii=False)
                     content, self.last_module_report = assemble_module_report(repaired_raw, organization_research,
-                        len(citations), statistics=organization_statistics)
+                        len(citations), statistics=organization_statistics,allowed_citations=allowed_citations)
                     self.last_module_report['repair_history'] = [first_record]
                 if self.last_module_report['issues']:
                     self.last_partial_response = ''.join(chunks)
@@ -488,7 +494,7 @@ Evidence Sources:
             logger.error(f"Report generation error: {e}")
             self.last_usage = None
             if module_mode:
-                fallback, self.last_module_report = assemble_module_report('', organization_research, len(citations), statistics=organization_statistics)
+                fallback, self.last_module_report = assemble_module_report('', organization_research, len(citations), statistics=organization_statistics,allowed_citations=allowed_citations)
                 self.last_partial_response = ''.join(chunks)
                 self.last_usage = self.request_budget.usage()
                 raise ReportContractError('report_generation_failed') from e

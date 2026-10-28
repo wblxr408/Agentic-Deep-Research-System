@@ -61,7 +61,7 @@ def search_route(query,understanding,*,channels=None,remaining_calls,remaining_s
         if key not in seen and item['query'] and (not unique or len(item['query'])<=1800):
             unique.append(item);seen.add(key)
     calls=max(0,min(int(remaining_calls),ceil(max(0,int(remaining_calls))/max(1,remaining_nodes))))
-    variant_capacity=max(1,calls//3) if (snapshot.get('source_followup') or {}).get('version')=='adrs-discovery-handoff-v1' else calls
+    variant_capacity=max(1,calls//3) if (snapshot.get('source_followup') or {}).get('version') in {'adrs-discovery-handoff-v1','adrs-discovery-handoff-v2'} else calls
     count=min(int(options.get('max_variants',1)),variant_capacity,calls,len(unique)) if remaining_seconds>0 else 0
     variants=unique[:count]
     requested=[channel] if explicit else list(channels or [channel])

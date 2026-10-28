@@ -404,7 +404,8 @@ def _bounded_deep_excerpt(record, item, source, meta, quota, proofs):
 
 
 def evidence_context(evidence, query: str, *, deep: bool, max_bytes: int, preferred_ids=None, focus=None, identity_only=False,
-                     located_spans=None, required_groups=None, packing_version=CONTEXT_PACKING_VERSION) -> tuple[str, dict]:
+                     located_spans=None, required_groups=None, packing_version=CONTEXT_PACKING_VERSION,
+                     acquired_only=False) -> tuple[str, dict]:
     """Distribute a UTF-8 payload allowance across sources, retaining exact spans.
 
     Omitted documents/passages remain in the task evidence. This is selection,
@@ -419,6 +420,11 @@ def evidence_context(evidence, query: str, *, deep: bool, max_bytes: int, prefer
     from app.evidence_selection import source_priority,context_coverage,excerpt_anchor
     from app.evidence_ingestion import retained_evidence_identity
     priority,assessment=source_priority(evidence,query,preferred_ids=preferred_ids,identity_only=identity_only,deep=deep)
+    if acquired_only:
+        # Filter ranked pairs, not the original evidence array: source numbers
+        # are shared by analysis, writing, audit and historical source access.
+        priority=[pair for pair in priority if (pair[1].acquisition or {}).get('coverage')!='discovery_only']
+        assessment['discovery_leads']='excluded_until_source_text_is_acquired'
     required={}
     if deep and not identity_only and packing_version==CONTEXT_PACKING_VERSION:
         for output_id,identifiers in (required_groups or {}).items():

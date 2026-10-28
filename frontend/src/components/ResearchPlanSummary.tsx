@@ -11,6 +11,7 @@ export interface PlanSummaryProps {
   operationalEvents?: Array<{message:string;error_type:string;at:string;effect:string}>
 }
 const reasons:Record<string,string>=uiDefinition({single_pass_selected:'按选择完成单轮研究',revision_limit:'已到补证轮次上限',no_new_retained_material:'连续补证未保留新材料',
+  initial_discovery_then_source_reading:'先检索原问题、成果与团队，再沿来源读取正文',read_retained_public_sources_before_analysis:'沿已保留线索读取正文',
   no_requested_revision_not_a_truth_certificate:'本轮核对结束',specific_evidence_gap:'有具体证据缺口，继续有限补证',
   no_structured_evidence_gap_manual_review_available:'没有可执行的结构化补证问题，保留人工复核入口',human_authorization_required:'等待所需操作审批',
   no_accessible_evidence:'没有可用于报告的授权证据',tool_not_allowed:'当前工具未获许可',condition_not_met:'分支条件不满足',dependency_failed:'前置步骤失败',

@@ -261,6 +261,15 @@ def _read_corpus_source(url: str, configuration: dict, *, timeout: float,on_requ
                 if urlsplit(urljoin(response.url,item['href'])).scheme in {'http','https'}))[:200]
             acquisition['public_link_records'] = [{'url': urljoin(response.url,item['href']), 'label': item.get('text','').strip()}
                 for item in parser.links if urlsplit(urljoin(response.url,item['href'])).scheme in {'http','https'}][:200]
+            # Separate discovery view: preserve the original public-link order
+            # for old contracts; v2 can see article/PDF links past a long menu.
+            research_links = sorted(parser.links, key=lambda item: (
+                item.get('kind') != 'full_text', '.pdf' not in urlsplit(urljoin(response.url,item['href'])).path.lower(),
+                not item.get('primary', False), item.get('navigation', False)))
+            acquisition['research_link_records'] = [
+                {'url': urljoin(response.url,item['href']), 'label': item.get('text','').strip(),
+                 'kind': item.get('kind'), 'navigation': item.get('navigation',False)}
+                for item in research_links if urlsplit(urljoin(response.url,item['href'])).scheme in {'http','https'}][:200]
             from app.organization_taxonomy import publisher_abstract_spans
             acquisition['publisher_abstract_spans'] = publisher_abstract_spans(raw_html, text[:160000])
             acquisition['format'] = 'html'

@@ -115,6 +115,10 @@ def _plan_contract(state: ResearchState) -> str:
 
 
 def _compile_execution_plan(state: ResearchState, dag: DAGDefinition, agent, reason: str):
+    from app.discovery_handoff import anchor_plan
+    discovery_adjustments=[]
+    dag=anchor_plan(dag,state['user_query'],getattr(agent,'research_strategy',None),
+                    state.get('organization_research'),adjustments=discovery_adjustments)
     from app.data_governance import owned_request_url,sensitive_url
     from app.channels.catalog import route_query
     for node in dag.nodes:
@@ -132,14 +136,23 @@ def _compile_execution_plan(state: ResearchState, dag: DAGDefinition, agent, rea
         'allowed_tools': _effective_tool_allowlist(state, decision.model_dump()),
         'policy': policy, 'budget': _build_budget_state(state)}
     try:
-        return compile_plan(dag, reason=reason, **arguments)
+        compiled,manifest = compile_plan(dag, reason=reason, **arguments)
     except PlanningError as error:
         if policy.strategy == 'fixed' or 'declared_seed_only_fixed_workflow' in reason:
             raise
         fallback = agent._fixed_research_dag(state['user_query'], state.get('organization_research'))
         fallback = apply_source_policy(fallback, state['user_query'], use_internal_docs=bool(state.get('use_internal_docs')))
         fallback = seed_organization_sources(fallback, state.get('organization_research'))
-        return compile_plan(fallback, reason='fixed_after_invalid_plan:'+error.category, **arguments)
+        discovery_adjustments=[]
+        fallback = anchor_plan(fallback, state['user_query'], getattr(agent, 'research_strategy', None),
+                               state.get('organization_research'),adjustments=discovery_adjustments)
+        compiled,manifest = compile_plan(fallback, reason='fixed_after_invalid_plan:'+error.category, **arguments)
+    if discovery_adjustments:
+        from app.query_understanding import identity
+        manifest['adjustments'] = [*discovery_adjustments,*manifest['adjustments']]
+        manifest.pop('plan_version',None)
+        manifest['plan_version']=identity(manifest)
+    return compiled,manifest
 
 
 def _skill_context(state: ResearchState) -> dict[str, Any]:
@@ -443,9 +456,11 @@ def _model_budget_pause(state, agent, stage, error, *, report=None, citations=No
                 else '分析响应未完成，已保留阶段结果，可在原额度与期限内继续。' if recoverable
                 else '研究已暂停；已取得资料、阶段结果和用量记录保留。'}]}
     if getattr(agent,'last_workflow',None):result['analysis_workflow']=agent.last_workflow
+    if getattr(agent,'last_discovery_findings',None):
+        result['organization_result']={**(state.get('organization_result') or {}),**agent.last_discovery_findings}
     result['evidence_access_gaps']=state.get('evidence_access_gaps',[])
     if getattr(agent,'last_context_manifest',None):
-        result['organization_result']={**(state.get('organization_result') or {}),
+        result['organization_result']={**(result.get('organization_result') or state.get('organization_result') or {}),
             stage+'_context':agent.last_context_manifest,
             **({'module_report':agent.last_module_report} if getattr(agent,'last_module_report',None) else {})}
     if report is not None:
@@ -1255,8 +1270,30 @@ async def dag_results_aggregator(state: ResearchState) -> dict:
             {"failure_memory": failure_memory},
         ))
 
+    # The final tool batch used to route directly to analysis, bypassing the
+    # executor's extension point. Admit follow-up reads after accepting results
+    # and updating every node status, including when no old tools remain.
+    manifest = state.get('plan_manifest')
+    history = list(state.get('plan_history') or [])
+    from app.discovery_handoff import extend_reads, FOCUSED_VERSION
+    followup = (((state.get('query_understanding') or {}).get('research_strategy') or {}).get('source_followup') or {})
+    if followup.get('version') == FOCUSED_VERSION and not budget_state.get('hard_stop_reason') and not state.get('pending_approvals'):
+        updated_state = {**state, 'budget_state': budget_state,
+                         'accepted_tool_operations': admitted['accepted_tool_operations']}
+        remaining_calls, remaining_seconds = _channel_budget(updated_state, [])
+        dag, manifest, rows = extend_reads(updated_state, dag,remaining_calls=remaining_calls,
+            remaining_seconds=remaining_seconds,
+            allowed_tools=_effective_tool_allowlist(updated_state,updated_state.get('guardrail_decision') or {}))
+        if rows:
+            history = [*history,{key:manifest[key] for key in
+                ('plan_version','revision','reason','strategy','adjustments')}][-32:]
+            trace.append(_append_trace_event(updated_state,EventType.AGENT_COMPLETE,'dag_executor',
+                f'从已保留线索安排 {len(rows)} 次正文读取。',
+                {'kind':'plan_changed','plan_manifest':manifest,'source_reads':rows}))
+
     return {
         "dag": serialize_dag(dag),
+        "plan_manifest": manifest, "plan_history": history,
         "completed_nodes": completed_list,
         "retrieval_policy": retrieval_policy,
         "runtime_status": runtime_status,

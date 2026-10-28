@@ -48,13 +48,17 @@ def freeze_strategy(query, configuration, slots):
     corpus=(configuration or {}).get('corpus') or {}
     organization=bool(configuration or slots.get('entities') or re.search(
         r'大学|学院|实验室|研究院|研究所|公司|\buniversity\b|\blaborator(?:y|ies)\b',query,re.I))
+    from app.discovery_handoff import FOCUSED_VERSION, topic_terms
+    entities = [*((configuration or {}).get('scope') or {}).get('entities', []), *slots.get('entities', [])]
     return {'version':VERSION,'original_question':query,
         'investigation':'organization_and_work' if organization else 'question_and_evidence',
         'collection_mode':corpus.get('collection_mode','open_discovery'),
         'representative_works':'select_after_discovery_not_preloaded_examples',
         'analysis_order':[key for key in ORDER if key in slots.get('modules',[])],
         'purpose':slots.get('purpose'),'depth':slots.get('depth'),'model_calls_added':0,
-        'source_followup':{'version':'adrs-discovery-handoff-v1','max_sources':12,'max_depth':2}}
+        'source_followup':{'version':FOCUSED_VERSION,'max_sources':12,'max_depth':3,
+                           'initial_search_limit':3,'require_work_before_deep_analysis':True,
+                           'topic_terms':topic_terms(query,entities)}}
 
 
 def discovery_instructions(strategy):
@@ -66,7 +70,13 @@ def discovery_instructions(strategy):
         "links within the existing tool and source policy. Distinguish works affiliated with the target from useful external "
         "background. Resolve reasonable topical ambiguity in the visible plan without changing the user's question. "
         "Only then select representative works for deeper reading. Acquiring too little evidence is not evidence that "
-        "the organization lacks a capability. Collect only material needed for the user's decision; no extra market framework.")
+        "the organization lacks a capability. Collect only material needed for the user's decision; no extra market framework."
+        + (" Keep the specific technical qualifiers in every topical search; do not broaden a service/deployment question "
+           "into generic language-model or NLP research. Use at most three initial search questions: the original question, "
+           "a focused publication query, and a team/author discovery query. Translate the technical focus when helpful, "
+           "but do not insert remembered paper names, authors or invented URLs. Save calls for following actual publication "
+           "and full-text links; broad university news is only an identity entrance."
+           if (strategy.get('source_followup') or {}).get('version')=='adrs-discovery-handoff-v2' else ''))
 
 
 def judgment_instructions():

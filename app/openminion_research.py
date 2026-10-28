@@ -85,10 +85,11 @@ class _PageText(HTMLParser):
     def handle_starttag(self, tag, attrs):
         attrs = dict(attrs)
         if tag == "a" and attrs.get("href"):
-            self.active_link = {"href": attrs["href"], "text": ""}
+            self.active_link = {"href": attrs["href"], "text": "",
+                                "primary": bool(self.in_main and not self.hidden), "navigation": bool(self.hidden)}
             self.links.append(self.active_link)
         if tag == "meta" and attrs.get("name", "").lower() == "citation_pdf_url" and attrs.get("content"):
-            self.links.append({"href": attrs["content"]})
+            self.links.append({"href": attrs["content"], "text": "PDF", "kind": "full_text"})
         hide = tag in {"script", "style", "noscript", "nav", "header", "footer"} or attrs.get("role") in {"navigation", "banner", "contentinfo"}
         if hide:
             self.hidden += 1
