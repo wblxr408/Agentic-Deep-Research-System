@@ -42,6 +42,7 @@ interface ResearchResult {
   stop_reason?:string|null
   user_control?:{state?:string}|null
   execution_id?:string|null
+  checkpoint_seq?:number
   report_audit?: {needs_review?:boolean;audit_incomplete?:boolean;total_claims?:number;supported_claims?:number;
     revision_requests?:Array<{claim_id:string;text:string;reason:string;requested_action:string}>}|null
   analysis_recovery_available?: boolean
@@ -50,7 +51,7 @@ interface ResearchResult {
   analysis_progress?: {phase: string|null;status:string;completed_steps:number;stop_reason?:string|null;
     phases?:Array<{phase:string;status:string;summary:string;attempts:number}>;
     last_admission?:{prompt_bound?:number|null;requested_output_tokens?:number|null;available_tokens?:number|null;selected_sources?:number|null}|null}|null
-  budget_state?: {used_total_tokens?:number;max_total_tokens?:number;cost_status?:string;token_usage_estimated?:boolean;hard_stop_reason?:string|null;model_stop_reason?:string|null;inflight_model_requests?:number;phase_events?:BudgetAllocationEvent[]} | null
+  budget_state?: {used_total_tokens?:number;max_total_tokens?:number;used_tool_calls?:number;max_tool_calls?:number;cost_status?:string;token_usage_estimated?:boolean;hard_stop_reason?:string|null;model_stop_reason?:string|null;inflight_model_requests?:number;phase_events?:BudgetAllocationEvent[]} | null
   report_editorial?: { note?: string } | null
   delivery_view?: DeliveryView | null
   plan_manifest?: PlanSummaryProps['plan']
@@ -362,10 +363,33 @@ function ResearchDashboard({ onBack,ownerId }: ResearchDashboardProps) {
     return [{ type: String(data.event_type), data: { ...data, ...metadata }, timestamp }]
   })
   const traceEvents = mergeResearchEvents(historicalEvents, events, result?.execution_id)
-  const progressEvent=[...events].reverse().find(event=>event.type==='state_update' && event.data.analysis_progress)
+  const checkpointEvents=events.filter(event=>event.type==='state_update'&&
+    event.data.session_id===result?.session_id&&event.data.execution_id===result?.execution_id&&
+    typeof event.data.checkpoint_seq==='number'&&Number.isSafeInteger(event.data.checkpoint_seq)&&
+    event.data.checkpoint_seq>(result?.checkpoint_seq??0))
+    .sort((left,right)=>(right.data.checkpoint_seq as number)-(left.data.checkpoint_seq as number))
+  const progressEvent=checkpointEvents.find(event=>event.data.analysis_progress&&
+    event.data.plan_version===result?.plan_manifest?.plan_version)
   const liveAnalysisProgress=progressEvent?.data.analysis_progress as ResearchResult['analysis_progress']
   const analysisProgress=liveAnalysisProgress&&(!result||['pending','running'].includes(result.status))
     ? {...result?.analysis_progress,...liveAnalysisProgress}:result?.analysis_progress
+  const liveCounters=checkpointEvents.find(event=>event.data.budget_state)?.data.budget_state as ResearchResult['budget_state']
+  const budgetState={...result?.budget_state}
+  if(liveCounters&&['pending','running'].includes(result?.status||'')){
+    // Root consumption is cumulative; SSE is a display projection, never an
+    // authority for changing the user's selected allowance or control state.
+    for(const key of ['used_total_tokens','used_tool_calls'] as const){
+      const next=liveCounters[key]
+      if(typeof next==='number'&&Number.isSafeInteger(next)&&next>=0&&next>=(budgetState[key]??0))budgetState[key]=next
+    }
+  }
+  const handledPlan=useRef('')
+  useEffect(()=>{
+    const changed=checkpointEvents.find(event=>typeof event.data.plan_version==='string'&&
+      event.data.plan_version!==result?.plan_manifest?.plan_version)
+    const key=changed?`${result?.session_id}:${result?.execution_id}:${changed.data.plan_version}`:''
+    if(key&&handledPlan.current!==key){handledPlan.current=key;void refetchResult()}
+  },[events,result?.session_id,result?.execution_id,result?.checkpoint_seq,result?.plan_manifest?.plan_version,refetchResult])
   const analysisLabels:Record<string,string>={extract_publications:t("整理成果与署名"),landscape:t("研究布局"),
     evolution:t("研究演进"),relationships:t("组织与学者关系"),deep_dive:t("成果深读"),validation:t("来源核对"),actions:t("研究与合作行动")}
   const progressParts=analysisProgress?.phase?.split(':') || []
@@ -523,9 +547,10 @@ function ResearchDashboard({ onBack,ownerId }: ResearchDashboardProps) {
           {analysisProgress&&<p>{analysisPhase}{progressParts[2]==='conditions'?t(" · 条件补读"):''}{analysisBatch?t(" · 第 {0} 组", analysisBatch):''} · {analysisProgress.completed_steps} {t(" 步已保存")}</p>}
           {analysisProgress?.stop_reason==='insufficient_context_budget'&&<p className="text-sm">{result?.pause_diagnosis?.summary?systemMessage(result.pause_diagnosis.summary):t("当前问题没有足够的可用原文或上下文空间。")}</p>}
         </section>
-        <section className="workspace-summary"><span className="eyebrow">{t("Token 额度")}</span><h2>{result?.budget_state?.used_total_tokens?.toLocaleString()??'—'}<small> / {result?.budget_state?.max_total_tokens?.toLocaleString()??'—'}</small></h2>
-          {typeof result?.budget_state?.used_total_tokens==='number'&&typeof result.budget_state.max_total_tokens==='number'&&<progress aria-label={t("已用 Token 额度")} value={result.budget_state.used_total_tokens} max={Math.max(1,result.budget_state.max_total_tokens)}/>}
+        <section className="workspace-summary"><span className="eyebrow">{t("Token 额度")}</span><h2>{budgetState.used_total_tokens?.toLocaleString()??'—'}<small> / {budgetState.max_total_tokens?.toLocaleString()??'—'}</small></h2>
+          {typeof budgetState.used_total_tokens==='number'&&typeof budgetState.max_total_tokens==='number'&&<progress aria-label={t("已用 Token 额度")} value={budgetState.used_total_tokens} max={Math.max(1,budgetState.max_total_tokens)}/>}
           <p>{t("模型与工具累计用量")}</p>
+          {typeof budgetState.used_tool_calls==='number'&&<p>{t('{0} 次工具请求',budgetState.used_tool_calls)}</p>}
           {result&&<TaskBudgetEditor sessionId={result.session_id} status={result.status} onSaved={async()=>{await refetchResult()}}/>}
         </section>
       </div>

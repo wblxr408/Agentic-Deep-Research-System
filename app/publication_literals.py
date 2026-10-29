@@ -23,6 +23,6 @@ def literal_pattern(value: str) -> str:
 
 def source_pattern(value: str, configuration=None) -> str:
     """Only the new frozen field policy changes layout matching."""
-    if (configuration or {}).get('publication_metadata_policy')=='adrs-publication-fields-v3':
+    if (configuration or {}).get('publication_metadata_policy') in {'adrs-publication-fields-v3','adrs-publication-fields-v4'}:
         return literal_pattern(value)
     return r'\s+'.join(re.escape(token) for token in value.split())

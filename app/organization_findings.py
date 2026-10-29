@@ -304,8 +304,9 @@ def build_organization_findings(configuration: dict | None, evidence: list[dict]
     result = organization_evidence_views(configuration, evidence)
     scope = OrganizationResearchScope.model_validate(configuration['scope'])
     metadata_policy=configuration.get('publication_metadata_policy')
-    field_policy=metadata_policy in {'adrs-publication-fields-v2','adrs-publication-fields-v3'}
-    layout_policy=metadata_policy=='adrs-publication-fields-v3'
+    field_policy=metadata_policy in {'adrs-publication-fields-v2','adrs-publication-fields-v3','adrs-publication-fields-v4'}
+    layout_policy=metadata_policy in {'adrs-publication-fields-v3','adrs-publication-fields-v4'}
+    opening_policy=metadata_policy=='adrs-publication-fields-v4'
     from app.publication_literals import literal_pattern
     from app.publication_affiliations import direct_cover_pair,shared_author_names
 
@@ -419,6 +420,28 @@ def build_organization_findings(configuration: dict | None, evidence: list[dict]
     for publication in records('outputs', PublicationClaim, 1000):
         reason_code = None
         try:
+            if opening_policy:
+                from app.publication_opening import printed_title,current_arxiv_date,auxiliary_identity_source
+                primary=sources.get(publication.title_proof.evidence_id)
+                if primary and auxiliary_identity_source(primary):
+                    raise ValueError('profile_or_cv_is_not_primary_publication_identity')
+                if primary and (primary.get('acquisition') or {}).get('format')=='pdf':
+                    literal_title=printed_title(_publication_opening(primary),publication.title)
+                    if literal_title:
+                        original={'title':publication.title,'title_proof':publication.title_proof.model_dump()}
+                        publication=publication.model_copy(update={'title':literal_title,
+                            'title_proof':Proof(evidence_id=primary['evidence_id'],quote=literal_title)})
+                        if original!={'title':publication.title,'title_proof':publication.title_proof.model_dump()}:
+                            normalized({'kind':'literal_complete_printed_title','output_id':publication.output_id,
+                                'original':original,'title':literal_title,'evidence_id':primary['evidence_id']})
+                    stamp=current_arxiv_date(primary,_publication_opening(primary)) if literal_title else None
+                    if stamp and not (primary.get('acquisition') or {}).get('publisher_metadata'):
+                        normalized({'kind':'current_primary_preprint_version_date','output_id':publication.output_id,
+                            'original_date':publication.publication_date,
+                            'original_proof':publication.date_proof.model_dump() if publication.date_proof else None,
+                            **stamp,'evidence_id':primary['evidence_id']})
+                        publication=publication.model_copy(update={'publication_date':stamp['publication_date'],
+                            'date_proof':Proof(evidence_id=primary['evidence_id'],quote=stamp['quote'])})
             source = check(publication.title_proof)
             if not contains(publication.title_proof.quote, publication.title):
                 # A short model excerpt may identify the page; locate the full
@@ -499,6 +522,22 @@ def build_organization_findings(configuration: dict | None, evidence: list[dict]
                 try:
                     if re.search(r'[;；\n]',affiliation.author_name):
                         raise ValueError('one affiliation record must name one author')
+                    if opening_policy:
+                        from app.publication_opening import numbered_affiliation
+                        current=sources.get(affiliation.proof.evidence_id)
+                        numbered=numbered_affiliation(_publication_opening(current),publication.title,
+                            affiliation.author_name,affiliation.raw_affiliation) if (
+                                current and (current.get('acquisition') or {}).get('coverage')!='discovery_only') else None
+                        if numbered:
+                            if numbered['status']!='resolved':raise ValueError(numbered['reason'])
+                            old=affiliation.proof.model_dump()
+                            original_author=affiliation.author_name
+                            affiliation=affiliation.model_copy(update={'author_name':numbered['author_name'],'proof':AffiliationProof(
+                                evidence_id=affiliation.proof.evidence_id,quote=numbered['quote'])})
+                            normalized({'kind':'literal_numbered_author_affiliation','output_id':publication.output_id,
+                                'author_name':affiliation.author_name,'proposed_author':original_author,'proposed_proof':old,
+                                'retained_proof':affiliation.proof.model_dump(),
+                                'author_labels':numbered['author_labels'],'institution_label':numbered['institution_label']})
                     try:
                         affiliation_source = check(affiliation.proof)
                         if not contains(affiliation.proof.quote,affiliation.author_name) or not contains(affiliation.proof.quote,affiliation.raw_affiliation):

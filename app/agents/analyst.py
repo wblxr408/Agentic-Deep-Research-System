@@ -155,6 +155,13 @@ Return JSON with analysis_text and any additional fields explicitly required bel
             from app.recovery_policy import PHASE_ATTEMPT_LIMIT
             if attempts>=PHASE_ATTEMPT_LIMIT:raise TokenBudgetExceeded('analysis_phase_attempt_limit')
             self.phase_repair=(workflow.get('repairs') or {}).get(key) or {}
+            previous=(workflow.get('attempt_records',{}).get(key) or [])
+            core_gap=(previous[-1].get('context',{}).get('technical_core_coverage') or {}) if previous else {}
+            if configuration.get('publication_metadata_policy')=='adrs-publication-fields-v4' and core_gap.get('missing_output_ids'):
+                self.phase_repair={**self.phase_repair,'instruction':str(self.phase_repair.get('instruction') or '')+
+                    '\nThe previous response retained no supported core field for the assigned outputs below. '
+                    'Correct those fields using this request\'s actual source passages; do not repeat invalid proofs. '
+                    'These are validation diagnostics, not facts about the papers: '+json.dumps(core_gap,ensure_ascii=False)[:2000]}
             workflow.update(active_phase=key,status='running')
             workflow['attempts'][key]=attempts+1
             try:
@@ -172,6 +179,28 @@ Return JSON with analysis_text and any additional fields explicitly required bel
                         configuration=configuration,findings=accepted,phase=key)
                 workflow.setdefault('attempt_records',{}).setdefault(key,[]).append({
                     'attempt':workflow['attempts'][key],**record})
+                if (configuration.get('publication_metadata_policy')=='adrs-publication-fields-v4'
+                        and kind=='question' and 'deep_dive' in phase_config.get('modules',[])
+                        and not (seed or {}).get('reading_focus')):
+                    from app.organization_deep_dive import build_technical_cards
+                    view=build_technical_cards(configuration,accepted,
+                        [item.model_dump(mode='json') for item in evidence_list],record['organization_data'])
+                    core={'problem','method_overview','mechanism'}
+                    covered={card['output_id'] for card in view['cards'] if any(
+                        value.get('text') and value.get('proofs') for field,value in card['fields'].items() if field in core)}
+                    missing=[item['output_id'] for item in (seed or {}).get('outputs',[]) if item['output_id'] not in covered]
+                    record['context']['technical_core_coverage']={'missing_output_ids':missing,
+                        'pending_records':view.get('pending_records',[]),
+                        'fields':[{ 'output_id':card['output_id'],'checks':{field:value.get('reason')
+                            for field,value in card['fields'].items() if field in core}} for card in view['cards']]}
+                    workflow['attempt_records'][key][-1]['context']=deepcopy(record['context'])
+                    if missing:
+                        self.last_context_manifest=deepcopy(record['context'])
+                        self.last_extraction_status={**self.last_extraction_status,'status':'no_supported_technical_core',
+                            'missing_output_ids':missing}
+                        workflow['attempt_records'][key][-1]['extraction']=deepcopy(self.last_extraction_status)
+                        self.last_partial_response=self.last_extraction_status.get('raw_response_before_proof_resolution')
+                        raise TokenBudgetExceeded('analysis_output_incomplete')
                 if workflow['attempts'][key]<2 and not (
                         packing_version==CONTEXT_PACKING_VERSION and kind=='question'
                         and 'deep_dive' in phase_config.get('modules',[])):
@@ -466,6 +495,8 @@ Return JSON with analysis_text and any additional fields explicitly required bel
         self.last_context_manifest = {}
         self.last_judgments=[]
         context_seed=dict(_seed or {})
+        passage_contract=(organization_research or {}).get('publication_metadata_policy')=='adrs-publication-fields-v4'
+        retained_evidence=[item.model_dump(mode='json') for item in evidence_list] if passage_contract else []
         handoff_seed=context_seed.pop('_analysis_handoff',None)
         seed_manifest=None
         if organization_research:
@@ -530,6 +561,19 @@ Return JSON with analysis_text and any additional fields explicitly required bel
         if strategy_version==JUDGMENT_VERSION and _phase!='extraction' and (
                 not organization_research or set(organization_research.get('modules',[]))&{'landscape','evolution','validation','actions'}):
             system_prompt+=judgment_instructions()
+        if passage_contract:
+            system_prompt+=('\nProof reference contract: every selected source excerpt has a request-local passage_id. '
+                'For a proof object you may use exactly {"passage_id":"p17"}; the server supplies that '
+                'entire literal passage, evidence ID and position. Use only IDs from THIS request. '
+                'Proof arrays may select several passages. Never concatenate text, abbreviate quotes with '
+                'ellipses or invent a passage ID. IDs locate text, not semantic support: every fact and '
+                'number in a field must actually be covered by its selected passages. Use only the '
+                'assigned primary work for its technical card; profiles/CVs provide discovery or team '
+                'information, not publication author lists or experiments. If an author and numbered '
+                'institution span several fragments, a literal continuous affiliation quote from this '
+                'same visible opening is also permitted, within the original 1600-character bound. '
+                'author_name is one literal personal name; its affiliation numbers and contribution '
+                'symbols belong in the proof, not in the personal name field.')
         phase_request = (
             'Answer only the currently selected module question. Return the short analysis_text lead and complete '
             'organization_data with literal source proofs; do not draft the final report.' if _phase=='question' else
@@ -549,14 +593,19 @@ Return JSON with analysis_text and any additional fields explicitly required bel
                 identifiers=(context_seed.get('publication_metadata',{}).get(output['output_id']) or {}).get('evidence_ids',[])
                 preferred.extend(identifiers)
                 groups[output['output_id']]=identifiers
+            assigned_only=passage_contract and _phase=='question' and 'deep_dive' in (organization_research or {}).get('modules',[])
             text, manifest = evidence_context(evidence_list, user_query,
                 deep=bool(spans) or 'deep_dive' in (organization_research or {}).get('modules', []) or (
                     strategy_version==JUDGMENT_VERSION and (getattr(self,'research_strategy',None) or {}).get('depth')=='deep'),
                 max_bytes=max(0,allowance-len(handoff_text.encode('utf-8'))),located_spans=spans,
                 preferred_ids=preferred,focus=context_seed.get('reading_focus'),identity_only=_phase=='extraction',
                 required_groups=groups if _phase=='question' and 'deep_dive' in (organization_research or {}).get('modules',[]) else None,
+                allowed_ids=set(preferred) if assigned_only or passage_contract and _phase=='extraction' else None,
                 packing_version=getattr(self,'context_packing_version',CONTEXT_PACKING_VERSION),
                 acquired_only=bool(organization_research and ((getattr(self,'research_strategy',None) or {}).get('source_followup') or {}).get('require_work_before_deep_analysis')))
+            if passage_contract:
+                from app.phase_proofs import attach_passages
+                text,manifest=attach_passages(text,manifest,retained_evidence,assigned_groups=groups)
             self.last_evidence_ids = [row['evidence_id'] for row in manifest['sources']]
             formatted_evidence = untrusted_context('external_evidence', text, limit=len(text))
             messages = [
@@ -642,6 +691,20 @@ Collected Evidence:
                 structured,control_repairs = _decode_response_object(content,normalizations=normalizations)
                 if not isinstance(structured, dict):
                     structured = {}
+                proof_events=[]
+                if passage_contract:
+                    from app.phase_proofs import resolve_proofs
+                    try:
+                        # Resolve only structured proof-bearing fields. The
+                        # narrative is never rewritten by this transport step.
+                        fields={key:structured[key] for key in ('organization_data','research_judgments') if key in structured}
+                        resolved,proof_events=resolve_proofs(fields,self.last_context_manifest,retained_evidence)
+                        structured.update(resolved)
+                    except ValueError as error:
+                        self.last_extraction_status={'status':'invalid_proof_contract','reason':str(error),
+                            'raw_response_before_proof_resolution':content}
+                        self.last_partial_response=content
+                        raise TokenBudgetExceeded('analysis_output_incomplete') from error
                 if isinstance(structured.get('organization_data'), dict):
                     self.last_organization_data = structured['organization_data']
                 if strategy_version==JUDGMENT_VERSION:
@@ -652,6 +715,9 @@ Collected Evidence:
                     'finish_reason': response.choices[0].finish_reason,
                     'json_string_control_repairs':control_repairs,
                 }
+                if passage_contract:
+                    self.last_extraction_status.update(raw_response_before_proof_resolution=content,
+                        proof_reference_normalizations=proof_events)
                 if control_repairs:
                     self.last_extraction_status['raw_response_before_control_repair']=content
                 if normalizations:

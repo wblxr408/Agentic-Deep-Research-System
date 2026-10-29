@@ -2326,6 +2326,10 @@ async def analyst_node(state: ResearchState) -> dict:
         sequence=await RuntimePersistence().persist_analysis_checkpoint(str(state['task_id']),checkpoint)
         if sequence is None:raise TokenBudgetExceeded('analysis_checkpoint_unavailable')
         checkpoint_sequence=sequence
+        # Persistence reconciles current receipts; publish that exact snapshot,
+        # not the pre-transaction budget or its private ledger.
+        retained_budget=checkpoint['budget_state']
+        state['budget_state']=retained_budget
         state['session']['checkpoint_seq']=sequence
         state['analysis_workflow']=progress
         from app.execution_control import current_control
@@ -2334,7 +2338,13 @@ async def analyst_node(state: ResearchState) -> dict:
         recovered=progress.get('active_phase') in progress.get('completed',{}) and bool(
             (progress.get('recovery_counts') or {}).get(progress.get('active_phase')))
         await get_sse_manager().publish(str(state['task_id']),EventType.STATE_UPDATE.value,{
-            'agent':'analyst','status':'running','analysis_progress':{'phase':progress.get('active_phase'),
+            'agent':'analyst','status':'running','session_id':str(state['task_id']),
+            'execution_id':str(session['execution_id']),'checkpoint_seq':sequence,
+            'plan_version':(state.get('plan_manifest') or {}).get('plan_version'),
+            'budget_state':{key:retained_budget[key] for key in (
+                'used_total_tokens','max_total_tokens','used_tool_calls','max_tool_calls',
+                'elapsed_wall_clock_seconds','max_wall_clock_seconds','inflight_model_requests') if key in retained_budget},
+            'analysis_progress':{'phase':progress.get('active_phase'),
                 'status':progress['status'],'completed_steps':len(progress['completed'])},
             **({'recovery':{'status':'resolved','message':'自动修复后，当前分析问题已完成。'}} if recovered else {})})
     def on_question(progress):

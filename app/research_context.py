@@ -21,7 +21,7 @@ CONDITION_QUERIES = {
 }
 
 IDENTITY_CONTEXT_VERSION = 'adrs-publication-identity-v2'
-QUESTION_SEED_VERSION = 'adrs-question-publication-seed-v8'
+QUESTION_SEED_VERSION = 'adrs-question-publication-seed-v9'
 LEGACY_CONTEXT_PACKING_VERSION = 'adrs-context-packing-v1'
 CONTEXT_PACKING_VERSION = 'adrs-context-packing-v2'
 
@@ -134,7 +134,7 @@ def analysis_input_matches(state, query, skills, hints, evidence):
     workflow=state.get('analysis_workflow') or {}
     seed_version=workflow.get('question_seed_version')
     if seed_version!=QUESTION_SEED_VERSION and not (
-              seed_version in {'adrs-question-publication-seed-v5','adrs-question-publication-seed-v6','adrs-question-publication-seed-v7'}
+              seed_version in {'adrs-question-publication-seed-v5','adrs-question-publication-seed-v6','adrs-question-publication-seed-v7','adrs-question-publication-seed-v8'}
               and workflow.get('status')=='completed'):
         return False
     packing_version=workflow_packing_version(workflow)
@@ -181,11 +181,11 @@ def publication_identity_handoff(findings, evidence, *, max_bytes=10000, output_
         if output_ids is not None and output['output_id'] not in output_ids:continue
         row={key:output.get(key) for key in ('output_id','title','published_on','published_until','date_precision')}
         bibliography=metadata.get(output['output_id']) or {}
-        if bibliography.get('metadata_policy') in {'adrs-publication-fields-v2','adrs-publication-fields-v3'}:
+        if bibliography.get('metadata_policy') in {'adrs-publication-fields-v2','adrs-publication-fields-v3','adrs-publication-fields-v4'}:
             row['bibliography']={key:bibliography.get(key) for key in (
                 'venue','venue_status','output_type','output_type_status','date_basis')}
         def identity_contains(text,value):
-            if bibliography.get('metadata_policy')=='adrs-publication-fields-v3':
+            if bibliography.get('metadata_policy') in {'adrs-publication-fields-v3','adrs-publication-fields-v4'}:
                 from app.publication_literals import literal_pattern
                 return bool(value and re.search(literal_pattern(value),text,re.I))
             return _contains(text,value)
@@ -239,6 +239,9 @@ def identity_batches(evidence, *, acquired_only=False, configuration=None):
     from app.organization_findings import _publication_url
     if acquired_only:
         evidence=[item for item in evidence if (item.acquisition or {}).get('coverage')!='discovery_only']
+    if (configuration or {}).get('publication_metadata_policy')=='adrs-publication-fields-v4':
+        from app.publication_opening import auxiliary_identity_source
+        evidence=[item for item in evidence if not auxiliary_identity_source(item.model_dump(mode='json'))]
     primary=[item for item in evidence if (item.acquisition or {}).get('coverage')=='full_text']
     publishers=[item for item in evidence if (item.acquisition or {}).get('publisher_metadata') or (
         (item.acquisition or {}).get('coverage') != 'discovery_only' and
@@ -495,7 +498,7 @@ def _bounded_deep_excerpt(record, item, source, meta, quota, proofs):
 
 def evidence_context(evidence, query: str, *, deep: bool, max_bytes: int, preferred_ids=None, focus=None, identity_only=False,
                      located_spans=None, required_groups=None, packing_version=CONTEXT_PACKING_VERSION,
-                     acquired_only=False) -> tuple[str, dict]:
+                     acquired_only=False, allowed_ids=None) -> tuple[str, dict]:
     """Distribute a UTF-8 payload allowance across sources, retaining exact spans.
 
     Omitted documents/passages remain in the task evidence. This is selection,
@@ -510,6 +513,10 @@ def evidence_context(evidence, query: str, *, deep: bool, max_bytes: int, prefer
     from app.evidence_selection import source_priority,context_coverage,excerpt_anchor
     from app.evidence_ingestion import retained_evidence_identity
     priority,assessment=source_priority(evidence,query,preferred_ids=preferred_ids,identity_only=identity_only,deep=deep)
+    if allowed_ids is not None:
+        # Preserve global citation numbers; select within the original array.
+        priority=[pair for pair in priority if pair[1].evidence_id in allowed_ids]
+        assessment['assigned_primary_work_only']=True
     if acquired_only:
         # Filter ranked pairs, not the original evidence array: source numbers
         # are shared by analysis, writing, audit and historical source access.

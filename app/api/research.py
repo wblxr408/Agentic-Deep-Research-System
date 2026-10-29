@@ -1530,6 +1530,7 @@ async def get_research_result(session_id: str, principal: Principal = principal_
         "session_id": str(row["id"]),
         'execution_id':str(row['execution_id']) if row['execution_id'] else None,
         'cancellation':review_status.get('cancellation'),
+        'checkpoint_seq':int(_json_object(row.get('root_session')).get('checkpoint_seq') or 0),
         'user_control':review_status.get('user_control'),
         'pause_diagnosis':pause_diagnosis,
         'stop_reason':review_status.get('reason') or review_status.get('last_error_category') or workflow.get('stop_reason'),

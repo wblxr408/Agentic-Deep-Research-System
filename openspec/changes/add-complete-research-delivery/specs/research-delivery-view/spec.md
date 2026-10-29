@@ -340,3 +340,25 @@ The system SHALL freeze answer, summary, comparison, report or data-analysis int
 #### Scenario: 候选主文献出现目标名称
 - **WHEN** 候选或其当前已取得父页逐字出现原选机构名、显式别名或当前官网名称
 - **THEN** 可作为优先调查线索记录，官网语言入口仍优先；最终机构归属、时间与合作继续用原文校验，词面命中不作为事实支持
+
+### Requirement: Request-local proof references preserve actual source text
+新字段v4和问题种子v9 SHALL 为当前实际选段提供请求内片段编号，并在字段校验前从当前manifest导出逐字原文和位置。未知、跨请求或越界编号 MUST 保持无效；原响应、编号表和规范化记录 SHALL 保留，编号不替代数值、全文、归属或最终语义审核。
+
+#### Scenario: 模型选择当前原文片段
+- **WHEN** proof只给出本次实际提供的passage_id
+- **THEN** 程序保留原evidence_id和连续原句，禁止省略号通配、跨来源拼接或自行补位置，旧合同不升级
+
+#### Scenario: 数字署名明确且唯一对应
+- **WHEN** 同一主作品开头的作者项与机构行含明确数字标记
+- **THEN** 仅在唯一解析和标记对应时保留实际连续proof；冲突或歧义保持未知，简历发表列表不冒充论文署名
+
+### Requirement: Completed deep reading and live progress reflect retained work
+系统 SHALL 区分模型阶段响应与实际保留的技术字段，核心字段全部为空不得当作完成深入解读。当前owner SSE SHALL 以执行／检查点绑定有限根用量和当前计划进度；旧事件 MUST NOT 覆盖新执行、改变总额或泄露账本／提示词／凭据。
+
+#### Scenario: 深读阶段返回但技术字段全部无效
+- **WHEN** 已有全文而本批作品核心字段均未获保留
+- **THEN** 保存具体缺口，沿原有界恢复或暂停，不以阶段数量或空技术卡宣称完整深读
+
+#### Scenario: 当前分析检查点用量增加
+- **WHEN** 同一执行持久化新的检查点与实际根用量
+- **THEN** 工作区更新相应有限计数，根累计用量与当前计划进度分开，报告正文不加入运行字段
