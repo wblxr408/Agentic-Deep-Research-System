@@ -32,6 +32,7 @@ def snapshot_from_research(session_id: str, execution_id: str, completed_at: dat
         families = defaultdict(list)
         for key in view['output_ids']:
             metadata = findings['publication_metadata'][key]
+            if metadata.get('output_type') is None:continue
             for discipline in scope.disciplines:
                 families[(discipline, metadata['output_type'], family_ids.get(key, 'publication:' + key))].append(outputs[key])
         observations = []
@@ -60,6 +61,8 @@ def snapshot_from_research(session_id: str, execution_id: str, completed_at: dat
             ))
         candidates.append(MatchingCandidate(entity=OrganizationEntity.model_validate(entity), observations=tuple(observations)))
     if not groups or not used_refs:
+        if outputs and any((findings['publication_metadata'].get(key) or {}).get('output_type') is None for key in outputs):
+            raise ValueError('成果身份已保留，但成果类型尚未确认；补足类型依据后再创建分组重排。')
         raise ValueError('本次没有可归属的成果样本，无法生成有依据的重排；原缺口继续保留。')
     evidence = []
     for key in sorted(used_refs):

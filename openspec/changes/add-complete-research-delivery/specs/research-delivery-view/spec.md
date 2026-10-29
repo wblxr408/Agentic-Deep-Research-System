@@ -312,3 +312,7 @@ The system SHALL freeze answer, summary, comparison, report or data-analysis int
 #### Scenario: 正文页的实际下载入口在页头
 - **WHEN** 新发现v4取得同论文实际PDF／abs表示链接或明确下载入口
 - **THEN** 不因页头导航标志降级，优先于正文参考文献；仅按path判断文档入口，分享提交URL不能凭query嵌入论文URL获相同优先级；原来源权限、数目、深度、重试和事实校验保持
+
+#### Scenario: 已证实成果身份的附加venue无依据
+- **WHEN** 新字段v2核心标题／日期／署名均通过，而可选venue的结构或主来源quote不能成立
+- **THEN** 成果身份保留，venue为null并单独记录问题；不得从文件名或URL补造会议。类型缺依据时保持未知或按实际arXiv版本证明记录为预印本；未知不能越过用户显式类型范围，也不能进入按类型的比较／评价／重排

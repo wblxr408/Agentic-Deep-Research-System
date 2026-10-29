@@ -118,6 +118,11 @@ spelling and one continuous excerpt containing both, including numbered affiliat
 when used. It may be up to 1600 characters; never insert ellipses, join disjoint text,
 or concatenate several authors into author_name. Keep their affiliation markers.
 Extract the actual primary work on a publication page, not unrelated bibliography entries.
+Venue is optional. A PDF filename, URL, mirror course title or a bibliography entry
+cannot prove this work's conference/journal. If no literal primary venue is supplied,
+return venue and venue_proof as null; do not drop an otherwise supported work.
+An arXiv version stamp proves a preprint version, not conference acceptance. Do not
+infer conference_paper/journal_article from a source filename.
 Title, date and author affiliation must refer to the same primary work; quote the
 publication author list, not a biography or present-day appointment. If only a year
 is known return that year; never invent January 1 or a publication day/month.
@@ -298,6 +303,7 @@ def build_organization_findings(configuration: dict | None, evidence: list[dict]
 
     result = organization_evidence_views(configuration, evidence)
     scope = OrganizationResearchScope.model_validate(configuration['scope'])
+    field_policy=configuration.get('publication_metadata_policy')=='adrs-publication-fields-v2'
     sources = {item['evidence_id']: item for item in evidence if item.get('source_url')}
     primary_documents = defaultdict(list)
     for item in sources.values():
@@ -334,6 +340,17 @@ def build_organization_findings(configuration: dict | None, evidence: list[dict]
             pending.append({'kind': key, 'reason': f'{len(values) - limit} records exceed the bounded extraction limit'})
         for index, value in enumerate(values[:limit]):
             try:
+                if key=='outputs' and field_policy and isinstance(value,dict):
+                    # Validate identity independently of optional enrichment.
+                    # Core/title/date/affiliation schema failures still reject.
+                    core=model.model_validate({**value,'venue':None,'venue_proof':None})
+                    try:full=model.model_validate(value)
+                    except ValueError as error:
+                        pending.append({'kind':'publication_field','output_id':core.output_id,'field':'venue',
+                            'reason':'invalid_optional_venue_shape','detail':str(error)[:500]})
+                        yield core
+                    else:yield full
+                    continue
                 yield model.model_validate(value)
             except ValueError as error:
                 pending.append({'kind': key, 'index': index, 'reason': str(error)[:500]})
@@ -429,7 +446,7 @@ def build_organization_findings(configuration: dict | None, evidence: list[dict]
                 if not supported or (proceedings and not _contains(date_opening, supported[0])):
                     raise ValueError('publication date was not present at its declared precision')
                 date_basis = supported[1]
-                if publication.output_type == 'preprint' and re.search(r'\barxiv:\s*\d{4}\.\d{4,5}v\d+\b',
+                if (publication.output_type == 'preprint' or field_policy) and re.search(r'\barxiv:\s*\d{4}\.\d{4,5}v\d+\b',
                         publication.date_proof.quote,re.I):
                     date_basis = 'literal_preprint_version_date_not_first_release'
                 date_evidence_id = publication.date_proof.evidence_id
@@ -439,7 +456,7 @@ def build_organization_findings(configuration: dict | None, evidence: list[dict]
                 reason_code = 'publication_date_out_of_scope' if membership == 'outside' else 'date_precision_overlaps_scope'
                 raise ValueError('publication date interval is outside scope' if membership == 'outside' else 'publication date precision cannot resolve scope membership')
             requested_types = (configuration.get('corpus') or {}).get('output_types', [])
-            if requested_types and publication.output_type not in requested_types:
+            if not field_policy and requested_types and publication.output_type not in requested_types:
                 reason_code = 'output_type_out_of_scope'
                 raise ValueError('proposed output type is outside the requested types')
             affiliations = []
@@ -469,10 +486,49 @@ def build_organization_findings(configuration: dict | None, evidence: list[dict]
             if not affiliations:
                 raise ValueError('no source-supported publication affiliations')
             venue = None
-            if publication.venue and publication.venue_proof:
+            if field_policy:
+                if publication.venue or publication.venue_proof:
+                    try:
+                        if not publication.venue or not publication.venue_proof:
+                            raise ValueError('venue requires a literal primary source proof')
+                        venue_source=check(publication.venue_proof)
+                        venue_opening=_publication_opening(venue_source)
+                        venue_acquisition=venue_source.get('acquisition') or {}
+                        venue_pages=venue_acquisition.get('pages') or []
+                        # Publication footers / ACM reference blocks can follow
+                        # the abstract. Keep the actual bounded first PDF page,
+                        # rather than the author-only opening before Abstract.
+                        if venue_acquisition.get('format')=='pdf' and isinstance(venue_pages,list) and venue_pages and isinstance(venue_pages[0],dict):
+                            end=venue_pages[0].get('end')
+                            if type(end) is int and 0<end<=len(venue_source['content']):
+                                venue_opening=venue_source['content'][:min(end,16000)]
+                        pattern=r'\s+'.join(re.escape(word) for word in publication.venue_proof.quote.split())
+                        if (not _contains(venue_source['content'],publication.title)
+                                or not _contains(publication.venue_proof.quote,publication.venue)
+                                or not re.search(pattern,venue_opening,re.I)):
+                            raise ValueError('venue proof does not identify the primary publication venue')
+                        venue=publication.venue
+                        evidence_ids.add(publication.venue_proof.evidence_id)
+                    except ValueError as error:
+                        pending.append({'kind':'publication_field','output_id':publication.output_id,'field':'venue',
+                            'reason':str(error),'proposed_value':publication.venue,
+                            'proposed_proof':publication.venue_proof.model_dump() if publication.venue_proof else None})
+            elif publication.venue and publication.venue_proof:
                 check(publication.venue_proof)
-                if _contains(publication.venue_proof.quote, publication.venue):
-                    venue = publication.venue
+                if _contains(publication.venue_proof.quote, publication.venue):venue = publication.venue
+            output_type=publication.output_type
+            if field_policy and date_basis=='literal_preprint_version_date_not_first_release' and not venue:
+                output_type='preprint'
+            elif field_policy and publication.output_type in {'conference_paper','journal_article'} and not venue:
+                output_type=None
+                pending.append({'kind':'publication_field','output_id':publication.output_id,'field':'output_type',
+                    'reason':'conference_or_journal_type_has_no_primary_venue_proof','proposed_value':publication.output_type})
+            if field_policy and requested_types and output_type not in requested_types:
+                reason_code='output_type_unconfirmed' if output_type is None else 'output_type_out_of_scope'
+                raise ValueError('source-supported output type does not meet the requested types')
+            type_status=('unconfirmed' if output_type is None else
+                'literal_preprint_version' if output_type=='preprint' and date_basis=='literal_preprint_version_date_not_first_release' else
+                'model_category_with_checked_primary_venue' if venue else 'model_category_not_independent_semantic_review')
             source_key = _publication_url(source['source_url'])
             key = source_key
             alias_enabled = (configuration.get('corpus') or {}).get('rule_version') in PUBLICATION_ALIAS_VERSIONS
@@ -519,7 +575,9 @@ def build_organization_findings(configuration: dict | None, evidence: list[dict]
                     raise ValueError('same source page cannot stand for unrelated primary publications')
                 if (previous.published_on, previous.published_until) != (lower, upper):
                     raise ValueError('conflicting date bounds for the same publication source')
-                if alias_enabled and publication_meta[previous.output_id]['output_type'] != publication.output_type:
+                previous_type=publication_meta[previous.output_id]['output_type']
+                if alias_enabled and previous_type != output_type and (
+                        not field_policy or previous_type is not None and output_type is not None):
                     raise ValueError('conflicting output types for the same publication source')
                 if publication.output_id in publications and publications[publication.output_id].output_id != previous.output_id:
                     raise ValueError('conflicting publication IDs')
@@ -543,8 +601,11 @@ def build_organization_findings(configuration: dict | None, evidence: list[dict]
                 publications[publication.output_id] = updated
                 meta = publication_meta[previous.output_id]
                 meta['evidence_ids'] = sorted(set(meta['evidence_ids']) | evidence_ids)
+                if field_policy and meta.get('output_type') is None and output_type is not None:
+                    meta.update(output_type=output_type,output_type_status=type_status)
                 if venue and not meta.get('venue'):
                     meta['venue'] = venue
+                    if field_policy:meta['venue_status']='source_opening_quote_checked'
                 if identity_links:
                     meta['identity_basis'] = 'explicit_primary_cover_link'
                     meta.setdefault('identity_links', []).extend(identity_links)
@@ -557,7 +618,10 @@ def build_organization_findings(configuration: dict | None, evidence: list[dict]
             outputs.append(output)
             publications[publication.output_id] = output
             canonical[key] = canonical[source_key] = output
-            publication_meta[output.output_id] = {'output_type': publication.output_type, 'venue': venue,
+            publication_meta[output.output_id] = {'output_type': output_type, 'venue': venue,
+                **({'metadata_policy':'adrs-publication-fields-v2','proposed_output_type':publication.output_type,
+                    'venue_status':'source_opening_quote_checked' if venue else 'unknown',
+                    'output_type_status':type_status} if field_policy else {}),
                 'year': lower.year, 'evidence_ids': sorted(evidence_ids),
                 'identity_basis': 'explicit_primary_cover_link' if identity_links else 'primary_source_url',
                 'canonical_primary_url': key, 'identity_links': identity_links,
@@ -645,6 +709,7 @@ def build_organization_findings(configuration: dict | None, evidence: list[dict]
     for view in scoped.views:
         for key in view.output_ids:
             meta = publication_meta[key]
+            if meta['output_type'] is None:continue
             group = (tuple(scope.disciplines), meta['output_type'], meta['year'])
             groups[group][view.entity_id].add(member_map.get(key, 'publication:' + key))
     comparisons = [{'disciplines': list(key[0]), 'discipline_basis': 'requested_scope', 'output_type': key[1],

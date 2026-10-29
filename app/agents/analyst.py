@@ -480,6 +480,9 @@ Return JSON with analysis_text and any additional fields explicitly required bel
                     'Use those original passages for affiliation; a mechanism/evaluation window omitting the author block '
                     'does not negate it. Do not re-extract or deny an affiliation just because it is absent from another '
                     'selected window. Distinguish publication affiliation from individual contribution, funding or deployment.')
+                system_prompt += (' A retained bibliography field that is null is unknown; do not fill its venue or '
+                    'conference/journal type from a filename, URL, memory or earlier draft. A literal arXiv version '
+                    'date is not evidence of conference acceptance or first release.')
                 from app.research_context import question_seed, encoded
                 seed,seed_manifest=question_seed(context_seed,deep='deep_dive' in organization_research.get('modules',[]))
                 seed_text=encoded(seed)

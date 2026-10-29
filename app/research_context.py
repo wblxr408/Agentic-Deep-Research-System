@@ -21,7 +21,7 @@ CONDITION_QUERIES = {
 }
 
 IDENTITY_CONTEXT_VERSION = 'adrs-publication-identity-v2'
-QUESTION_SEED_VERSION = 'adrs-question-publication-seed-v6'
+QUESTION_SEED_VERSION = 'adrs-question-publication-seed-v7'
 LEGACY_CONTEXT_PACKING_VERSION = 'adrs-context-packing-v1'
 CONTEXT_PACKING_VERSION = 'adrs-context-packing-v2'
 
@@ -134,7 +134,8 @@ def analysis_input_matches(state, query, skills, hints, evidence):
     workflow=state.get('analysis_workflow') or {}
     seed_version=workflow.get('question_seed_version')
     if seed_version!=QUESTION_SEED_VERSION and not (
-            seed_version=='adrs-question-publication-seed-v5' and workflow.get('status')=='completed'):
+              seed_version in {'adrs-question-publication-seed-v5','adrs-question-publication-seed-v6'}
+              and workflow.get('status')=='completed'):
         return False
     packing_version=workflow_packing_version(workflow)
     expected=analysis_binding(query,state.get('organization_research'),skills,hints,evidence,packing_version=packing_version,
@@ -179,6 +180,10 @@ def publication_identity_handoff(findings, evidence, *, max_bytes=10000, output_
     for output in ((findings or {}).get('scope_result') or {}).get('outputs',[]):
         if output_ids is not None and output['output_id'] not in output_ids:continue
         row={key:output.get(key) for key in ('output_id','title','published_on','published_until','date_precision')}
+        bibliography=metadata.get(output['output_id']) or {}
+        if bibliography.get('metadata_policy')=='adrs-publication-fields-v2':
+            row['bibliography']={key:bibliography.get(key) for key in (
+                'venue','venue_status','output_type','output_type_status','date_basis')}
         affiliations=output.get('affiliations') or []
         row['affiliations']=affiliations[:2]
         row['affiliation_scope']='retained_subset_not_exhaustive_author_list'

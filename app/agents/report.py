@@ -220,6 +220,12 @@ class ReportAgent:
         if not module_mode:
             system_prompt += '\n\n' + REPORT_WRITING_GUIDANCE
         if organization_findings:
+            if any(meta.get('metadata_policy')=='adrs-publication-fields-v2' for meta in
+                    (organization_findings.get('publication_metadata') or {}).values()):
+                system_prompt += ('\nRetained bibliography null fields are unknown. Do not infer a venue, '
+                    'conference acceptance or journal publication from a PDF filename, URL or earlier draft. '
+                    'An arXiv version date describes that preprint version, not first release. Write the supported '
+                    'research finding without adding an unsupported bibliographic label or operational warning.')
             system_prompt += ('\nThe publication_identity_source_openings supply current literal author/affiliation '
                 'proofs alongside retained publication identities. Use those passages rather than an earlier analyst '
                 'claim that a different mechanism window omitted the affiliation. Window omission is not evidence '
