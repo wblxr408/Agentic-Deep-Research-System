@@ -241,10 +241,15 @@ def _build_budget_state(state: ResearchState) -> dict[str, Any]:
         if isinstance(call, dict)
     ]
     model_usage = existing_budget.get('llm_usage') or []
-    model_tokens = sum(int(row.get('total_tokens') or 0) for row in model_usage)
-    legacy_tokens = int(existing_budget.get('legacy_unattributed_tokens',max(0,int(existing_budget.get('used_total_tokens') or 0)-model_tokens)))
-    used_total_tokens = sum(int(call.get("tokens_used") or 0) for call in tool_calls) + model_tokens + legacy_tokens
-    used_cost_usd = round(sum(float(call.get("cost_usd") or 0.0) for call in tool_calls) + sum(float(row.get('cost_usd') or 0) for row in model_usage), 6)
+    from app.db.execution_control import repeated_rollup_usage
+    repeated=repeated_rollup_usage(model_usage)
+    raw_model_tokens=sum(int(row.get('total_tokens') or 0) for row in model_usage)
+    model_tokens=raw_model_tokens-repeated['tokens']
+    legacy_tokens = int(existing_budget.get('legacy_unattributed_tokens',max(0,int(existing_budget.get('used_total_tokens') or 0)-raw_model_tokens)))
+    tool_tokens=sum(int(call.get('tokens_used') or 0) for call in tool_calls)
+    used_total_tokens = tool_tokens + model_tokens + legacy_tokens
+    raw_cost=round(sum(float(call.get('cost_usd') or 0.0) for call in tool_calls) + sum(float(row.get('cost_usd') or 0) for row in model_usage),6)
+    used_cost_usd = round(max(0,raw_cost-repeated['cost_usd']),6)
     raw_tool_counts={call['call_id']:max(1,sum(int(a.get('call_count',0)) for a in (call.get('safety_json') or {}).get('channel_attempts',[])))
         for call in tool_calls if call.get('call_id')}
     previous_tool_counts=dict(existing_budget.get('tool_call_counts') or raw_tool_counts)
@@ -253,9 +258,16 @@ def _build_budget_state(state: ResearchState) -> dict[str, Any]:
     legacy_tool_calls=max(0,int(existing_budget.get('used_tool_calls') or 0)-sum(previous_tool_counts.values()))
     used_tool_calls=legacy_tool_calls+sum(tool_call_counts.values())
     if existing_budget.get("used_total_tokens"):
-        used_total_tokens = max(used_total_tokens, int(existing_budget.get("used_total_tokens") or 0))
+        previous=int(existing_budget['used_total_tokens'])
+        # Correct only the completely explained cumulative counter. An extra
+        # unidentified remainder keeps its old conservative floor unchanged.
+        if 'legacy_unattributed_tokens' in existing_budget and previous==tool_tokens+raw_model_tokens+legacy_tokens:
+            previous=max(0,previous-repeated['tokens'])
+        used_total_tokens = max(used_total_tokens, previous)
     if existing_budget.get("used_cost_usd"):
-        used_cost_usd = max(used_cost_usd, float(existing_budget.get("used_cost_usd") or 0.0))
+        previous=float(existing_budget['used_cost_usd'])
+        if abs(previous-raw_cost)<0.0000005:previous=max(0,previous-repeated['cost_usd'])
+        used_cost_usd = max(used_cost_usd, previous)
     started_at = state.get("created_at") or state.get("session", {}).get("created_at")
     elapsed_wall_clock_seconds = 0
     if started_at:
@@ -302,6 +314,9 @@ def _build_budget_state(state: ResearchState) -> dict[str, Any]:
         **configured,
         "used_total_tokens": used_total_tokens,
         'legacy_unattributed_tokens':legacy_tokens,
+        'model_rollup_reconciliation':{'version':'adrs-identified-rollup-accounting-v1',
+            'repeated_tokens':repeated['tokens'],'repeated_cost_usd':repeated['cost_usd'],
+            'repeated_call_ids':repeated['call_ids'],'unknown_usage_preserved':True},
         'audit_token_reserve':configured['audit_token_reserve'],
         'report_token_reserve':configured['report_token_reserve'],
         'token_usage_estimated':bool(existing_budget.get('token_usage_estimated')) or legacy_tokens > 0
@@ -441,7 +456,7 @@ def _model_budget_pause(state, agent, stage, error, *, report=None, citations=No
     if budget_stop:budget['hard_stop_reason'] = budget.get('hard_stop_reason') or error.reason
     session.update(status='paused',updated_at=utc_now_naive().isoformat())
     session.pop('audit_resume_mode',None)
-    recoverable=stage=='analyst' and error.reason in {'analysis_output_incomplete','analysis_provider_unavailable','model_output_limit','insufficient_context_budget'}
+    recoverable=stage=='analyst' and error.reason in {'analysis_output_incomplete','analysis_provider_unavailable','model_output_limit','insufficient_context_budget','analysis_checkpoint_unavailable'}
     route_error=error.reason.startswith('model_rout') or error.reason in {'no_eligible_model_route',
         'model_endpoint_changed','model_context_capability_exceeded'}
     data_error=any(value in error.reason for value in ('data_class','access_credentials','data_governance','report_disclosure'))
@@ -2307,8 +2322,10 @@ async def analyst_node(state: ResearchState) -> dict:
     agent.research_strategy=(state.get('query_understanding') or {}).get('research_strategy')
     loop=asyncio.get_running_loop()
     checkpoint_sequence=int(state.get('session',{}).get('checkpoint_seq') or 0)
+    checkpoint_step='not_started'
     async def save_question(progress):
-        nonlocal checkpoint_sequence
+        nonlocal checkpoint_sequence,checkpoint_step
+        checkpoint_step='current_source_access'
         from app.governance.runtime import RuntimePersistence
         from app.observability.sse_manager import get_sse_manager
         if progress.get('status')=='running' and progress.get('active_phase') not in progress.get('completed',{}):
@@ -2323,21 +2340,22 @@ async def analyst_node(state: ResearchState) -> dict:
                 raise TokenBudgetExceeded('analysis_sources_changed')
         session,budget=_apply_llm_usage_to_state(state,'analyst',_agent_model_usage(agent))
         checkpoint={**state,'analysis_workflow':progress,'session':session,'budget_state':budget}
+        checkpoint_step='database_checkpoint'
         sequence=await RuntimePersistence().persist_analysis_checkpoint(str(state['task_id']),checkpoint)
         if sequence is None:raise TokenBudgetExceeded('analysis_checkpoint_unavailable')
         checkpoint_sequence=sequence
         # Persistence reconciles current receipts; publish that exact snapshot,
         # not the pre-transaction budget or its private ledger.
         retained_budget=checkpoint['budget_state']
-        state['budget_state']=retained_budget
         state['session']['checkpoint_seq']=sequence
         state['analysis_workflow']=progress
-        from app.execution_control import current_control
-        control=current_control()
-        if control:await control.mirror_runtime()
+        checkpoint_step='committed_progress_stream'
+        # The DB checkpoint is authoritative. The existing root/stage mirror
+        # owns file delivery; waiting for its entire historical JSON here can
+        # turn a committed question into a false 30-second checkpoint failure.
         recovered=progress.get('active_phase') in progress.get('completed',{}) and bool(
             (progress.get('recovery_counts') or {}).get(progress.get('active_phase')))
-        await get_sse_manager().publish(str(state['task_id']),EventType.STATE_UPDATE.value,{
+        event={
             'agent':'analyst','status':'running','session_id':str(state['task_id']),
             'execution_id':str(session['execution_id']),'checkpoint_seq':sequence,
             'plan_version':(state.get('plan_manifest') or {}).get('plan_version'),
@@ -2346,14 +2364,21 @@ async def analyst_node(state: ResearchState) -> dict:
                 'elapsed_wall_clock_seconds','max_wall_clock_seconds','inflight_model_requests') if key in retained_budget},
             'analysis_progress':{'phase':progress.get('active_phase'),
                 'status':progress['status'],'completed_steps':len(progress['completed'])},
-            **({'recovery':{'status':'resolved','message':'自动修复后，当前分析问题已完成。'}} if recovered else {})})
+            **({'recovery':{'status':'resolved','message':'自动修复后，当前分析问题已完成。'}} if recovered else {})}
+        try:await get_sse_manager().publish(str(state['task_id']),EventType.STATE_UPDATE.value,event)
+        except Exception:
+            logger.warning('Analysis progress stream unavailable after committed checkpoint %s',sequence)
+        checkpoint_step='committed'
     def on_question(progress):
         future=asyncio.run_coroutine_threadsafe(save_question(progress),loop)
         try:future.result(timeout=30)
         except TokenBudgetExceeded:raise
         except Exception as error:
             future.cancel()
-            raise TokenBudgetExceeded('analysis_checkpoint_unavailable') from error
+            failure=TokenBudgetExceeded('analysis_checkpoint_unavailable')
+            failure.admission={'reason':'analysis_checkpoint_operation_unavailable','operation':checkpoint_step,
+                'error_type':type(error).__name__,'last_committed_checkpoint_seq':checkpoint_sequence}
+            raise failure from error
     agent.on_capability_upgrade=lambda decision:on_question(agent.last_workflow)
     try:
         analysis_text = await asyncio.to_thread(agent.analyze,_synthesis_question(state),evidence_list,

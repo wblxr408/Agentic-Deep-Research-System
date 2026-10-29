@@ -38,6 +38,33 @@ def task_budget(row):
     return value
 
 
+def repeated_rollup_usage(rollups):
+    """Find proven repeats of the same settled call in cumulative summaries.
+
+    Unknown identities, incomplete summaries and conflicting amounts remain
+    charged. This reads bookkeeping observations, never refunds provider work.
+    """
+    tokens={};costs={}
+    for summary in rollups:
+        calls=summary.get('model_requests')
+        if not isinstance(calls,list) or not calls or any(not isinstance(call,dict)
+                or not isinstance(call.get('call_id'),str) or not call['call_id']
+                or call.get('status')!='settled' or call.get('estimated') is True
+                or type(call.get('total_tokens')) is not int
+                or call['total_tokens']<0 for call in calls):continue
+        if sum(call['total_tokens'] for call in calls)!=int(summary.get('total_tokens') or 0):continue
+        known_cost=all(isinstance(call.get('cost_usd'),(int,float)) and call['cost_usd']>=0 for call in calls)
+        cost_covered=known_cost and abs(sum(call['cost_usd'] for call in calls)-float(summary.get('cost_usd') or 0))<0.0000005
+        for call in calls:
+            tokens.setdefault(call['call_id'],[]).append(call['total_tokens'])
+            if cost_covered:costs.setdefault(call['call_id'],[]).append(call['cost_usd'])
+    duplicates={key:values for key,values in tokens.items() if len(values)>1 and len(set(values))==1}
+    return {'tokens':sum((len(values)-1)*values[0] for values in duplicates.values()),
+        'cost_usd':round(sum((len(values)-1)*values[0] for values in costs.values()
+            if len(values)>1 and len(set(values))==1),6),
+        'call_ids':list(duplicates)}
+
+
 def merge_receipt_budget(budget,receipts):
     """Replace a call's provisional receipt, never add its stage summary twice."""
     budget=dict(budget or {});old=budget.get('model_requests') or []

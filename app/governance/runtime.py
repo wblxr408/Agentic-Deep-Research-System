@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import json
 from datetime import UTC, datetime
@@ -146,7 +147,8 @@ class RuntimePersistence:
         if (not owner or not execution or str(state.get('task_id'))!=str(session_id)
                 or str(session.get('session_id'))!=str(session_id)):return None
         pool=await get_db_pool()
-        async with pool.acquire() as conn,conn.transaction():
+        async with asyncio.timeout(20),pool.acquire() as conn,conn.transaction():
+            await conn.execute("SELECT set_config('lock_timeout','3000',true)")
             binding=await conn.fetchrow('''SELECT owner_id,execution_id,status FROM research_sessions
                 WHERE id=$1::uuid FOR UPDATE''',session_id)
             if (not binding or str(binding['owner_id'])!=str(owner) or str(binding['execution_id'])!=str(execution)

@@ -1568,7 +1568,7 @@ async def get_research_result(session_id: str, principal: Principal = principal_
                 for phase,attempts in sorted((workflow.get('attempts') or {}).items(),key=phase_order)[:100]]} if workflow else None,
         'analysis_recovery_available':bool(row['status']=='paused' and workflow.get('status')=='paused'
             and workflow.get('schema_version')=='adrs-analysis-questions-v2'
-            and workflow.get('stop_reason') in {'analysis_output_incomplete','analysis_provider_unavailable','model_output_limit','insufficient_context_budget'}
+            and workflow.get('stop_reason') in {'analysis_output_incomplete','analysis_provider_unavailable','model_output_limit','insufficient_context_budget','analysis_checkpoint_unavailable'}
             and int((workflow.get('attempts') or {}).get(workflow.get('active_phase'),10))<10
             and bool(pause_diagnosis and not pause_diagnosis.get('blockers')
                 and (pause_diagnosis.get('remaining_seconds') or 0)>0
@@ -2041,7 +2041,7 @@ async def _resume_retained_synthesis(session_id, background_tasks, principal, *,
         recoverable=(record['status']=='paused' and state.get('status')=='paused'
             and state.get('runtime_status')=='analysis_paused' and workflow.get('status')=='paused'
             and isinstance(phase,str)
-            and reason in {'analysis_output_incomplete','analysis_provider_unavailable','model_output_limit','insufficient_context_budget'})
+            and reason in {'analysis_output_incomplete','analysis_provider_unavailable','model_output_limit','insufficient_context_budget','analysis_checkpoint_unavailable'})
         failures=(workflow.get('failed_attempts') or {}).get(phase) or []
         if failures and (failures[-1].get('admission') or {}).get('reason')=='no_acquired_source_fits':
             raise HTTPException(409,'analysis_source_acquisition_required')
@@ -2094,6 +2094,14 @@ async def _resume_retained_synthesis(session_id, background_tasks, principal, *,
     except (ValueError,TypeError,KeyError):
         raise HTTPException(409,'analysis_original_deadline_unavailable')
     state['created_at']=started.isoformat()
+    if not report_stage and reason=='analysis_checkpoint_unavailable':
+        from app.db.execution_control import receipt_budget
+        async with pool.acquire() as conn:
+            state['budget_state']=await receipt_budget(conn,session_id,principal.id,state.get('budget_state') or {})
+        current_budget=state['budget_state']
+        if (current_budget.get('inflight_model_requests') or current_budget.get('reserved_inflight_tokens')
+                or current_budget.get('reserved_inflight_tool_calls')):
+            raise HTTPException(409,'analysis_receipts_pending')
     budget=_build_budget_state(state)
     allowance=_stage_model_budget({**state,'budget_state':budget},'report' if report_stage else 'analyst')
     import time

@@ -11,6 +11,7 @@ POLICIES = {
     'structure': (2, 0, '补充结构纠正要求后重试'),
     'length': (2, 0, '压缩可选原文并缩短单次回答'),
     'context': (2, 0, '重新分配本次输入和输出空间'),
+    'checkpoint': (2, 1, '从已保存阶段继续并重新保存进度'),
 }
 PROVIDER_KINDS = {'APIConnectionError': 'connection', 'APITimeoutError': 'timeout',
                   'InternalServerError': 'server', 'RateLimitError': 'rate_limit'}
@@ -27,7 +28,7 @@ def recovery_plan(state):
     if review.get('output_stage') not in (None,'analyst'): reason = None
     kind = PROVIDER_KINDS.get(failure.get('provider_error_type')) if reason == 'analysis_provider_unavailable' else {
         'analysis_output_incomplete': 'structure', 'model_output_limit': 'length',
-        'insufficient_context_budget': 'context'}.get(reason)
+        'insufficient_context_budget': 'context','analysis_checkpoint_unavailable':'checkpoint'}.get(reason)
     limit, base, action = POLICIES.get(kind, (0, 0, ''))
     total = int((state.get('session') or {}).get('automatic_recovery_attempts') or 0)
     counts = (workflow.get('recovery_counts') or {}).get(phase) or {}

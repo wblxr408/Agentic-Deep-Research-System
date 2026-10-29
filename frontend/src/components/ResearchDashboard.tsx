@@ -206,6 +206,7 @@ function ResearchDashboard({ onBack,ownerId }: ResearchDashboardProps) {
           analysis_checkpoint_changed:t("任务状态已变化，请刷新后查看。"),
           analysis_checkpoint_not_recoverable:t("当前任务没有可继续的分析检查点。"),
           analysis_source_acquisition_required:t("需要先取得相关正文，重复分析不会补充资料。"),
+          analysis_receipts_pending:t("上一步的用量仍在结算，请稍后继续。"),
           analysis_original_deadline_unavailable:t("原任务的期限记录不完整，无法恢复。"),
           report_original_allowance_exhausted:t("原任务的额度或期限已用完，无法继续生成报告。"),
           report_resume_attempt_limit:t("本次报告已达到一次续作上限，当前资料和原稿已保留。"),

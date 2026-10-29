@@ -115,6 +115,17 @@ def diagnose_stop(state,*,active_execution=False):
                     next_step='需要选择更大的研究额度或缩小当前问题；更换大上下文模型不会增加本阶段份额。')
                 result['findings']=[{'text':f"本次输入与预留输出共需 {required:,} Token",
                     'detail':f"本阶段可用 {int(admission['available_tokens']):,} Token，总任务仍剩余 {remaining:,} Token。"}]
+    elif reason=='analysis_checkpoint_unavailable':
+        failed=(workflow.get('failed_attempts') or {}).get(workflow.get('active_phase')) or []
+        admission=(failed[-1].get('admission') or {}) if failed else {}
+        steps={'current_source_access':'当前资料权限读取','database_checkpoint':'数据库保存',
+            'committed_progress_stream':'已保存进度的实时推送','committed':'已完成进度保存'}
+        step=steps.get(admission.get('operation'))
+        result.update(summary='研究进度的保存反馈未完成',action='analysis',
+            next_step='系统会在原额度和期限内从已保存阶段继续。')
+        result['findings']=[{'text':'已保留的分析阶段','detail':str(len(workflow.get('completed') or {}))+' 步'},
+            {'text':'停止位置','detail':step or '原记录没有分段错误信息，不能据此认定数据库保存失败。'}]
+        result['diagnosis_complete']=bool(step)
     elif reason in {'analysis_output_incomplete','model_output_limit'}:
         result.update(summary='当前问题的响应结构不完整' if reason=='analysis_output_incomplete' else '当前问题的模型输出被截断',
             next_step='已保留具体阶段及响应，系统将按错误类型检查修复条件。',action='restart')
