@@ -369,6 +369,7 @@ def interpret_query(query: str, options: QueryOptions, delivery: DeliveryRequest
     from app.research_figures import freeze_drawing_policy
     drawing_policy=freeze_drawing_policy(delivery,skill_context)
     delivery_snapshot['drawing_policy']=drawing_policy
+    delivery_snapshot['source_media_policy']='adrs-source-media-v2'
     if delivery.drawing_mode!='builtin':
         delivery_snapshot['renderer_status']='trusted_matplotlib_pending' if drawing_policy['status']=='ready' else 'drawing_configuration_blocked'
         if drawing_policy['status']!='ready':
@@ -378,6 +379,7 @@ def interpret_query(query: str, options: QueryOptions, delivery: DeliveryRequest
     result = {'schema_version': VERSION,
         'external_evidence':{'version':'adrs-external-evidence-v1','task_cache_hours':options.web_cache_hours,
             'read_mode':options.web_read_mode,'document_parser_policy':request_limits.get('document_parser_policy'),
+            'source_media_policy':'adrs-source-media-v2',
             'reuse_scope':'same_owned_task_only','automatic_archive':False,
             'time_semantics':'publication_event_update_and_acquisition_are_distinct'},
         'internal_filter':filter_plan(options.internal_filter),

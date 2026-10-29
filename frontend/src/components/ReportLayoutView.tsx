@@ -6,6 +6,7 @@ import {Chart, deliveryStyles} from './ReportDeliveryView'
 import type {DeliveryChart, DeliveryView} from './ReportDeliveryView'
 import {layoutRole} from './reportLayouts'
 import type {ReportLayout} from './reportLayouts'
+import SourcePageGallery from './SourcePageGallery'
 
 interface Citation {citation_id:string;source_title?:string;source_url:string;extracted_evidence?:string}
 interface Metric {label:string;display:string;unit?:string}
@@ -142,7 +143,7 @@ export default function ReportLayoutView({view,renderMarkdown,renderCitation}:{v
         const props={id:`${prefix}-${section.id}`,'data-report-page':true,'data-layout-panel':index,hidden:tabs&&current!==index,role:tabs?'tabpanel':undefined,'aria-labelledby':tabs?`${prefix}-tab-${index}`:undefined}
         return interactions.includes('expand')?<details key={section.id} {...props} className="layout-section" open><summary>{title}</summary>{content}</details>:<section key={section.id} {...props} className="layout-section">{title}{content}</section>
       })}
-      {view.appendix_markdown&&<details className="layout-appendix" data-report-appendix><summary>{t('技术附录：方法、实验与资源')}</summary>{renderMarkdown(view.appendix_markdown)}</details>}
+      {(view.appendix_markdown||!!view.source_media?.pages.length)&&<details className="layout-appendix" data-report-appendix><summary>{t('技术附录：方法、实验与资源')}</summary>{view.appendix_markdown&&renderMarkdown(view.appendix_markdown)}<SourcePageGallery taskId={view.task_id} pages={view.source_media?.pages||[]}/></details>}
       {!!remaining.length&&<details className="layout-references" data-report-references><summary>{t('参考资料')}</summary>{sourceList(remaining,renderCitation)}</details>}
       {layout.running_footer&&<footer className="layout-running-footer">{view.title}</footer>}
     </div>

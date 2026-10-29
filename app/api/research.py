@@ -1512,10 +1512,20 @@ async def get_research_result(session_id: str, principal: Principal = principal_
         return (1,phase_modules.index(module) if module in phase_modules else len(phase_modules),batch,
             int('conditions' in parts),item[0])
     from app.research_delivery import build_delivery_view
+    source_media=None
+    if row['status']=='completed' and (review_status.get('organization_result') or {}).get('source_media'):
+        from app.source_media import owned_delivery_snapshot,hydrate_source_media
+        try:
+            media_state=await owned_delivery_snapshot(session_id,_principal_id(principal),
+                execution_id=row['execution_id'],report=row['final_report'])
+            async with pool.acquire() as conn:
+                source_media=await hydrate_source_media(conn,media_state,review_status.get('organization_result'),_principal_id(principal))
+        except ValueError as error:
+            source_media={'status':'blocked','pages':[],'reason':str(error)}
     delivery_view = build_delivery_view(task_id=str(row['id']), execution_id=str(row['execution_id']) if row['execution_id'] else None,
         query=row['user_query'], report=row['final_report'], citations=citations,
         understanding=review_status.get('query_understanding'), organization_result=review_status.get('organization_result'),
-        audit=review_status.get('final_report_audit')) if row['status'] == 'completed' and row['final_report'] else None
+        audit=review_status.get('final_report_audit'),source_media=source_media) if row['status'] == 'completed' and row['final_report'] else None
     result = {
         "session_id": str(row["id"]),
         'execution_id':str(row['execution_id']) if row['execution_id'] else None,
@@ -1618,9 +1628,65 @@ async def preview_report_layout(session_id:uuid.UUID, delivery:DeliveryRequest, 
     from app.research_delivery import build_delivery_view
     view=build_delivery_view(task_id=str(session_id),execution_id=retained.get('execution_id'),
         query=retained.get('query') or '',report=retained['report'],citations=retained.get('citations') or [],
-        understanding=understanding,organization_result=retained.get('organization_result'),audit=retained.get('report_audit'))
+        understanding=understanding,organization_result=retained.get('organization_result'),audit=retained.get('report_audit'),
+        source_media=(retained.get('delivery_view') or {}).get('source_media'))
     return projection({'binding':view['layout_binding'],'charts':view['charts'],
         'effects':{'model_calls':0,'network_calls':0,'permissions_changed':False}})
+
+
+async def _source_download_state(session_id,principal):
+    from app.source_media import owned_delivery_snapshot
+    retained=await get_research_result(str(session_id),principal)
+    if (retained.get('status')!='completed' or not retained.get('report')
+            or not (retained.get('delivery_view') or {}).get('delivery_complete')):
+        raise HTTPException(409,'source_package_report_not_deliverable')
+    try:
+        state=await owned_delivery_snapshot(session_id,_principal_id(principal),execution_id=retained.get('execution_id'))
+    except ValueError as error:raise HTTPException(409,str(error)) from error
+    return retained,state
+
+
+@router.get('/{session_id}/source-assets/{asset_id}')
+async def download_original_source(session_id:uuid.UUID,asset_id:uuid.UUID,principal:Principal=principal_dependency):
+    from fastapi.responses import Response
+    from app.db.source_assets import current_original
+    _,state=await _source_download_state(session_id,principal)
+    evidence=next((item for item in state.get('collected_evidence',[]) if
+        str(((item.get('acquisition') or {}).get('source_asset') or {}).get('asset_id'))==str(asset_id)),None)
+    if evidence is None:raise HTTPException(404,'source_asset_not_found')
+    try:
+        pool=await get_db_pool()
+        async with pool.acquire() as conn:
+            original=await current_original(conn,session_id,_principal_id(principal),evidence)
+    except ValueError as error:raise HTTPException(409,str(error)) from error
+    return Response(original['original_bytes'],media_type='application/pdf',headers={
+        'Content-Disposition':f'attachment; filename="original-{asset_id}.pdf"',
+        'Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff'})
+
+
+@router.get('/{session_id}/source-package')
+async def download_source_package(session_id:uuid.UUID,principal:Principal=principal_dependency):
+    from fastapi.responses import Response
+    from app.db.source_assets import current_original
+    from app.source_package import build_source_package
+    retained,state=await _source_download_state(session_id,principal)
+    originals=[];seen=set()
+    pool=await get_db_pool()
+    try:
+        async with pool.acquire() as conn:
+            for evidence in state.get('collected_evidence',[]):
+                asset=(evidence.get('acquisition') or {}).get('source_asset') or {}
+                if asset.get('status')!='retained' or asset.get('asset_id') in seen:continue
+                original=await current_original(conn,session_id,_principal_id(principal),evidence)
+                originals.append(original);seen.add(asset['asset_id'])
+        payload=await asyncio.to_thread(build_source_package,retained['export_view'],state,originals)
+        # Permission changes while assembling cannot release an outdated packet.
+        from app.source_media import owned_delivery_snapshot
+        await owned_delivery_snapshot(session_id,_principal_id(principal),execution_id=retained.get('execution_id'))
+    except ValueError as error:raise HTTPException(409,str(error)) from error
+    return Response(payload,media_type='application/zip',headers={
+        'Content-Disposition':f'attachment; filename="research-{session_id}-sources.zip"',
+        'Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff'})
 
 
 @router.get("/{session_id}/tool-calls", response_model=list[ToolCallAuditRecord])

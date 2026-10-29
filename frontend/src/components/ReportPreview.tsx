@@ -20,6 +20,7 @@ import ReportMarkdownTable from './ReportMarkdownTable'
 import ContextEvidenceSummary from './ContextEvidenceSummary'
 import ResearchJudgmentsView from './ResearchJudgmentsView'
 import type { DeliveryView } from './ReportDeliveryView'
+import SourcePageGallery from './SourcePageGallery'
 
 interface ReportPreviewProps {
   reportAudit?: {needs_review?:boolean;audit_incomplete?:boolean;total_claims?:number;supported_claims?:number;
@@ -104,6 +105,7 @@ function ReportPreview({
         ?<ReportLayoutView key={deliveryView.artifact_id} view={deliveryView} renderMarkdown={text=>renderMarkdown(text,false,deliveryView.layout_binding?.layout.interactions||[])} renderCitation={renderCitation}/>
         :<ReportDeliveryView key={deliveryView.artifact_id} view={deliveryView} renderMarkdown={text=>renderMarkdown(text)}/>)}
       {!structured&&<article className="reader-prose">{renderMarkdown(readerReport,true)}</article>}
+      {!structured&&!!deliveryView?.source_media?.pages.length&&<div className="adrs-delivery"><SourcePageGallery taskId={deliveryView.task_id} pages={deliveryView.source_media.pages}/></div>}
       {structured&&<details className="reader-fulltext" data-full-report><summary>{t("全文")}</summary><article className="reader-prose">{renderMarkdown(readerReport)}</article></details>}
     </div>
     <EvidenceCards citations={citations} onSelect={setSelectedCitation}/>

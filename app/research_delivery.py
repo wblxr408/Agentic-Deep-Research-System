@@ -94,7 +94,7 @@ def _finite(value):
 
 def build_delivery_view(*, task_id: str, execution_id: str | None, query: str, report: str,
         citations: list[dict], understanding: dict | None, organization_result: dict | None,
-        audit: dict | None) -> dict:
+        audit: dict | None, source_media: dict | None = None) -> dict:
     """Caller authenticates the actual session owner before supplying any data."""
     frozen = (understanding or {}).get('delivery') or {}
     template, theme = frozen.get('template', 'markdown-v1'), frozen.get('theme', 'plain-v1')
@@ -337,6 +337,7 @@ def build_delivery_view(*, task_id: str, execution_id: str | None, query: str, r
         'main_report_markdown': main_report, 'appendix_markdown': appendix_report,
         'review_status':'draft_needs_review' if not audit or audit.get('needs_review',True) else 'automatic_review_completed_human_review_pending',
         'pages': pages, 'charts': charts, 'drawing': drawing,
+        'source_media':deepcopy(source_media or {'status':'not_loaded','pages':[]}),
         **({'layout_binding':layout_binding} if layout_binding is not None else {}),
         'sources': all_sources, 'citations': citations, 'audit': deepcopy(audit),
         'statistics': deepcopy(statistics), 'module_results': {key: deepcopy(result.get(field)) for key, field in
@@ -350,5 +351,6 @@ def build_delivery_view(*, task_id: str, execution_id: str | None, query: str, r
                 'standalone_interactive' if name == 'html' else 'source_text' if name == 'markdown' else
                 'structured_data' if name == 'json' else None} for name in formats],
         'full_report_available': True, 'effects': {'model_calls': 0, 'network_calls': 0, 'permissions_changed': False}}
+    if source_media and source_media.get('status')=='blocked':view['delivery_complete']=False
     view['artifact_id'] = identity({'view': view, 'report': report})
     return view

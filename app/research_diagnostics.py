@@ -48,7 +48,16 @@ def diagnose_stop(state,*,active_execution=False):
         return result
     audit=review.get('final_report_audit') or {}
     revisions=audit.get('revision_requests') or []
-    if reason=='report_contract_invalid':
+    if reason=='source_media_incomplete':
+        result.update(summary='原文图示未能完成',next_step='报告与原件已保留，当前未发布图文交付。',action='restart')
+        code=review.get('source_media_reason')
+        detail={'source_media_current_access_changed':'原文访问条件已变化。',
+            'source_media_original_deadline_exhausted':'原图页处理达到本次执行期限。',
+            'source_asset_current_evidence_changed':'原件与当前正文版本不一致。',
+            'source_page_renderer_failed':'当前 PDF 未能生成原文页预览。',
+            'source_media_execution_binding_unavailable':'当前执行绑定不可用。'}.get(code,'原图页暂时未能生成，原始资料已保留。')
+        result['findings']=[{'text':'原图页处理停止','detail':detail}]
+    elif reason=='report_contract_invalid':
         module_report=((state.get('organization_result') or review.get('organization_result') or {}).get('module_report') or {})
         labels={'unbound_sample_aggregate':'正文中的样本数量没有关联已计算统计。',
                 'unbound_source_aggregate':'正文中的来源数量没有关联已计算统计。',

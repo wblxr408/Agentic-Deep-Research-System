@@ -3,6 +3,8 @@ import { useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { Icon, Modal } from './Interface'
 import type {LayoutBinding} from './ReportLayoutView'
+import SourcePageGallery from './SourcePageGallery'
+import type {SourcePage} from './SourcePageGallery'
 
 interface Point { label: string; value: number | null; metric_id?: string | null }
 interface RelationEdge {
@@ -25,6 +27,7 @@ export interface DeliveryView {
   report_markdown?: string
   delivery_complete?: boolean
   main_report_markdown?: string; appendix_markdown?: string
+  task_id:string;source_media?:{status:string;pages:SourcePage[];reason?:string}
   citations?: Array<{ citation_id: string; source_title?: string; source_url: string; extracted_evidence?:string }>
   layout_binding?: LayoutBinding | null
   template_revision?:{template_id:string;version:number;modified_for_task:boolean}|null
@@ -199,8 +202,9 @@ export default function ReportDeliveryView({view,renderMarkdown}:{view:DeliveryV
     </article>)}
     {!all&&view.pages.length>1&&<div data-app-only className="mt-4 flex items-center gap-3"><button type="button" disabled={current===0} onClick={()=>setCurrent(value=>Math.max(0,value-1))}>{t("上一页")}</button>
       <span>{current+1} / {view.pages.length}</span><button type="button" disabled={current>=view.pages.length-1} onClick={()=>setCurrent(value=>Math.min(view.pages.length-1,value+1))}>{t("下一页")}</button></div>}
-    {view.appendix_markdown && <details data-report-appendix><summary>{t("技术附录：方法、实验与资源")}</summary>
-      {renderMarkdown(view.appendix_markdown)}
+    {(view.appendix_markdown||!!view.source_media?.pages.length) && <details data-report-appendix><summary>{t("技术附录：方法、实验与资源")}</summary>
+      {view.appendix_markdown&&renderMarkdown(view.appendix_markdown)}
+      <SourcePageGallery taskId={view.task_id} pages={view.source_media?.pages||[]}/>
     </details>}
     {!!view.citations?.length && <details data-report-references aria-label={t("参考资料")}><summary>{t("参考资料")}</summary>
       {view.citations.map(citation=><p id={`report-source-${citation.citation_id.replace(/[^a-zA-Z0-9-]/g,'-')}`} key={citation.citation_id}>[{citation.citation_id.replace('citation:','')}] {citation.source_title}<br /><SafeSource url={citation.source_url}/></p>)}

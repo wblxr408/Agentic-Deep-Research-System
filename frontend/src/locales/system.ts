@@ -1,5 +1,14 @@
 // Source-owned diagnostic and recovery messages. Raw findings remain original.
 export const systemMessages:readonly string[] = [
+  "原文图示未能完成",
+  "报告与原件已保留，当前未发布图文交付。",
+  "原图页处理停止",
+  "原文访问条件已变化。",
+  "原图页处理达到本次执行期限。",
+  "原件与当前正文版本不一致。",
+  "当前 PDF 未能生成原文页预览。",
+  "当前执行绑定不可用。",
+  "原图页暂时未能生成，原始资料已保留。",
   "账号模型配置与任务创建时不同",
   "原任务保留创建时的模型约束；新研究使用当前账号模型。",
   "任务模型",

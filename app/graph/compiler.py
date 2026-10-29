@@ -2888,6 +2888,18 @@ async def report_node(state: ResearchState) -> dict:
             return paused
         rendering_trace.append(_append_trace_event(state,EventType.AGENT_COMPLETE,'report',
             f"{'复用有效图表' if drawing.get('cache_status')=='hit' else '绘图Skill已生成'}{len(drawing['assets'])}组SVG/PNG/PDF；图像人工复核尚未进行。"))
+    if delivery_snapshot.get('source_media_policy')=='adrs-source-media-v2':
+        from app.source_media import prepare_source_media
+        media=await prepare_source_media(state,organization_result,deadline=agent.request_budget.deadline)
+        organization_result={**(organization_result or {}),'source_media':media}
+        if media['status']=='blocked':
+            paused=_model_budget_pause(state,agent,'report',TokenBudgetExceeded('source_media_incomplete'),report=report,citations=citations)
+            paused['organization_result']=organization_result
+            paused['review_status']['source_media_reason']=media.get('reason')
+            return paused
+        if media['pages']:
+            rendering_trace.append(_append_trace_event(state,EventType.AGENT_COMPLETE,'report',
+                f"已保留{len(media['pages'])}页原文图示及对应PDF。"))
     session, budget_state = _apply_llm_usage_to_state(state, "report", _agent_model_usage(agent))
     if budget_state.get('hard_stop_reason') in {'token_limit','cost_limit','wall_clock_limit'}:
         reason='model_time_reservation_exhausted' if budget_state['hard_stop_reason']=='wall_clock_limit' else 'token_budget_exhausted'

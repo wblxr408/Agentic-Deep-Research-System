@@ -48,7 +48,7 @@ def freeze_strategy(query, configuration, slots):
     corpus=(configuration or {}).get('corpus') or {}
     organization=bool(configuration or slots.get('entities') or re.search(
         r'大学|学院|实验室|研究院|研究所|公司|\buniversity\b|\blaborator(?:y|ies)\b',query,re.I))
-    from app.discovery_handoff import PRIMARY_VERSION, topic_terms
+    from app.discovery_handoff import REPRESENTATION_VERSION, topic_terms
     entities = [*((configuration or {}).get('scope') or {}).get('entities', []), *slots.get('entities', [])]
     return {'version':VERSION,'original_question':query,
         'investigation':'organization_and_work' if organization else 'question_and_evidence',
@@ -56,7 +56,7 @@ def freeze_strategy(query, configuration, slots):
         'representative_works':'select_after_discovery_not_preloaded_examples',
         'analysis_order':[key for key in ORDER if key in slots.get('modules',[])],
         'purpose':slots.get('purpose'),'depth':slots.get('depth'),'model_calls_added':0,
-        'source_followup':{'version':PRIMARY_VERSION,'max_sources':12,'max_depth':3,
+        'source_followup':{'version':REPRESENTATION_VERSION,'max_sources':12,'max_depth':3,
                            'initial_search_limit':3,'require_work_before_deep_analysis':True,
                            'topic_gate':'distinctive_literal_v1',
                            'entity_identity':'official-language-v1',
@@ -88,13 +88,13 @@ def discovery_instructions(strategy):
            "a focused publication query, and a team/author discovery query. Translate the technical focus when helpful, "
            "but do not insert remembered paper names, authors or invented URLs. Save calls for following actual publication "
            "and full-text links; broad university news is only an identity entrance."
-           if (strategy.get('source_followup') or {}).get('version') in {'adrs-discovery-handoff-v2','adrs-discovery-handoff-v3'} else '')
+           if (strategy.get('source_followup') or {}).get('version') in {'adrs-discovery-handoff-v2','adrs-discovery-handoff-v3','adrs-discovery-handoff-v4'} else '')
         + (' For a non-English question, the publication discovery query MUST be in English, retaining the institution '
            'and every technical qualifier; keep the original-language question as the separate original query. '
            'Do not merely append the English word publications to the original language. Use actual primary publication '
            'and full-text links returned by sources; translated digests and related-article lists are discovery entrances, '
            'not substitutes for original papers.'
-           if (strategy.get('source_followup') or {}).get('version')=='adrs-discovery-handoff-v3' else ''))
+           if (strategy.get('source_followup') or {}).get('version') in {'adrs-discovery-handoff-v3','adrs-discovery-handoff-v4'} else ''))
 
 
 def judgment_instructions():

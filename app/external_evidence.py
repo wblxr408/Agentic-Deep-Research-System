@@ -145,6 +145,10 @@ def collect_public_source(url,configuration,understanding,agent,*,owner_id,max_c
     if mode not in {'auto','source','rendered'}:raise ChannelError('unsupported_web_read_mode')
     config=configuration or {'corpus':{'collection_mode':'search_and_seeds','allow_ocr':False,
         'document_parser_policy':policy.get('document_parser_policy')}}
+    # external_evidence is deliberately preserved in the bounded browser
+    # handoff. Presentation-only delivery configuration is not sent to tools.
+    if policy.get('source_media_policy')=='adrs-source-media-v2':
+        config={**config,'corpus':{**config['corpus'],'source_asset_policy':'adrs-source-media-v2'}}
     scoped=bool(source_scope(config) or config['corpus'].get('collection_mode')=='seeds_only')
     if scoped and mode=='rendered':raise ChannelError('rendered_source_scope_unavailable')
     from app.channels.catalog import route_query

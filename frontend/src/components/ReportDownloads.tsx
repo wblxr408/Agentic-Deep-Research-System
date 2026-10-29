@@ -90,7 +90,20 @@ export default function ReportDownloads({ result, reportElement }: { result: Rep
   useLocale()
 
   const [error, setError] = useState('')
+  const [packaging,setPackaging]=useState(false)
   const canDownload = result.status === 'completed' && !!result.report && result.delivery_view?.delivery_complete !== false
+  async function downloadPackage() {
+    if(packaging||!canDownload)return
+    setPackaging(true);setError('')
+    try {
+      const response=await fetch(`/api/v1/research/${encodeURIComponent(result.session_id)}/source-package`)
+      if(!response.ok)throw new Error(t('资料包暂时无法下载，请重新读取报告后重试。'))
+      const blob=await response.blob(),url=URL.createObjectURL(blob)
+      const link=document.createElement('a');link.href=url;link.download=`research-${result.session_id}-sources.zip`
+      document.body.append(link);link.click();link.remove();window.setTimeout(()=>URL.revokeObjectURL(url),1000)
+    }catch(failure){setError(failure instanceof Error?uiMessage(failure.message):t('资料包暂时无法下载，请重新读取报告后重试。'))}
+    finally{setPackaging(false)}
+  }
   function download(format: 'md' | 'json' | 'html' | 'print' | 'main-md' | 'appendix-md' | 'print-main' | 'print-appendix') {
     try {
       setError('')
@@ -154,8 +167,9 @@ export default function ReportDownloads({ result, reportElement }: { result: Rep
         clone.querySelectorAll('details').forEach(element => element.classList.contains('layout-section')||element.hasAttribute('data-chart-table')?element.setAttribute('open',''):element.removeAttribute('open'))
         // The full text remains in a native disclosure; avoid duplicating the
         // whole report beneath the visual pages on first offline opening.
-        // Keep offline export self-contained. Paper images remain explicit
-        // outbound links; generated SVG charts are embedded in the document.
+        // Original PDF page pixels and generated charts are embedded. Online
+        // authenticated file controls leave with data-app-only above.
+        clone.querySelectorAll<HTMLElement>('.source-page-offline').forEach(element=>{element.style.display='block'})
         clone.querySelectorAll('img').forEach(element => {
           if (!element.src.startsWith('data:image/')) {
             const label = document.createElement('p'); label.textContent = t("外部图片未打包：{0}", element.alt || element.src)
@@ -198,6 +212,7 @@ export default function ReportDownloads({ result, reportElement }: { result: Rep
     } catch (failure) { setError(failure instanceof Error ? uiMessage(failure.message) : t("报告导出失败，请重试。")) }
   }
   return <div className="flex flex-wrap items-center gap-2" aria-label={t("报告下载")}>
+    <button type="button" className="btn-ghost text-xs" disabled={!canDownload||packaging} onClick={()=>void downloadPackage()}>{packaging?t('正在打包…'):t('下载资料包')}</button>
     {(['md', 'json', 'html', 'print'] as const).map((format, index) => <button type="button" className="btn-ghost text-xs" key={format}
       disabled={!canDownload} onClick={() => download(format)}>
       {[t("下载 Markdown"), t("下载研究数据"), t("下载 HTML"), t("打印 / 另存 PDF")][index]}

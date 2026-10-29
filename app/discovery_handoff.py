@@ -12,7 +12,33 @@ from app.query_understanding import identity
 VERSION = 'adrs-discovery-handoff-v1'
 FOCUSED_VERSION = 'adrs-discovery-handoff-v2'
 PRIMARY_VERSION = 'adrs-discovery-handoff-v3'
-FOCUSED_VERSIONS = {FOCUSED_VERSION, PRIMARY_VERSION}
+REPRESENTATION_VERSION = 'adrs-discovery-handoff-v4'
+PRIMARY_VERSIONS = {PRIMARY_VERSION, REPRESENTATION_VERSION}
+FOCUSED_VERSIONS = {FOCUSED_VERSION, *PRIMARY_VERSIONS}
+
+
+def _arxiv_document(url):
+    """Compare actual linked representations, never generate a download URL."""
+    try:parsed=urlsplit(url)
+    except (TypeError,ValueError):return None
+    if parsed.hostname not in {'arxiv.org','www.arxiv.org','export.arxiv.org'}:return None
+    match=re.fullmatch(r'/(abs|html|pdf)/((?:\d{4}\.\d{4,5}|[a-z][a-z.\-]+/\d{7}))(v\d+)?(?:\.pdf)?/?',parsed.path,re.I)
+    return (match[2].casefold(),match[3],match[1].casefold()) if match else None
+
+
+def _same_arxiv_document(source,target):
+    left,right=_arxiv_document(source),_arxiv_document(target)
+    return bool(left and right and left[0]==right[0] and
+                (not left[1] or not right[1] or left[1].casefold()==right[1].casefold()))
+
+
+def _sharing_action(url):
+    from urllib.parse import parse_qs
+    try:parsed=urlsplit(url)
+    except (TypeError,ValueError):return True
+    return bool(parsed.path.casefold().rstrip('/') in {
+        '/submit','/share','/sharer','/sharer.php','/sharing/share-offsite','/intent/tweet'}
+        and set(parse_qs(parsed.query)) & {'url','u','text','title','status','link'})
 
 
 def topic_terms(query, entities):
@@ -66,7 +92,7 @@ def anchor_plan(dag, query, strategy, configuration, *, adjustments=None):
                               ('team', r'team|faculty|author|laborator|团队|作者|师资|实验室')]:
             candidates = [node for node in searches if node not in selected and re.search(pattern,node.query,re.I)]
             chosen = max(candidates, key=lambda node: (
-                bool(followup.get('version') == PRIMARY_VERSION and role == 'work' and
+                bool(followup.get('version') in PRIMARY_VERSIONS and role == 'work' and
                      re.search(r'[\u3400-\u9fff]',query) and not re.search(r'[\u3400-\u9fff]',node.query)),
                 len(focus & set(_terms(node.query))),
                 bool(re.search(r'[\u3400-\u9fff]',query)) and not bool(re.search(r'[\u3400-\u9fff]',node.query))
@@ -120,7 +146,8 @@ def extend_reads(state, dag, *, remaining_calls, remaining_seconds, allowed_tool
     if policy.get('version') not in {VERSION, *FOCUSED_VERSIONS} or 'browser' not in allowed_tools or not manifest:
         return dag, manifest, []
     focused = policy.get('version') in FOCUSED_VERSIONS
-    primary = policy.get('version') == PRIMARY_VERSION
+    primary = policy.get('version') in PRIMARY_VERSIONS
+    representations = policy.get('version') == REPRESENTATION_VERSION
     config = state.get('organization_research') or {}
     if (config.get('corpus') or {}).get('collection_mode') == 'seeds_only':
         return dag, manifest, []
@@ -182,6 +209,14 @@ def extend_reads(state, dag, *, remaining_calls, remaining_seconds, allowed_tool
             links = list((meta.get('research_link_records') if focused else None) or meta.get('public_link_records') or [])
             if not links:
                 links = [{'url': url, 'label': ''} for url in meta.get('public_links', [])]
+            if representations:
+                # A long reference list can fill the ranked research-link view
+                # before a page-header download. Its literal original-order
+                # record is still retained separately; do not discard it.
+                entrances=[row for row in (meta.get('public_link_records') or [])[:200]
+                    if isinstance(row,dict) and isinstance(row.get('url'),str)
+                    and _same_arxiv_document(source_url,row['url'])]
+                links=[*entrances,*links]
             documents = [*meta.get('pdf_links', []), *(meta.get('document_links', []) if focused else [])]
             links += [{'url': url, 'label': source.get('source_title', ''), 'pdf': True}
                       for url in documents]
@@ -193,6 +228,8 @@ def extend_reads(state, dag, *, remaining_calls, remaining_seconds, allowed_tool
         for link in links[:300]:
             url = link.get('url') if isinstance(link, dict) else None
             if not isinstance(url, str) or len(url) > 2048 or sensitive_url(url):
+                continue
+            if representations and _sharing_action(url):
                 continue
             label = str(link.get('label') or '')
             from app.organization_identity import language_link, secure_language_url
@@ -222,8 +259,9 @@ def extend_reads(state, dag, *, remaining_calls, remaining_seconds, allowed_tool
             academic = bool(re.search(r'research|publication|faculty|people|laborator|\.pdf(?:$|\?)|科研|学术|师资|论文|团队', description))
             # Inspect the actual href before the lexical gate. Numeric paper
             # URLs and labels such as "Read PDF" need their parent's context.
-            pdf_url = bool(re.search(r'\.pdf(?:$|[?#])|/(?:pdf|epdf)/',url,re.I))
-            primary_landing = bool(re.search(r'/(?:abs|doi|html)/',url,re.I))
+            target_path=urlsplit(url).path if representations else url
+            pdf_url = bool(re.search(r'\.pdf(?:$|[?#])|/(?:pdf|epdf)/',target_path,re.I))
+            primary_landing = bool(re.search(r'/(?:abs|doi|html)/',target_path,re.I))
             explicit_document = (link.get('pdf') or focused and link.get('kind') == 'full_text' or
                                  primary and (pdf_url or primary_landing))
             if not hits and not identity_language and not (official and academic) and not (explicit_document and terms & set(_terms(source_text))):
@@ -235,7 +273,12 @@ def extend_reads(state, dag, *, remaining_calls, remaining_seconds, allowed_tool
                 direct_hits = focus & set(_terms(url + ' ' + label))
                 topic_hits = focus & set(_terms(description))
                 pdf = bool(link.get('pdf') or link.get('kind') == 'full_text' or
-                           re.search(r'\.pdf(?:$|[?#])|/(?:pdf|epdf)/', url, re.I))
+                           re.search(r'\.pdf(?:$|[?#])|/(?:pdf|epdf)/', target_path, re.I))
+                same_document=bool(representations and not discovery and _same_arxiv_document(source_url,url))
+                download_label=bool(representations and not discovery and pdf and (
+                    link.get('kind')=='full_text' or link.get('navigation') and re.fullmatch(
+                        r'\s*(?:(?:(?:view|download|read)\s+)?(?:pdf|full[ -]?text|(?:full\s+)?paper)|(?:下载)?(?:PDF|全文))\s*',label,re.I)))
+                representation_link=bool(same_document or download_label)
                 work = bool(pdf or primary and primary_landing or re.search(
                     r'\bpaper\b|publication|/abs/|/doi/|full.?text|论文|研究成果|出版', url + ' ' + label, re.I))
                 inherited = bool(not discovery and (pdf or primary and primary_landing) and
@@ -243,7 +286,7 @@ def extend_reads(state, dag, *, remaining_calls, remaining_seconds, allowed_tool
                 relevant = bool(topic_hits or inherited or not focus and hits)
                 # Navigation can be useful as an entrance; it cannot outrank
                 # actual article links just by repeating the topic in a menu.
-                role = 'work' if relevant and work and not link.get('navigation') else 'topic' if relevant else 'identity'
+                role = 'work' if relevant and work and (not link.get('navigation') or representation_link) else 'topic' if relevant else 'identity'
                 if primary:
                     specific={term for term in focus if re.search(r'[a-z0-9]',term)}
                     specific_tokens=topic_hits | (set(_terms(source_text)) if inherited else set())
@@ -273,6 +316,11 @@ def extend_reads(state, dag, *, remaining_calls, remaining_seconds, allowed_tool
                         source_link_url=source_link_url,
                         transport_upgrade='https_same_target_v1' if url != source_link_url else None,
                         selection_basis='explicit_fulltext_then_primary_landing_then_target_entrance_then_topic')
+                    if representations:
+                        signals.update(same_document_representation=same_document,explicit_primary_download=download_label,
+                            source_priority=6 if identity_language else 5 if role=='work' and representation_link and pdf else
+                                4 if role=='work' and same_document else signals['source_priority'],
+                            selection_basis='same_document_or_primary_download_before_cited_documents_then_topic')
             candidate = {'url': url, 'evidence_id': source['evidence_id'], 'depends_on': parents,
                          'depth': depth, 'score': score, 'host': host, 'label': label[:240], **signals}
             if key not in candidates or score > candidates[key]['score']:

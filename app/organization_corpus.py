@@ -315,6 +315,9 @@ def _read_corpus_source(url: str, configuration: dict, *, timeout: float,on_requ
     group=policy.group_for(response.url) if policy else 'public_web_unclassified'
     acquisition['source_scope_group']=group
     acquisition['source_identity_status']='configured_domain_membership_not_independent_authenticity_verification'
+    if acquisition.get('format')=='pdf' and declaration.get('source_asset_policy')=='adrs-source-media-v2':
+        from app.source_assets import retain_acquired_pdf
+        acquisition['source_asset']=retain_acquired_pdf(response.url,response.body,text,deadline=deadline)
     return [BrowserResult(url=response.url, title=title, extracted_content=text,
         citations=[response.url], extraction_level='source_text', channel='web', backend='pinned-http',
         collected_at=datetime.now(UTC).isoformat(), acquisition=acquisition)]
