@@ -115,7 +115,7 @@ def _plan_contract(state: ResearchState) -> str:
 
 
 def _compile_execution_plan(state: ResearchState, dag: DAGDefinition, agent, reason: str):
-    from app.discovery_handoff import anchor_plan
+    from app.discovery_handoff import anchor_plan, independent_search_plan
     discovery_adjustments=[]
     dag=anchor_plan(dag,state['user_query'],getattr(agent,'research_strategy',None),
                     state.get('organization_research'),adjustments=discovery_adjustments)
@@ -140,13 +140,17 @@ def _compile_execution_plan(state: ResearchState, dag: DAGDefinition, agent, rea
     except PlanningError as error:
         if policy.strategy == 'fixed' or 'declared_seed_only_fixed_workflow' in reason:
             raise
-        fallback = agent._fixed_research_dag(state['user_query'], state.get('organization_research'))
+        fallback = independent_search_plan(dag,getattr(agent,'research_strategy',None),error.category)
+        fallback_reason='independent_searches_after_invalid_plan:'+error.category
+        if fallback is None:
+            fallback = agent._fixed_research_dag(state['user_query'], state.get('organization_research'))
+            fallback_reason='fixed_after_invalid_plan:'+error.category
         fallback = apply_source_policy(fallback, state['user_query'], use_internal_docs=bool(state.get('use_internal_docs')))
         fallback = seed_organization_sources(fallback, state.get('organization_research'))
         discovery_adjustments=[]
         fallback = anchor_plan(fallback, state['user_query'], getattr(agent, 'research_strategy', None),
                                state.get('organization_research'),adjustments=discovery_adjustments)
-        compiled,manifest = compile_plan(fallback, reason='fixed_after_invalid_plan:'+error.category, **arguments)
+        compiled,manifest = compile_plan(fallback, reason=fallback_reason, **arguments)
     if discovery_adjustments:
         from app.query_understanding import identity
         manifest['adjustments'] = [*discovery_adjustments,*manifest['adjustments']]

@@ -13,7 +13,8 @@ VERSION = 'adrs-discovery-handoff-v1'
 FOCUSED_VERSION = 'adrs-discovery-handoff-v2'
 PRIMARY_VERSION = 'adrs-discovery-handoff-v3'
 REPRESENTATION_VERSION = 'adrs-discovery-handoff-v4'
-PRIMARY_VERSIONS = {PRIMARY_VERSION, REPRESENTATION_VERSION}
+TRANSPORT_VERSION = 'adrs-discovery-handoff-v5'
+PRIMARY_VERSIONS = {PRIMARY_VERSION, REPRESENTATION_VERSION, TRANSPORT_VERSION}
 FOCUSED_VERSIONS = {FOCUSED_VERSION, *PRIMARY_VERSIONS}
 
 
@@ -39,6 +40,22 @@ def _sharing_action(url):
     return bool(parsed.path.casefold().rstrip('/') in {
         '/submit','/share','/sharer','/sharer.php','/sharing/share-offsite','/intent/tweet'}
         and set(parse_qs(parsed.query)) & {'url','u','text','title','status','link'})
+
+
+def independent_search_plan(dag, strategy, rejection):
+    """Retain unconditional root searches, never repair an unknown condition.
+
+    The original compiler still validates the reduced plan and tool grants.
+    Browser/dependent/conditional nodes from the rejected plan are not reused.
+    """
+    if ((strategy or {}).get('source_followup') or {}).get('version')!=TRANSPORT_VERSION:
+        return None
+    if rejection!='plan_missing_condition':return None
+    incoming={edge.to_node for edge in dag.edges}
+    nodes=[node.model_copy(deep=True) for node in dag.nodes if node.node_type=='search'
+        and node.condition=='always' and not node.depends_on and node.node_id not in incoming]
+    if not nodes or len({node.node_id for node in nodes})!=len(nodes):return None
+    return dag.model_copy(update={'nodes':nodes,'edges':[]},deep=True)
 
 
 def topic_terms(query, entities):
@@ -94,6 +111,8 @@ def anchor_plan(dag, query, strategy, configuration, *, adjustments=None):
             chosen = max(candidates, key=lambda node: (
                 bool(followup.get('version') in PRIMARY_VERSIONS and role == 'work' and
                      re.search(r'[\u3400-\u9fff]',query) and not re.search(r'[\u3400-\u9fff]',node.query)),
+                bool(followup.get('version')==TRANSPORT_VERSION and role=='work' and
+                     re.search(r'\bpapers?\b|preprint|arxiv|publisher|论文|成果|出版',node.query,re.I)),
                 len(focus & set(_terms(node.query))),
                 bool(re.search(r'[\u3400-\u9fff]',query)) and not bool(re.search(r'[\u3400-\u9fff]',node.query))
             ),default=None)
@@ -147,7 +166,8 @@ def extend_reads(state, dag, *, remaining_calls, remaining_seconds, allowed_tool
         return dag, manifest, []
     focused = policy.get('version') in FOCUSED_VERSIONS
     primary = policy.get('version') in PRIMARY_VERSIONS
-    representations = policy.get('version') == REPRESENTATION_VERSION
+    representations = policy.get('version') in {REPRESENTATION_VERSION,TRANSPORT_VERSION}
+    transport = policy.get('version') == TRANSPORT_VERSION
     config = state.get('organization_research') or {}
     if (config.get('corpus') or {}).get('collection_mode') == 'seeds_only':
         return dag, manifest, []
@@ -159,7 +179,7 @@ def extend_reads(state, dag, *, remaining_calls, remaining_seconds, allowed_tool
         return dag, manifest, []
     from app.evidence_selection import _terms
     from app.organization_corpus import admit_corpus_request
-    from app.external_evidence import request_url_identity
+    from app.external_evidence import request_url_identity, PUBLIC_TRANSPORTS
     from app.data_governance import source_observation, authorize_network, network_context, sensitive_url
     from app.channels.models import ChannelError
 
@@ -199,6 +219,14 @@ def extend_reads(state, dag, *, remaining_calls, remaining_seconds, allowed_tool
         source_url = source.get('source_url') or ''
         origin = browser_nodes.get(request_url_identity(source_url))
         discovery = meta.get('coverage') == 'discovery_only'
+        if transport and not discovery and source.get('source_backend') in PUBLIC_TRANSPORTS:
+            # Redirect provenance comes from this acquisition, not a guessed DOI
+            # conversion or a cross-task alias. A final URL alone is insufficient.
+            try:
+                if request_url_identity(meta.get('final_url',''))==request_url_identity(source_url):
+                    origin=origin or browser_nodes.get(request_url_identity(meta.get('requested_url','')))
+            except (ValueError,TypeError):pass
+            if origin:requested.add(request_url_identity(source_url))
         if discovery:
             if not searches:
                 continue
@@ -261,7 +289,9 @@ def extend_reads(state, dag, *, remaining_calls, remaining_seconds, allowed_tool
             # URLs and labels such as "Read PDF" need their parent's context.
             target_path=urlsplit(url).path if representations else url
             pdf_url = bool(re.search(r'\.pdf(?:$|[?#])|/(?:pdf|epdf)/',target_path,re.I))
-            primary_landing = bool(re.search(r'/(?:abs|doi|html)/',target_path,re.I))
+            primary_landing = bool(re.search(r'/(?:abs|doi|html)/',target_path,re.I) or transport and
+                host.casefold() in {'doi.org','www.doi.org','dx.doi.org'} and
+                re.match(r'^/10\.\d{4,9}/\S+',target_path,re.I))
             explicit_document = (link.get('pdf') or focused and link.get('kind') == 'full_text' or
                                  primary and (pdf_url or primary_landing))
             if not hits and not identity_language and not (official and academic) and not (explicit_document and terms & set(_terms(source_text))):
@@ -323,8 +353,14 @@ def extend_reads(state, dag, *, remaining_calls, remaining_seconds, allowed_tool
                             selection_basis='same_document_or_primary_download_before_cited_documents_then_topic')
             candidate = {'url': url, 'evidence_id': source['evidence_id'], 'depends_on': parents,
                          'depth': depth, 'score': score, 'host': host, 'label': label[:240], **signals}
+            if transport and not discovery and origin:
+                candidate.update(parent_requested_url=origin.query,parent_final_url=source_url)
             if key not in candidates or score > candidates[key]['score']:
                 candidates[key] = candidate
+    if transport:
+        # Discovery rows can precede their acquired redirected version in the
+        # ledger. Remove any candidate now known to be already read this task.
+        candidates={key:row for key,row in candidates.items() if key not in requested}
     chosen, hosts = [], {}
     identity_count = sum(row.get('source_role') == 'identity' for row in previous)
     while candidates and len(chosen) < capacity:
@@ -358,7 +394,8 @@ def extend_reads(state, dag, *, remaining_calls, remaining_seconds, allowed_tool
                      'depth': row['depth'], **{key: row[key] for key in (
                          'source_role', 'topic_terms', 'direct_topic_terms', 'explicit_full_text_link',
                          'parent_topic_used', 'selection_basis','source_priority','primary_link_inherited',
-                         'identity_language_entrance','source_link_url','transport_upgrade') if key in row}})
+                         'identity_language_entrance','source_link_url','transport_upgrade',
+                         'parent_requested_url','parent_final_url') if key in row}})
     if not rows:
         return dag, manifest, []
     for node in dag.nodes:
