@@ -2037,6 +2037,16 @@ async def _resume_retained_synthesis(session_id, background_tasks, principal, *,
             or allowance.available('audit' if audit_resume else 'research')<1024
             or allowance.deadline is None or time.monotonic()>=allowance.deadline):
         raise HTTPException(409,f'{stage}_original_allowance_exhausted')
+    # Refuse a known route change before consuming this root's one continuation
+    # or replacing its execution. Dispatch rechecks it for later races as well.
+    if state.get('model_routing'):
+        await bind_owner_model(principal.id)
+        from app.model_routing import validate_current
+        from app.llm_budget import TokenBudgetExceeded
+        try:validate_current(state['model_routing'])
+        except TokenBudgetExceeded as error:
+            raise HTTPException(409,{'category':error.reason,
+                'model_configuration_change':getattr(error,'routing_change',None)}) from None
     budget['model_stop_reason']=None
     state.update(status='running',runtime_status='running',budget_state=budget)
     state['review_status']={**(state.get('review_status') or {}),'blocked':False,'reason':None,

@@ -456,6 +456,8 @@ def _model_budget_pause(state, agent, stage, error, *, report=None, citations=No
                 else '分析响应未完成，已保留阶段结果，可在原额度与期限内继续。' if recoverable
                 else '研究已暂停；已取得资料、阶段结果和用量记录保留。'}]}
     if getattr(agent,'last_workflow',None):result['analysis_workflow']=agent.last_workflow
+    if getattr(error,'routing_change',None):
+        result['review_status']['model_configuration_change']=error.routing_change
     if getattr(agent,'last_discovery_findings',None):
         result['organization_result']={**(state.get('organization_result') or {}),**agent.last_discovery_findings}
     result['evidence_access_gaps']=state.get('evidence_access_gaps',[])

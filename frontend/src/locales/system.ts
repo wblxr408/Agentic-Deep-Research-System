@@ -1,5 +1,14 @@
 // Source-owned diagnostic and recovery messages. Raw findings remain original.
 export const systemMessages:readonly string[] = [
+  "账号模型配置与任务创建时不同",
+  "原任务保留创建时的模型约束；新研究使用当前账号模型。",
+  "任务模型",
+  "当前账号模型",
+  "模型服务已变更",
+  "模型选择规则已变更",
+  "备用模型配置已变更",
+  "反思响应未完成；已保留实际响应与用量，报告仍须完整核对。",
+  "反思格式恢复未完成；原响应与用量已保留。",
   " Token，可用 ",
   " Token，总任务仍剩余 ",
   " Token；停止原因不是总额度用完。",

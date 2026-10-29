@@ -29,3 +29,5 @@
 专用Key已获当次创建确认并完成中国站调用。首项端点目录修改报用量1,609 Token，主执行者审阅后只采纳两项目录新增；第二项报告结构审阅报用量7,046 Token，未返回修改，主执行者只保留有用边界建议并独立处理明确的格式问题。两项共8,655 Token，服务端费用未知；未衡量总体提速或宣称质量保证。
 
 模型已保存到当前浏览器使用的工作区账号`acceptance_owner_222b60f6`，当前主模型仍为DeepSeek；其他账号仍需本人保存。详情见[实际记录](acceptance/agnes-models-20261028.md)。A2ABreak v1.0的11项适用性、控制点及未验证边界见[设计](../openspec/changes/add-agnes-model-integration/design.md)。
+
+2026-10-29实际账号配置API已返回Agnes／agnes-3.0-flash；上段DeepSeek是接入时的记录。旧30daffcc研究仍固定创建时的DeepSeek，报告续作因该差异在模型派发前停止；后续新研究沿当前账号配置冻结，不把旧任务模型或失败改写。见[写作模块续作](acceptance/source-primary-20261029.md#写作模块的实际续作)。

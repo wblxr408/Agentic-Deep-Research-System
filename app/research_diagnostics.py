@@ -136,6 +136,15 @@ def diagnose_stop(state,*,active_execution=False):
         result.update(summary='下一步操作需要你的授权',next_step='请选择是否允许已列出的操作。',action='approval')
     elif any(part in reason for part in ('authorization','sources_changed','data_governance','data_class','access_credentials')):
         result.update(summary='当前资料或操作权限不满足执行要求',next_step='需要你选择可访问的资料或授予所需权限。',action='sources')
+    elif reason=='model_routing_configuration_changed' and review.get('model_configuration_change'):
+        change=review['model_configuration_change'];previous=change.get('expected') or {};current=change.get('current') or {}
+        result.update(summary='账号模型配置与任务创建时不同',
+            next_step='原任务保留创建时的模型约束；新研究使用当前账号模型。',action='restart')
+        result['findings']=[{'text':'任务模型','detail':str(previous.get('model') or previous.get('provider') or '')},
+            {'text':'当前账号模型','detail':str(current.get('model') or current.get('provider') or '')}]
+        for field,label in (('endpoint_changed','模型服务已变更'),('policy_changed','模型选择规则已变更'),
+                            ('fallback_changed','备用模型配置已变更')):
+            if change.get(field):result['findings'].append({'text':label,'detail':label})
     elif any(part in reason for part in ('model_rout','no_eligible_model','model_endpoint','configuration')):
         result.update(summary='没有满足本阶段要求的模型配置',next_step='需要为本账号选择符合资料权限和上下文要求的模型。',action='settings')
     elif any(part in reason for part in ('budget','token_limit','cost_limit','wall_clock','tool_call_limit')):

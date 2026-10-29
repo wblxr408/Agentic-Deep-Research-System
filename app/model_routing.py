@@ -102,7 +102,14 @@ def validate_current(snapshot):
             or config.get('fallback_provider')!=snapshot.get('fallback_provider')
             or config.get('fallback_model')!=snapshot.get('fallback_model')
             or policy!=policy_data(RoutingPolicy.model_validate(snapshot['policy']))):
-        raise TokenBudgetExceeded('model_routing_configuration_changed')
+        error=TokenBudgetExceeded('model_routing_configuration_changed')
+        error.routing_change={'expected':{'provider':snapshot.get('provider'),'model':snapshot.get('primary_model')},
+            'current':{'provider':config.get('provider'),'model':config.get('model')},
+            'endpoint_changed':endpoint!=snapshot['endpoint_identity'],
+            'fallback_changed':(config.get('fallback_provider'),config.get('fallback_model'))!=
+                (snapshot.get('fallback_provider'),snapshot.get('fallback_model')),
+            'policy_changed':policy!=policy_data(RoutingPolicy.model_validate(snapshot['policy']))}
+        raise error
 
 
 def routed_binding(stage,snapshot,*,minimum_tier=0,minimum_context=0,exclude_models=(),preferred_route=None):
