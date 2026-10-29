@@ -303,14 +303,27 @@ def build_organization_findings(configuration: dict | None, evidence: list[dict]
 
     result = organization_evidence_views(configuration, evidence)
     scope = OrganizationResearchScope.model_validate(configuration['scope'])
-    field_policy=configuration.get('publication_metadata_policy')=='adrs-publication-fields-v2'
+    metadata_policy=configuration.get('publication_metadata_policy')
+    field_policy=metadata_policy in {'adrs-publication-fields-v2','adrs-publication-fields-v3'}
+    layout_policy=metadata_policy=='adrs-publication-fields-v3'
+    from app.publication_literals import literal_pattern
+    from app.publication_affiliations import direct_cover_pair,shared_author_names
+
+    def proof_pattern(value):
+        return literal_pattern(value) if layout_policy else r'\s+'.join(re.escape(word) for word in value.split())
+
+    def contains(text,value):
+        return bool(value and re.search(proof_pattern(value),text,re.I)) if layout_policy else _contains(text,value)
     sources = {item['evidence_id']: item for item in evidence if item.get('source_url')}
     primary_documents = defaultdict(list)
     for item in sources.values():
         if (item.get('acquisition') or {}).get('format') == 'pdf':
             primary_documents[_publication_url(item['source_url'])].append((item, _publication_opening(item)))
     proposed = proposed if isinstance(proposed, dict) else {}
-    pending, proofs = [], []
+    pending, proofs, normalizations = [], [], []
+
+    def normalized(event):
+        if len(normalizations)<64 and event not in normalizations:normalizations.append(event)
     if not proposed:
         pending.append({'kind': 'extraction', 'reason': 'No structured extraction available; empty sample counts do not establish absence of real outputs.'})
 
@@ -321,10 +334,14 @@ def build_organization_findings(configuration: dict | None, evidence: list[dict]
         if (source.get('acquisition') or {}).get('coverage') == 'discovery_only':
             raise ValueError('discovery snippets are leads, not acquired primary publication proof')
         # Tolerate whitespace/layout only; retain original character offsets/text.
-        pattern = r'\s+'.join(re.escape(word) for word in proof.quote.split())
+        pattern = proof_pattern(proof.quote)
         match = re.search(pattern, source['content'], re.I)
         if not match:
             raise ValueError('quoted text not found in acquired source')
+        if layout_policy and len(match.group())>5000:raise ValueError('source proof span exceeds bound')
+        if layout_policy and _text(match.group())!=_text(proof.quote):
+            normalized({'kind':'literal_layout','evidence_id':proof.evidence_id,'start':match.start(),'end':match.end(),
+                'proposed_quote':proof.quote,'retained_quote':match.group()})
         checked = {'evidence_id': proof.evidence_id, 'source_url': source['source_url'],
                    'start': match.start(), 'end': match.end(), 'quote': match.group()}
         if checked not in proofs:
@@ -367,7 +384,7 @@ def build_organization_findings(configuration: dict | None, evidence: list[dict]
             source = check(claim.proof)
             entity = catalog.get(claim.entity_id)
             if (entity is None or source['evidence_id'] not in identity_anchors.get(claim.entity_id, [])
-                    or not _contains(claim.proof.quote, claim.alias)
+                    or not contains(claim.proof.quote, claim.alias)
                     or not title_names_alias(source, claim.alias)):
                 raise ValueError('alias has no selected official language entrance and literal page title')
             if any(other.entity_id != entity.entity_id and any(_text(claim.alias) == _text(name)
@@ -386,9 +403,9 @@ def build_organization_findings(configuration: dict | None, evidence: list[dict]
     for candidate in records('candidate_entities', CandidateClaim, 200):
         try:
             source = check(candidate.proof)
-            if candidate.entity_id in catalog or not _contains(candidate.proof.quote, candidate.name):
+            if candidate.entity_id in catalog or not contains(candidate.proof.quote, candidate.name):
                 raise ValueError('candidate identity conflicts or is not named by its proof')
-            if len(candidate.aliases)>30 or any(not _contains(candidate.proof.quote, alias) for alias in candidate.aliases):
+            if len(candidate.aliases)>30 or any(not contains(candidate.proof.quote, alias) for alias in candidate.aliases):
                 raise ValueError('candidate aliases require literal identity proof')
             entity = OrganizationEntity(entity_id=candidate.entity_id, name=candidate.name, type=candidate.type,
                 aliases=candidate.aliases, source_urls=(source['source_url'],), resolution_status='pending')
@@ -403,7 +420,7 @@ def build_organization_findings(configuration: dict | None, evidence: list[dict]
         reason_code = None
         try:
             source = check(publication.title_proof)
-            if not _contains(publication.title_proof.quote, publication.title):
+            if not contains(publication.title_proof.quote, publication.title):
                 # A short model excerpt may identify the page; locate the full
                 # declared title in that same acquired source before accepting it.
                 check(Proof(evidence_id=publication.title_proof.evidence_id, quote=publication.title))
@@ -416,7 +433,7 @@ def build_organization_findings(configuration: dict | None, evidence: list[dict]
                 primary_fields.append(opening)
             # A PDF reader's fallback title is often its URL. It must not
             # override a literal primary title retained on the opening pages.
-            if not any(_contains(value,publication.title) for value in primary_fields):
+            if not any(contains(value,publication.title) for value in primary_fields):
                 raise ValueError('source does not identify this primary publication')
             metadata = (source.get('acquisition') or {}).get('publisher_metadata')
             if metadata and _text(metadata['title']) == _text(publication.title):
@@ -436,7 +453,7 @@ def build_organization_findings(configuration: dict | None, evidence: list[dict]
                 if publication.date_proof is None:
                     raise ValueError('publication date has no publisher fields or literal proof')
                 date_source = check(publication.date_proof)
-                if not _contains(date_source['content'], publication.title):
+                if not contains(date_source['content'], publication.title):
                     raise ValueError('date proof is not tied to the same publication')
                 date_opening = date_source['content'][:16000 if (date_source.get('acquisition') or {}).get('format') == 'pdf' else 4000]
                 proceedings = publication.output_type == 'conference_paper' and bool(
@@ -461,21 +478,53 @@ def build_organization_findings(configuration: dict | None, evidence: list[dict]
                 raise ValueError('proposed output type is outside the requested types')
             affiliations = []
             evidence_ids = {publication.title_proof.evidence_id, date_evidence_id}
+            proposed_affiliations=[]
             for affiliation in publication.affiliations:
+                expanded=None
+                if layout_policy:
+                    current=sources.get(affiliation.proof.evidence_id)
+                    if (current and (current.get('acquisition') or {}).get('coverage')!='discovery_only'
+                            and contains(_publication_opening(current),publication.title)):
+                        literal=re.search(proof_pattern(affiliation.proof.quote),current['content'],re.I)
+                        if literal and len(literal.group())<=1600:
+                            expanded=shared_author_names(literal.group(),publication.title,
+                                affiliation.author_name,affiliation.raw_affiliation)
+                if expanded:
+                    proposed_affiliations.extend(affiliation.model_copy(update={'author_name':name}) for name in expanded)
+                    normalized({'kind':'complete_shared_author_list','output_id':publication.output_id,
+                        'evidence_id':affiliation.proof.evidence_id,'original_author_field':affiliation.author_name,
+                        'author_names':expanded,'raw_affiliation':affiliation.raw_affiliation})
+                else:proposed_affiliations.append(affiliation)
+            for affiliation in proposed_affiliations:
                 try:
                     if re.search(r'[;；\n]',affiliation.author_name):
                         raise ValueError('one affiliation record must name one author')
-                    affiliation_source = check(affiliation.proof)
+                    try:
+                        affiliation_source = check(affiliation.proof)
+                        if not contains(affiliation.proof.quote,affiliation.author_name) or not contains(affiliation.proof.quote,affiliation.raw_affiliation):
+                            raise ValueError('author and original affiliation must occur together in proof')
+                    except ValueError:
+                        if not layout_policy:raise
+                        current=sources.get(affiliation.proof.evidence_id)
+                        if not current or (current.get('acquisition') or {}).get('coverage')=='discovery_only':raise
+                        quote=direct_cover_pair(_publication_opening(current),publication.title,
+                            affiliation.author_name,affiliation.raw_affiliation)
+                        if not quote:raise
+                        old=affiliation.proof.model_dump()
+                        affiliation=affiliation.model_copy(update={'proof':AffiliationProof(evidence_id=affiliation.proof.evidence_id,quote=quote)})
+                        affiliation_source=check(affiliation.proof)
+                        normalized({'kind':'literal_primary_cover_pair','output_id':publication.output_id,
+                            'author_name':affiliation.author_name,'proposed_proof':old,'retained_proof':affiliation.proof.model_dump()})
                     entity = catalog.get(affiliation.entity_id)
-                    if entity is None or not _contains(affiliation_source['content'], publication.title):
+                    if entity is None or not contains(affiliation_source['content'], publication.title):
                         raise ValueError('unknown entity or affiliation source belongs to another work')
-                    if not _contains(affiliation.proof.quote, affiliation.author_name) or not _contains(affiliation.proof.quote, affiliation.raw_affiliation):
+                    if not contains(affiliation.proof.quote, affiliation.author_name) or not contains(affiliation.proof.quote, affiliation.raw_affiliation):
                         raise ValueError('author and original affiliation must occur together in proof')
                     names = [entity.name, *entity.aliases]
-                    if not any(_contains(affiliation.raw_affiliation, name) for name in names):
+                    if not any(contains(affiliation.raw_affiliation, name) for name in names):
                         raise ValueError('original affiliation does not match the selected identity')
                     matching_entities = {other.entity_id for other in catalog.values()
-                        if any(_contains(affiliation.raw_affiliation, name) for name in [other.name, *other.aliases])}
+                        if any(contains(affiliation.raw_affiliation, name) for name in [other.name, *other.aliases])}
                     if len(matching_entities) != 1:
                         raise ValueError('ambiguous affiliation identity; keep entities separate')
                     affiliations.append(AffiliationRecord(author_id=affiliation.author_name, entity_id=entity.entity_id,
@@ -502,9 +551,9 @@ def build_organization_findings(configuration: dict | None, evidence: list[dict]
                             end=venue_pages[0].get('end')
                             if type(end) is int and 0<end<=len(venue_source['content']):
                                 venue_opening=venue_source['content'][:min(end,16000)]
-                        pattern=r'\s+'.join(re.escape(word) for word in publication.venue_proof.quote.split())
-                        if (not _contains(venue_source['content'],publication.title)
-                                or not _contains(publication.venue_proof.quote,publication.venue)
+                        pattern=proof_pattern(publication.venue_proof.quote)
+                        if (not contains(venue_source['content'],publication.title)
+                                or not contains(publication.venue_proof.quote,publication.venue)
                                 or not re.search(pattern,venue_opening,re.I)):
                             raise ValueError('venue proof does not identify the primary publication venue')
                         venue=publication.venue
@@ -538,10 +587,10 @@ def build_organization_findings(configuration: dict | None, evidence: list[dict]
                 # never follow a link or infer identity from a similar title.
                 linked = {}
                 for document, primary_opening in primary_documents.get(source_key, []):
-                    if not _contains(primary_opening, publication.title):
+                    if not contains(primary_opening, publication.title):
                         continue
                     if document['evidence_id'] != publication.title_proof.evidence_id and (
-                            not publication.date_proof or not _contains(primary_opening, publication.date_proof.quote)):
+                            not publication.date_proof or not contains(primary_opening, publication.date_proof.quote)):
                         continue
                     opening_tokens = set(primary_opening.split())
                     for candidate in sources.values():
@@ -619,7 +668,7 @@ def build_organization_findings(configuration: dict | None, evidence: list[dict]
             publications[publication.output_id] = output
             canonical[key] = canonical[source_key] = output
             publication_meta[output.output_id] = {'output_type': output_type, 'venue': venue,
-                **({'metadata_policy':'adrs-publication-fields-v2','proposed_output_type':publication.output_type,
+                **({'metadata_policy':metadata_policy,'proposed_output_type':publication.output_type,
                     'venue_status':'source_opening_quote_checked' if venue else 'unknown',
                     'output_type_status':type_status} if field_policy else {}),
                 'year': lower.year, 'evidence_ids': sorted(evidence_ids),
@@ -639,7 +688,7 @@ def build_organization_findings(configuration: dict | None, evidence: list[dict]
                 raise ValueError('family members missing, repeated or already linked')
             if not re.search(r'extended version|earlier version|conference version|扩展版|早期版本', family.proof.quote, re.I):
                 raise ValueError('no explicit research-version relationship')
-            if not all(_contains(family.proof.quote, publications[key].title) for key in family.output_ids):
+            if not all(contains(family.proof.quote, publications[key].title) for key in family.output_ids):
                 raise ValueError('version proof does not identify all member publications')
             families.append(ResearchFamily(family_id=family.family_id, output_ids=tuple(sorted(members)), source_urls=(source['source_url'],)))
             linked.update(members)
@@ -652,7 +701,7 @@ def build_organization_findings(configuration: dict | None, evidence: list[dict]
             source = check(parent.proof)
             if parent.parent_id not in catalog or parent.child_id not in catalog:
                 raise ValueError('unknown parent/child identity')
-            if not all(_contains(parent.proof.quote, catalog[key].name) for key in (parent.parent_id, parent.child_id)):
+            if not all(contains(parent.proof.quote, catalog[key].name) for key in (parent.parent_id, parent.child_id)):
                 raise ValueError('part-of proof must identify both organizations')
             if not re.search(r'part of|belongs to|department of|laboratory of|at the|隶属|下属', parent.proof.quote, re.I):
                 raise ValueError('an explicit part-of relationship is required')
@@ -677,7 +726,7 @@ def build_organization_findings(configuration: dict | None, evidence: list[dict]
             output = publications.get(relation.output_id)
             if not output or any(key not in catalog for key in relation.entity_ids):
                 raise ValueError('relationship references unavailable records')
-            if not _contains(source['content'], output.title) or not all(_contains(relation.proof.quote, catalog[key].name) for key in relation.entity_ids):
+            if not contains(source['content'], output.title) or not all(contains(relation.proof.quote, catalog[key].name) for key in relation.entity_ids):
                 raise ValueError('relationship source does not identify its work and organizations')
             if relation.kind == 'funding' and not re.search(r'funded|supported by|grant|资助|基金', relation.proof.quote, re.I):
                 raise ValueError('coauthorship is not funding evidence')
@@ -723,6 +772,7 @@ def build_organization_findings(configuration: dict | None, evidence: list[dict]
             if item.output_id in accepted_output_ids},
         'source_checks': {'status': 'source_quote_and_reference_checked_not_independent_semantic_review',
             'accepted_output_count': len(scoped.outputs), 'proofs': proofs, 'available_evidence_ids': list(sources)},
+        **({'source_normalizations':normalizations} if layout_policy else {}),
         'identity_aliases': identity_aliases,
         'pending_records': pending, 'inferences': [item for item in interpretations if item['kind'] == 'inference'],
         'recommendations': [item for item in interpretations if item['kind'] == 'recommendation'],

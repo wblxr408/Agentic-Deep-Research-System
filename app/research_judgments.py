@@ -125,7 +125,8 @@ def build_judgments(values,evidence,context,*,configuration=None,findings=None,p
                 if not source or not row or (source.get('acquisition') or {}).get('coverage')=='discovery_only':
                     raise ValueError('judgment_requires_current_acquired_source_window')
                 text=source.get('content') or ''
-                pattern=r'\s+'.join(re.escape(part) for part in proof.quote.split())
+                from app.publication_literals import source_pattern
+                pattern=source_pattern(proof.quote,configuration)
                 match=next((candidate for candidate in re.finditer(pattern,text,re.I)
                     if any(type(part.get('start')) is int and type(part.get('end')) is int
                         and part['start']<=candidate.start()<candidate.end()<=part['end']

@@ -220,7 +220,7 @@ class ReportAgent:
         if not module_mode:
             system_prompt += '\n\n' + REPORT_WRITING_GUIDANCE
         if organization_findings:
-            if any(meta.get('metadata_policy')=='adrs-publication-fields-v2' for meta in
+            if any(meta.get('metadata_policy') in {'adrs-publication-fields-v2','adrs-publication-fields-v3'} for meta in
                     (organization_findings.get('publication_metadata') or {}).values()):
                 system_prompt += ('\nRetained bibliography null fields are unknown. Do not infer a venue, '
                     'conference acceptance or journal publication from a PDF filename, URL or earlier draft. '

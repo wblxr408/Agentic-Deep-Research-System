@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from datetime import date
 import re
+from app.publication_literals import source_pattern
 from typing import Annotated, Literal
 from urllib.parse import urlsplit, quote
 
@@ -65,7 +66,7 @@ def build_trend_view(config,findings,evidence,proposals=None):
     def anchor(proof):
         source=sources.get(proof.evidence_id)
         if not source or (source.get('acquisition') or {}).get('coverage')=='discovery_only':raise ValueError('support must be acquired retained evidence')
-        match=re.search(_pattern(proof.quote),source.get('content') or '',re.I)
+        match=re.search(source_pattern(proof.quote,config),source.get('content') or '',re.I)
         if not match:raise ValueError('support quote is absent from retained source')
         return {'evidence_id':proof.evidence_id,'source_url':source['source_url'],'start':match.start(),'end':match.end(),
             'quote':match.group(),'source_role':source_role(source,config,findings)}

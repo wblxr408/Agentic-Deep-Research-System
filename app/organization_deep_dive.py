@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import re
+from app.publication_literals import source_pattern
 from typing import Literal
 from urllib.parse import quote
 
@@ -87,7 +88,7 @@ def build_technical_cards(configuration,findings,evidence,proposals=None):
         source=sources.get(proof.evidence_id)
         if not source or not linked_source(source,output):raise ValueError('proof is not retained primary work or publisher-linked document')
         if require_full and not _full_text(source):raise ValueError('full_text_required_for_this_field')
-        match=re.search(_pattern(proof.quote),source.get('content') or '',re.I)
+        match=re.search(source_pattern(proof.quote,configuration),source.get('content') or '',re.I)
         if not match:raise ValueError('literal quote is absent from retained source')
         pages=[page['number'] for page in (source.get('acquisition') or {}).get('pages',[])
             if match.start()<page['end'] and match.end()>page['start']]
@@ -117,7 +118,7 @@ def build_technical_cards(configuration,findings,evidence,proposals=None):
         for item in proposal.figure_references if proposal else ():
             try:
                 anchor=locate(item.proof,output,True)
-                if not re.search(_pattern(item.label),anchor['quote'],re.I):raise ValueError('figure_label_absent_from_source_quote')
+                if not re.search(source_pattern(item.label,configuration),anchor['quote'],re.I):raise ValueError('figure_label_absent_from_source_quote')
                 if item.page is not None and item.page not in anchor['pages']:raise ValueError('figure_page_not_supported_by_pdf_offsets')
                 figures.append({'label':item.label,'proof':anchor,'page':item.page,'asset_status':'source_reference_only_not_image_acquired',
                     'source_url':anchor['source_url']+(f'#page={item.page}' if item.page else ''),'origin':'original_source_reference_not_system_generated_chart'})

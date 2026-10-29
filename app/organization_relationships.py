@@ -5,6 +5,7 @@ import calendar
 from collections import Counter, defaultdict
 from itertools import combinations
 import re
+from app.publication_literals import source_pattern
 from typing import Literal
 from urllib.parse import quote
 
@@ -105,7 +106,7 @@ def build_relationship_view(configuration, findings, evidence, proposals=None, *
         source = sources.get(value.evidence_id)
         if not source or (source.get('acquisition') or {}).get('coverage') == 'discovery_only':
             raise ValueError('proof must reference retained acquired evidence')
-        match = re.search(_pattern(value.quote), source.get('content') or '',re.I)
+        match = re.search(source_pattern(value.quote,configuration), source.get('content') or '',re.I)
         if not match:
             raise ValueError('proof quote is absent from retained source')
         return {'evidence_id':value.evidence_id,'source_url':source['source_url'],'start':match.start(),

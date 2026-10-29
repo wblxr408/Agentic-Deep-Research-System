@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from datetime import datetime
 import re
+from app.publication_literals import source_pattern
 from typing import Annotated, Literal
 from urllib.parse import quote, urlsplit
 
@@ -81,7 +82,7 @@ def build_action_view(config,findings,evidence,proposals=None,*,requirements=Non
     def proof(value):
         source=sources.get(value.evidence_id)
         if not source or (source.get('acquisition') or {}).get('coverage')=='discovery_only':raise ValueError('action basis requires acquired source evidence')
-        match=re.search(r'\s+'.join(re.escape(word) for word in value.quote.split()),source.get('content') or '',re.I)
+        match=re.search(source_pattern(value.quote,config),source.get('content') or '',re.I)
         if not match:raise ValueError('action basis is absent from retained original')
         return {'evidence_id':value.evidence_id,'source_url':source['source_url'],'start':match.start(),'end':match.end(),'quote':match.group()}
     for raw in values[:20]:

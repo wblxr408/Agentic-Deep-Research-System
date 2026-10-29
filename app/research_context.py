@@ -21,7 +21,7 @@ CONDITION_QUERIES = {
 }
 
 IDENTITY_CONTEXT_VERSION = 'adrs-publication-identity-v2'
-QUESTION_SEED_VERSION = 'adrs-question-publication-seed-v7'
+QUESTION_SEED_VERSION = 'adrs-question-publication-seed-v8'
 LEGACY_CONTEXT_PACKING_VERSION = 'adrs-context-packing-v1'
 CONTEXT_PACKING_VERSION = 'adrs-context-packing-v2'
 
@@ -134,7 +134,7 @@ def analysis_input_matches(state, query, skills, hints, evidence):
     workflow=state.get('analysis_workflow') or {}
     seed_version=workflow.get('question_seed_version')
     if seed_version!=QUESTION_SEED_VERSION and not (
-              seed_version in {'adrs-question-publication-seed-v5','adrs-question-publication-seed-v6'}
+              seed_version in {'adrs-question-publication-seed-v5','adrs-question-publication-seed-v6','adrs-question-publication-seed-v7'}
               and workflow.get('status')=='completed'):
         return False
     packing_version=workflow_packing_version(workflow)
@@ -181,9 +181,14 @@ def publication_identity_handoff(findings, evidence, *, max_bytes=10000, output_
         if output_ids is not None and output['output_id'] not in output_ids:continue
         row={key:output.get(key) for key in ('output_id','title','published_on','published_until','date_precision')}
         bibliography=metadata.get(output['output_id']) or {}
-        if bibliography.get('metadata_policy')=='adrs-publication-fields-v2':
+        if bibliography.get('metadata_policy') in {'adrs-publication-fields-v2','adrs-publication-fields-v3'}:
             row['bibliography']={key:bibliography.get(key) for key in (
                 'venue','venue_status','output_type','output_type_status','date_basis')}
+        def identity_contains(text,value):
+            if bibliography.get('metadata_policy')=='adrs-publication-fields-v3':
+                from app.publication_literals import literal_pattern
+                return bool(value and re.search(literal_pattern(value),text,re.I))
+            return _contains(text,value)
         affiliations=output.get('affiliations') or []
         row['affiliations']=affiliations[:2]
         row['affiliation_scope']='retained_subset_not_exhaustive_author_list'
@@ -197,8 +202,8 @@ def publication_identity_handoff(findings, evidence, *, max_bytes=10000, output_
                     or source.content[start:end]!=proof.get('quote')
                     or source.evidence_id not in (metadata.get(output['output_id']) or {}).get('evidence_ids',[])):
                 continue
-            if any(_contains(proof['quote'],aff.get('author_id','')) and
-                   _contains(proof['quote'],aff.get('raw_affiliation','')) for aff in affiliations
+            if any(identity_contains(proof['quote'],aff.get('author_id','')) and
+                   identity_contains(proof['quote'],aff.get('raw_affiliation','')) for aff in affiliations
                    if aff.get('author_id') and aff.get('raw_affiliation')):
                 proofs.append((len(proof['quote']),source,proof))
         if proofs:
@@ -210,8 +215,8 @@ def publication_identity_handoff(findings, evidence, *, max_bytes=10000, output_
             source=by_id.get(identifier)
             if not source or (source.acquisition or {}).get('coverage')=='discovery_only':continue
             opening=_publication_opening(source.model_dump(mode='json'))[:2200]
-            if not any(_contains(opening,aff.get('author_id','')) and
-                       _contains(opening,aff.get('raw_affiliation','')) for aff in affiliations
+            if not any(identity_contains(opening,aff.get('author_id','')) and
+                       identity_contains(opening,aff.get('raw_affiliation','')) for aff in affiliations
                        if aff.get('author_id') and aff.get('raw_affiliation')):continue
             row['source_openings'].append({'evidence_id':identifier,'citation_id':evidence.index(source)+1,
                 'start':0,'end':len(opening),'quote':opening})
