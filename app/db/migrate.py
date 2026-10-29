@@ -183,7 +183,7 @@ CREATE INDEX IF NOT EXISTS idx_tool_metrics_session ON tool_metrics (session_id)
 -- Tool call audit table (for forensic-grade per-call tracing)
 -- ==============================================================
 CREATE TABLE IF NOT EXISTS tool_call_audit (
-    call_id VARCHAR(64) PRIMARY KEY,
+    call_id TEXT PRIMARY KEY,
     session_id UUID REFERENCES research_sessions(id) ON DELETE CASCADE,
     node_id VARCHAR(64),
     agent_type VARCHAR(50) NOT NULL,
@@ -212,6 +212,8 @@ CREATE TABLE IF NOT EXISTS tool_call_audit (
 CREATE INDEX IF NOT EXISTS idx_tool_call_audit_session ON tool_call_audit (session_id);
 CREATE INDEX IF NOT EXISTS idx_tool_call_audit_tool ON tool_call_audit (tool_name);
 CREATE INDEX IF NOT EXISTS idx_tool_call_audit_status ON tool_call_audit (status);
+-- Keep complete unknown-operation identities when upgrading an existing table.
+ALTER TABLE tool_call_audit ALTER COLUMN call_id TYPE TEXT;
 ALTER TABLE tool_call_audit ADD COLUMN IF NOT EXISTS safety_json JSONB DEFAULT '{}';
 
 -- ==============================================================

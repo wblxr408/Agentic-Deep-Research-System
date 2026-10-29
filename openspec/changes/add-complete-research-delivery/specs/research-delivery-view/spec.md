@@ -392,3 +392,10 @@ The system SHALL freeze answer, summary, comparison, report or data-analysis int
 #### Scenario: 旧问题的建议较晚返回
 - **WHEN** 用户已经更改问题或手动限额
 - **THEN** 旧问题的建议不作为当前建议，后到结果不覆盖用户填写；界面明确区分基础估算与额外预留
+
+### Requirement: Unknown tool identities remain intact in runtime audit
+系统 SHALL 完整保存已派发但结果未知的服务端调用标识，包括unknown-前缀及完整operation_id。现有数据库升级和新建库 SHALL 使用同一存储契约；MUST NOT 截断、合并不同调用、释放未知消费或接受过期结果来绕过存储失败。
+
+#### Scenario: 工具结果租约已过期
+- **WHEN** 原交接控制点拒绝结果并生成未知消费记录
+- **THEN** 审计可保存原完整调用标识、拒因及关联操作，原根消费和权限规则继续执行，不因旧64字符列限制终止整个研究

@@ -171,7 +171,7 @@ async def init_db() -> asyncpg.Pool:
         """)
         await conn.execute("""
             CREATE TABLE IF NOT EXISTS tool_call_audit (
-                call_id VARCHAR(64) PRIMARY KEY,
+                call_id TEXT PRIMARY KEY,
                 session_id UUID REFERENCES research_sessions(id) ON DELETE CASCADE,
                 node_id VARCHAR(64),
                 agent_type VARCHAR(50) NOT NULL,
@@ -197,6 +197,9 @@ async def init_db() -> asyncpg.Pool:
                 created_at TIMESTAMP DEFAULT NOW()
             )
         """)
+        # Unknown results use 'unknown-' + the complete operation identity.
+        # Preserve that identity for existing databases as well as fresh ones.
+        await conn.execute("ALTER TABLE tool_call_audit ALTER COLUMN call_id TYPE TEXT")
         await conn.execute("""
             ALTER TABLE tool_call_audit
             ADD COLUMN IF NOT EXISTS safety_json JSONB DEFAULT '{}'
