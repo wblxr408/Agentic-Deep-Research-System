@@ -37,6 +37,24 @@ class PlanningError(ValueError):
         self.category, self.detail = category, detail
 
 
+def rebind_checkpoint_plan(state,execution_id,previous_execution_id,*,recovery_predecessor=None):
+    """Move a trusted restored plan to a new execution without resetting its DAG."""
+    manifest=deepcopy(state.get('plan_manifest') or {})
+    if not manifest:return
+    allowed={str(previous_execution_id)}
+    if recovery_predecessor:allowed.add(str(recovery_predecessor))
+    if manifest.get('task_id')!=state.get('task_id') or manifest.get('execution_id') not in allowed:
+        raise PlanningError('resume_plan_binding_unavailable')
+    previous=manifest.pop('plan_version',None)
+    manifest.update(execution_id=str(execution_id),parent_plan_version=previous,
+        revision=int(manifest.get('revision') or 0)+1,reason='execution_resumed_dag_preserved',
+        adjustments=[{'reason':'execution_resumed_dag_preserved','previous_execution_id':manifest['execution_id'],
+            'execution_id':str(execution_id),'root_budget_changed':False}])
+    manifest['plan_version']=identity(manifest)
+    state['plan_manifest']=manifest
+    state['plan_history']=[*(state.get('plan_history') or []),deepcopy(manifest)]
+
+
 def dependency_batches(nodes: list[PlanNode]) -> list[list[str]]:
     """One authority for topological order; fail on unknown/duplicate/cyclic IDs."""
     ids = [node.node_id for node in nodes]

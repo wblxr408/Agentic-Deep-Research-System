@@ -8,9 +8,20 @@ def heartbeat_expired(value):
     return (datetime.now(UTC)-value).total_seconds()>=120
 
 
+def binding_repair(record,state):
+    review=state.get('review_status') or {}
+    failure=review.get('workflow_failure') or {}
+    recovery=review.get('execution_recovery') or {}
+    return (record['status']=='failed' and failure.get('error_type')=='PlanningError'
+        and failure.get('message')=='plan_execution_binding_conflict'
+        and failure.get('execution_id')==str(record['execution_id'])
+        and recovery.get('reason')=='worker_interrupted'
+        and recovery.get('execution_id')==str(record['execution_id']))
+
+
 def acquisition_resume_node(record,state,budget):
     from app.execution_control import execution_is_active
-    if (record['status']!='running' or not heartbeat_expired(record.get('last_heartbeat_at'))
+    if ((record['status']!='running' and not binding_repair(record,state)) or not heartbeat_expired(record.get('last_heartbeat_at'))
             or execution_is_active(state.get('task_id'),record['execution_id'])
             or state.get('analysis_workflow') or state.get('pending_approvals')
             or int((state.get('session') or {}).get('execution_recovery_attempts') or 0)>=2

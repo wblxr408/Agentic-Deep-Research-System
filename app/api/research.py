@@ -1463,7 +1463,7 @@ async def get_research_result(session_id: str, principal: Principal = principal_
                    (SELECT last_heartbeat_at FROM session_runtime_state
                     WHERE session_id = research_sessions.id) AS execution_heartbeat,
                    (SELECT state_snapshot_json FROM session_runtime_state
-                    WHERE session_id = research_sessions.id AND research_sessions.status='running'
+                    WHERE session_id = research_sessions.id AND research_sessions.status IN ('running','failed')
                       AND last_heartbeat_at < NOW()-INTERVAL '120 seconds') AS interruption_state
             FROM research_sessions
             WHERE id = $1::uuid AND owner_id = $2::uuid
@@ -1994,11 +1994,18 @@ async def _resume_controlled_checkpoint(session_id,payload,background_tasks,prin
             raise HTTPException(409,{'category':error.reason,
                 'model_configuration_change':getattr(error,'routing_change',None)}) from None
     execution_id=str(uuid.uuid4())
+    from app.planning_control import rebind_checkpoint_plan,PlanningError
+    from app.research_interruption import binding_repair
+    predecessor=((review.get('execution_recovery') or {}).get('previous_execution_id')
+        if interruption and binding_repair(record,state) else None)
+    try:rebind_checkpoint_plan(state,execution_id,record['execution_id'],recovery_predecessor=predecessor)
+    except PlanningError as error:raise HTTPException(409,error.category) from None
     state.update(status='running',runtime_status='running',budget_state=budget)
     state['session']={**root,'status':'running','execution_id':execution_id}
     state['review_status']={**review,'runtime_status':'running','reason':None,'budget_state':budget,
         'user_control':{**control,'state':'resumed','resumed_at':utc_now_naive().isoformat(),
             'resume_request_id':str(payload.request_id),'execution_id':execution_id}}
+    state['review_status'].update(plan_manifest=state.get('plan_manifest'),plan_history=state.get('plan_history'))
     if interruption:
         state['session'].update(user_resume_node=node,
             execution_recovery_attempts=int(root.get('execution_recovery_attempts') or 0)+1)

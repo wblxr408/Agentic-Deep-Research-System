@@ -13,3 +13,5 @@
 **安全引用与验收边界**：复用A2ABreak v1.0既有11项评估。采用[A2AB-06《并发状态版本与审批绑定》](</C:/Users/wblxr/basic-memory/engineering/security/a2abreak/solutions/A2AB-06 并发状态版本与审批绑定.md>)“工程解决方案”1／3，在resume行锁／execution围栏／检查点及最终收据核对落实；采用[A2AB-10《委派环路检测与全链预算》](</C:/Users/wblxr/basic-memory/engineering/security/a2abreak/solutions/A2AB-10 委派环路检测与全链预算.md>)“工程解决方案”1／3及[A2AB-11《中断任务租约与有界资源回收》](</C:/Users/wblxr/basic-memory/engineering/security/a2abreak/solutions/A2AB-11 中断任务租约与有界资源回收.md>)“工程解决方案”1／4，保留原期限、原消费及两次上限。03沿原owner／资料控制；其余01／02／04／05／07／08／09没有新增技能、身份、SSE授权、产物、Webhook或委派信任面，复用原有效控制点。它们是待项目验证的工程建议。
 
 源码及调用链审阅后，用本次同一根的真实完整研究续作观察，不执行局部、回归、构建、类型、schema、探针或旧数据重放。拒绝、并发、跨用户等未运行边界不由合法续作证明；完整报告和M1—M3仍按原TODO验收。
+
+首次实际续作HTTP200，执行改为c3b99bd9，原6152 Token／76工具及开始时间保留；随后在首个工具派发前因plan_execution_binding_conflict失败，没有新增模型或网络消费。恢复入口遗漏了计划的执行绑定同步，原manifest仍属于845080b0。补充的rebind_checkpoint_plan仅在原根与已确认执行链内更新manifest执行／父版本／修订号，并保存历史；不调用重置DAG状态的compile_plan，也不改变节点、来源、权限和预算。该次恢复产生的精确PlanningError可沿同一入口用剩余一次次数修复，其他failed根不放宽；原故障记录和快照保留。效果继续由本根完整续作观察，不将HTTP200当成功完成。
