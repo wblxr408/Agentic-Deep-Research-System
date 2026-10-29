@@ -15,6 +15,7 @@ STOP_ERRORS = {"auth_required", "account_risk", "rate_limited", "domain_blocked"
                'personal_connection_changed','personal_connection_unavailable','personal_connection_redirect_blocked','github_redirect_blocked',
                'credential_url_requires_direct_pinned_source_reader','access_credentials_cannot_be_external_query_data',
                'credential_url_requires_direct_read_not_search_or_proxy'}
+PUBLIC_SEARCH_BACKENDS = frozenset({'duckduckgo','bing-rss','exa-mcp'})
 
 
 class ChannelService:
@@ -67,10 +68,12 @@ class ChannelService:
                 break
         return normalized
 
-    def collect(self, request: CollectionRequest, *, max_calls: int = 8, timeout_seconds: float | None = None) -> CollectionResult:
+    def collect(self, request: CollectionRequest, *, max_calls: int = 8, timeout_seconds: float | None = None,
+                public_search_failover: bool = False) -> CollectionResult:
         from app.execution_control import check_execution
         check_execution()
         spec = CATALOG[request.channel]
+        provider_scoped=bool(public_search_failover and request.channel=='web' and request.operation=='search')
         config = ChannelConfig(**self.store.read(self.owner_id)["configs"].get(request.channel, {}))
         result = CollectionResult()
         partial_items = []
@@ -104,8 +107,9 @@ class ChannelService:
                 host, _ = public_url(request.query)
                 if spec.domains and not any(host == d or host.endswith("." + d) for d in spec.domains):
                     raise ChannelError("unsupported_input")
-            recent = next((a for a in reversed(self.history()) if a["channel"] == request.channel), None)
-            if recent and recent.get("error_category") == "rate_limited" and (datetime.now(timezone.utc) - datetime.fromisoformat(recent["timestamp"])).total_seconds() < 60:
+            history=self.history()
+            recent = next((a for a in reversed(history) if a["channel"] == request.channel), None)
+            if not provider_scoped and recent and recent.get("error_category") == "rate_limited" and (datetime.now(timezone.utc) - datetime.fromisoformat(recent["timestamp"])).total_seconds() < 60:
                 raise ChannelError("rate_limited")
         except ChannelError as exc:
             result.attempts.append(Attempt(channel=request.channel, backend="policy", status="failed", error_category=exc.category))
@@ -115,6 +119,16 @@ class ChannelService:
                 attempt_started = time.monotonic()
                 calls_before = budget.used
                 try:
+                    # Respect this provider's existing cooldown, without making
+                    # an unrelated public service inherit the upstream limit.
+                    # No same-provider retry, new backend or extra budget here.
+                    if provider_scoped and backend in PUBLIC_SEARCH_BACKENDS:
+                        recent_backend=next((a for a in reversed(history)
+                            if a['channel']==request.channel and a.get('backend')==backend
+                            and a.get('call_count',1)>0),None)
+                        if recent_backend and recent_backend.get('error_category')=='rate_limited':
+                            age=(datetime.now(timezone.utc)-datetime.fromisoformat(recent_backend['timestamp'])).total_seconds()
+                            if 0<=age<60:raise ChannelError('rate_limited')
                     from app.data_governance import sensitive_url
                     if request.operation=='read' and sensitive_url(request.query):
                         raise ChannelError('credential_url_requires_direct_pinned_source_reader')
@@ -158,7 +172,8 @@ class ChannelService:
                             partial_items=[item for item in partial_items if matches_query_terms(
                                 item.title+' '+item.content,request.required_terms)]
                     result.attempts.append(Attempt(channel=request.channel, backend=backend, status="failed", error_category=exc.category, duration_ms=int((time.monotonic()-attempt_started)*1000), call_count=budget.used-calls_before))
-                    if exc.category in STOP_ERRORS:
+                    independent_limit=provider_scoped and backend in PUBLIC_SEARCH_BACKENDS and exc.category=='rate_limited'
+                    if exc.category in STOP_ERRORS and not independent_limit:
                         break
                 finally:
                     budget.attempt_deadline=None

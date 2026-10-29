@@ -276,7 +276,7 @@ Return JSON with a "queries" array of strings."""
 
     def execute_search(self, query: str, *, channels: list[str] | None = None, owner_id: str | None = None, limit: int = 10, max_calls: int = 24, timeout_seconds: float = 90,
                        query_variants:list[str]|None=None,fusion:dict|None=None,query_type:str|None=None,source_policy=None,
-                       required_terms:list[str]|None=None) -> list[SearchResult]:
+                       required_terms:list[str]|None=None,public_search_failover:bool=False) -> list[SearchResult]:
         """
         Execute a single search query (主题 3 工具接口).
 
@@ -298,7 +298,7 @@ Return JSON with a "queries" array of strings."""
         if len(selected) > 8 or len(selected) != len(set(selected)):
             raise ValueError("select at most eight unique channels")
         # Preserve the existing plain-web interface and its fallback behavior.
-        if selected == ["web"] and operation == "search" and not channels and owner_id is None and query_variants is None and fusion is None and source_policy is None and not required_terms:
+        if selected == ["web"] and operation == "search" and not channels and owner_id is None and query_variants is None and fusion is None and source_policy is None and not required_terms and not public_search_failover:
             return self._execute_search(routed_query)
         service = ChannelService(owner_id, legacy_search=self._execute_search)
         import time
@@ -322,7 +322,7 @@ Return JSON with a "queries" array of strings."""
             share=max(1,remaining//slots)
             result = service.collect(CollectionRequest(channel=name, operation=operation, query=actual_query,
                 required_terms=required_terms or [],limit=min(fusion_policy['per_route_top_k'], 20)),
-                max_calls=share, timeout_seconds=max(0,seconds/slots))
+                max_calls=share, timeout_seconds=max(0,seconds/slots),public_search_failover=public_search_failover)
             used_calls += result.call_count
             self.last_channel_attempts.extend({**a.model_dump(),'query':actual_query,'allocated_calls':share,
                 'allocated_seconds':max(0,seconds/slots)} for a in result.attempts)

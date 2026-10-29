@@ -1565,14 +1565,16 @@ def search_node(state: ResearchState) -> dict:
             query_context=state.get('query_understanding') or {}
             strategy=query_context.get('research_strategy') or {'source_followup':query_context.get('source_followup')}
             required_terms=discovery_query_terms(strategy,search_query)
-            _update_tool_safety(tool_history,required_topic_terms=required_terms)
+            public_failover=(strategy.get('source_followup') or {}).get('rate_limit_policy')=='public_provider_scoped_v1'
+            _update_tool_safety(tool_history,required_topic_terms=required_terms,
+                                rate_limit_policy='public_provider_scoped_v1' if public_failover else None)
             results = agent.execute_search(search_query, channels=route['channels'],
                                            owner_id=state.get("session", {}).get("owner_id"), limit=route['top_k'],
                                            max_calls=route['max_calls'], timeout_seconds=route['timeout_seconds'],
                                            query_variants=list(dict.fromkeys(search_queries)),
                                            fusion=frozen_policy((state.get('query_understanding') or {}).get('candidate_fusion')),
                                            query_type=(state.get('query_understanding') or {}).get('query_type'),source_policy=policy,
-                                           required_terms=required_terms)[:max_results]
+                                           required_terms=required_terms,public_search_failover=public_failover)[:max_results]
             if policy:
                 accepted, rejected = policy.filter_leads(results)
                 allowed = {item['url'] for item in accepted}

@@ -57,3 +57,11 @@
 实际缺口：`doi.org/10.48550/arxiv.2501.14417`已经成功转到`arxiv.org/abs/2501.14417`，该页保留了真实PDF与HTML链接。但父节点索引只按请求URL查找，最终URL不相同，使整页的后续链接未进入读取候选；另一篇2510.13291同样如此。十二项补读随后消耗在其他主题／个人页面，最后只把两篇摘要交给抽取。新发现v5沿本次可信公开传输的requested_url／final_url匹配同任务已完成父节点，保留实际请求、最终地址和原链接，不把DOI推导成假想PDF。
 
 同一原计划的`plan_missing_condition`触发整图固定回退，编译后实际三条搜索均是中文，两个是团队查询。新v5仅在这一个拒因下保留原图中明确无条件、无依赖及无入边的独立搜索，拒绝图中的条件／依赖／browser不复用；仍经原source policy／种子／编译／工具许可／预算。不猜条件，也不增加修复模型调用。原规划提示补明确条件格式；固定回退择论文查询优先于仅含publications的团队查询。源码／调用链审阅，效果仍待整块真实流程。
+
+## 发现v5后的完整旅程及限流交接
+
+`c86d441`已提交推送并在78e1656c终态后部署。新根`0146504c-fccd-4755-bb79-a76e113afd59`、execution`058ab424-916e-4034-bb8b-fca98d7d7135`沿同一原短问题、范围、当前Agnes及630,000／56／72分钟额度。原请求和状态保留于`outputs/m2-redirect-handoff-20261029/`。
+
+这次规划直接合法，实际查询为原始中文问题、`Peking University LLM service research publications 2020-2026`及`Peking University team author LLM service research computer science`，没有触发缩减计划；不能据此证明缩减分支效果。三条搜索都在DuckDuckGo返回rate_limited后终止，没有执行其他后端。08:03UTC同根已暂停`research_discovery_incomplete`，5,636 Token／8工具，0在途，207秒，五份机构页面、零抽取步骤／原件／成果／报告。此次未到DOI或作者恢复，保持这些实际效果未证实。
+
+真实根因在渠道层：rate_limited既是全渠道停止类别，又会把一个后端近期的限流扩成整个web通道60秒冷却。新根另冻`rate_limit_policy=public_provider_scoped_v1`，只在web/search已配置的DuckDuckGo／Bing RSS／Exa之间按服务区分，跳过仍在原60秒冷却内的实际后端，允许剩余候选沿原总次数／deadline继续。被跳过的零调用记录不更新冷却依据，避免不断续推期限。认证／账号风险、禁用、来源／敏感数据、总预算及其他平台仍沿原停止。没有新增服务、凭据、网络权限或自动重试轮；旧根缺此flag保持原冻结规则。源码及调用链审阅，未执行局部检查或旧响应重放；完整成果和图文交付仍未完成。

@@ -61,6 +61,7 @@ def freeze_strategy(query, configuration, slots):
                            'topic_gate':'distinctive_literal_v1',
                            'entity_identity':'official-language-v1',
                            'identity_transport':'https_same_target_v1',
+                           'rate_limit_policy':'public_provider_scoped_v1',
                            'topic_terms':topic_terms(query,entities)}}
 
 

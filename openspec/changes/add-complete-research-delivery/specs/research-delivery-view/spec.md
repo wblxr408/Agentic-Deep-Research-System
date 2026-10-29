@@ -328,3 +328,7 @@ The system SHALL freeze answer, summary, comparison, report or data-analysis int
 #### Scenario: 原计划条件边未给谓词
 - **WHEN** 新发现v5计划因plan_missing_condition被原编译拒绝，仍有明确无条件、无依赖／入边的search
 - **THEN** 只保留这些独立查询并沿原许可／源策略／种子和编译器重核，其余节点与边不复用，不猜条件或新增修复模型调用；其他拒因保持原回退
+
+#### Scenario: 一个公开搜索服务被限流
+- **WHEN** 新根冻结public_provider_scoped_v1且web/search的已有独立公开后端返回rate_limited或仍处原60秒冷却
+- **THEN** 尊重该后端冷却，在当前owner配置的其他已有后端与同一次数／deadline内继续；零调用跳过不续推冷却，不绕过认证／账号风险／权限，不新增重试轮；缺flag的旧根不升级
