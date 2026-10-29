@@ -60,6 +60,7 @@ def freeze_strategy(query, configuration, slots):
                            'initial_search_limit':3,'require_work_before_deep_analysis':True,
                            'topic_gate':'distinctive_literal_v1',
                            'entity_identity':'official-language-v1',
+                           'identity_transport':'https_same_target_v1',
                            'topic_terms':topic_terms(query,entities)}}
 
 

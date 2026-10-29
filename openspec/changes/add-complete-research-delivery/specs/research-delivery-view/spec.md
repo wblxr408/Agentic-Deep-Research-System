@@ -262,3 +262,7 @@ The system SHALL freeze answer, summary, comparison, report or data-analysis int
 #### Scenario: 日期内部重叠与署名拼接
 - **WHEN** 一个完整日期含有较短月年子串，或模型把多作者／省略拼接写进署名
 - **THEN** 日期内部重叠不构成两个独立日期，其他不同日期仍保持歧义；每条署名保留一位作者及连续原文，只有年份不补月份，版本日期不当作首次发表
+
+#### Scenario: 官网语言入口使用HTTP
+- **WHEN** 新根冻结同目标安全传输转换，已读显式官网给出同域HTTP语言入口
+- **THEN** 保留原href，只尝试相同主机／路径／参数的HTTPS候选并重新执行全部准入；不执行HTTP、不改端口或猜测路径，成功读取和原文名称校验前不建立别名

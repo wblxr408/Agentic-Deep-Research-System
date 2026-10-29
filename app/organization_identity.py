@@ -14,6 +14,19 @@ def language_link(label):
     }
 
 
+def secure_language_url(url):
+    """Try only TLS for the same explicit language-link target; never use HTTP."""
+    try:
+        parsed = urlsplit(url)
+        if (parsed.scheme == 'http' and parsed.hostname and not parsed.username and not parsed.password
+                and parsed.port in (None, 80)):
+            authority = parsed.netloc[:-3] if parsed.netloc.endswith(':80') else parsed.netloc
+            return parsed._replace(scheme='https', netloc=authority).geturl()
+    except ValueError:
+        pass
+    return url
+
+
 def identity_sources(configuration, evidence):
     """Bind an acquired page to an explicit entrance or its literal language link.
 
@@ -45,9 +58,11 @@ def identity_sources(configuration, evidence):
                     continue
                 url = link.get('url')
                 if not isinstance(url, str):continue
-                host = urlsplit(url).hostname or ''
+                try:host = urlsplit(url).hostname or ''
+                except ValueError:continue
                 if any(host == item or host.endswith('.' + item) for item in hosts):
                     allowed.add(request_url_identity(url))
+                    allowed.add(request_url_identity(secure_language_url(url)))
         result[entity['entity_id']] = [row['evidence_id'] for row in rows
             if locations(row) & allowed and within_hosts(row, hosts)]
     return result

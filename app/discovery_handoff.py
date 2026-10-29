@@ -194,6 +194,19 @@ def extend_reads(state, dag, *, remaining_calls, remaining_seconds, allowed_tool
             url = link.get('url') if isinstance(link, dict) else None
             if not isinstance(url, str) or len(url) > 2048 or sensitive_url(url):
                 continue
+            label = str(link.get('label') or '')
+            from app.organization_identity import language_link, secure_language_url
+            try:host = urlsplit(url).hostname or ''
+            except ValueError:continue
+            identity_language = bool(policy.get('entity_identity') == 'official-language-v1' and
+                not discovery and any(host == item or host.endswith('.' + item) for item in official_hosts)
+                and language_link(label) and any(
+                    request_url_identity(source_url) == request_url_identity(str(seed))
+                    for entity in (config.get('scope') or {}).get('entities', [])
+                    for seed in entity.get('source_urls', [])))
+            source_link_url = url
+            if identity_language and policy.get('identity_transport') == 'https_same_target_v1':
+                url = secure_language_url(url)
             key = request_url_identity(url)
             if key in requested or 'read_'+identity({'url':key})[:20] in past_read_nodes:
                 continue
@@ -202,17 +215,10 @@ def extend_reads(state, dag, *, remaining_calls, remaining_seconds, allowed_tool
                 authorize_network(url, context, operation='read')
             except (ChannelError, ValueError):
                 continue
-            label = str(link.get('label') or '')
             description = (url + ' ' + label + (' ' + source_text if discovery else '')).casefold()
             hits = terms & set(_terms(description))
             host = urlsplit(url).hostname or ''
             official = any(host == item or host.endswith('.' + item) for item in official_hosts)
-            from app.organization_identity import language_link
-            identity_language = bool(policy.get('entity_identity') == 'official-language-v1' and
-                not discovery and official and language_link(label) and any(
-                    request_url_identity(source_url) == request_url_identity(str(seed))
-                    for entity in (config.get('scope') or {}).get('entities', [])
-                    for seed in entity.get('source_urls', [])))
             academic = bool(re.search(r'research|publication|faculty|people|laborator|\.pdf(?:$|\?)|科研|学术|师资|论文|团队', description))
             # Inspect the actual href before the lexical gate. Numeric paper
             # URLs and labels such as "Read PDF" need their parent's context.
@@ -264,6 +270,8 @@ def extend_reads(state, dag, *, remaining_calls, remaining_seconds, allowed_tool
                         0 if role=='topic' else -1,
                         primary_link_inherited=bool(inherited and primary_landing),
                         identity_language_entrance=identity_language,
+                        source_link_url=source_link_url,
+                        transport_upgrade='https_same_target_v1' if url != source_link_url else None,
                         selection_basis='explicit_fulltext_then_primary_landing_then_target_entrance_then_topic')
             candidate = {'url': url, 'evidence_id': source['evidence_id'], 'depends_on': parents,
                          'depth': depth, 'score': score, 'host': host, 'label': label[:240], **signals}
@@ -297,10 +305,12 @@ def extend_reads(state, dag, *, remaining_calls, remaining_seconds, allowed_tool
         rows.append({'node_id': node_id, 'node_type': 'browser', 'query': row['url'],
                      'depends_on': row['depends_on'], 'parallel': True, 'condition': 'always',
                      'status': 'pending', 'purpose': '从已保留线索读取正文',
-                     'discovery_basis': {'evidence_id': row['evidence_id'], 'url': row['url'], 'label': row['label']},
+                     'discovery_basis': {'evidence_id': row['evidence_id'],
+                         'url': row.get('source_link_url',row['url']), 'read_url': row['url'], 'label': row['label']},
                      'depth': row['depth'], **{key: row[key] for key in (
                          'source_role', 'topic_terms', 'direct_topic_terms', 'explicit_full_text_link',
-                         'parent_topic_used', 'selection_basis','source_priority','primary_link_inherited') if key in row}})
+                         'parent_topic_used', 'selection_basis','source_priority','primary_link_inherited',
+                         'identity_language_entrance','source_link_url','transport_upgrade') if key in row}})
     if not rows:
         return dag, manifest, []
     for node in dag.nodes:
