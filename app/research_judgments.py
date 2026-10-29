@@ -50,13 +50,16 @@ def freeze_strategy(query, configuration, slots):
         r'大学|学院|实验室|研究院|研究所|公司|\buniversity\b|\blaborator(?:y|ies)\b',query,re.I))
     from app.discovery_handoff import TRANSPORT_VERSION, topic_terms
     entities = [*((configuration or {}).get('scope') or {}).get('entities', []), *slots.get('entities', [])]
+    expanded=organization and corpus.get('collection_mode')!='seeds_only' and (
+        slots.get('depth')=='deep' or 'deep_dive' in slots.get('modules',[]))
     return {'version':VERSION,'original_question':query,
         'investigation':'organization_and_work' if organization else 'question_and_evidence',
         'collection_mode':corpus.get('collection_mode','open_discovery'),
         'representative_works':'select_after_discovery_not_preloaded_examples',
         'analysis_order':[key for key in ORDER if key in slots.get('modules',[])],
         'purpose':slots.get('purpose'),'depth':slots.get('depth'),'model_calls_added':0,
-        'source_followup':{'version':TRANSPORT_VERSION,'max_sources':12,'max_depth':3,
+        'source_followup':{'version':TRANSPORT_VERSION,'max_sources':24 if expanded else 12,'max_depth':3,
+                           **({'collection_capacity_policy':'primary_work_capacity_v1'} if expanded else {}),
                            'initial_search_limit':3,'require_work_before_deep_analysis':True,
                            'topic_gate':'distinctive_literal_v1',
                            'entity_identity':'official-language-v1',

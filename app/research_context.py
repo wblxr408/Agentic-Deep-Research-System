@@ -21,7 +21,7 @@ CONDITION_QUERIES = {
 }
 
 IDENTITY_CONTEXT_VERSION = 'adrs-publication-identity-v2'
-QUESTION_SEED_VERSION = 'adrs-question-publication-seed-v9'
+QUESTION_SEED_VERSION = 'adrs-question-publication-seed-v10'
 LEGACY_CONTEXT_PACKING_VERSION = 'adrs-context-packing-v1'
 CONTEXT_PACKING_VERSION = 'adrs-context-packing-v2'
 
@@ -134,7 +134,7 @@ def analysis_input_matches(state, query, skills, hints, evidence):
     workflow=state.get('analysis_workflow') or {}
     seed_version=workflow.get('question_seed_version')
     if seed_version!=QUESTION_SEED_VERSION and not (
-              seed_version in {'adrs-question-publication-seed-v5','adrs-question-publication-seed-v6','adrs-question-publication-seed-v7','adrs-question-publication-seed-v8'}
+              seed_version in {'adrs-question-publication-seed-v5','adrs-question-publication-seed-v6','adrs-question-publication-seed-v7','adrs-question-publication-seed-v8','adrs-question-publication-seed-v9'}
               and workflow.get('status')=='completed'):
         return False
     packing_version=workflow_packing_version(workflow)
@@ -412,9 +412,11 @@ def _ranges(source, query, deep, focus=None, located_spans=None):
     if deep:
         requested=focus or tuple(CONDITION_QUERIES)
         for role in requested:
-            if role not in CONDITION_QUERIES:continue
-            field_query=CONDITION_QUERIES[role]
-            if re.search(r'computer science|计算机|LLM|inference|GPU|大模型',query,re.I):
+            if role=='mechanism' and focus:
+                field_query='method design architecture algorithm mechanism implementation procedure model'
+            elif role in CONDITION_QUERIES:field_query=CONDITION_QUERIES[role]
+            else:continue
+            if role!='mechanism' and re.search(r'computer science|计算机|LLM|inference|GPU|大模型',query,re.I):
                 field_query+=' GPU model workload trace latency throughput SLO'
             for item in select_excerpts(field_query,[source],max_sources=1,window=1600,windows_per_source=2):
                 if item['quote']:
@@ -603,6 +605,7 @@ def evidence_context(evidence, query: str, *, deep: bool, max_bytes: int, prefer
                 else:merged.append({'start':start,'end':end,'roles':[role],'entries':[(role,start,end)]})
             desired=list(focus or CONDITION_QUERIES)
             merged.sort(key=lambda item:('retained_field_proof' not in item['roles'],
+                bool(focus and 'mechanism' in focus and 'mechanism' not in item['roles']),
                 -sum(role in item['roles'] for role in desired),item['start']))
             covered=set()
             for item in merged:
@@ -680,7 +683,7 @@ def evidence_context(evidence, query: str, *, deep: bool, max_bytes: int, prefer
         'source_selection':assessment,
         'conclusion_coverage': 'not_assessed', 'offset_unit': 'task_retained_evidence_character'}
     if required:
-        body_roles={'method','evaluation','limitations','question',*CONDITION_QUERIES}
+        body_roles={'method','evaluation','limitations','question','mechanism',*CONDITION_QUERIES}
         body_ids={row['evidence_id'] for row in rows if any(
             body_roles.intersection(part.get('roles',[part.get('role')])) for part in row['excerpts'])}
         manifest['required_full_text_groups']={output_id:{'eligible_evidence_ids':identifiers,

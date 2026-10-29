@@ -1533,7 +1533,8 @@ async def get_research_result(session_id: str, principal: Principal = principal_
         'checkpoint_seq':int(_json_object(row.get('root_session')).get('checkpoint_seq') or 0),
         'user_control':review_status.get('user_control'),
         'pause_diagnosis':pause_diagnosis,
-        'stop_reason':review_status.get('reason') or review_status.get('last_error_category') or workflow.get('stop_reason'),
+        'stop_reason':(review_status.get('reason') or review_status.get('last_error_category') or workflow.get('stop_reason'))
+            if row['status'] in {'paused','failed','canceled'} else None,
         "query": row["user_query"],
         "status": row["status"],
         'classification_versions': review_status.get('classification_versions', []),
@@ -1560,7 +1561,11 @@ async def get_research_result(session_id: str, principal: Principal = principal_
         'budget_state':review_status.get('budget_state'),
         "execution_plan": _json_object(row.get("execution_plan")),
         'analysis_progress':{'phase':workflow.get('active_phase'),'status':workflow.get('status'),
-            'stop_reason':workflow.get('stop_reason'),'last_admission':projection(phase_admission),
+            **({'reading_selection':{'selected_count':len(workflow['representative_reading']['selected_output_ids']),
+                'accepted_count':workflow['representative_reading']['accepted_output_count']}}
+                if workflow.get('representative_reading') else {}),
+            'stop_reason':workflow.get('stop_reason') if workflow.get('status')=='paused' else None,
+            'last_admission':projection(phase_admission),
             'completed_steps':len(workflow.get('completed') or {}),
             'phases':[{'phase':phase,'status':'completed' if phase in (workflow.get('completed') or {}) else
                 'paused' if workflow.get('status')=='paused' else 'running',

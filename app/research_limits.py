@@ -4,6 +4,7 @@ from __future__ import annotations
 from copy import deepcopy
 from datetime import UTC, datetime
 from math import ceil
+import re
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -57,15 +58,36 @@ def recommend_limits(payload):
     tokens+=audit
     calls=4+entities*4+len(modules)*2+(12 if deep else 0)
     seconds=180+entities*120+len(modules)*180+(900 if deep else 0)+(180 if illustrated else 0)
+    workload=None
+    corpus=organization.get('corpus') or {}
+    organization_task=bool(organization or options.get('entities') or re.search(
+        r'大学|学院|实验室|研究院|研究所|公司|\buniversity\b|\blaborator(?:y|ies)\b',payload.get('query',''),re.I))
+    if deep and organization_task and corpus.get('collection_mode')!='seeds_only':
+        # Capacity describes possible reads, not additional permissions. Root
+        # consumers still stop when no useful current source remains.
+        read_slots=24
+        representative_count=max(4,min(20,entities))
+        extraction_batches=ceil(read_slots/4)
+        analysis_calls=extraction_batches+max(0,len(modules)-1)+2*ceil(representative_count/2)
+        collection_seconds=read_slots*75+90
+        analysis_seconds=analysis_calls*75
+        delivery_seconds=max(300,len(modules)*90+180)+(60 if illustrated else 0)
+        calls=max(calls,(read_slots+3)*3)
+        seconds=max(seconds,180+collection_seconds+analysis_seconds+delivery_seconds)
+        workload={'source_read_capacity':read_slots,'representative_reading_capacity':representative_count,
+            'estimated_analysis_calls':analysis_calls,'collection_seconds':collection_seconds,
+            'analysis_seconds':analysis_seconds,'delivery_seconds':delivery_seconds,
+            'basis':'bounded_read_paths_stage_outputs_and_final_audit_not_a_service_latency_guarantee'}
     estimated={'max_total_tokens':min(1_100_000,ceil(tokens/1000)*1000),
                'max_tool_calls':min(140,calls),'max_wall_clock_seconds':min(12000,ceil(seconds/60)*60)}
     recommended={key:max(int(base[key]),ceil(value*(1+margin/100)/unit)*unit)
         for key,value,unit in [(key,value,10000 if key=='max_total_tokens' else 60 if key=='max_wall_clock_seconds' else 1)
                                for key,value in estimated.items()]}
     recommended=ResearchLimits.model_validate(recommended).model_dump()
-    return {'version':'adrs-limit-advice-v1','complexity':level,'headroom_percent':margin,
+    return {'version':'adrs-limit-advice-v2','complexity':level,'headroom_percent':margin,
             'estimated':estimated,'recommended':recommended,'defaults':limits_view(base),
-            'basis':{'entity_count':entities,'module_count':len(modules),'depth':depth,'illustrated':illustrated,'query_type':query_type},
+            'basis':{'entity_count':entities,'module_count':len(modules),'depth':depth,'illustrated':illustrated,
+                'query_type':query_type,**({'workload':workload} if workload else {})},
             'method':'configuration_rules_no_model_call','cost_usd':None}
 
 

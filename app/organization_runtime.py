@@ -64,6 +64,7 @@ def freeze_organization_request(request: OrganizationResearchRequest | None, sel
         'selected_preset': {key: selected_preset[key] for key in ('preset_id', 'version', 'name')} if selected_preset else None,
         'schema_version': 'adrs-organization-run-v8',
         'publication_metadata_policy':'adrs-publication-fields-v4',
+        'analysis_phase_policy':'adrs-analysis-phase-output-v1',
         'statistics_policy_version': STATISTICS_POLICY_VERSION,
         'action_policy_version': ACTION_POLICY_VERSION,
         'relationship_policy_version': RELATIONSHIP_POLICY_VERSION,

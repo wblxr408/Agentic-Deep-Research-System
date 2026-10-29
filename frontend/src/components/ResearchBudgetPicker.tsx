@@ -9,7 +9,8 @@ import './researchBudget.css'
 export interface ResearchLimits {max_total_tokens:number;max_tool_calls:number;max_wall_clock_seconds:number}
 interface Advice {
   complexity:string;headroom_percent:number;estimated:ResearchLimits;recommended:ResearchLimits;defaults:ResearchLimits
-  basis:{entity_count:number;module_count:number;depth:string;illustrated:boolean}
+  basis:{entity_count:number;module_count:number;depth:string;illustrated:boolean;
+    workload?:{source_read_capacity:number;collection_seconds:number;analysis_seconds:number;delivery_seconds:number}}
 }
 interface BudgetView {
   session_id:string;execution_id:string;status:string;revision:number;limits:ResearchLimits;advice:Advice
@@ -34,16 +35,25 @@ function Summary({limits}:{limits:ResearchLimits}) {
   return <span className="budget-inline">{limits.max_total_tokens.toLocaleString()} Token <span>·</span> {t('{0} 次工具请求',limits.max_tool_calls)} <span>·</span> {t('{0} 分钟',Math.round(limits.max_wall_clock_seconds/60))}</span>
 }
 function AdviceView({value,onAdopt,disabled=false}:{value:Advice;onAdopt:()=>void;disabled?:boolean}) {
-  return <div className="budget-advice"><div className="budget-advice-heading"><strong>{t('建议额度')}</strong><span>{t(({simple:'简单',moderate:'适中',complex:'复杂'} as Record<string,string>)[value.complexity]||'适中')} · {t('预留 {0}%',value.headroom_percent)}</span></div>
-    <Summary limits={value.recommended}/><p>{t('{0} 个对象 · {1} 个分析模块',value.basis.entity_count,value.basis.module_count)}</p><p>{t('预计 {0} Token，另留补证、重试与审核余量。',value.estimated.max_total_tokens.toLocaleString())}</p>
+  return <div className="budget-advice"><div className="budget-advice-heading"><strong>{t('建议额度')}</strong><span>{t(({simple:'简单',moderate:'适中',complex:'复杂'} as Record<string,string>)[value.complexity]||'适中')}</span></div>
+    <Summary limits={value.recommended}/><p>{t('基础估算另加 {0}%，用于补证、重试与核对。',value.headroom_percent)}</p>
+    <details><summary>{t('估算依据')}</summary>
+      <p>{t('{0} 个对象 · {1} 个分析模块',value.basis.entity_count,value.basis.module_count)}</p>
+      <p>{t('基础估算')}</p><Summary limits={value.estimated}/>
+      {value.basis.workload&&<>
+        <p>{t('取证')} · {t('{0} 分钟',Math.ceil(value.basis.workload.collection_seconds/60))}</p>
+        <p>{t('分析')} · {t('{0} 分钟',Math.ceil(value.basis.workload.analysis_seconds/60))}</p>
+        <p>{t('报告与核对')} · {t('{0} 分钟',Math.ceil(value.basis.workload.delivery_seconds/60))}</p>
+      </>}
+    </details>
     <button type="button" className="btn-secondary" disabled={disabled} onClick={onAdopt}>{t('采用建议')}</button>
   </div>
 }
-function LimitFields({value,onChange,disabled=false}:{value:ResearchLimits;onChange:(limits:ResearchLimits)=>void;disabled?:boolean}) {
+function LimitFields({value={max_total_tokens:0,max_tool_calls:0,max_wall_clock_seconds:0},onChange,disabled=false}:{value?:ResearchLimits;onChange:(limits:ResearchLimits)=>void;disabled?:boolean}) {
   return <div className="budget-fields">
-    <label>{t('总 Token')}<input aria-label={t('总 Token')} type="number" min={4000} max={2000000} step={1000} disabled={disabled} value={value.max_total_tokens} onChange={event=>onChange({...value,max_total_tokens:Number(event.target.value)})}/></label>
-    <label>{t('工具请求次数')}<input aria-label={t('工具请求次数')} type="number" min={1} max={256} step={1} disabled={disabled} value={value.max_tool_calls} onChange={event=>onChange({...value,max_tool_calls:Number(event.target.value)})}/></label>
-    <label>{t('总时长（分钟）')}<input aria-label={t('总时长（分钟）')} type="number" min={1} max={360} step={1} disabled={disabled} value={Math.round(value.max_wall_clock_seconds/60)} onChange={event=>onChange({...value,max_wall_clock_seconds:Number(event.target.value)*60})}/></label>
+    <label>{t('总 Token')}<input aria-label={t('总 Token')} type="number" min={4000} max={2000000} step={1000} disabled={disabled} value={value.max_total_tokens||''} onChange={event=>onChange({...value,max_total_tokens:Number(event.target.value)})}/></label>
+    <label>{t('工具请求次数')}<input aria-label={t('工具请求次数')} type="number" min={1} max={256} step={1} disabled={disabled} value={value.max_tool_calls||''} onChange={event=>onChange({...value,max_tool_calls:Number(event.target.value)})}/></label>
+    <label>{t('总时长（分钟）')}<input aria-label={t('总时长（分钟）')} type="number" min={1} max={360} step={1} disabled={disabled} value={value.max_wall_clock_seconds?Math.round(value.max_wall_clock_seconds/60):''} onChange={event=>onChange({...value,max_wall_clock_seconds:Number(event.target.value)*60})}/></label>
   </div>
 }
 export function validLimits(value:ResearchLimits) {
@@ -60,20 +70,20 @@ export default function ResearchBudgetPicker({value,onChange,disabled=false}:{va
     const timer=setTimeout(()=>setRequest(JSON.parse(serialized)),400);return()=>clearTimeout(timer)
   },[serialized,value.query])
   const advice=useQuery<Advice>({queryKey:['research-budget-advice',request],enabled:!!request,
-    queryFn:async()=>budgetRequest('/api/v1/research/budget/recommendation',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(request)}),
+    queryFn:async({signal})=>budgetRequest('/api/v1/research/budget/recommendation',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(request),signal}),
     staleTime:60000,refetchOnWindowFocus:false,retry:false})
-  if(!request)return null
-  const currentAdvice=serialized===JSON.stringify(request)?advice.data:undefined
+  const adviceIsCurrent=!!request&&serialized===JSON.stringify(request)
+  const currentAdvice=adviceIsCurrent?advice.data:undefined
   const limits=value.budgetLimits||currentAdvice?.defaults
   return <section className="research-budget-picker" aria-label={t('研究额度')}>
-    <div className="budget-picker-heading"><span>{t('本次额度')}</span>{limits&&<Summary limits={limits}/>}<button type="button" className="choice-text-button" disabled={disabled} aria-expanded={open} onClick={()=>setOpen(!open)}>{open?t('收起'):t('调整额度')}</button></div>
-    {!open&&currentAdvice&&<p>{t('建议 {0} Token，含 {1}% 预留',currentAdvice.recommended.max_total_tokens.toLocaleString(),currentAdvice.headroom_percent)}</p>}
+    <div className="budget-picker-heading"><span>{t('本次额度')}</span>{limits?<Summary limits={limits}/>:<span>{t('默认额度')}</span>}<button type="button" className="choice-text-button" disabled={disabled} aria-expanded={open} onClick={()=>setOpen(!open)}>{open?t('收起'):t('调整额度')}</button></div>
+    {!open&&currentAdvice&&<p>{t('建议 {0} Token · 额外预留 {1}%',currentAdvice.recommended.max_total_tokens.toLocaleString(),currentAdvice.headroom_percent)}</p>}
     {open&&<div className="budget-editor-body">{currentAdvice&&<AdviceView value={currentAdvice} disabled={disabled} onAdopt={()=>onChange({...value,budgetLimits:currentAdvice!.recommended})}/>}
-      {limits&&<LimitFields value={limits} disabled={disabled} onChange={budgetLimits=>onChange({...value,budgetLimits})}/>}
+      <LimitFields value={limits} disabled={disabled} onChange={budgetLimits=>onChange({...value,budgetLimits})}/>
       {limits&&!validLimits(limits)&&<p role="alert">{t('请检查额度数值')}</p>}
       {value.budgetLimits&&<button type="button" className="choice-text-button" disabled={disabled} onClick={()=>onChange({...value,budgetLimits:undefined})}>{t('恢复默认额度')}</button>}
-      {advice.isFetching&&!advice.data&&<p role="status">{t('正在估算额度…')}</p>}
-      {advice.error&&<p role="alert">{t('暂时无法取得建议')} <button type="button" className="choice-text-button" onClick={()=>void advice.refetch()}>{t('重试')}</button></p>}
+      {adviceIsCurrent&&advice.isFetching&&!currentAdvice&&<p role="status">{t('正在估算额度…')}</p>}
+      {adviceIsCurrent&&advice.error&&<p role="alert">{t('暂时无法取得建议')} <button type="button" className="choice-text-button" disabled={disabled} onClick={()=>void advice.refetch()}>{t('重试')}</button></p>}
     </div>}
   </section>
 }

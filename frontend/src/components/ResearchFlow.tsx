@@ -139,8 +139,12 @@ function stationsFor(nodes:FlowNode[]):FlowStation[] {
   if(tools.length){
     const active=tools.some(node=>node.status==='running'),failed=tools.some(node=>['failed','error'].includes(node.status))
     const complete=tools.every(node=>['done','completed','success','skipped'].includes(node.status))
-    result.push({id:'$tools',type:'tools',label:t("取证工具"),status:active?'running':complete?'done':failed?'failed':
-      tools.some(node=>node.status==='paused')?'paused':'pending',actor:false,nodes:tools,x:0,y:20,
+    const downstream=nodes.some(node=>node.root&&['analyst','reflection','report'].includes(node.type)&&
+      ['running','done','completed','paused'].includes(node.status))
+    const partial=downstream&&tools.some(node=>['done','completed','success'].includes(node.status))
+    result.push({id:'$tools',type:'tools',label:t("取证工具"),status:active?'running':
+      tools.some(node=>node.status==='paused')?'paused':tools.some(node=>node.status==='canceled')?'canceled':
+      complete?'done':partial?'partial':failed?'failed':'pending',actor:false,nodes:tools,x:0,y:20,
       actions:tools.flatMap(node=>(node.actions?.length?node.actions:[{id:`planned:${node.id}`,label:labels[node.type]||node.type,
         detail:node.error||'',query:node.query,state:node.status,time:'',items:[]}]).map(action=>({
           ...action,label:readableTool(action.label),query:action.query||node.query,nodeId:node.id})))})

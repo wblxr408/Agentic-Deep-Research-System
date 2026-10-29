@@ -137,7 +137,8 @@ def build_technical_cards(configuration,findings,evidence,proposals=None):
 def technical_context(view):
     if not view:return None
     return {'schema_version':view['schema_version'],'cards':view['cards'][:20],
-        'retained_card_count':len(view['cards']),'pending_records':view['pending_records'][:10],'gaps':view['gaps']}
+        'retained_card_count':len(view['cards']),'pending_records':view['pending_records'][:10],'gaps':view['gaps'],
+        **({'reading_selection':view['reading_selection']} if view.get('reading_selection') else {})}
 
 
 def technical_evidence_windows(source,limit):

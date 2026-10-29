@@ -2363,7 +2363,11 @@ async def analyst_node(state: ResearchState) -> dict:
                 'used_total_tokens','max_total_tokens','used_tool_calls','max_tool_calls',
                 'elapsed_wall_clock_seconds','max_wall_clock_seconds','inflight_model_requests') if key in retained_budget},
             'analysis_progress':{'phase':progress.get('active_phase'),
-                'status':progress['status'],'completed_steps':len(progress['completed'])},
+                'status':progress['status'],'completed_steps':len(progress['completed']),
+                'stop_reason':progress.get('stop_reason') if progress['status']=='paused' else None,
+                **({'reading_selection':{'selected_count':len(progress['representative_reading']['selected_output_ids']),
+                    'accepted_count':progress['representative_reading']['accepted_output_count']}}
+                    if progress.get('representative_reading') else {})},
             **({'recovery':{'status':'resolved','message':'自动修复后，当前分析问题已完成。'}} if recovered else {})}
         try:await get_sse_manager().publish(str(state['task_id']),EventType.STATE_UPDATE.value,event)
         except Exception:
@@ -2402,6 +2406,8 @@ async def analyst_node(state: ResearchState) -> dict:
         organization_result['source_checks']['analyst_excerpt_evidence_ids'] = agent.last_evidence_ids
         organization_result['extraction'] = agent.last_extraction_status
         organization_result['analyst_context'] = agent.last_context_manifest
+        if agent.last_workflow.get('representative_reading') and organization_result.get('technical_reading'):
+            organization_result['technical_reading']['reading_selection']=agent.last_workflow['representative_reading']
     elif agent.last_context_manifest:
         organization_result={**(organization_result or {}),'analyst_context':agent.last_context_manifest}
     previous_drawing=(state.get('organization_result') or {}).get('chart_rendering')

@@ -370,3 +370,25 @@ The system SHALL freeze answer, summary, comparison, report or data-analysis int
 #### Scenario: 分析检查点保存反馈未完成
 - **WHEN** 数据库提交、可选文件镜像或展示推送中的操作未完成
 - **THEN** 分段保存实际失败位置；DB不等待可选文件镜像，SSE失败不否定提交；同根有界恢复核对无在途收据及原身份／输入／期限，已完成模型问题不重做
+
+### Requirement: Phase outputs and reading selection serve the actual research
+新阶段策略v1 SHALL 明确当前模块的结构字段，保留原响应与未使用字段，缺少必要结构不得冒充完成；Skill MUST NOT 扩展阶段交付。全部核实成果 SHALL 保留目录，默认代表深读 SHALL 记录选择依据和未选项，明确逐篇或声明材料 MUST 保留指定范围。只有新冻结容量标志 MAY 扩展动态来源上界至24，仍受原权限、3层、每批3项和根额度约束。
+
+#### Scenario: 核对模块输出额外公司画像
+- **WHEN** 模型响应包含不属于当前模块的organization_profile等字段
+- **THEN** 保留原响应及未使用字段记录，仅交接该模块声明结构；必要数组缺失按原有界恢复，不将画像当作核对结果
+
+#### Scenario: 默认选择代表工作深入解读
+- **WHEN** 当前研究没有明确全读要求，已保留多项成果
+- **THEN** 在成果全集之外按当前全文／对象覆盖／时间／字面主题选择代表并记录未选ID；选择不是质量或合作评分，不删除原成果、改变归属或推定继承
+
+### Requirement: Manual limits remain independent of initial advice
+研究入口 SHALL 允许手动填写总Token、工具请求和总时长，建议未返回或失败时仍可编辑。初步建议 SHALL 根据当前问题及配置判断复杂度，在基础估算上增加明确的补证、重试和核对余量；仅用户显式采用才改变其已填写额度。
+
+#### Scenario: 建议未取得但用户需要配置额度
+- **WHEN** 问题尚未填写、建议正在加载或请求失败
+- **THEN** 手动入口及三个字段保持可用；未知默认值显示为空，填齐有效数值后进入原请求契约，不以建议失败阻断手动设置
+
+#### Scenario: 旧问题的建议较晚返回
+- **WHEN** 用户已经更改问题或手动限额
+- **THEN** 旧问题的建议不作为当前建议，后到结果不覆盖用户填写；界面明确区分基础估算与额外预留

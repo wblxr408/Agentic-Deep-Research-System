@@ -101,7 +101,7 @@ def numbered_affiliation(opening,title,author,affiliation):
     matches=[]
     for index,item in enumerate(declarations):
         end=declarations[index+1].start(1) if index+1<len(declarations) else len(opening)
-        if item.end(1)<=address.start()<address.end()<=end:matches.append(item[1])
+        if item.start(1)<=address.start()<address.end()<=end:matches.append(item[1])
     if len(matches)!=1 or matches[0] not in decoded:return {'status':'invalid','reason':'author_institution_marker_mismatch'}
     quote=opening[person.start():address.end()]
     if len(quote)>1600:return {'status':'invalid','reason':'numbered_affiliation_span_exceeds_bound'}

@@ -169,6 +169,10 @@ Return JSON with analysis_text and any additional fields explicitly required bel
                 output_tokens=8192 if (kind=='extraction' or attempts
                     or 'deep_dive' in phase_config.get('modules',[])) else 4096
                 output_tokens=int(self.phase_repair.get('output_tokens') or output_tokens)
+                from app.analysis_phase_contract import output_allowance
+                assigned=output_allowance(phase_config,kind,self.phase_repair,
+                    (workflow.get('recovery_counts') or {}).get(key) or {})
+                if assigned is not None:output_tokens=assigned
                 text=self.analyze(user_query,evidence_list,skill_prompt,analyst_hints,phase_config,
                     _phase=kind,_seed=seed,_output_tokens=output_tokens)
                 record={'analysis_text':text,'organization_data':deepcopy(self.last_organization_data or {}),
@@ -367,8 +371,12 @@ Return JSON with analysis_text and any additional fields explicitly required bel
         workflow['analysis_module_order']=analysis_modules
         for module in analysis_modules:
             batches=[seed]
-            if module=='deep_dive' and len(seed['outputs'])>2:
-                batches=[{**seed,'outputs':seed['outputs'][index:index+2]} for index in range(0,len(seed['outputs']),2)]
+            if module=='deep_dive':
+                from app.analysis_phase_contract import reading_representatives
+                representatives,reading_selection=reading_representatives(seed['outputs'],seed['publication_metadata'],
+                    evidence_list,configuration,user_query)
+                if reading_selection:workflow['representative_reading']=reading_selection
+                batches=[{**seed,'outputs':representatives[index:index+2]} for index in range(0,len(representatives),2)] or [seed]
             module_texts=[]
             for index,batch in enumerate(batches):
                 batch={**batch,'publication_metadata':{item['output_id']:seed['publication_metadata'].get(item['output_id'],{})
@@ -394,7 +402,9 @@ Return JSON with analysis_text and any additional fields explicitly required bel
                     retain_technical(record,batch)
                     contexts[-1]['technical_field_checks']=record['context']['technical_field_checks']
                     contexts[-1]['technical_card_pending_records']=record['context']['technical_card_pending_records']
+                    from app.analysis_phase_contract import enabled as phase_contract_enabled
                     condition_fields=('experimental_design','baselines','conditions','results')
+                    if phase_contract_enabled(configuration):condition_fields=('mechanism',*condition_fields)
                     missing={item['output_id']:[field for field in condition_fields if field not in
                         technical_by_output.get(item['output_id'],{}).get('fields',{})] for item in batch['outputs']}
                     missing={key:value for key,value in missing.items() if value}
@@ -421,6 +431,8 @@ Return JSON with analysis_text and any additional fields explicitly required bel
         self.last_context_manifest={'schema_version':'adrs-analysis-questions-v2','phases':contexts,
             'publication_contexts':[record['context'] for record in extractions],
             'conclusion_coverage':'question_responses_not_semantic_certification'}
+        if workflow.get('representative_reading'):
+            self.last_context_manifest['representative_reading']=deepcopy(workflow['representative_reading'])
         self.last_evidence_ids=list(dict.fromkeys(source['evidence_id'] for record in workflow['completed'].values()
             for source in record['context'].get('sources',[])))
         self.last_extraction_status={'status':'returned','phase_count':len(workflow['completed']),'finish_reason':'all_question_responses_retained'}
@@ -574,6 +586,8 @@ Return JSON with analysis_text and any additional fields explicitly required bel
                 'same visible opening is also permitted, within the original 1600-character bound. '
                 'author_name is one literal personal name; its affiliation numbers and contribution '
                 'symbols belong in the proof, not in the personal name field.')
+        from app.analysis_phase_contract import instructions as phase_instructions
+        system_prompt+=phase_instructions(organization_research,_phase,context_seed)
         phase_request = (
             'Answer only the currently selected module question. Return the short analysis_text lead and complete '
             'organization_data with literal source proofs; do not draft the final report.' if _phase=='question' else
@@ -691,6 +705,14 @@ Collected Evidence:
                 structured,control_repairs = _decode_response_object(content,normalizations=normalizations)
                 if not isinstance(structured, dict):
                     structured = {}
+                from app.analysis_phase_contract import bound_response
+                try:
+                    structured,phase_boundary=bound_response(structured,organization_research,_phase)
+                except ValueError as error:
+                    self.last_extraction_status={'status':'invalid_phase_output','reason':str(error),
+                        'raw_response_before_phase_boundary':content}
+                    self.last_partial_response=content
+                    raise TokenBudgetExceeded('analysis_output_incomplete') from error
                 proof_events=[]
                 if passage_contract:
                     from app.phase_proofs import resolve_proofs
@@ -718,6 +740,9 @@ Collected Evidence:
                 if passage_contract:
                     self.last_extraction_status.update(raw_response_before_proof_resolution=content,
                         proof_reference_normalizations=proof_events)
+                if phase_boundary:
+                    self.last_extraction_status['phase_output_boundary']=phase_boundary
+                    self.last_context_manifest['phase_output_boundary']=phase_boundary
                 if control_repairs:
                     self.last_extraction_status['raw_response_before_control_repair']=content
                 if normalizations:

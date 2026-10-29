@@ -40,7 +40,7 @@ export function TraceLoader() {
   </svg>
 }
 
-export const statusLabels: Record<string, string> = uiDefinition({ pending: '等待', waiting: '等待', running: '进行中', started: '进行中', done: '完成', completed: '完成', success: '完成', paused: '已暂停', failed: '失败', error: '失败', canceled: '已取消', skipped: '跳过', unknown: '未记录', pending_confirmation: '待确认' })
+export const statusLabels: Record<string, string> = uiDefinition({ pending: '等待', waiting: '等待', running: '进行中', started: '进行中', done: '完成', completed: '完成', success: '完成', partial: '部分完成', paused: '已暂停', failed: '失败', error: '失败', canceled: '已取消', skipped: '跳过', unknown: '未记录', pending_confirmation: '待确认' })
 export function StatusPill({ status, label }: { status: string; label?: string }) {
   useLocale()
 

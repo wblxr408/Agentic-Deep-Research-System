@@ -6,7 +6,7 @@ const record=(value:unknown):value is Record<string,unknown>=>Boolean(value&&typ
 const objects=(value:unknown):Record<string,unknown>[]=>Array.isArray(value)?value.filter(record):[]
 const text=(value:unknown)=>typeof value==='string'?value:''
 const number=(value:unknown)=>typeof value==='number'&&Number.isFinite(value)?value:0
-const facetNames:Record<string,string>=uiDefinition({experimental_design:'实验设计',baselines:'比较基线',conditions:'实验条件',results:'结果'})
+const facetNames:Record<string,string>=uiDefinition({mechanism:'机制',experimental_design:'实验设计',baselines:'比较基线',conditions:'实验条件',results:'结果'})
 function gapLabel(value:unknown) {
   const gap=text(value)
   if(gap.startsWith('no_selected_window_for:'))return t("尚未选到{0}的原文窗口", facetNames[gap.split(':')[1]]||t("指定问题"))
@@ -25,9 +25,13 @@ export default function ContextEvidenceSummary({analyst,report,sessionId}:{analy
   }
   if(record(report)&&Array.isArray(report.sources))phases.push({phase_id:t("写作"),...report})
   if(!phases.length)return null
+  const selection=record(analyst)&&record(analyst.representative_reading)?analyst.representative_reading:null
   return <details className="my-3 rounded-lg border p-3 text-sm" aria-label={t("各阶段的问题与证据片段")}>
     <summary className="cursor-pointer font-medium">{t("各问题实际使用的原文与缺口")}</summary>
     <p className="my-2 text-xs text-xmgray-500">{t("这里记录选段及遗漏情况；报告主张的支持情况见内容核对。位置对应本次保留的文字版本。")}</p>
+    {selection&&<details className="my-2 rounded border p-2"><summary>{t('深读选择')} · {t('成果 {0} · 深读 {1}',number(selection.accepted_output_count),Array.isArray(selection.selected_output_ids)?selection.selected_output_ids.length:0)}</summary>
+      <ul>{objects(selection.selected_works).map(work=><li key={text(work.output_id)}>{text(work.title)}</li>)}</ul>
+    </details>}
     {phases.map((phase,index)=>{
       const coverage=record(phase.question_evidence)?phase.question_evidence:{}
       const sources=objects(phase.sources)

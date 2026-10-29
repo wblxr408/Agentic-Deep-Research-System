@@ -169,6 +169,7 @@ def extend_reads(state, dag, *, remaining_calls, remaining_seconds, allowed_tool
     representations = policy.get('version') in {REPRESENTATION_VERSION,TRANSPORT_VERSION}
     transport = policy.get('version') == TRANSPORT_VERSION
     diverse = transport and policy.get('work_selection')=='distinct_primary_works_v1'
+    expanded=transport and policy.get('collection_capacity_policy')=='primary_work_capacity_v1'
     config = state.get('organization_research') or {}
     if (config.get('corpus') or {}).get('collection_mode') == 'seeds_only':
         return dag, manifest, []
@@ -197,7 +198,7 @@ def extend_reads(state, dag, *, remaining_calls, remaining_seconds, allowed_tool
                      if str(row.get('node_id','')).startswith('read_')}
     plan_policy = PlanningPolicy.model_validate(state.get('planning_policy') or {})
     consumed_nodes=past_read_nodes | {row['node_id'] for row in previous}
-    available_sources = max(0, min(12, int(policy.get('max_sources', 12))) - len(consumed_nodes))
+    available_sources = max(0, min(24 if expanded else 12, int(policy.get('max_sources', 12))) - len(consumed_nodes))
     capacity = min(3, available_sources, plan_policy.max_plan_nodes - len(dag.nodes), remaining_calls)
     if capacity <= 0:
         return dag, manifest, []
@@ -378,6 +379,10 @@ def extend_reads(state, dag, *, remaining_calls, remaining_seconds, allowed_tool
                 name_text=description if discovery else description+' '+source_text
                 mentions=[name for name in target_names if re.search(
                     r'\s+'.join(re.escape(word) for word in name.split()),name_text,re.I)]
+                if expanded and not discovery and origin and (
+                        signals.get('same_document_representation') or signals.get('explicit_primary_download')):
+                    parent=next((row for row in previous if row['node_id']==origin.node_id),{})
+                    mentions=list(dict.fromkeys([*mentions,*(parent.get('target_name_hints') or [])]))
                 candidate.update(work_hint_id=work_hint[0] if work_hint else None,
                     target_name_hints=mentions[:8],work_selection='distinct_primary_works_v1')
             if transport and not discovery and origin:
@@ -393,6 +398,7 @@ def extend_reads(state, dag, *, remaining_calls, remaining_seconds, allowed_tool
     while candidates and len(chosen) < capacity:
         key = max(candidates, key=lambda key: (
             bool(diverse and candidates[key].get('identity_language_entrance')),
+            bool(expanded and candidates[key].get('source_role')=='work' and candidates[key].get('explicit_full_text_link')),
             bool(diverse and candidates[key].get('source_role')=='work' and candidates[key].get('target_name_hints')),
             candidates[key].get('source_priority',0),
             candidates[key]['score'] - 2 * hosts.get(candidates[key]['host'], 0)))

@@ -49,6 +49,7 @@ interface ResearchResult {
   report_recovery_available?: boolean
   audit_recovery_available?: boolean
   analysis_progress?: {phase: string|null;status:string;completed_steps:number;stop_reason?:string|null;
+    reading_selection?:{selected_count:number;accepted_count:number};
     phases?:Array<{phase:string;status:string;summary:string;attempts:number}>;
     last_admission?:{prompt_bound?:number|null;requested_output_tokens?:number|null;available_tokens?:number|null;selected_sources?:number|null}|null}|null
   budget_state?: {used_total_tokens?:number;max_total_tokens?:number;used_tool_calls?:number;max_tool_calls?:number;cost_status?:string;token_usage_estimated?:boolean;hard_stop_reason?:string|null;model_stop_reason?:string|null;inflight_model_requests?:number;phase_events?:BudgetAllocationEvent[]} | null
@@ -412,7 +413,8 @@ function ResearchDashboard({ onBack,ownerId }: ResearchDashboardProps) {
     ['agent_start', 'agent_complete', 'agent_end'].includes(e.type)
   )
   const planNodes = result?.execution_plan?.nodes
-  const completedNodes = planNodes?.filter(node => node.status === 'done').length
+  const evidenceNodes=planNodes?.filter(node=>['search','browser','rag','mcp'].includes(node.node_type))
+  const completedNodes = evidenceNodes?.filter(node => node.status === 'done').length
   const toolCallCount = toolAudit.data?.length
 
   const handleStart = useCallback(() => {
@@ -531,8 +533,8 @@ function ResearchDashboard({ onBack,ownerId }: ResearchDashboardProps) {
     <div className="workspace-toolbar"><div className="pill-tabs" role="group" aria-label={t("研究视图")}>
       {[['workflow',t("研究流程")],['report',t("图文报告")],['records',t("研究记录")]].map(([id,label])=><button type="button" key={id} aria-pressed={activePanel===id} onClick={()=>setActivePanel(id)}>{label}</button>)}
     </div><div className="workspace-statistics"><StatusPill status={sessionStatus||'pending'} label={isStreaming ? currentStage : stoppedLabel}/>
-      <span>{planNodes ? t("{0}/{1} 取证步骤", completedNodes, planNodes.length) : t("{0} 条记录", agentEvents.length)}</span>
-      {toolCallCount!==undefined&&<span>{toolCallCount} {t(" 次工具调用")}</span>}
+      <span>{evidenceNodes?.length ? t("{0}/{1} 取证步骤", completedNodes, evidenceNodes.length) : t("{0} 条记录", agentEvents.length)}</span>
+      {toolCallCount!==undefined&&<span>{t('{0} 条工具记录',toolCallCount)}</span>}
     </div></div>
     {showConfirmationState&&<p className="workspace-notice" role="status">{t("等待确认")}</p>}
     {sseError&&<p className="workspace-notice" role="status">{t("实时连接中断")}<button type="button" className="btn-ghost" disabled={!canRefetchResult} onClick={()=>void refetchResult()}>{t("刷新记录")}</button></p>}
@@ -546,6 +548,7 @@ function ResearchDashboard({ onBack,ownerId }: ResearchDashboardProps) {
       <div className="workspace-summary-row">
         <section className="workspace-summary"><span className="eyebrow">{t("当前阶段")}</span><h2>{isStreaming ? currentStage : stoppedLabel}</h2>
           {analysisProgress&&<p>{analysisPhase}{progressParts[2]==='conditions'?t(" · 条件补读"):''}{analysisBatch?t(" · 第 {0} 组", analysisBatch):''} · {analysisProgress.completed_steps} {t(" 步已保存")}</p>}
+          {analysisProgress?.reading_selection&&<p>{t('成果 {0} · 深读 {1}',analysisProgress.reading_selection.accepted_count,analysisProgress.reading_selection.selected_count)}</p>}
           {analysisProgress?.stop_reason==='insufficient_context_budget'&&<p className="text-sm">{result?.pause_diagnosis?.summary?systemMessage(result.pause_diagnosis.summary):t("当前问题没有足够的可用原文或上下文空间。")}</p>}
         </section>
         <section className="workspace-summary"><span className="eyebrow">{t("Token 额度")}</span><h2>{budgetState.used_total_tokens?.toLocaleString()??'—'}<small> / {budgetState.max_total_tokens?.toLocaleString()??'—'}</small></h2>
@@ -578,7 +581,7 @@ function ResearchDashboard({ onBack,ownerId }: ResearchDashboardProps) {
       {result?.status==='completed'&&result.organization_research&&<ClassificationPanel key={`classification-${result.session_id}`} sessionId={result.session_id}/>}
       <IngestionPanel key={`ingestion-${activeSessionId}`} sessionId={activeSessionId}/>
       {result&&['completed','paused','failed','canceled'].includes(result.status)&&<ResearchQuality key={`quality-${result.session_id}`} sessionId={result.session_id}/>}
-      <details className="card p-5"><summary>{t("工具调用")}{toolCallCount!==undefined?` · ${toolCallCount}`:''}</summary><div className="mt-4">{toolAudit.error?<p role="alert">{uiMessage(toolAudit.error.message)}</p>:<ToolTrace events={traceEvents} records={toolAudit.data}/>}</div></details>
+      <details className="card p-5"><summary>{t("工具记录")}{toolCallCount!==undefined?` · ${toolCallCount}`:''}</summary><div className="mt-4">{toolAudit.error?<p role="alert">{uiMessage(toolAudit.error.message)}</p>:<ToolTrace events={traceEvents} records={toolAudit.data}/>}</div></details>
       {result?.method_usage?<SkillStageUsage value={result.method_usage}/>: (effectiveSkillIds.length>0||effectiveTools.length>0)&&<details className="card p-5"><summary>{t("阶段 Skill 与工具")}</summary>
         <div className="mt-4 flex flex-wrap gap-2">{effectiveSkillIds.map(id=><span className="tool-chip" key={id}>{skillsData?.items.find(item=>item.id===id)?.name||id} · {autoMatchedSkillIds.includes(id)?t("自动"):t("手动")}</span>)}{effectiveTools.map(tool=><span className="tool-chip" key={tool}>{tool}</span>)}</div>
         {matchedSkills.map(match=><p className="mt-3 text-sm" key={match.skill_id}>{match.name} · {match.reason}</p>)}
