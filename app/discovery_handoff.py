@@ -207,6 +207,12 @@ def extend_reads(state, dag, *, remaining_calls, remaining_seconds, allowed_tool
             hits = terms & set(_terms(description))
             host = urlsplit(url).hostname or ''
             official = any(host == item or host.endswith('.' + item) for item in official_hosts)
+            from app.organization_identity import language_link
+            identity_language = bool(policy.get('entity_identity') == 'official-language-v1' and
+                not discovery and official and language_link(label) and any(
+                    request_url_identity(source_url) == request_url_identity(str(seed))
+                    for entity in (config.get('scope') or {}).get('entities', [])
+                    for seed in entity.get('source_urls', [])))
             academic = bool(re.search(r'research|publication|faculty|people|laborator|\.pdf(?:$|\?)|科研|学术|师资|论文|团队', description))
             # Inspect the actual href before the lexical gate. Numeric paper
             # URLs and labels such as "Read PDF" need their parent's context.
@@ -214,7 +220,7 @@ def extend_reads(state, dag, *, remaining_calls, remaining_seconds, allowed_tool
             primary_landing = bool(re.search(r'/(?:abs|doi|html)/',url,re.I))
             explicit_document = (link.get('pdf') or focused and link.get('kind') == 'full_text' or
                                  primary and (pdf_url or primary_landing))
-            if not hits and not (official and academic) and not (explicit_document and terms & set(_terms(source_text))):
+            if not hits and not identity_language and not (official and academic) and not (explicit_document and terms & set(_terms(source_text))):
                 continue
             score = len(hits) + 2 * official + 2 * academic + 3 * bool(link.get('pdf'))
             signals = {}
@@ -242,7 +248,7 @@ def extend_reads(state, dag, *, remaining_calls, remaining_seconds, allowed_tool
                         role='topic'
                     if policy.get('topic_gate')=='distinctive_literal_v1' and specific and not specific_hit:
                         role='identity'
-                if role == 'identity' and not (official and academic):
+                if role == 'identity' and not (identity_language or official and academic):
                     continue
                 score = (16 * (role == 'work') + 6 * (role == 'topic') +
                          4 * len(direct_hits) + 2 * len(topic_hits) +
@@ -252,11 +258,12 @@ def extend_reads(state, dag, *, remaining_calls, remaining_seconds, allowed_tool
                            'parent_topic_used': inherited,
                            'selection_basis': 'question_topic_and_source_role_not_affiliation_or_support'}
                 if primary:
-                    signals.update(source_priority=3 if role=='work' and pdf else
+                    signals.update(source_priority=4 if identity_language else 3 if role=='work' and pdf else
                         2 if role=='work' and primary_landing else
                         1 if role=='work' or role=='topic' and official and academic else
                         0 if role=='topic' else -1,
                         primary_link_inherited=bool(inherited and primary_landing),
+                        identity_language_entrance=identity_language,
                         selection_basis='explicit_fulltext_then_primary_landing_then_target_entrance_then_topic')
             candidate = {'url': url, 'evidence_id': source['evidence_id'], 'depends_on': parents,
                          'depth': depth, 'score': score, 'host': host, 'label': label[:240], **signals}

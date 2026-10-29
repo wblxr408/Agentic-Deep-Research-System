@@ -37,11 +37,21 @@ class CandidateClaim(ScopeRecord):
     proof: Proof
 
 
+class IdentityAliasClaim(ScopeRecord):
+    entity_id: Identifier
+    alias: Label
+    proof: Proof
+
+
+class AffiliationProof(Proof):
+    quote: str = Field(min_length=3, max_length=1600)
+
+
 class AffiliationClaim(ScopeRecord):
     entity_id: Identifier
     author_name: Label
     raw_affiliation: Label
-    proof: Proof
+    proof: AffiliationProof
 
 
 class PublicationClaim(ScopeRecord):
@@ -89,6 +99,7 @@ Return one JSON object with root fields analysis_text (concise Markdown narrativ
 and organization_data (REQUIRED structured object). The following is the shape of
 organization_data, which must be nested under that exact root key, not prose:
 {
+ "identity_aliases": [{"entity_id":"SELECTED ID","alias":"literal official page title","proof":{"evidence_id":"ev-...","quote":"literal official name"}}],
  "candidate_entities": [{"entity_id":"new-id","name":"exact source name","type":"university|laboratory|company","aliases":[],"proof":{"evidence_id":"ev-...","quote":"exact source excerpt"}}],
  "outputs": [{"output_id":"stable-within-this-response","title":"full publication title","output_type":"conference_paper|journal_article|preprint|book|software|dataset","publication_date":"YYYY or YYYY-MM or YYYY-MM-DD, null if unknown","title_proof":{"evidence_id":"ev-...","quote":"exact full title"},"date_proof":{"evidence_id":"ev-...","quote":"actual publication date/year or BibTeX year"},"venue":"source venue, or null","venue_proof":{"evidence_id":"ev-...","quote":"source venue text"},"affiliations":[{"entity_id":"ID FROM SELECTED SCOPE, or a candidate ID","author_name":"source author","raw_affiliation":"source organization text","proof":{"evidence_id":"ev-...","quote":"author AND organization together in the publication author list"}}]}],
  "research_families":[{"family_id":"id","output_ids":["id1","id2"],"proof":{"evidence_id":"ev-...","quote":"explicit version relationship containing both titles"}}],
@@ -99,6 +110,13 @@ organization_data, which must be nested under that exact root key, not prose:
 Use only provided evidence IDs and literal excerpts, never citation:N in proof IDs.
 No proof means omit/leave unknown. Empty arrays are valid and will be reported as gaps.
 Preserve SELECTED entity IDs exactly. Do not list selected IDs as new candidates.
+Resolve another-language selected name only from a provided official identity
+entrance whose page title names that alias; put the literal name in identity_aliases.
+Do not translate a raw affiliation or proof to match the selected object's language.
+One affiliation record represents ONE author. Copy the original author and institution
+spelling and one continuous excerpt containing both, including numbered affiliations
+when used. It may be up to 1600 characters; never insert ellipses, join disjoint text,
+or concatenate several authors into author_name. Keep their affiliation markers.
 Extract the actual primary work on a publication page, not unrelated bibliography entries.
 Title, date and author affiliation must refer to the same primary work; quote the
 publication author list, not a biography or present-day appointment. If only a year
@@ -108,6 +126,9 @@ paper's proceedings cover or ACM reference block such as July 10–12, 2024
 supports proceedings month 2024-07, not a precise publication day. Preserve that
 literal date range in date_proof. Received/accepted/revised dates, later errata,
 and dates of works in the bibliography are not this work's publication date.
+If a reference block supplies only a year, return only YYYY; a conference name
+or edition cannot supply an absent month. A preprint's version date is not proof
+of its first release; keep the source's actual date and distinguish that basis.
 Do not use retrieval timestamps as publication dates. Do not manufacture grants,
 formal partnerships, venue IDs, family links, metrics, totals or rankings.
 Each selected object should have a source-backed interpretation/recommendation
@@ -176,11 +197,16 @@ def _literal_date_support(quote: str, value: str, *, proceedings: bool) -> tuple
         rf'\b(?P<month>{months})\.?\s+(?P<day>\d{{1,2}})(?:\s*[-–—]\s*(?P<last>\d{{1,2}}))?,?\s+(?P<year>\d{{4}})\b',
         rf'\b(?P<day>\d{{1,2}})(?:\s*[-–—]\s*(?P<last>\d{{1,2}}))?\s+(?P<month>{months})\.?\s+(?P<year>\d{{4}})\b',
         rf'\b(?P<month>{months})\.?\s+(?P<year>\d{{4}})\b',
-        r'(?<![\w/-])(?P<year>\d{4})[-/](?P<month_number>\d{2})(?:[-/](?P<day>\d{2}))?(?![\w/-])',
+        r'(?<![\w/-])(?P<year>\d{4})[-/](?P<month_number>\d{1,2})(?:[-/](?P<day>\d{1,2}))?(?![\w/-])',
     )
     candidates = {}
+    occupied = []
     for pattern in patterns:
         for match in re.finditer(pattern, quote, re.I):
+            # A month-year substring inside a complete date is the same date,
+            # not a second conflicting calendar interval.
+            if any(start <= match.start() and match.end() <= end for start, end in occupied):
+                continue
             fields = match.groupdict()
             try:
                 year = int(fields['year'])
@@ -193,6 +219,7 @@ def _literal_date_support(quote: str, value: str, *, proceedings: bool) -> tuple
             except (KeyError, ValueError):
                 return None
             candidates[(start, end)] = (match[0], bool(fields.get('last')))
+            occupied.append(match.span())
     if not candidates:
         # A standalone year remains a year. Do not match digits inside another
         # date, an identifier, or a longer number.
@@ -312,12 +339,36 @@ def build_organization_findings(configuration: dict | None, evidence: list[dict]
                 pending.append({'kind': key, 'index': index, 'reason': str(error)[:500]})
 
     catalog = {entity.entity_id: entity for entity in scope.entities}
+    from app.organization_identity import identity_sources, title_names_alias
+    identity_anchors = identity_sources(configuration, evidence)
+    identity_aliases = []
+    for claim in records('identity_aliases', IdentityAliasClaim, 100):
+        try:
+            source = check(claim.proof)
+            entity = catalog.get(claim.entity_id)
+            if (entity is None or source['evidence_id'] not in identity_anchors.get(claim.entity_id, [])
+                    or not _contains(claim.proof.quote, claim.alias)
+                    or not title_names_alias(source, claim.alias)):
+                raise ValueError('alias has no selected official language entrance and literal page title')
+            if any(other.entity_id != entity.entity_id and any(_text(claim.alias) == _text(name)
+                    for name in (other.name, *other.aliases)) for other in catalog.values()):
+                raise ValueError('alias conflicts with another selected identity')
+            aliases = tuple(dict.fromkeys((*entity.aliases, claim.alias)))
+            if len(aliases) > 30:raise ValueError('identity alias limit exceeded')
+            catalog[entity.entity_id] = entity.model_copy(update={'aliases': aliases})
+            identity_aliases.append({'entity_id': entity.entity_id, 'alias': claim.alias,
+                'proof': claim.proof.model_dump(), 'basis': 'selected_official_language_entrance_title'})
+        except ValueError as error:
+            pending.append({'kind': 'identity_alias', 'reason': str(error)})
+    scope = scope.model_copy(update={'entities': tuple(catalog[item.entity_id] for item in scope.entities)})
     candidates = []
     for candidate in records('candidate_entities', CandidateClaim, 200):
         try:
             source = check(candidate.proof)
             if candidate.entity_id in catalog or not _contains(candidate.proof.quote, candidate.name):
                 raise ValueError('candidate identity conflicts or is not named by its proof')
+            if len(candidate.aliases)>30 or any(not _contains(candidate.proof.quote, alias) for alias in candidate.aliases):
+                raise ValueError('candidate aliases require literal identity proof')
             entity = OrganizationEntity(entity_id=candidate.entity_id, name=candidate.name, type=candidate.type,
                 aliases=candidate.aliases, source_urls=(source['source_url'],), resolution_status='pending')
             catalog[entity.entity_id] = entity
@@ -374,6 +425,9 @@ def build_organization_findings(configuration: dict | None, evidence: list[dict]
                 if not supported or (proceedings and not _contains(date_opening, supported[0])):
                     raise ValueError('publication date was not present at its declared precision')
                 date_basis = supported[1]
+                if publication.output_type == 'preprint' and re.search(r'\barxiv:\s*\d{4}\.\d{4,5}v\d+\b',
+                        publication.date_proof.quote,re.I):
+                    date_basis = 'literal_preprint_version_date_not_first_release'
                 date_evidence_id = publication.date_proof.evidence_id
             from app.organization_corpus import date_membership, PUBLICATION_ALIAS_VERSIONS
             membership = date_membership(lower, upper, scope.start_date, scope.end_date)
@@ -388,6 +442,8 @@ def build_organization_findings(configuration: dict | None, evidence: list[dict]
             evidence_ids = {publication.title_proof.evidence_id, date_evidence_id}
             for affiliation in publication.affiliations:
                 try:
+                    if re.search(r'[;；\n]',affiliation.author_name):
+                        raise ValueError('one affiliation record must name one author')
                     affiliation_source = check(affiliation.proof)
                     entity = catalog.get(affiliation.entity_id)
                     if entity is None or not _contains(affiliation_source['content'], publication.title):
@@ -598,6 +654,7 @@ def build_organization_findings(configuration: dict | None, evidence: list[dict]
             if item.output_id in accepted_output_ids},
         'source_checks': {'status': 'source_quote_and_reference_checked_not_independent_semantic_review',
             'accepted_output_count': len(scoped.outputs), 'proofs': proofs, 'available_evidence_ids': list(sources)},
+        'identity_aliases': identity_aliases,
         'pending_records': pending, 'inferences': [item for item in interpretations if item['kind'] == 'inference'],
         'recommendations': [item for item in interpretations if item['kind'] == 'recommendation'],
         'relationship_coverage': {kind: 'source_supported_sample' if scoped.relation_counts[kind] else 'not_established'

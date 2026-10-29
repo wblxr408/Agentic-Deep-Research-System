@@ -241,7 +241,7 @@ Return JSON with analysis_text and any additional fields explicitly required bel
             self.last_context_manifest={'schema_version':'adrs-analysis-questions-v2','discovery_gap':gap}
             progress()
             raise TokenBudgetExceeded('research_discovery_incomplete')
-        for index,ids in enumerate(identity_batches(evidence_list,acquired_only=acquired_only)):
+        for index,ids in enumerate(identity_batches(evidence_list,acquired_only=acquired_only,configuration=configuration)):
             phase_id=f'extract_publications:{index+1}'
             record=phase(phase_id,extract_config,'extraction',{'identity_evidence_ids':ids})
             proposal=deepcopy(record['organization_data']);extractions.append(record)
@@ -268,8 +268,17 @@ Return JSON with analysis_text and any additional fields explicitly required bel
                     result['family_id']='family-'+identity({'phase':phase_id,'id':result['family_id']})[:32]
                 return result
             proposal=remap(proposal)
-            for key in ('candidate_entities','outputs','research_families','relationships','output_relations','interpretations'):
+            for key in ('identity_aliases','candidate_entities','outputs','research_families','relationships','output_relations','interpretations'):
                 if isinstance(proposal.get(key),list):data.setdefault(key,[]).extend(proposal[key])
+            resolved = build_organization_findings(extract_config,
+                [item.model_dump(mode='json') for item in evidence_list],data) or {}
+            # Only validated official names cross into the next batch. The
+            # original frozen scope is retained and the final build rechecks
+            # each alias against its current source again.
+            resolved_entities = (resolved.get('scope_result') or {}).get('selected_entities') or []
+            if resolved_entities:
+                extract_config = {**extract_config,'scope':{**extract_config['scope'],
+                    'entities':resolved_entities}}
         accepted=build_organization_findings(extract_config,[item.model_dump(mode='json') for item in evidence_list],data) or {}
         ambiguous=[item for item in accepted.get('pending_records',[])
             if 'ambiguous affiliation identity' in str(item.get('reason',''))]

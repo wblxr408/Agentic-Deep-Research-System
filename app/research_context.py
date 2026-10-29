@@ -21,7 +21,7 @@ CONDITION_QUERIES = {
 }
 
 IDENTITY_CONTEXT_VERSION = 'adrs-publication-identity-v2'
-QUESTION_SEED_VERSION = 'adrs-question-publication-seed-v3'
+QUESTION_SEED_VERSION = 'adrs-question-publication-seed-v4'
 LEGACY_CONTEXT_PACKING_VERSION = 'adrs-context-packing-v1'
 CONTEXT_PACKING_VERSION = 'adrs-context-packing-v2'
 
@@ -152,7 +152,7 @@ def analysis_input_matches(state, query, skills, hints, evidence):
         research_strategy_version=workflow.get('research_strategy_version'))
 
 
-def identity_batches(evidence, *, acquired_only=False):
+def identity_batches(evidence, *, acquired_only=False, configuration=None):
     """Keep acquired full text with retained publisher links, two groups/call.
 
     Grouping only selects reading context. It does not prove work identity or
@@ -179,8 +179,16 @@ def identity_batches(evidence, *, acquired_only=False):
     for item in publishers:
         if item.evidence_id not in seen:groups.append([item.evidence_id]);seen.add(item.evidence_id)
     if not groups:groups=[[item.evidence_id] for item in evidence]
-    return [list(dict.fromkeys(key for group in groups[index:index+2] for key in group))
+    batches = [list(dict.fromkeys(key for group in groups[index:index+2] for key in group))
         for index in range(0,len(groups),2)] or [[]]
+    if configuration:
+        from app.organization_identity import identity_sources
+        anchors = identity_sources(configuration,[item.model_dump(mode='json') for item in evidence])
+        # Use the existing first extraction call. Current official-language
+        # entrances supply names, not a separate autonomous identity agent.
+        names = list(dict.fromkeys(key for ids in anchors.values() for key in ids))
+        batches[0] = list(dict.fromkeys([*names,*batches[0]]))
+    return batches
 
 
 def encoded(value) -> str:
