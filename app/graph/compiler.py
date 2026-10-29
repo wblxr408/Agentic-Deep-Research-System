@@ -497,6 +497,8 @@ def _build_failure_memory(state: ResearchState, dag: DAGDefinition) -> dict[str,
     """Summarize failures so retries and replanning can avoid repeating mistakes."""
     budget = dict(_research_budget(state))
     max_retries = _tool_retry_limit(state.get('budget_state') or {}, budget, state.get('failure_memory'))
+    prior_records={(item.get('node_type'),item.get('query')):item
+        for item in (state.get('failure_memory') or {}).get('records',[])}
     records: dict[str, dict[str, Any]] = {}
     repeated_terminal_nodes: list[str] = []
 
@@ -520,7 +522,7 @@ def _build_failure_memory(state: ResearchState, dag: DAGDefinition) -> dict[str,
         record["last_error"] = node.last_error or record["last_error"]
         record["retry_count"] = max(previous_retry_count, int(node.retry_count or 0))
         record["terminal_failure"] = bool(record["terminal_failure"] or node.terminal_failure)
-        attempted = node.status == StepStatus.FAILED or record['retry_count'] > 0
+        attempted = node.status == StepStatus.FAILED
         exhausted = attempted and record['retry_count'] >= min(max_retries, max(0, int(node.max_retries)))
         if record['terminal_failure'] or exhausted:
             record['repeat_blocked'] = True
@@ -528,8 +530,19 @@ def _build_failure_memory(state: ResearchState, dag: DAGDefinition) -> dict[str,
             record['backoff_seconds'] = 0
             repeated_terminal_nodes.append(node.node_id)
         elif not record['repeat_blocked'] and node.status == StepStatus.FAILED and node.last_error_category:
+            operation=(state.get('tool_handoffs',{}).get(node.node_id) or {}).get('operation_id')
+            previous=prior_records.get((node.node_type,node.query)) or {}
+            same_attempt=(previous.get('retry_count')==int(node.retry_count or 0) and
+                previous.get('last_error_category')==node.last_error_category and previous.get('last_error')==node.last_error and
+                previous.get('node_id',node.node_id)==node.node_id and previous.get('operation_id',operation)==operation)
+            # A checkpoint/re-schedule is not another failed request. Preserve
+            # that attempt's original deadline instead of sliding it forever.
+            if same_attempt and previous.get('next_retry_at'):
+                record['next_retry_at']=previous['next_retry_at']
+                record['backoff_seconds']=previous.get('backoff_seconds',0)
+            record.update(node_id=node.node_id,operation_id=operation)
             existing_next_retry_at = record.get("next_retry_at")
-            if not existing_next_retry_at or previous_retry_count != int(node.retry_count or 0):
+            if not existing_next_retry_at:
                 next_retry_at, backoff_seconds = _compute_next_retry_at(
                     node.last_error_category,
                     int(node.retry_count or 0),
@@ -597,7 +610,7 @@ def _should_retry_node(
     if record and record.get("repeat_blocked"):
         return False, "repeat_blocked"
 
-    retryable_categories = {"timeout", "upstream_429", "upstream_5xx", "network", "temporary_db"}
+    retryable_categories = {"timeout", "upstream_429", "upstream_5xx", "upstream_error", "network", "temporary_db"}
     if node.last_error_category not in retryable_categories:
         return False, "non_retryable_category"
     if record and record.get("next_retry_at"):
@@ -615,6 +628,7 @@ def _base_backoff_seconds(error_category: str | None) -> int:
         "network": 2,
         "temporary_db": 2,
         "upstream_5xx": 3,
+        "upstream_error": 3,
         "upstream_429": 5,
     }
     return mapping.get(error_category or "", 2)
@@ -643,6 +657,8 @@ def _classify_error_category(error: str | None) -> str:
         return 'data_governance'
     if message in {'source_out_of_scope', 'unsupported_source_transport', 'discovery_only'}:
         return message
+    if message in {'upstream_error','access_denied','not_found','irrelevant_results'}:
+        return message
     if message in {"auth_required", "account_risk", "rate_limited", "disabled", "configuration_required", "dependency_missing", "empty_content", "budget_exceeded", "output_limit", "domain_blocked", "unsupported_input", "unsupported_operation", "invalid_output"}:
         return message
     if any(token in message for token in ("timeout", "timed out")):
@@ -655,11 +671,12 @@ def _classify_error_category(error: str | None) -> str:
         return "network"
     if any(token in message for token in ("database", "db")):
         return "temporary_db"
-    return "temporary_db"
+    return "unknown_error"
 
 
 def _is_terminal_error_category(category: str | None) -> bool:
     return category in {
+        'unknown_error','access_denied','not_found','irrelevant_results',
         'data_governance',
         'source_out_of_scope', 'unsupported_source_transport', 'discovery_only',
         "schema_validation",
@@ -1275,9 +1292,9 @@ async def dag_results_aggregator(state: ResearchState) -> dict:
     # and updating every node status, including when no old tools remain.
     manifest = state.get('plan_manifest')
     history = list(state.get('plan_history') or [])
-    from app.discovery_handoff import extend_reads, FOCUSED_VERSION
+    from app.discovery_handoff import extend_reads, FOCUSED_VERSIONS
     followup = (((state.get('query_understanding') or {}).get('research_strategy') or {}).get('source_followup') or {})
-    if followup.get('version') == FOCUSED_VERSION and not budget_state.get('hard_stop_reason') and not state.get('pending_approvals'):
+    if followup.get('version') in FOCUSED_VERSIONS and not budget_state.get('hard_stop_reason') and not state.get('pending_approvals'):
         updated_state = {**state, 'budget_state': budget_state,
                          'accepted_tool_operations': admitted['accepted_tool_operations']}
         remaining_calls, remaining_seconds = _channel_budget(updated_state, [])
@@ -1538,12 +1555,18 @@ def search_node(state: ResearchState) -> dict:
             _update_tool_safety(tool_history,admitted_queries=search_queries)
             search_query=search_queries[0]
             from app.candidate_fusion import frozen_policy
+            from app.research_judgments import discovery_query_terms
+            query_context=state.get('query_understanding') or {}
+            strategy=query_context.get('research_strategy') or {'source_followup':query_context.get('source_followup')}
+            required_terms=discovery_query_terms(strategy,search_query)
+            _update_tool_safety(tool_history,required_topic_terms=required_terms)
             results = agent.execute_search(search_query, channels=route['channels'],
                                            owner_id=state.get("session", {}).get("owner_id"), limit=route['top_k'],
                                            max_calls=route['max_calls'], timeout_seconds=route['timeout_seconds'],
                                            query_variants=list(dict.fromkeys(search_queries)),
                                            fusion=frozen_policy((state.get('query_understanding') or {}).get('candidate_fusion')),
-                                           query_type=(state.get('query_understanding') or {}).get('query_type'),source_policy=policy)[:max_results]
+                                           query_type=(state.get('query_understanding') or {}).get('query_type'),source_policy=policy,
+                                           required_terms=required_terms)[:max_results]
             if policy:
                 accepted, rejected = policy.filter_leads(results)
                 allowed = {item['url'] for item in accepted}

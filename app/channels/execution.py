@@ -314,17 +314,24 @@ def classify_failure(output: str) -> str | None:
 class ExecutionBudget:
     def __init__(self, deadline: float, max_calls: int):
         self.deadline, self.max_calls, self.used = deadline, max_calls, 0
+        self.attempt_deadline=None
+        self.attempt_max_calls=None
 
     def remaining(self):
         check_execution()
         remaining = self.deadline - time.monotonic()
         if remaining <= 0:
             raise ChannelError("budget_exceeded")
+        if self.attempt_deadline is not None:
+            remaining=min(remaining,self.attempt_deadline-time.monotonic())
+            if remaining<=0:raise ChannelError('timeout')
         return remaining
 
     def take(self):
         remaining = self.remaining()
         if self.used >= self.max_calls:
             raise ChannelError("budget_exceeded")
+        if self.attempt_max_calls is not None and self.used>=self.attempt_max_calls:
+            raise ChannelError('backend_share_exhausted')
         self.used += 1
         return remaining

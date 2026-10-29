@@ -11,6 +11,8 @@ from app.query_understanding import identity
 
 VERSION = 'adrs-discovery-handoff-v1'
 FOCUSED_VERSION = 'adrs-discovery-handoff-v2'
+PRIMARY_VERSION = 'adrs-discovery-handoff-v3'
+FOCUSED_VERSIONS = {FOCUSED_VERSION, PRIMARY_VERSION}
 
 
 def topic_terms(query, entities):
@@ -28,7 +30,7 @@ def topic_terms(query, entities):
 def anchor_plan(dag, query, strategy, configuration, *, adjustments=None):
     """Keep the original topic in open organization discovery; never reset nodes."""
     followup = (strategy or {}).get('source_followup') or {}
-    if (followup.get('version') != FOCUSED_VERSION or
+    if (followup.get('version') not in FOCUSED_VERSIONS or
             strategy.get('investigation') != 'organization_and_work' or
             ((configuration or {}).get('corpus') or {}).get('collection_mode') == 'seeds_only'):
         return dag
@@ -64,6 +66,8 @@ def anchor_plan(dag, query, strategy, configuration, *, adjustments=None):
                               ('team', r'team|faculty|author|laborator|团队|作者|师资|实验室')]:
             candidates = [node for node in searches if node not in selected and re.search(pattern,node.query,re.I)]
             chosen = max(candidates, key=lambda node: (
+                bool(followup.get('version') == PRIMARY_VERSION and role == 'work' and
+                     re.search(r'[\u3400-\u9fff]',query) and not re.search(r'[\u3400-\u9fff]',node.query)),
                 len(focus & set(_terms(node.query))),
                 bool(re.search(r'[\u3400-\u9fff]',query)) and not bool(re.search(r'[\u3400-\u9fff]',node.query))
             ),default=None)
@@ -113,9 +117,10 @@ def anchor_plan(dag, query, strategy, configuration, *, adjustments=None):
 def extend_reads(state, dag, *, remaining_calls, remaining_seconds, allowed_tools):
     manifest = state.get('plan_manifest') or {}
     policy = ((state.get('query_understanding') or {}).get('research_strategy') or {}).get('source_followup') or {}
-    if policy.get('version') not in {VERSION, FOCUSED_VERSION} or 'browser' not in allowed_tools or not manifest:
+    if policy.get('version') not in {VERSION, *FOCUSED_VERSIONS} or 'browser' not in allowed_tools or not manifest:
         return dag, manifest, []
-    focused = policy.get('version') == FOCUSED_VERSION
+    focused = policy.get('version') in FOCUSED_VERSIONS
+    primary = policy.get('version') == PRIMARY_VERSION
     config = state.get('organization_research') or {}
     if (config.get('corpus') or {}).get('collection_mode') == 'seeds_only':
         return dag, manifest, []
@@ -203,7 +208,12 @@ def extend_reads(state, dag, *, remaining_calls, remaining_seconds, allowed_tool
             host = urlsplit(url).hostname or ''
             official = any(host == item or host.endswith('.' + item) for item in official_hosts)
             academic = bool(re.search(r'research|publication|faculty|people|laborator|\.pdf(?:$|\?)|科研|学术|师资|论文|团队', description))
-            explicit_document = link.get('pdf') or focused and link.get('kind') == 'full_text'
+            # Inspect the actual href before the lexical gate. Numeric paper
+            # URLs and labels such as "Read PDF" need their parent's context.
+            pdf_url = bool(re.search(r'\.pdf(?:$|[?#])|/(?:pdf|epdf)/',url,re.I))
+            primary_landing = bool(re.search(r'/(?:abs|doi|html)/',url,re.I))
+            explicit_document = (link.get('pdf') or focused and link.get('kind') == 'full_text' or
+                                 primary and (pdf_url or primary_landing))
             if not hits and not (official and academic) and not (explicit_document and terms & set(_terms(source_text))):
                 continue
             score = len(hits) + 2 * official + 2 * academic + 3 * bool(link.get('pdf'))
@@ -214,13 +224,24 @@ def extend_reads(state, dag, *, remaining_calls, remaining_seconds, allowed_tool
                 topic_hits = focus & set(_terms(description))
                 pdf = bool(link.get('pdf') or link.get('kind') == 'full_text' or
                            re.search(r'\.pdf(?:$|[?#])|/(?:pdf|epdf)/', url, re.I))
-                work = bool(pdf or re.search(
+                work = bool(pdf or primary and primary_landing or re.search(
                     r'\bpaper\b|publication|/abs/|/doi/|full.?text|论文|研究成果|出版', url + ' ' + label, re.I))
-                inherited = bool(not discovery and pdf and focus & set(_terms(source_text)))
+                inherited = bool(not discovery and (pdf or primary and primary_landing) and
+                                 focus & set(_terms(source_text)))
                 relevant = bool(topic_hits or inherited or not focus and hits)
                 # Navigation can be useful as an entrance; it cannot outrank
                 # actual article links just by repeating the topic in a menu.
                 role = 'work' if relevant and work and not link.get('navigation') else 'topic' if relevant else 'identity'
+                if primary:
+                    specific={term for term in focus if re.search(r'[a-z0-9]',term)}
+                    specific_tokens=topic_hits | (set(_terms(source_text)) if inherited else set())
+                    specific_hit=any(term in specific_tokens or term+'s' in specific_tokens for term in specific)
+                    # A generic service mention in a journal shell must not
+                    # outrank a page matching the distinctive technical term.
+                    if role=='work' and specific and not specific_hit:
+                        role='topic'
+                    if policy.get('topic_gate')=='distinctive_literal_v1' and specific and not specific_hit:
+                        role='identity'
                 if role == 'identity' and not (official and academic):
                     continue
                 score = (16 * (role == 'work') + 6 * (role == 'topic') +
@@ -230,6 +251,13 @@ def extend_reads(state, dag, *, remaining_calls, remaining_seconds, allowed_tool
                            'direct_topic_terms': sorted(direct_hits), 'explicit_full_text_link': pdf,
                            'parent_topic_used': inherited,
                            'selection_basis': 'question_topic_and_source_role_not_affiliation_or_support'}
+                if primary:
+                    signals.update(source_priority=3 if role=='work' and pdf else
+                        2 if role=='work' and primary_landing else
+                        1 if role=='work' or role=='topic' and official and academic else
+                        0 if role=='topic' else -1,
+                        primary_link_inherited=bool(inherited and primary_landing),
+                        selection_basis='explicit_fulltext_then_primary_landing_then_target_entrance_then_topic')
             candidate = {'url': url, 'evidence_id': source['evidence_id'], 'depends_on': parents,
                          'depth': depth, 'score': score, 'host': host, 'label': label[:240], **signals}
             if key not in candidates or score > candidates[key]['score']:
@@ -237,7 +265,9 @@ def extend_reads(state, dag, *, remaining_calls, remaining_seconds, allowed_tool
     chosen, hosts = [], {}
     identity_count = sum(row.get('source_role') == 'identity' for row in previous)
     while candidates and len(chosen) < capacity:
-        key = max(candidates, key=lambda key: candidates[key]['score'] - 2 * hosts.get(candidates[key]['host'], 0))
+        key = max(candidates, key=lambda key: (
+            candidates[key].get('source_priority',0),
+            candidates[key]['score'] - 2 * hosts.get(candidates[key]['host'], 0)))
         row = candidates.pop(key)
         if focused and row['source_role'] == 'identity':
             if identity_count >= 4:
@@ -263,7 +293,7 @@ def extend_reads(state, dag, *, remaining_calls, remaining_seconds, allowed_tool
                      'discovery_basis': {'evidence_id': row['evidence_id'], 'url': row['url'], 'label': row['label']},
                      'depth': row['depth'], **{key: row[key] for key in (
                          'source_role', 'topic_terms', 'direct_topic_terms', 'explicit_full_text_link',
-                         'parent_topic_used', 'selection_basis') if key in row}})
+                         'parent_topic_used', 'selection_basis','source_priority','primary_link_inherited') if key in row}})
     if not rows:
         return dag, manifest, []
     for node in dag.nodes:

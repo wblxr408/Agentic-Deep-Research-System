@@ -275,7 +275,8 @@ Return JSON with a "queries" array of strings."""
         return sorted(results, key=lambda r: r.relevance_score, reverse=True)
 
     def execute_search(self, query: str, *, channels: list[str] | None = None, owner_id: str | None = None, limit: int = 10, max_calls: int = 24, timeout_seconds: float = 90,
-                       query_variants:list[str]|None=None,fusion:dict|None=None,query_type:str|None=None,source_policy=None) -> list[SearchResult]:
+                       query_variants:list[str]|None=None,fusion:dict|None=None,query_type:str|None=None,source_policy=None,
+                       required_terms:list[str]|None=None) -> list[SearchResult]:
         """
         Execute a single search query (主题 3 工具接口).
 
@@ -297,7 +298,7 @@ Return JSON with a "queries" array of strings."""
         if len(selected) > 8 or len(selected) != len(set(selected)):
             raise ValueError("select at most eight unique channels")
         # Preserve the existing plain-web interface and its fallback behavior.
-        if selected == ["web"] and operation == "search" and not channels and owner_id is None and query_variants is None and fusion is None and source_policy is None:
+        if selected == ["web"] and operation == "search" and not channels and owner_id is None and query_variants is None and fusion is None and source_policy is None and not required_terms:
             return self._execute_search(routed_query)
         service = ChannelService(owner_id, legacy_search=self._execute_search)
         import time
@@ -319,7 +320,8 @@ Return JSON with a "queries" array of strings."""
             if remaining<=0 or seconds<=0:break
             slots=len(requests)-position
             share=max(1,remaining//slots)
-            result = service.collect(CollectionRequest(channel=name, operation=operation, query=actual_query, limit=min(fusion_policy['per_route_top_k'], 20)),
+            result = service.collect(CollectionRequest(channel=name, operation=operation, query=actual_query,
+                required_terms=required_terms or [],limit=min(fusion_policy['per_route_top_k'], 20)),
                 max_calls=share, timeout_seconds=max(0,seconds/slots))
             used_calls += result.call_count
             self.last_channel_attempts.extend({**a.model_dump(),'query':actual_query,'allocated_calls':share,

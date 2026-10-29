@@ -4,6 +4,8 @@ ADRS 面向企业、高校和科研实验室的研究发展分析：从公开论
 
 ## 当前进度
 
+2026-10-29：已修复显式额度创建响应，并接入实际PDF／原始入口优先、字面主题验收、稳定退避与后端共享份额。最新真实研究取得论文全文并完成首轮分析，反思补证后因成果日期／署名校验暂停，尚无新的完整报告；下一步优先处理身份与日期交接。[取证ACI](docs/discovery-source-handoff.md) · [实际记录](docs/acceptance/source-primary-20261029.md)
+
 2026-10-28：研究入口及暂停任务支持手动Token／工具请求／总时长，复杂度建议附35%—75%预留。已实际走完建议、编辑、预览、暂停任务保存与重开；累计用量和原始开始时间保留，保存不启动模型。[额度配置与ACI](docs/research-budget-controls.md) · [真实记录](docs/acceptance/budget-controls-20261028.md)
 
 2026-10-28：模型设置新增Agnes中国站及额外配置保存，当前DeepSeek保留。已用Agnes 3.0 Flash实际委派两项代码工作，回执共8,655 Token，候选由主执行者审阅采用；本机Key受保护且不随仓库分发。[模型与开发委派](docs/AGNES_MODELS.md) · [实际记录](docs/acceptance/agnes-models-20261028.md)

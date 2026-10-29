@@ -1,7 +1,7 @@
 """Public contracts for read-only research sources."""
 from __future__ import annotations
 
-from typing import Literal
+from typing import Annotated, Literal
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 ChannelName = Literal["web", "exa", "github", "youtube", "bilibili", "rss", "v2ex",
@@ -16,6 +16,7 @@ class CollectionRequest(BaseModel):
     query: str = Field(min_length=1, max_length=2048)
     limit: int = Field(default=5, ge=1, le=20)
     max_chars: int = Field(default=8000, ge=100, le=20000)
+    required_terms: list[Annotated[str,Field(min_length=1,max_length=80)]] = Field(default_factory=list,max_length=40)
 
     @field_validator("query")
     @classmethod

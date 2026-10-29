@@ -525,7 +525,7 @@ class ResearchResponse(BaseModel):
     message: str
     requires_confirmation: bool = False
     output_length: str = "medium"
-    budget: dict[str, int | float] = Field(default_factory=dict)
+    budget: dict[str, int | float | str | None] = Field(default_factory=dict)
     skill_context: dict[str, Any] = Field(default_factory=dict)
 
 
@@ -955,16 +955,21 @@ async def create_research(
                 dumps_json(review_status), utc_now_naive(), session_id, _principal_id(principal), execution_id,
             )
 
-    if decision.must_confirm and not request.user_confirmed:
-        return ResearchResponse(
+        # Validate before commit: response failures must not orphan a running root.
+        requires_confirmation=decision.must_confirm and not request.user_confirmed
+        response=ResearchResponse(
             session_id=session_id,
-            status="pending_confirmation",
-            message="High-risk request requires user confirmation before execution.",
-            requires_confirmation=True,
+            status='pending_confirmation' if requires_confirmation else 'running',
+            message='High-risk request requires user confirmation before execution.' if requires_confirmation else
+                f'Research task started. Connect to /api/v1/research/stream/{session_id} for updates.',
+            requires_confirmation=requires_confirmation,
             output_length=output_length.value,
             budget=budget,
             skill_context=skill_context,
         )
+
+    if requires_confirmation:
+        return response
 
     # Start background execution
     background_tasks.add_task(
@@ -985,15 +990,7 @@ async def create_research(
         initial_budget=budget,
     )
 
-    return ResearchResponse(
-        session_id=session_id,
-        status="running",
-        message=f"Research task started. Connect to /api/v1/research/stream/{session_id} for updates.",
-        requires_confirmation=False,
-        output_length=output_length.value,
-        budget=budget,
-        skill_context=skill_context,
-    )
+    return response
 
 
 @router.get("/status/{session_id}", response_model=ResearchStatus)

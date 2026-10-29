@@ -224,6 +224,23 @@ Return JSON with analysis_text and any additional fields explicitly required bel
         selected_entities={item['entity_id'] for item in configuration['scope'].get('entities',[])}
         from app.query_understanding import identity
         acquired_only=bool((getattr(self,'research_strategy',None) or {}).get('source_followup'))
+        from app.research_judgments import discovery_query_terms
+        from app.evidence_selection import matches_query_terms
+        strategy=getattr(self,'research_strategy',None) or {}
+        topic_terms=discovery_query_terms(strategy,strategy.get('original_question',''))
+        # Cross-language topic translation is not inferred by this lexical gate.
+        # Distinctive literal Latin terms (e.g. an acronym) can be checked before
+        # spending extraction calls on pages that only mention the institution.
+        topic_terms=[term for term in topic_terms if term.isascii()]
+        acquired=[item for item in evidence_list if (item.acquisition or {}).get('coverage')!='discovery_only']
+        if topic_terms and not any(matches_query_terms((item.source_title or '')+' '+(item.content or ''),topic_terms) for item in acquired):
+            gap={'reason':'no_topic_body_acquired','required_terms':topic_terms,'accepted_works':0,
+                 'acquired_sources':len(acquired),'next_step':'obtain_topic_sources_before_publication_extraction'}
+            workflow.update(status='paused',active_phase='discovery',stop_reason='research_discovery_incomplete',discovery_gap=gap)
+            self.last_organization_data={}
+            self.last_context_manifest={'schema_version':'adrs-analysis-questions-v2','discovery_gap':gap}
+            progress()
+            raise TokenBudgetExceeded('research_discovery_incomplete')
         for index,ids in enumerate(identity_batches(evidence_list,acquired_only=acquired_only)):
             phase_id=f'extract_publications:{index+1}'
             record=phase(phase_id,extract_config,'extraction',{'identity_evidence_ids':ids})

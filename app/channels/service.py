@@ -110,7 +110,8 @@ class ChannelService:
         except ChannelError as exc:
             result.attempts.append(Attempt(channel=request.channel, backend="policy", status="failed", error_category=exc.category))
         else:
-            for backend in selected[:config.max_attempts]:
+            backends=selected[:config.max_attempts]
+            for position,backend in enumerate(backends):
                 attempt_started = time.monotonic()
                 calls_before = budget.used
                 try:
@@ -120,10 +121,22 @@ class ChannelService:
                     remaining = deadline - time.monotonic()
                     if remaining <= 0:
                         raise ChannelError("budget_exceeded")
+                    # Fallbacks share one existing deadline and call ledger.
+                    # A first upstream must not consume every later option.
+                    available_calls=max(0,budget.max_calls-budget.used)
+                    attempts_left=max(1,min(len(backends)-position,available_calls))
+                    budget.attempt_deadline=time.monotonic()+remaining/attempts_left
+                    budget.attempt_max_calls=budget.max_calls-min(attempts_left-1,max(0,available_calls-1))
                     items = (self.backends.collect(request, backend, config, remaining, budget, github_credential=github_credential)
                              if backend=='github-api' and authenticated else self.backends.collect(request, backend, config, remaining, budget))
                     budget.remaining()
                     normalized = self._items(items, request, spec, backend, timestamp,authenticated=authenticated and backend=='github-api')
+                    if request.operation=='search' and request.required_terms:
+                        from app.evidence_selection import matches_query_terms
+                        normalized=[item for item in normalized if matches_query_terms(
+                            item.title+' '+item.content,request.required_terms)]
+                        if not normalized:
+                            raise ChannelError('irrelevant_results')
                     if request.channel == 'web' and request.operation == 'search':
                         from app.evidence_selection import _terms
                         terms=set(_terms(request.query))
@@ -140,9 +153,16 @@ class ChannelService:
                 except ChannelError as exc:
                     if exc.partial_items:
                         partial_items = self._items(exc.partial_items, request, spec, backend, timestamp,authenticated=authenticated and backend=='github-api')
+                        if request.operation=='search' and request.required_terms:
+                            from app.evidence_selection import matches_query_terms
+                            partial_items=[item for item in partial_items if matches_query_terms(
+                                item.title+' '+item.content,request.required_terms)]
                     result.attempts.append(Attempt(channel=request.channel, backend=backend, status="failed", error_category=exc.category, duration_ms=int((time.monotonic()-attempt_started)*1000), call_count=budget.used-calls_before))
                     if exc.category in STOP_ERRORS:
                         break
+                finally:
+                    budget.attempt_deadline=None
+                    budget.attempt_max_calls=None
         result.call_count = budget.used
         result.status = "success" if result.items else ("partial" if partial_items else ("empty" if result.attempts and all(a.error_category == "empty_content" for a in result.attempts) else "failed"))
         if not result.items and partial_items:

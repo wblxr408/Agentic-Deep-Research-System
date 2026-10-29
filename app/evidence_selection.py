@@ -16,6 +16,18 @@ def _terms(text):
     return list(dict.fromkeys(result))[:160]
 
 
+def matches_query_terms(text,terms):
+    """Literal topic cue, including simple plurals; never evidence support."""
+    text=str(text or '')[:160000].casefold()
+    for term in terms:
+        term=str(term).strip().casefold()
+        if not term:continue
+        if term.isascii() and re.search('[a-z]',term):
+            if re.search(r'(?<![a-z0-9_])'+re.escape(term)+r's?(?![a-z0-9_])',text):return True
+        elif term in text:return True
+    return False
+
+
 def source_priority(evidence,query,*,preferred_ids=None,identity_only=False,deep=False):
     """Keep original citation numbers while ranking candidate source utility.
 

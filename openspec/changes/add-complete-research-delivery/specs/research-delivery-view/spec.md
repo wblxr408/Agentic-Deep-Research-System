@@ -239,3 +239,15 @@ The system SHALL freeze answer, summary, comparison, report or data-analysis int
 - **WHEN** 恢复v1或无发现策略的旧任务
 - **THEN** 保持其原规则、原输入绑定和用量期限，不静默升级或清除已有读取尝试
 
+#### Scenario: 原文链接没有题目文字
+- **WHEN** 新v3任务的已读相关页面明确给出数字编号PDF或原始出版入口，但锚文本只有阅读PDF或原文
+- **THEN** 在词面门禁前识别实际href，并使用该父页的主题判断读取资格；相关全文优先于推荐文章，不构造URL，不将父页声明当成成果归属证明
+
+#### Scenario: 等待一次工具失败的退避
+- **WHEN** 同一node／operation／attempt重复保存或调度，没有新的失败
+- **THEN** 保留首次next_retry_at；只有新失败产生新的退避期限，不增加原尝试数、不把网页上游错误默认为数据库故障
+
+#### Scenario: 仅机构命中的搜索结果
+- **WHEN** 新根冻结字面主题验收且当前查询包含具体技术词，但后端仅返回命中机构名的结果
+- **THEN** 整批记录irrelevant_results，沿原后端、剩余次数和期限回退；部分结果不绕过同一主题筛选，未取得相关正文不消耗成果抽取模型调用
+
