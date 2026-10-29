@@ -13,6 +13,7 @@
 | 442f17f3-c8f7-43f4-a8f6-1fabb4823e7d | 具体主题约束和备选份额已传到实际工具；DuckDuckGo拒绝／网络失败，Bing结果无关／超时，Exa在剩余窗口超时 | 5,435 Token／23请求，0抽取步骤，research_discovery_incomplete，无报告 |
 | c0364720-bd6c-4cfb-8d69-c541a4028899 | 当前账号改用Exa优先、通道90秒后取得Janus、DeepServe、FastServe等全文；首轮完成11个分析步骤，反思补证后重新抽取的成果未通过日期／署名校验 | 169,852 Token／22请求，555秒，零在途；research_discovery_incomplete，无报告 |
 | 5013269f-49b2-4bc3-94c6-7930e5cbf1b2 | v4取得12份正文，完整日期已越过原日期拒因；官网语言链接为HTTP，被原HTTPS准入拒绝，英文别名仍无来源，署名匹配失败 | 32,687 Token／21请求，250秒，3抽取步骤，research_discovery_incomplete，无报告 |
+| 695bfa7b-3f2c-45ad-9143-c04aa471f34b | 官网英文页实际取得，标题与正文开头均为Peking University，首次抽取实际包含中英文身份页；模型却返回空identity_aliases，英文署名仍未对齐 | 20,990 Token／21请求，229秒，2抽取步骤，research_discovery_incomplete，无报告 |
 
 以上均未通过M1完整交付。a34c期间请求协作暂停以便修复，最终按实际发现缺口停止，不能改称成功恢复。HTTP创建错误已将响应校验移入创建事务提交前，后续实际创建接纳了显式额度元数据；并发与失败回滚边界未另行运行。
 
@@ -41,3 +42,5 @@ c036的原根仍为630,000 Token／56次／72分钟，没有追加额度或重�
 下一模块优先修复身份／日期抽取及补证交接，然后再进行一次完整真实研究。全文已实际取得，但目标归属、可靠演进／判断、完整审核、图文、导出和重开仍未通过M1.E2E；M2、M3继续未完成。安全控制点与未验证范围见[取证ACI](../discovery-source-handoff.md)。
 
 89f09fe的5013269f旅程已实际运行v4，原始证据位于outputs/m1-identity-20261029；FastServe／dLoRA等实际拒因已变为署名而非日期，不能由此宣称全部日期边界通过。原官网公开链接第21项明确是http://english.pku.edu.cn/，未进入读取计划；直接源码原因是HTTPS准入，不是先前怀疑的主页返回时序。其后仅补同目标HTTPS传输转换及原href记录，仍保持来源／网络控制；该后续修正尚待完整旅程，见[身份交接ACI](../organization-identity-handoff.md)。
+
+98e88ba的695bfa7b随后实际读取https://english.pku.edu.cn/，原href、读取地址和转换信号进入计划；原始产物在outputs/m1-language-20261029。实际首批上下文包含ev-1ba68b40中文主页及ev-e2752548英文主页，但模型别名数组为空；不是未读取或省略了上下文。后续改为程序从这些已绑定官网入口的实际标题／开头原文形成命名候选，再走相同proof、标题、来源和冲突校验，通用首页／University等词不能成为宽泛署名别名，不新增模型调用。v5不跨旧提示复用，修正效果待下一完整旅程。

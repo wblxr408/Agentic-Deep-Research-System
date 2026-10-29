@@ -266,3 +266,7 @@ The system SHALL freeze answer, summary, comparison, report or data-analysis int
 #### Scenario: 官网语言入口使用HTTP
 - **WHEN** 新根冻结同目标安全传输转换，已读显式官网给出同域HTTP语言入口
 - **THEN** 保留原href，只尝试相同主机／路径／参数的HTTPS候选并重新执行全部准入；不执行HTTP、不改端口或猜测路径，成功读取和原文名称校验前不建立别名
+
+#### Scenario: 模型遗漏已取得的官网名称
+- **WHEN** 当前受限官网语言入口已取得，标题中的名称也逐字出现在正文开头，但模型返回空别名
+- **THEN** 程序形成同一名称候选并执行相同来源、标题、proof及冲突校验，不增加模型调用；纯通用词不能成为署名匹配别名，原文不可用时不从旧结果继承

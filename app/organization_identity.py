@@ -5,6 +5,10 @@ import re
 from urllib.parse import urlsplit
 
 VERSION = 'official-language-v1'
+GENERIC_NAMES = {'home','homepage','official','website','welcome','university','college',
+    'school','institute','laboratory','research','company','corporation','english',
+    'of','the','a','an','and','for','at',
+    '中文','首页','官网','大学','学院','研究院','研究所','实验室','公司'}
 
 
 def language_link(label):
@@ -72,4 +76,35 @@ def title_names_alias(source, alias):
     """Require page branding, rather than a name mentioned in article prose."""
     normalize = lambda text: re.sub(r'\W+', ' ', text.casefold()).strip()
     title, name = normalize(source.get('source_title') or ''), normalize(alias)
-    return bool(name and (title == name or title in {'home ' + name, name + ' home'}))
+    distinctive = any(term not in GENERIC_NAMES for term in re.findall(r'[^\W_]+',name))
+    return bool(distinctive and (title == name or title in {'home ' + name, name + ' home'}))
+
+
+def official_title_claims(configuration, evidence):
+    """Propose literal branding mechanically, then use the normal proof checks.
+
+    A model leaving identity_aliases empty must not discard an already acquired
+    official name. Generic titles cannot become broad affiliation substrings.
+    """
+    anchors = identity_sources(configuration, evidence)
+    by_id = {item['evidence_id']: item for item in evidence}
+    claims = []
+    for entity_id, identifiers in anchors.items():
+        for identifier in identifiers:
+            source = by_id[identifier]
+            title = str(source.get('source_title') or '').strip()
+            terms = re.findall(r'[^\W_]+',title.casefold())
+            if not 2 <= len(title) <= 300 or not any(term not in GENERIC_NAMES for term in terms):
+                continue
+            # A document URL fallback or a heading absent from the acquired
+            # text is not a literal institutional name.
+            try:
+                if urlsplit(title).scheme or not title_names_alias(source,title):continue
+            except ValueError:
+                continue
+            pattern = r'\s+'.join(re.escape(word) for word in title.split())
+            match = re.search(pattern,source.get('content','')[:1600],re.I)
+            if match:
+                claims.append({'entity_id':entity_id,'alias':title,
+                    'proof':{'evidence_id':identifier,'quote':match.group()}})
+    return claims

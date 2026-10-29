@@ -339,9 +339,12 @@ def build_organization_findings(configuration: dict | None, evidence: list[dict]
                 pending.append({'kind': key, 'index': index, 'reason': str(error)[:500]})
 
     catalog = {entity.entity_id: entity for entity in scope.entities}
-    from app.organization_identity import identity_sources, title_names_alias
+    from app.organization_identity import identity_sources, title_names_alias, official_title_claims
     identity_anchors = identity_sources(configuration, evidence)
     identity_aliases = []
+    proposed = {**proposed,'identity_aliases':[
+        *official_title_claims(configuration,evidence),
+        *(proposed.get('identity_aliases') if isinstance(proposed.get('identity_aliases'),list) else [])]}
     for claim in records('identity_aliases', IdentityAliasClaim, 100):
         try:
             source = check(claim.proof)
@@ -356,8 +359,9 @@ def build_organization_findings(configuration: dict | None, evidence: list[dict]
             aliases = tuple(dict.fromkeys((*entity.aliases, claim.alias)))
             if len(aliases) > 30:raise ValueError('identity alias limit exceeded')
             catalog[entity.entity_id] = entity.model_copy(update={'aliases': aliases})
-            identity_aliases.append({'entity_id': entity.entity_id, 'alias': claim.alias,
-                'proof': claim.proof.model_dump(), 'basis': 'selected_official_language_entrance_title'})
+            record={'entity_id': entity.entity_id, 'alias': claim.alias,
+                'proof': claim.proof.model_dump(), 'basis': 'selected_official_language_entrance_title'}
+            if record not in identity_aliases:identity_aliases.append(record)
         except ValueError as error:
             pending.append({'kind': 'identity_alias', 'reason': str(error)})
     scope = scope.model_copy(update={'entities': tuple(catalog[item.entity_id] for item in scope.entities)})
