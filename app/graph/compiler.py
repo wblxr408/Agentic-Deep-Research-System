@@ -954,6 +954,9 @@ def planner_node(state: ResearchState) -> dict:
     agent.request_budget = _stage_model_budget(state,'planner')
     agent.model_routing=state.get('model_routing')
     agent.research_strategy=(state.get('query_understanding') or {}).get('research_strategy')
+    planner_recovery=(state.get('session') or {}).get('planner_recovery') or {}
+    agent.recovered_throttling=(planner_recovery.get('reason')=='provider_throttled_fixed_workflow'
+        and planner_recovery.get('execution_id')==(state.get('session') or {}).get('execution_id'))
     planning_hints = _format_failure_memory_notes(state.get("failure_memory"))
     try:
         dag: DAGDefinition = agent.create_dag(
@@ -987,6 +990,7 @@ def planner_node(state: ResearchState) -> dict:
 
     # 更新会话元数据
     session = state.get("session", {})
+    session.pop('planner_recovery',None)
     session["updated_at"] = utc_now_naive().isoformat()
     session, budget_state = _apply_llm_usage_to_state(state, "planner", _agent_model_usage(agent))
 

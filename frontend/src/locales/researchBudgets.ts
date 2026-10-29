@@ -52,4 +52,6 @@ export const researchBudgetsEnglish:Record<string,string>={
   '执行已中断，可从保存进度继续':'Execution interrupted. Continue from saved progress.',
   '恢复中断研究':'Resume interrupted study',
   '正在接续…':'Resuming…',
+  '规划服务限流，可继续固定取证流程':'Planner rate limited. Continue with the fixed evidence workflow.',
+  '继续取证':'Continue evidence collection',
 }

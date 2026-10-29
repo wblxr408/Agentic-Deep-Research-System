@@ -34,6 +34,8 @@ U2c实际scope_result把DistServe及dLoRA各自的作者PDF／USENIX页形成独
 
 ## Context
 
+规划429增量采用docs/research-interruption-recovery.md：hybrid临时限流仅替换模型规划，既有发现／分析／最终核对不裁剪。旧失败根须原生错误、无计划／材料／分析，保留未知消费、模型、原期限及恢复上限，经原owner／execution／检查点／收据行锁接续；显式dynamic及账号／余额错误保持阻断。源码完成与完整交付验收分记，适用A2ABreak v1.0控制点沿该ACI。
+
 见proposal.md。现有根图已经生成报告并保留引用/组织统计，但查询中声明的图像模板仍显示待渲染；前端仅展示Markdown。已有planning_control中的迭代决策尚未用于reflection路由。当前采用Python、TypeScript/React和已有依赖；技术栈评估不支持现在迁移Go/Rust。
 
 ## Goals / Non-Goals

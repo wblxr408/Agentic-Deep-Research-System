@@ -9,6 +9,7 @@ export interface RunControlState {
   user_control?:{state?:string}|null
   analysis_recovery_available?:boolean;report_recovery_available?:boolean;audit_recovery_available?:boolean
   interruption_recovery_available?:boolean
+  interruption_recovery_reason?:string
   budget_state?:{hard_stop_reason?:string|null;model_stop_reason?:string|null}|null
 }
 const reasons:Record<string,string>=uiDefinition({
@@ -58,13 +59,14 @@ export default function ResearchRunControls({value,onRefresh,onResumed,onRestart
   }
   const findingMessage=(item:{text:string;detail:string},field:'text'|'detail')=>value.pause_diagnosis?.reason==='final_report_needs_revision'&&!item.text.startsWith('已自动修改并核对 ')?item[field]:systemMessage(item[field])
   const stopped=['paused','failed'].includes(value.status)
+  const throttledPlanner=value.interruption_recovery_reason==='planner_rate_limited'
   return <section className="run-controls" aria-label={t("研究执行控制")}>
     <div className="run-control-status" role="status">
       <Icon name={stopped?'pause':'network'} size={18}/>
-      <span>{value.interruption_recovery_available?t('执行已中断，可从保存进度继续'):pausing?t("暂停中 · 当前步骤完成后停止"):userPaused?t("由你暂停"):stopped?(systemMessage(value.pause_diagnosis?.summary||'')||t("系统停止 · {0}", reasons[reason]||t("系统正在整理停止原因"))):value.status==='running'?t("研究正在执行"):value.status==='completed'?t("研究已完成"):value.status==='canceled'?t("研究已终止"):t("等待执行")}</span>
+      <span>{value.interruption_recovery_available?t(throttledPlanner?'规划服务限流，可继续固定取证流程':'执行已中断，可从保存进度继续'):pausing?t("暂停中 · 当前步骤完成后停止"):userPaused?t("由你暂停"):stopped?(systemMessage(value.pause_diagnosis?.summary||'')||t("系统停止 · {0}", reasons[reason]||t("系统正在整理停止原因"))):value.status==='running'?t("研究正在执行"):value.status==='completed'?t("研究已完成"):value.status==='canceled'?t("研究已终止"):t("等待执行")}</span>
     </div>
     <div className="run-control-actions">
-      {value.interruption_recovery_available&&<button type="button" className="btn-primary" disabled={!!busy} onClick={()=>void act('interruption/resume')}><Icon name="play" size={16}/>{busy==='interruption/resume'?t('正在接续…'):t('恢复中断研究')}</button>}
+      {value.interruption_recovery_available&&<button type="button" className="btn-primary" disabled={!!busy} onClick={()=>void act('interruption/resume')}><Icon name="play" size={16}/>{busy==='interruption/resume'?t('正在接续…'):t(throttledPlanner?'继续取证':'恢复中断研究')}</button>}
       {value.status==='running'&&!value.interruption_recovery_available&&<button type="button" className="btn-secondary" disabled={!!busy||pausing} onClick={()=>void act('pause')}><Icon name="pause" size={16}/>{busy==='pause'?t("正在暂停…"):pausing?t("暂停中"):t("暂停")}</button>}
       {userPaused&&<button type="button" className="btn-primary" disabled={!!busy} onClick={()=>void act('resume')}><Icon name="play" size={16}/>{busy==='resume'?t("正在继续…"):t("继续研究")}</button>}
       {!userPaused&&value.analysis_recovery_available&&<button type="button" className="btn-primary" disabled={synthesisBusy||!!busy} onClick={()=>onSynthesis('analysis')}>{t("继续分析")}</button>}

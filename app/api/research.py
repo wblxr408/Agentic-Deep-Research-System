@@ -1605,11 +1605,14 @@ async def get_research_result(session_id: str, principal: Principal = principal_
     }
     interrupted_state=_json_object(row.get('interruption_state'))
     if interrupted_state:
-        from app.research_interruption import acquisition_resume_node
+        from app.research_interruption import acquisition_resume_node,planner_throttling_repair
         result['interruption_recovery_available']=acquisition_resume_node(
             {'status':row['status'],'execution_id':row['execution_id'],'created_at':row['created_at'],
                 'last_heartbeat_at':row.get('execution_heartbeat')},interrupted_state,
             review_status.get('budget_state') or {}) is not None
+        if result['interruption_recovery_available']:
+            result['interruption_recovery_reason']=('planner_rate_limited' if planner_throttling_repair(
+                {'status':row['status'],'execution_id':row['execution_id']},interrupted_state) else 'worker_interrupted')
     safe=projection(result)
     changed=safe.get('report')!=result.get('report')
     safe['disclosure']={'version':DISCLOSURE_VERSION,'report_redacted':changed,'requires_reaudit':changed}
@@ -1995,7 +1998,8 @@ async def _resume_controlled_checkpoint(session_id,payload,background_tasks,prin
                 'model_configuration_change':getattr(error,'routing_change',None)}) from None
     execution_id=str(uuid.uuid4())
     from app.planning_control import rebind_checkpoint_plan,PlanningError
-    from app.research_interruption import binding_repair
+    from app.research_interruption import binding_repair,planner_throttling_repair
+    throttled_planner=interruption and planner_throttling_repair(record,state)
     predecessor=((review.get('execution_recovery') or {}).get('previous_execution_id')
         if interruption and binding_repair(record,state) else None)
     try:rebind_checkpoint_plan(state,execution_id,record['execution_id'],recovery_predecessor=predecessor)
@@ -2009,10 +2013,12 @@ async def _resume_controlled_checkpoint(session_id,payload,background_tasks,prin
     if interruption:
         state['session'].update(user_resume_node=node,
             execution_recovery_attempts=int(root.get('execution_recovery_attempts') or 0)+1)
+        if throttled_planner:
+            state['session']['planner_recovery']={'reason':'provider_throttled_fixed_workflow','execution_id':execution_id}
         state.update(current_executing_nodes=[],executing_nodes=[],tool_handoffs={},tool_result_envelopes={})
         state['review_status']['user_control']=review.get('user_control')
         state['review_status']['last_error_category']=None
-        state['review_status']['execution_recovery']={'reason':'worker_interrupted','state':'resumed',
+        state['review_status']['execution_recovery']={'reason':'planner_rate_limited' if throttled_planner else 'worker_interrupted','state':'resumed',
             'previous_execution_id':str(record['execution_id']),'execution_id':execution_id,
             'checkpoint_seq':int(record['checkpoint_seq']),'resume_node':node,
             'attempts':state['session']['execution_recovery_attempts'],'request_id':str(payload.request_id),

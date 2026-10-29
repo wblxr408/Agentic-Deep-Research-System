@@ -23,6 +23,7 @@ import json
 import logging
 import re
 from typing import TYPE_CHECKING
+from openai import RateLimitError
 
 from app.config import get_settings
 from app.llm_budget import budgeted_client, skill_context_client, TokenBudgetExceeded
@@ -267,6 +268,10 @@ Return a JSON object with dag_name, nodes, and edges."""
             self.last_plan_reason = 'explicit_fixed_workflow'
             return apply_source_policy(self._fixed_research_dag(query, organization_research), query, use_internal_docs=use_internal_docs)
 
+        if planning_strategy == 'hybrid' and getattr(self,'recovered_throttling',False):
+            self.last_plan_reason = 'provider_throttled_fixed_workflow'
+            return apply_source_policy(self._fixed_research_dag(query, organization_research), query, use_internal_docs=use_internal_docs)
+
         decision = build_guardrail_decision(query)
         if (planning_strategy != 'dynamic' and not organization_research and analysis_depth != 'deep'
                 and (query_type == 'fact' or query_type is None and decision.intent == TaskIntent.FACT_LOOKUP)):
@@ -355,6 +360,13 @@ Return a JSON object with dag_name, nodes, and edges."""
 
         except TokenBudgetExceeded:
             raise
+        except RateLimitError as error:
+            from app.research_interruption import temporary_planner_throttling
+            if planning_strategy!='hybrid' or not temporary_planner_throttling(getattr(error,'body',None)):
+                raise
+            logger.warning('Planner throttled; using the authorized hybrid fixed workflow')
+            self.last_plan_reason = 'provider_throttled_fixed_workflow'
+            return apply_source_policy(self._fixed_research_dag(query, organization_research), query, use_internal_docs=use_internal_docs)
         except (OSError, RuntimeError, TypeError, ValueError, KeyError, AttributeError) as e:
             logger.error(f"Planner error: {e}")
             self.last_plan_reason = 'model_plan_failed_fixed_fallback'

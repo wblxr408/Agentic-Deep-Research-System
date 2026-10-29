@@ -406,3 +406,10 @@ The system SHALL freeze answer, summary, comparison, report or data-analysis int
 #### Scenario: 主机重启但取证资料与边界已提交
 - **WHEN** 本人请求恢复旧执行且原额度和期限仍可用
 - **THEN** 已完成节点和证据保留，未执行节点在新执行绑定下继续；记录实际中断恢复而非用户暂停，旧执行迟到结果不得写入
+### Requirement: Hybrid planning survives explicit temporary throttling
+hybrid规划收到原生429且结构化type／code明确为临时限流时，系统 SHALL 采用已有固定取证图并通过原计划编译、资料权限及根预算；研究范围、分析阶段和最终审核 MUST 保持。系统 MUST NOT 将余额／账号／认证错误或显式dynamic策略静默改为该流程。
+
+#### Scenario: Resume retained pre-plan throttling failure
+- **WHEN** 本人失败根尚无计划、材料或分析，原生限流失败绑定当前execution且全部原接续条件满足
+- **THEN** 系统 SHALL 在原期限、消费、冻结模型与两次恢复上限内接续，记录planner_rate_limited及新执行绑定，跳过一次模型规划，保留原未知收据和失败记录
+

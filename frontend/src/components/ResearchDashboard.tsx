@@ -47,6 +47,7 @@ interface ResearchResult {
     revision_requests?:Array<{claim_id:string;text:string;reason:string;requested_action:string}>}|null
   analysis_recovery_available?: boolean
   interruption_recovery_available?: boolean
+  interruption_recovery_reason?: string
   report_recovery_available?: boolean
   audit_recovery_available?: boolean
   analysis_progress?: {phase: string|null;status:string;completed_steps:number;stop_reason?:string|null;
