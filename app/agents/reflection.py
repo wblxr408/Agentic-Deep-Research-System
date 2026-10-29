@@ -102,6 +102,8 @@ Be strict but fair. Flag real hallucinations but don't over-flag.
         self._client: OpenAI | None = None
         self.last_usage: dict | None = None
         self.request_budget = None
+        self.last_partial_response = None
+        self.last_context_manifest = {}
 
     @property
     def client(self) -> OpenAI:
@@ -135,6 +137,9 @@ Be strict but fair. Flag real hallucinations but don't over-flag.
             ReflectionResult with quality metrics
         """
         logger.info(f"Reflection: validating analysis ({len(analysis)} chars, {len(evidence_list)} evidence items)")
+        self.last_usage=None
+        self.last_partial_response=None
+        self.last_context_manifest={'schema_version':'adrs-reflection-response-v1','status':'pending','attempts':[]}
         decision = build_guardrail_decision(user_query)
         system_prompt = f"{build_prompt_profile_message(decision)}\n\n{self.SYSTEM_PROMPT}"
         if (organization_research or {}).get('corpus'):
@@ -171,80 +176,86 @@ Perform a rigorous quality check and return the structured JSON output."""
 
         try:
             active_client=skill_context_client(self.client) if skill_prompt else self.client
-            response, response_model, fallback_used = call_chat_with_fallback(
-                active_client,
-                self.model,
-                self.routed_fallback if hasattr(self,'routed_fallback') else create_fallback_llm_client(),
-                messages=messages,
-                temperature=0.1,  # Low temp for consistency
-                max_tokens=2048,
-                response_format={"type": "json_object"},
-            )
-            if fallback_used:
-                self.model = response_model
-
-            content = response.choices[0].message.content
-            self.last_usage = collect_usage_metrics(
-                response=response,
-                model=response_model,
-                messages=messages,
-                completion_text=content,
-            )
-            if not content:
-                return self._default_result()
-
-            data = json.loads(content)
-
-            # Parse hallucinated claims
-            hallucinated = []
-            for h in data.get("hallucinated_claims", []):
+            primary_model=self.model
+            original_messages=messages
+            from app.disclosure import redact_text
+            for attempt in range(2):
+                response, response_model, fallback_used = call_chat_with_fallback(
+                    active_client,primary_model,
+                    self.routed_fallback if hasattr(self,'routed_fallback') else create_fallback_llm_client(),
+                    messages=messages,temperature=0.1,max_tokens=4096 if attempt==0 else 8192,
+                    response_format={"type":"json_object"})
+                if fallback_used:self.model=response_model
+                choice=response.choices[0] if response.choices else None
+                content=(choice.message.content or '') if choice else ''
+                self.last_partial_response=content
+                self.last_usage=collect_usage_metrics(response=response,model=response_model,
+                    messages=messages,completion_text=content)
+                finish_reason=getattr(choice,'finish_reason',None)
+                record={'attempt':attempt+1,'finish_reason':finish_reason,'model':response_model,
+                    'raw_response':redact_text(content[:50000]),'record_truncated':len(content)>50000,
+                    'usage':self.last_usage}
+                self.last_context_manifest['attempts'].append(record)
                 try:
-                    hallucinated.append(HallucinatedClaim(
-                        claim=h.get("claim", ""),
-                        severity=h.get("severity", "medium"),
-                        reason=h.get("reason", ""),
-                        suggested_fix=h.get("suggested_action") or h.get("suggested_fix", ""),
-                    ))
-                except (OSError, RuntimeError, TypeError, ValueError, KeyError, AttributeError):
+                    if finish_reason=='length':raise ValueError('reflection_output_truncated')
+                    if not content.strip():raise ValueError('reflection_response_empty')
+                    result=self._result_from_data(json.loads(content))
+                    if analysis.strip() and result.total_claims==0:
+                        raise ValueError('reflection_claim_coverage_empty')
+                except (ValueError,TypeError,KeyError,AttributeError) as error:
+                    record.update(status='invalid',error_category=type(error).__name__,
+                        failure_reason='output_truncated' if finish_reason=='length' else
+                            'empty_response' if not content.strip() else
+                            'json_invalid' if isinstance(error,json.JSONDecodeError) else 'response_fields_invalid')
+                    self.last_context_manifest['status']='invalid'
+                    if attempt==1:return self._default_result()
+                    # Recheck the same analysis and evidence, not the malformed
+                    # answer. One larger complete response uses the same meter.
+                    messages=[{**original_messages[0],'content':original_messages[0]['content']+
+                        '\nThe previous response was incomplete or invalid. Return one COMPLETE JSON object '
+                        'with every required field. Keep reasons concise; preserve all detected conflicts and claims. '
+                        'Do not truncate strings or add prose outside JSON.'},*original_messages[1:]]
                     continue
-
-            # Parse conflicts
-            conflicts = []
-            for c in data.get("conflicts", []):
-                try:
-                    conflicts.append(ClaimConflict(
-                        claim_a=c.get("claim_a", ""),
-                        claim_b=c.get("claim_b", ""),
-                        conflict_description=c.get("conflict_description", ""),
-                    ))
-                except (OSError, RuntimeError, TypeError, ValueError, KeyError, AttributeError):
-                    continue
-
-            result = ReflectionResult(
-                total_claims=data.get("total_claims", 0),
-                verified_claims=data.get("verified_claims", 0),
-                hallucinated_claims=hallucinated,
-                conflicts=conflicts,
-                citation_coverage=data.get("citation_coverage", 0.0),
-                overall_confidence=data.get("overall_confidence", 0.5),
-                needs_revision=data.get("needs_revision", len(hallucinated) > 0),
-                revision_focus=data.get("revision_focus"),
-            )
+                record['status']='valid'
+                self.last_context_manifest['status']='valid'
+                break
 
             logger.info(
                 f"Reflection: confidence={result.overall_confidence:.2f}, "
-                f"hallucinations={len(hallucinated)}, "
-                f"conflicts={len(conflicts)}, "
+                f"hallucinations={len(result.hallucinated_claims)}, "
+                f"conflicts={len(result.conflicts)}, "
                 f"needs_revision={result.needs_revision}"
             )
             return result
 
         except TokenBudgetExceeded:
+            self.last_context_manifest['status']='budget_stopped'
             raise
         except (OSError, RuntimeError, TypeError, ValueError, KeyError, AttributeError) as e:
             logger.error(f"Reflection error: {e}")
-            self.last_usage = None
+            self.last_context_manifest.update(status='response_error',error_category=type(e).__name__)
             return self._default_result()
+
+    @staticmethod
+    def _result_from_data(data):
+        required={'total_claims','verified_claims','hallucinated_claims','conflicts',
+            'citation_coverage','overall_confidence','needs_revision','revision_focus'}
+        if not isinstance(data,dict) or not required<=data.keys():raise ValueError('reflection_fields_incomplete')
+        if (type(data['total_claims']) is not int or type(data['verified_claims']) is not int
+                or not 0<=data['verified_claims']<=data['total_claims']
+                or type(data['needs_revision']) is not bool
+                or not isinstance(data['hallucinated_claims'],list) or not isinstance(data['conflicts'],list)):
+            raise ValueError('reflection_fields_invalid')
+        hallucinated=[HallucinatedClaim(claim=row['claim'],severity=row['severity'],reason=row['reason'],
+            suggested_fix=row.get('suggested_action') or row.get('suggested_fix','')) for row in data['hallucinated_claims']]
+        conflicts=[ClaimConflict(claim_a=row['claim_a'],claim_b=row['claim_b'],
+            conflict_description=row['conflict_description']) for row in data['conflicts']]
+        if (hallucinated or conflicts) and not data['needs_revision']:
+            raise ValueError('reflection_verdict_conflicts_with_findings')
+        return ReflectionResult(total_claims=data['total_claims'],verified_claims=data['verified_claims'],
+            hallucinated_claims=hallucinated,conflicts=conflicts,citation_coverage=data['citation_coverage'],
+            overall_confidence=data['overall_confidence'],needs_revision=data['needs_revision'],
+            revision_focus=data['revision_focus'])
 
     def _format_evidence(self, evidence_list: list[Evidence], analysis: str = "") -> str:
         """Compatibility helper using the same claim-oriented selection."""

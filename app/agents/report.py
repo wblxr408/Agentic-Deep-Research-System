@@ -160,6 +160,7 @@ class ReportAgent:
         technical_reading: dict | None = None,
         analysis_workflow: dict | None = None,
         research_judgments: dict | None = None,
+        organization_findings: dict | None = None,
     ) -> tuple[str, list[Citation]]:
         """
         Generate the final research report.
@@ -187,6 +188,7 @@ class ReportAgent:
         self.last_audit = None
         self.last_module_report = None
         module_mode = analysis_snapshot(organization_research) is not None
+        publication_titles=[row['title'] for row in ((organization_findings or {}).get('scope_result') or {}).get('outputs',[])]
         followup=(((query_understanding or {}).get('research_strategy') or {}).get('source_followup') or {})
         acquired_only=bool(module_mode and followup.get('require_work_before_deep_analysis'))
         allowed_citations=({number for number,source in enumerate(evidence_list,1)
@@ -217,6 +219,13 @@ class ReportAgent:
             )
         if not module_mode:
             system_prompt += '\n\n' + REPORT_WRITING_GUIDANCE
+        if organization_findings:
+            system_prompt += ('\nThe publication_identity_source_openings supply current literal author/affiliation '
+                'proofs alongside retained publication identities. Use those passages rather than an earlier analyst '
+                'claim that a different mechanism window omitted the affiliation. Window omission is not evidence '
+                'of absence from the paper. Cite the actual author source for affiliation; affiliation alone does not '
+                'prove contribution share, funding, deployment or a partnership. Do not reproduce contradictory '
+                'draft disclaimers when the current source supports a precise factual statement.')
 
         citations = self._build_citations(evidence_list)
         self.last_citations = citations
@@ -253,12 +262,16 @@ class ReportAgent:
             for evidence_id,spans in handoff_spans({'records':research_judgments.get('records',[])},evidence_list).items():
                 located_spans.setdefault(evidence_id,[]).extend(spans)
         def build_messages(allowance):
+            from app.research_context import publication_identity_handoff
+            identities=publication_identity_handoff(organization_findings,evidence_list,
+                max_bytes=max(0,int(allowance*.12))) if organization_findings else None
+            identity_text=encoded(identities) if identities else ''
             judgments=judgment_context(research_judgments,int(allowance*.12)) if research_judgments and research_judgments.get('records') else None
             judgment_text=encoded(judgments) if judgments else ''
-            selected_analysis, omitted = analysis_context(analysis, int(allowance*(.14 if judgments else .18)))
+            selected_analysis, omitted = analysis_context(analysis, int(allowance*(.10 if judgments else .12)))
             formatted_evidence, manifest = evidence_context(evidence_list, user_query,
                 deep=bool(located_spans) or module_mode and 'deep_dive' in organization_research['modules'],
-                max_bytes=int(allowance*(.67 if judgments else .75)),
+                max_bytes=int(allowance*(.59 if judgments else .69)),
                 located_spans=located_spans,packing_version=packing_version,acquired_only=acquired_only)
             stats = dict(computed_statistics) if computed_statistics else None
             if stats:
@@ -277,6 +290,8 @@ class ReportAgent:
 Analyst's Analysis:
 {untrusted_context('analyst_output', selected_analysis, limit=len(selected_analysis))}
 
+{untrusted_context('publication_identity_source_openings',identity_text,limit=len(identity_text)) if identity_text else ''}
+
 {untrusted_context('research_judgments',judgment_text,limit=len(judgment_text)) if judgment_text else ''}
 
 {untrusted_context('computed_statistics', encoded(stats), limit=len(encoded(stats))) if stats else ''}
@@ -290,6 +305,9 @@ Evidence Sources:
             },
             ]
             manifest['omitted_analysis_blocks'] = omitted
+            if identities:manifest['publication_identity']={
+                'selected_output_ids':[row['output_id'] for row in identities['records']],
+                'omitted_output_ids':identities['omitted_output_ids']}
             if judgments:manifest['research_judgments']={'selected_ids':[row['judgment_id'] for row in judgments['records']],
                 'omitted_ids':judgments['omitted_judgment_ids'],'semantic_support':'requires_final_report_audit'}
             manifest['omitted_metrics'] = stats.get('omitted_metrics', 0) if stats else 0
@@ -360,7 +378,8 @@ Evidence Sources:
                 from app.organization_purpose import normalize_report_envelope
                 normalized_raw,normalizations=normalize_report_envelope(content,organization_research['modules'],len(citations))
                 content=normalized_raw
-                content, self.last_module_report = assemble_module_report(content, organization_research, len(citations), statistics=organization_statistics,allowed_citations=allowed_citations)
+                content, self.last_module_report = assemble_module_report(content, organization_research, len(citations),
+                    statistics=organization_statistics,allowed_citations=allowed_citations,publication_titles=publication_titles)
                 if normalizations:self.last_module_report['envelope_normalizations']=normalizations
                 if self.last_module_report['issues']:
                     first_record = self.last_module_report
@@ -419,7 +438,8 @@ Evidence Sources:
                                     paragraph['text'] = text
                         repaired_raw = json.dumps(original, ensure_ascii=False)
                     content, self.last_module_report = assemble_module_report(repaired_raw, organization_research,
-                        len(citations), statistics=organization_statistics,allowed_citations=allowed_citations)
+                        len(citations), statistics=organization_statistics,allowed_citations=allowed_citations,
+                        publication_titles=publication_titles)
                     self.last_module_report['repair_history'] = [first_record]
                 if self.last_module_report['issues']:
                     self.last_partial_response = ''.join(chunks)

@@ -136,6 +136,8 @@ def module_report_instructions(configuration: dict) -> str:
         'When computed_statistics is present, sample counts, sample percentages and family/label totals '
         'and counts of acquired full texts or sources '
         'must use literal placeholders {stat:metric_id} from its metric_registry. '
+        'A specific individual work or a reference to explicitly named current works is not a corpus-size statistic; '
+        'do not add total-sample language to such a reference. Its publication facts still require source citations. '
         'For example use {stat:sample:publications}, never recalculate or type an aggregate number. '
         'A percentage metric already includes its percent sign; do not append another sign. '
         'Unknown values stay unknown. Publication dates and source-supported experimental measurements '
@@ -147,15 +149,41 @@ def module_report_instructions(configuration: dict) -> str:
         + analysis_instructions(configuration))
 
 
-def _sample_counting_text(text: str) -> str:
+def _sample_counting_text(text: str, publication_titles=()) -> str:
     """Mask work references only in the guard copy, never in report prose.
 
     Another/the same paper and an ordinal paper identify a work; they do not
     state the size of the corpus. Literal cardinal counts still need binding.
     """
-    reference=(r'(?:另一|同一|第(?:\d+|[零〇一二两三四五六七八九十百千万]+))\s*篇(?!全文|完整正文|文档)'
+    reference=(r'(?:另一|同一|第(?:\d+|[零〇一二两三四五六七八九十百千万]+))\s*(?:篇(?!全文|完整正文|文档)|份(?=简历))'
         r'|(?<![0-9零〇一二两三四五六七八九十百千万])(?:一|1)\s*篇(?:中文|英文)?(?:解读|评论|报道)(?:材料|文章|资料)')
-    return re.sub(reference,'[work reference]',text)
+    result=re.sub(reference,'[work reference]',text)
+    # A source claim about one specifically described work is not the size of
+    # our retrieved corpus. Its actual publication fact still faces audit.
+    aggregate=r'样本|采纳|总计|合计|共计|共有|一共|全集|统计|占比|年度总|发表总|只有|仅有|共\s*[0-9一二两三四五六七八九十百]'
+    clauses=re.split(r'([。；;\n])',result)
+    for index in range(0,len(clauses),2):
+        if not re.search(aggregate,clauses[index]):
+            clauses[index]=re.sub(r'(?<![0-9零〇一二两三四五六七八九十百千万])(?:一|1)\s*篇(?=被|发表于|题为|名为)',
+                '[specific work reference]',clauses[index])
+    result=''.join(clauses)
+    named=set();labels_to_titles={}
+    for title in publication_titles:
+        labels=[title]
+        prefix=re.split(r'[:：]',title,maxsplit=1)[0]
+        if re.fullmatch(r'[A-Za-z][A-Za-z0-9._-]{2,40}',prefix):labels.append(prefix)
+        for label in labels:labels_to_titles.setdefault(label.casefold(),set()).add(title)
+    for label,titles in labels_to_titles.items():
+        if len(titles)==1 and re.search(r'(?<![A-Za-z0-9_])'+re.escape(label)+r'(?![A-Za-z0-9_])',text,re.I):
+            named.update(titles)
+    numbers={'一':1,'二':2,'两':2,'三':3,'四':4,'五':5,'六':6,'七':7,'八':8,'九':9,'十':10}
+    if named and not re.search(aggregate,text):
+        def reference_count(match):
+            count=int(match['number']) if match['number'].isdigit() else numbers.get(match['number'])
+            return '[named work reference]' if count==len(named) else match[0]
+        result=re.sub(r'(?:这|那|上述|前述|所述)(?P<number>\d{1,4}|[一二两三四五六七八九十]+)\s*篇(?:论文|工作)',
+            reference_count,result)
+    return result
 
 
 def paragraph_repair_messages(rejected: list[dict]) -> list[dict]:
@@ -246,7 +274,8 @@ def normalize_report_envelope(raw: str, selected: list[str], citation_count: int
 
 
 def assemble_module_report(raw: str, configuration: dict, citation_count: int, *, statistics: dict | None = None,
-                           allowed_citations: set[int] | None = None) -> tuple[str, dict]:
+                           allowed_citations: set[int] | None = None,
+                           publication_titles=()) -> tuple[str, dict]:
     """Untrusted prose cannot add report pages or replace selected module IDs."""
     selected = configuration['modules']
     issues, proposed, rejected = [], {}, []
@@ -309,9 +338,10 @@ def assemble_module_report(raw: str, configuration: dict, citation_count: int, *
         # Dates and measurements from an individual paper remain source claims.
         number=r'(?:\d+(?:[.,]\d+)*|[零〇一二两三四五六七八九十百千万]+)'
         document_units=r'(?:篇|份|个)\s*(?:全文|完整正文|来源文档|文档版本|来源|证据条目|证据片段)'
-        if re.search(number+r'\s*'+document_units,remainder,re.I):raise ValueError('unbound_source_aggregate')
+        counting_text=_sample_counting_text(remainder,publication_titles)
+        if re.search(number+r'\s*'+document_units,counting_text,re.I):raise ValueError('unbound_source_aggregate')
         units=r'(?:篇(?!全文|完整正文|文档)(?:论文|成果|发表)?|条发表|项成果|个?(?:研究家族|发表记录|分类标签|采纳样本)|publications?\b|papers?\b|families\b)'
-        if re.search(number+r'\s*'+units,_sample_counting_text(remainder),re.I):raise ValueError('unbound_sample_aggregate')
+        if re.search(number+r'\s*'+units,counting_text,re.I):raise ValueError('unbound_sample_aggregate')
         # A later comma-separated metric must not change the population of an
         # earlier experimental percentage (e.g. SLO target, then overhead share).
         # Keep numeric commas together; source measurements still face audit.
@@ -384,5 +414,6 @@ def assemble_module_report(raw: str, configuration: dict, citation_count: int, *
         'modules': modules, 'not_requested': [key for key in MODULES if key not in selected],
         'issues': list(dict.fromkeys(issues)), 'validation': 'selected_ids_source_numbers_and_bound_sample_statistics',
         'statistics_snapshot_id':statistics.get('snapshot_id') if statistics else None,
+        'reference_count_rule':'specific_single_work_and_named_current_work_subset_v1',
         'rejected_paragraphs': rejected,
         'independent_semantic_review': False}

@@ -290,6 +290,8 @@ Return JSON with analysis_text and any additional fields explicitly required bel
             for item in (accepted.get('scope_result') or {}).get('outputs',[])],
             'publication_metadata':accepted.get('publication_metadata',{}),
             'pending_records':accepted.get('pending_records',[])[:10]}
+        from app.research_context import publication_identity_handoff
+        seed['publication_identity']=publication_identity_handoff(accepted,evidence_list,max_bytes=12000)
         followup=(getattr(self,'research_strategy',None) or {}).get('source_followup') or {}
         if (followup.get('require_work_before_deep_analysis') and 'deep_dive' in modules and not seed['outputs']):
             # Empty accepted work inputs cannot support six substantive research
@@ -342,6 +344,8 @@ Return JSON with analysis_text and any additional fields explicitly required bel
             for index,batch in enumerate(batches):
                 batch={**batch,'publication_metadata':{item['output_id']:seed['publication_metadata'].get(item['output_id'],{})
                     for item in batch['outputs']}}
+                batch['publication_identity']=publication_identity_handoff(accepted,evidence_list,max_bytes=12000,
+                    output_ids={item['output_id'] for item in batch['outputs']})
                 phase_id='question:'+module+(f':{index+1}' if len(batches)>1 else '')
                 if strategy_version and module in {'evolution','validation','actions'}:
                     batch={**batch,'_analysis_handoff':{'technical':technical_by_output,
@@ -472,6 +476,10 @@ Return JSON with analysis_text and any additional fields explicitly required bel
                     'Use the server-retained publication IDs below; do not re-extract or modify publications/affiliations. '
                     'Cite existing source numbers, preserve experiment conditions, and use literal proof excerpts for structured fields. '
                     'Prefix new observation/event IDs with the selected module name to avoid cross-question collisions.')
+                system_prompt += ('\nThe publication_identity records contain retained identity fields and current literal author openings. '
+                    'Use those original passages for affiliation; a mechanism/evaluation window omitting the author block '
+                    'does not negate it. Do not re-extract or deny an affiliation just because it is absent from another '
+                    'selected window. Distinguish publication affiliation from individual contribution, funding or deployment.')
                 from app.research_context import question_seed, encoded
                 seed,seed_manifest=question_seed(context_seed,deep='deep_dive' in organization_research.get('modules',[]))
                 seed_text=encoded(seed)

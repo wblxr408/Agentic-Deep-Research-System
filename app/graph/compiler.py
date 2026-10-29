@@ -2446,9 +2446,16 @@ async def reflection_node(state: ResearchState) -> dict:
                     'content':'反思阶段余量不足，保留报告及最终审核额度；未执行本轮反思。'}]}
         return _model_budget_pause(state,agent,'reflection',error)
     session, budget_state = _apply_llm_usage_to_state(state, "reflection", _agent_model_usage(agent))
+    verification_data=verification.model_dump()
+    verification_data['response_status']=agent.last_context_manifest.get('status','response_error')
+    reflection_findings={**(state.get('organization_result') or {}),
+        'reflection_context':agent.last_context_manifest}
 
     # 追踪校验结果
-    if verification.needs_revision:
+    if verification_data['response_status']!='valid':
+        emit_event(state,EventType.AGENT_ERROR,'reflection',
+            '反思响应未完成；已保留实际响应与用量，报告仍须完整核对。')
+    elif verification.needs_revision:
         emit_event(
             state, EventType.AGENT_COMPLETE, "reflection",
             f"Verification failed: confidence={verification.overall_confidence:.2f}, "
@@ -2465,20 +2472,20 @@ async def reflection_node(state: ResearchState) -> dict:
     trace = [AgentEvent(
         agent="reflection",
         event_type="agent_complete",
-        content=f"Verification: confidence={verification.overall_confidence:.2f}, "
-                f"needs_revision={verification.needs_revision}"
+        content=(f"Verification: confidence={verification.overall_confidence:.2f}, needs_revision={verification.needs_revision}"
+            if verification_data['response_status']=='valid' else '反思格式恢复未完成；原响应与用量已保留。')
     ).model_dump()]
 
-    control = iteration_decision({**state, 'verification': verification.model_dump(),
+    control = iteration_decision({**state, 'verification': verification_data,
         'revision_needed': verification.needs_revision, 'budget_state': budget_state},
         PlanningPolicy.model_validate(state.get('planning_policy') or {}))
     trace.append(AgentEvent(agent='reflection', event_type='iteration_decision',
         content=f"{control['action']}: {control['reason']}").model_dump())
     return {
-        "verification": verification.model_dump(),
+        "verification": verification_data,
         'iteration_control': control,
         'evidence_access_gaps':state.get('evidence_access_gaps',[]),
-        'analysis':state.get('analysis',''),'organization_result':state.get('organization_result'),
+        'analysis':state.get('analysis',''),'organization_result':reflection_findings,
         "revision_needed": verification.needs_revision,
         "session": session,
         "budget_state": budget_state,
@@ -2731,6 +2738,7 @@ async def report_node(state: ResearchState) -> dict:
                 user_query=_synthesis_question(state),
                 analysis=state["analysis"] + findings_context(organization_result),
                 research_judgments=(organization_result or {}).get('research_judgments'),
+                organization_findings=organization_result,
                 evidence_list=evidence_list,
                 reflection=verification,
                 output_length=state.get("output_length") or state.get("session", {}).get("output_length"),

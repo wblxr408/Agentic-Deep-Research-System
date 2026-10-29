@@ -21,19 +21,19 @@ CONDITION_QUERIES = {
 }
 
 IDENTITY_CONTEXT_VERSION = 'adrs-publication-identity-v2'
-QUESTION_SEED_VERSION = 'adrs-question-publication-seed-v5'
+QUESTION_SEED_VERSION = 'adrs-question-publication-seed-v6'
 LEGACY_CONTEXT_PACKING_VERSION = 'adrs-context-packing-v1'
 CONTEXT_PACKING_VERSION = 'adrs-context-packing-v2'
 
 
 def analysis_binding(query, configuration, skills, hints, evidence, *, packing_version=CONTEXT_PACKING_VERSION,
-                     research_strategy_version=None):
+                     research_strategy_version=None, question_seed_version=QUESTION_SEED_VERSION):
     """Bind retained question phases to their exact frozen model inputs."""
     from app.query_understanding import identity
     from app.evidence_selection import VERSION as SELECTION_VERSION
     bound={'version':'adrs-analysis-questions-v2','query':query,'configuration':configuration,
         'identity_context_version':IDENTITY_CONTEXT_VERSION,
-        'question_seed_version':QUESTION_SEED_VERSION,
+        'question_seed_version':question_seed_version,
         'context_selection_version':SELECTION_VERSION,
         'skills':skills,'hints':hints,'evidence':[
             {'id':item.evidence_id,'url':item.source_url,'content':item.content,'acquisition':item.acquisition}
@@ -132,9 +132,13 @@ def analysis_input_matches(state, query, skills, hints, evidence):
     """A report continuation retains both the original and extended bindings."""
     from app.planning_control import retained_evidence_version
     workflow=state.get('analysis_workflow') or {}
+    seed_version=workflow.get('question_seed_version')
+    if seed_version!=QUESTION_SEED_VERSION and not (
+            seed_version=='adrs-question-publication-seed-v5' and workflow.get('status')=='completed'):
+        return False
     packing_version=workflow_packing_version(workflow)
     expected=analysis_binding(query,state.get('organization_research'),skills,hints,evidence,packing_version=packing_version,
-        research_strategy_version=workflow.get('research_strategy_version'))
+        research_strategy_version=workflow.get('research_strategy_version'),question_seed_version=seed_version)
     if workflow.get('binding')==expected:
         return True
     reuse=workflow.get('retained_material_reuse') or {}
@@ -149,7 +153,71 @@ def analysis_input_matches(state, query, skills, hints, evidence):
     subset=_bound_evidence_subset(evidence,reuse.get('evidence_ids'))
     return subset is not None and workflow['binding']==analysis_binding(
         query,state.get('organization_research'),skills,hints,subset,packing_version=packing_version,
-        research_strategy_version=workflow.get('research_strategy_version'))
+        research_strategy_version=workflow.get('research_strategy_version'),question_seed_version=seed_version)
+
+
+def publication_identity_handoff(findings, evidence, *, max_bytes=10000, output_ids=None):
+    """Carry checked identities with current literal author openings, not prose.
+
+    Later reading windows need not repeat identity extraction or treat a window
+    omission as evidence that the publication has no institutional affiliation.
+    The final report audit still verifies every actual assertion.
+    """
+    from app.organization_findings import _publication_opening, _contains
+    by_id={item.evidence_id:item for item in evidence}
+    view={'records':[],'names':[],'omitted_output_ids':[],
+        'semantics':'retained_identity_and_current_literal_source_not_independent_semantic_verdict'}
+    for item in (findings or {}).get('identity_aliases',[]):
+        proof=item.get('proof') or {};source=by_id.get(proof.get('evidence_id'))
+        if (source and (source.acquisition or {}).get('coverage')!='discovery_only'
+                and isinstance(proof.get('quote'),str) and _contains(source.content,proof['quote'])):
+            record={key:item.get(key) for key in ('entity_id','alias','proof')}
+            if (record not in view['names'] and
+                    len(encoded({**view,'names':[*view['names'],record]}).encode('utf-8'))<=max_bytes):
+                view['names'].append(record)
+    metadata=(findings or {}).get('publication_metadata') or {}
+    for output in ((findings or {}).get('scope_result') or {}).get('outputs',[]):
+        if output_ids is not None and output['output_id'] not in output_ids:continue
+        row={key:output.get(key) for key in ('output_id','title','published_on','published_until','date_precision')}
+        affiliations=output.get('affiliations') or []
+        row['affiliations']=affiliations[:2]
+        row['affiliation_scope']='retained_subset_not_exhaustive_author_list'
+        row['omitted_affiliations']=max(0,len(affiliations)-2)
+        row['source_openings']=[]
+        proofs=[]
+        for proof in ((findings or {}).get('source_checks') or {}).get('proofs',[]):
+            source=by_id.get(proof.get('evidence_id'));start,end=proof.get('start'),proof.get('end')
+            if (source is None or type(start) is not int or type(end) is not int
+                    or not 0<=start<end<=len(source.content)
+                    or source.content[start:end]!=proof.get('quote')
+                    or source.evidence_id not in (metadata.get(output['output_id']) or {}).get('evidence_ids',[])):
+                continue
+            if any(_contains(proof['quote'],aff.get('author_id','')) and
+                   _contains(proof['quote'],aff.get('raw_affiliation','')) for aff in affiliations
+                   if aff.get('author_id') and aff.get('raw_affiliation')):
+                proofs.append((len(proof['quote']),source,proof))
+        if proofs:
+            _,source,proof=min(proofs,key=lambda item:item[0])
+            row['source_openings'].append({key:proof[key] for key in ('evidence_id','start','end','quote')})
+            row['source_openings'][0]['citation_id']=evidence.index(source)+1
+        for identifier in (metadata.get(output['output_id']) or {}).get('evidence_ids',[]):
+            if row['source_openings']:break
+            source=by_id.get(identifier)
+            if not source or (source.acquisition or {}).get('coverage')=='discovery_only':continue
+            opening=_publication_opening(source.model_dump(mode='json'))[:2200]
+            if not any(_contains(opening,aff.get('author_id','')) and
+                       _contains(opening,aff.get('raw_affiliation','')) for aff in affiliations
+                       if aff.get('author_id') and aff.get('raw_affiliation')):continue
+            row['source_openings'].append({'evidence_id':identifier,'citation_id':evidence.index(source)+1,
+                'start':0,'end':len(opening),'quote':opening})
+            if len(row['source_openings'])>=2:break
+        if not row['source_openings']:
+            view['omitted_output_ids'].append(output['output_id'])
+            continue
+        if len(encoded({**view,'records':[*view['records'],row]}).encode('utf-8'))<=max_bytes:
+            view['records'].append(row)
+        else:view['omitted_output_ids'].append(output['output_id'])
+    return view
 
 
 def identity_batches(evidence, *, acquired_only=False, configuration=None):
@@ -214,10 +282,14 @@ def question_seed(seed, *, deep=False, max_bytes=12000):
             removed=value['outputs'].pop()
             value['omitted_output_ids'].append(removed['output_id'])
             value.get('publication_metadata',{}).pop(removed['output_id'],None)
+    if value.get('publication_identity'):
+        selected={item['output_id'] for item in value.get('outputs',[])}
+        value['publication_identity']={**value['publication_identity'],
+            'records':[row for row in value['publication_identity'].get('records',[]) if row['output_id'] in selected]}
     manifest={'version':QUESTION_SEED_VERSION,'selected_output_ids':[item['output_id'] for item in value.get('outputs',[])],
         'omitted_output_ids':list(value['omitted_output_ids']),
         'all_assigned_identities_required':deep,'retained_seed_bytes':len(encoded(value).encode('utf-8')),
-        'affiliation_details':'retained_in_root' if deep else 'included_for_selected_outputs',
+        'affiliation_details':'current_literal_identity_projection_with_full_root_records' if deep else 'included_for_selected_outputs',
         'source_reading_and_semantic_support':'not_established_by_seed_presence'}
     return value,manifest
 
