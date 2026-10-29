@@ -62,6 +62,9 @@ def freeze_strategy(query, configuration, slots):
                            'entity_identity':'official-language-v1',
                            'identity_transport':'https_same_target_v1',
                            'rate_limit_policy':'public_provider_scoped_v1',
+                           'work_selection':('distinct_primary_works_v1' if organization and not re.search(
+                               r'版本|修订|\bversions?\b|\brevisions?\b|\bv\d+\b',
+                               query+' '+str(slots.get('additional_constraints') or ''),re.I) else 'requested_representations'),
                            'topic_terms':topic_terms(query,entities)}}
 
 

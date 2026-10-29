@@ -332,3 +332,11 @@ The system SHALL freeze answer, summary, comparison, report or data-analysis int
 #### Scenario: 一个公开搜索服务被限流
 - **WHEN** 新根冻结public_provider_scoped_v1且web/search的已有独立公开后端返回rate_limited或仍处原60秒冷却
 - **THEN** 尊重该后端冷却，在当前owner配置的其他已有后端与同一次数／deadline内继续；零调用跳过不续推冷却，不绕过认证／账号风险／权限，不新增重试轮；缺flag的旧根不升级
+
+#### Scenario: 普通机构研究已有一篇作品全文
+- **WHEN** 新根冻结distinct_primary_works_v1，当前任务可信公开来源已保留同一明确arXiv标识的full_text
+- **THEN** 动态补读优先调查其他作品，不把同标识历史版本／context视图反复计入读取名额；每批同一标识一个表示，partial／失败允许后续实际表示回退，不合并版本或改变事实／统计；明确版本需求与原DAG／种子不被本排序删去
+
+#### Scenario: 候选主文献出现目标名称
+- **WHEN** 候选或其当前已取得父页逐字出现原选机构名、显式别名或当前官网名称
+- **THEN** 可作为优先调查线索记录，官网语言入口仍优先；最终机构归属、时间与合作继续用原文校验，词面命中不作为事实支持

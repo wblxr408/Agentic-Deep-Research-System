@@ -168,6 +168,7 @@ def extend_reads(state, dag, *, remaining_calls, remaining_seconds, allowed_tool
     primary = policy.get('version') in PRIMARY_VERSIONS
     representations = policy.get('version') in {REPRESENTATION_VERSION,TRANSPORT_VERSION}
     transport = policy.get('version') == TRANSPORT_VERSION
+    diverse = transport and policy.get('work_selection')=='distinct_primary_works_v1'
     config = state.get('organization_research') or {}
     if (config.get('corpus') or {}).get('collection_mode') == 'seeds_only':
         return dag, manifest, []
@@ -211,6 +212,23 @@ def extend_reads(state, dag, *, remaining_calls, remaining_seconds, allowed_tool
     official_hosts = {urlsplit(url).hostname.removeprefix('www.') for entity in (config.get('scope') or {}).get('entities', [])
                       for url in entity.get('source_urls', []) if urlsplit(url).hostname}
     context = network_context(state)
+    acquired_work_hints=set()
+    target_names=[]
+    if diverse:
+        # Identifier grouping is only an acquisition priority. It never merges
+        # publication versions, dates, authors, evidence or statistics.
+        for source in state.get('collected_evidence') or []:
+            meta=source.get('acquisition') or {}
+            hint=_arxiv_document(source.get('source_url') or '')
+            if (hint and meta.get('coverage')=='full_text' and source.get('content')
+                    and source.get('source_backend') in PUBLIC_TRANSPORTS
+                    and source_observation(source)['data_class']=='public'):
+                acquired_work_hints.add(hint[0])
+        target_names=[name for entity in (config.get('scope') or {}).get('entities',[])
+            for name in [entity.get('name'),*(entity.get('aliases') or [])] if isinstance(name,str) and name.strip()]
+        from app.organization_identity import official_title_claims
+        target_names += [row['alias'] for row in official_title_claims(config,state.get('collected_evidence') or [])]
+        target_names=list(dict.fromkeys(target_names))[:80]
     candidates = {}
     for source in state.get('collected_evidence') or []:
         if source_observation(source)['data_class'] != 'public':
@@ -258,6 +276,9 @@ def extend_reads(state, dag, *, remaining_calls, remaining_seconds, allowed_tool
             if not isinstance(url, str) or len(url) > 2048 or sensitive_url(url):
                 continue
             if representations and _sharing_action(url):
+                continue
+            work_hint=_arxiv_document(url) if diverse else None
+            if work_hint and work_hint[0] in acquired_work_hints:
                 continue
             label = str(link.get('label') or '')
             from app.organization_identity import language_link, secure_language_url
@@ -353,6 +374,12 @@ def extend_reads(state, dag, *, remaining_calls, remaining_seconds, allowed_tool
                             selection_basis='same_document_or_primary_download_before_cited_documents_then_topic')
             candidate = {'url': url, 'evidence_id': source['evidence_id'], 'depends_on': parents,
                          'depth': depth, 'score': score, 'host': host, 'label': label[:240], **signals}
+            if diverse:
+                name_text=description if discovery else description+' '+source_text
+                mentions=[name for name in target_names if re.search(
+                    r'\s+'.join(re.escape(word) for word in name.split()),name_text,re.I)]
+                candidate.update(work_hint_id=work_hint[0] if work_hint else None,
+                    target_name_hints=mentions[:8],work_selection='distinct_primary_works_v1')
             if transport and not discovery and origin:
                 candidate.update(parent_requested_url=origin.query,parent_final_url=source_url)
             if key not in candidates or score > candidates[key]['score']:
@@ -361,13 +388,18 @@ def extend_reads(state, dag, *, remaining_calls, remaining_seconds, allowed_tool
         # Discovery rows can precede their acquired redirected version in the
         # ledger. Remove any candidate now known to be already read this task.
         candidates={key:row for key,row in candidates.items() if key not in requested}
-    chosen, hosts = [], {}
+    chosen, hosts, chosen_work_hints = [], {}, set()
     identity_count = sum(row.get('source_role') == 'identity' for row in previous)
     while candidates and len(chosen) < capacity:
         key = max(candidates, key=lambda key: (
+            bool(diverse and candidates[key].get('identity_language_entrance')),
+            bool(diverse and candidates[key].get('source_role')=='work' and candidates[key].get('target_name_hints')),
             candidates[key].get('source_priority',0),
             candidates[key]['score'] - 2 * hosts.get(candidates[key]['host'], 0)))
         row = candidates.pop(key)
+        if diverse and row.get('work_hint_id'):
+            if row['work_hint_id'] in chosen_work_hints:continue
+            chosen_work_hints.add(row['work_hint_id'])
         if focused and row['source_role'] == 'identity':
             if identity_count >= 4:
                 continue
@@ -395,7 +427,8 @@ def extend_reads(state, dag, *, remaining_calls, remaining_seconds, allowed_tool
                          'source_role', 'topic_terms', 'direct_topic_terms', 'explicit_full_text_link',
                          'parent_topic_used', 'selection_basis','source_priority','primary_link_inherited',
                          'identity_language_entrance','source_link_url','transport_upgrade',
-                         'parent_requested_url','parent_final_url') if key in row}})
+                         'parent_requested_url','parent_final_url','work_hint_id','target_name_hints',
+                         'work_selection') if key in row}})
     if not rows:
         return dag, manifest, []
     for node in dag.nodes:
