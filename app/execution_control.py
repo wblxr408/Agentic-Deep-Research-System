@@ -30,6 +30,11 @@ def signal_cancellation(session_id,execution_id):
     if control:control.stop('execution_canceled')
 
 
+def execution_is_active(session_id,execution_id):
+    with _active_lock:control=_active.get((str(session_id),str(execution_id)))
+    return bool(control and not control.event.is_set())
+
+
 class ExecutionControl:
     def __init__(self,session_id,owner_id,execution_id):
         self.binding={'session_id':str(session_id),'owner_id':str(owner_id),'execution_id':str(execution_id)}
@@ -99,8 +104,21 @@ class ExecutionControl:
     async def observe(self):
         # One root-local observer for cross-worker DB cancellation, no daemon or
         # second source of state. It never launches a model or research step.
+        from time import monotonic
+        heartbeat=0.0
         while not self.event.is_set():
-            try:await self.status()
+            try:
+                if not await self.status():return
+                if monotonic()-heartbeat>=15:
+                    from app.db.connection import get_db_pool
+                    pool=await get_db_pool()
+                    async with pool.acquire() as conn:
+                        await conn.execute('''UPDATE session_runtime_state SET last_heartbeat_at=NOW()
+                            WHERE session_id=$1::uuid AND EXISTS(SELECT 1 FROM research_sessions s
+                                WHERE s.id=$1::uuid AND s.owner_id=$2::uuid
+                                  AND s.execution_id=$3::uuid AND s.status='running')''',
+                            self.binding['session_id'],self.binding['owner_id'],self.binding['execution_id'])
+                    heartbeat=monotonic()
             except Exception:
                 self.stop('execution_authorization_unavailable');return
             await asyncio.sleep(.75)

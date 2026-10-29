@@ -48,4 +48,8 @@ export const researchBudgetsEnglish:Record<string,string>={
   '基础估算':'Base estimate',
   '默认额度':'Default budget',
   '建议 {0} Token · 额外预留 {1}%':'Recommended {0} tokens · {1}% added reserve',
+  '当前没有可接续的取证边界，请刷新执行状态。':'No acquisition checkpoint is available. Refresh the execution state.',
+  '执行已中断，可从保存进度继续':'Execution interrupted. Continue from saved progress.',
+  '恢复中断研究':'Resume interrupted study',
+  '正在接续…':'Resuming…',
 }

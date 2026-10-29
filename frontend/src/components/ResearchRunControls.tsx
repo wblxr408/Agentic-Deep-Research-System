@@ -8,6 +8,7 @@ export interface RunControlState {
   session_id:string;execution_id?:string|null;status:string;runtime_status?:string|null;stop_reason?:string|null
   user_control?:{state?:string}|null
   analysis_recovery_available?:boolean;report_recovery_available?:boolean;audit_recovery_available?:boolean
+  interruption_recovery_available?:boolean
   budget_state?:{hard_stop_reason?:string|null;model_stop_reason?:string|null}|null
 }
 const reasons:Record<string,string>=uiDefinition({
@@ -27,6 +28,7 @@ const errors:Record<string,string>=uiDefinition({
   resume_receipts_pending:'上一步的用量仍在结算，请稍后继续。',
   resume_sources_changed:'资料访问已变化，请调整后重新开始。',
   resume_original_deadline_unavailable:'原任务的期限记录不完整，请重新开始。',
+  resume_interruption_not_available:'当前没有可接续的取证边界，请刷新执行状态。',
 })
 export default function ResearchRunControls({value,onRefresh,onResumed,onRestart,onSynthesis,synthesisBusy}:{
   value:RunControlState;onRefresh:()=>Promise<void>;onResumed:(execution:string)=>Promise<void>
@@ -39,7 +41,7 @@ export default function ResearchRunControls({value,onRefresh,onResumed,onRestart
   const pausing=value.status==='running'&&value.user_control?.state==='requested'
   const userPaused=value.status==='paused'&&value.runtime_status==='user_paused'
   const reason=value.stop_reason||value.budget_state?.model_stop_reason||value.budget_state?.hard_stop_reason||value.runtime_status||''
-  async function act(action:'pause'|'resume'|'cancel') {
+  async function act(action:'pause'|'resume'|'cancel'|'interruption/resume') {
     if(pending.current)return
     pending.current=true;setBusy(action);setError('')
     ids.current[action]??=crypto.randomUUID()
@@ -49,7 +51,7 @@ export default function ResearchRunControls({value,onRefresh,onResumed,onRestart
         body:JSON.stringify({request_id:ids.current[action],execution_id:value.execution_id})})
       const data=await response.json()
       if(!response.ok)throw new Error(errors[String(data.detail)]||t("操作未完成，请刷新后重试。"))
-      if(action==='resume')await onResumed(data.execution_id)
+      if(action==='resume'||action==='interruption/resume')await onResumed(data.execution_id)
       else await onRefresh()
     }catch(problem){setError(problem instanceof Error?uiMessage(problem.message):t("操作未完成，请重试。"))}
     finally{pending.current=false;setBusy('')}
@@ -59,10 +61,11 @@ export default function ResearchRunControls({value,onRefresh,onResumed,onRestart
   return <section className="run-controls" aria-label={t("研究执行控制")}>
     <div className="run-control-status" role="status">
       <Icon name={stopped?'pause':'network'} size={18}/>
-      <span>{pausing?t("暂停中 · 当前步骤完成后停止"):userPaused?t("由你暂停"):stopped?(systemMessage(value.pause_diagnosis?.summary||'')||t("系统停止 · {0}", reasons[reason]||t("系统正在整理停止原因"))):value.status==='running'?t("研究正在执行"):value.status==='completed'?t("研究已完成"):value.status==='canceled'?t("研究已终止"):t("等待执行")}</span>
+      <span>{value.interruption_recovery_available?t('执行已中断，可从保存进度继续'):pausing?t("暂停中 · 当前步骤完成后停止"):userPaused?t("由你暂停"):stopped?(systemMessage(value.pause_diagnosis?.summary||'')||t("系统停止 · {0}", reasons[reason]||t("系统正在整理停止原因"))):value.status==='running'?t("研究正在执行"):value.status==='completed'?t("研究已完成"):value.status==='canceled'?t("研究已终止"):t("等待执行")}</span>
     </div>
     <div className="run-control-actions">
-      {value.status==='running'&&<button type="button" className="btn-secondary" disabled={!!busy||pausing} onClick={()=>void act('pause')}><Icon name="pause" size={16}/>{busy==='pause'?t("正在暂停…"):pausing?t("暂停中"):t("暂停")}</button>}
+      {value.interruption_recovery_available&&<button type="button" className="btn-primary" disabled={!!busy} onClick={()=>void act('interruption/resume')}><Icon name="play" size={16}/>{busy==='interruption/resume'?t('正在接续…'):t('恢复中断研究')}</button>}
+      {value.status==='running'&&!value.interruption_recovery_available&&<button type="button" className="btn-secondary" disabled={!!busy||pausing} onClick={()=>void act('pause')}><Icon name="pause" size={16}/>{busy==='pause'?t("正在暂停…"):pausing?t("暂停中"):t("暂停")}</button>}
       {userPaused&&<button type="button" className="btn-primary" disabled={!!busy} onClick={()=>void act('resume')}><Icon name="play" size={16}/>{busy==='resume'?t("正在继续…"):t("继续研究")}</button>}
       {!userPaused&&value.analysis_recovery_available&&<button type="button" className="btn-primary" disabled={synthesisBusy||!!busy} onClick={()=>onSynthesis('analysis')}>{t("继续分析")}</button>}
       {!userPaused&&value.report_recovery_available&&<button type="button" className="btn-primary" disabled={synthesisBusy||!!busy} onClick={()=>onSynthesis('report')}>{t("继续生成报告")}</button>}

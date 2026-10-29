@@ -1459,7 +1459,12 @@ async def get_research_result(session_id: str, principal: Principal = principal_
                    (SELECT state_snapshot_json -> 'session' ->> 'audit_resume_attempts' FROM session_runtime_state
                     WHERE session_id = research_sessions.id) AS audit_resume_attempts,
                    (SELECT state_snapshot_json -> 'session' FROM session_runtime_state
-                    WHERE session_id = research_sessions.id) AS root_session
+                    WHERE session_id = research_sessions.id) AS root_session,
+                   (SELECT last_heartbeat_at FROM session_runtime_state
+                    WHERE session_id = research_sessions.id) AS execution_heartbeat,
+                   (SELECT state_snapshot_json FROM session_runtime_state
+                    WHERE session_id = research_sessions.id AND research_sessions.status='running'
+                      AND last_heartbeat_at < NOW()-INTERVAL '120 seconds') AS interruption_state
             FROM research_sessions
             WHERE id = $1::uuid AND owner_id = $2::uuid
             """,
@@ -1528,6 +1533,7 @@ async def get_research_result(session_id: str, principal: Principal = principal_
         audit=review_status.get('final_report_audit'),source_media=source_media) if row['status'] == 'completed' and row['final_report'] else None
     result = {
         "session_id": str(row["id"]),
+        'interruption_recovery_available':False,
         'execution_id':str(row['execution_id']) if row['execution_id'] else None,
         'cancellation':review_status.get('cancellation'),
         'checkpoint_seq':int(_json_object(row.get('root_session')).get('checkpoint_seq') or 0),
@@ -1597,6 +1603,13 @@ async def get_research_result(session_id: str, principal: Principal = principal_
         "created_at": row["created_at"].isoformat(),
         "completed_at": row["completed_at"].isoformat() if row["completed_at"] else None,
     }
+    interrupted_state=_json_object(row.get('interruption_state'))
+    if interrupted_state:
+        from app.research_interruption import acquisition_resume_node
+        result['interruption_recovery_available']=acquisition_resume_node(
+            {'status':row['status'],'execution_id':row['execution_id'],'created_at':row['created_at'],
+                'last_heartbeat_at':row.get('execution_heartbeat')},interrupted_state,
+            review_status.get('budget_state') or {}) is not None
     safe=projection(result)
     changed=safe.get('report')!=result.get('report')
     safe['disclosure']={'version':DISCLOSURE_VERSION,'report_redacted':changed,'requires_reaudit':changed}
@@ -1911,6 +1924,16 @@ async def resume_research_analysis(session_id: str, background_tasks: Background
 @router.post('/{session_id}/resume')
 async def resume_user_paused_research(session_id:uuid.UUID,payload:CancellationRequest,
         background_tasks:BackgroundTasks,principal:Principal=principal_dependency):
+    return await _resume_controlled_checkpoint(session_id,payload,background_tasks,principal)
+
+
+@router.post('/{session_id}/interruption/resume')
+async def resume_interrupted_acquisition(session_id:uuid.UUID,payload:CancellationRequest,
+        background_tasks:BackgroundTasks,principal:Principal=principal_dependency):
+    return await _resume_controlled_checkpoint(session_id,payload,background_tasks,principal,interruption=True)
+
+
+async def _resume_controlled_checkpoint(session_id,payload,background_tasks,principal,*,interruption=False):
     from app.db.research_pause import RESUME_NODES
     from app.graph.compiler import _build_budget_state
     from app.source_lifecycle import current_synthesis_state
@@ -1920,7 +1943,7 @@ async def resume_user_paused_research(session_id:uuid.UUID,payload:CancellationR
     pool=await get_db_pool()
     async with pool.acquire() as conn:
         record=await conn.fetchrow('''SELECT s.status,s.execution_id,s.created_at,s.review_status,
-            s.total_tokens,s.total_cost_usd,r.state_snapshot_json,r.checkpoint_seq
+            s.total_tokens,s.total_cost_usd,r.state_snapshot_json,r.checkpoint_seq,r.last_heartbeat_at
             FROM research_sessions s JOIN session_runtime_state r ON r.session_id=s.id
             WHERE s.id=$1::uuid AND s.owner_id=$2::uuid''',session_id,owner)
         if not record:raise HTTPException(404,'resume_task_not_found')
@@ -1928,11 +1951,15 @@ async def resume_user_paused_research(session_id:uuid.UUID,payload:CancellationR
     state=deepcopy(_json_object(record['state_snapshot_json']))
     root=state.get('session') or {}; review=_json_object(record['review_status'])
     control=review.get('user_control') or {}; node=root.get('user_resume_node')
+    if interruption:
+        from app.research_interruption import acquisition_resume_node
+        node=acquisition_resume_node(record,state,budget)
+        if node is None:raise HTTPException(409,'resume_interruption_not_available')
     if str(record['execution_id'])!=str(payload.execution_id):
         raise HTTPException(409,'resume_execution_changed_reload')
-    if (record['status']!='paused' or state.get('runtime_status')!='user_paused'
-            or control.get('state')!='paused' or node not in RESUME_NODES
-            or control.get('resume_node')!=node or state.get('pending_approvals')
+    if ((not interruption and (record['status']!='paused' or state.get('runtime_status')!='user_paused'
+            or control.get('state')!='paused' or control.get('resume_node')!=node))
+            or node not in RESUME_NODES or state.get('pending_approvals')
             or str(root.get('owner_id'))!=owner or str(state.get('task_id'))!=session_id
             or str(root.get('session_id'))!=session_id
             or str(root.get('execution_id'))!=str(record['execution_id'])):
@@ -1958,19 +1985,46 @@ async def resume_user_paused_research(session_id:uuid.UUID,payload:CancellationR
             (budget.get('max_cost_usd') is not None and
              float(budget.get('used_cost_usd') or 0)>=float(budget['max_cost_usd']))):
         raise HTTPException(409,'resume_original_allowance_exhausted')
+    if interruption and state.get('model_routing'):
+        await bind_owner_model(principal.id)
+        from app.model_routing import validate_current
+        from app.llm_budget import TokenBudgetExceeded
+        try:validate_current(state['model_routing'])
+        except TokenBudgetExceeded as error:
+            raise HTTPException(409,{'category':error.reason,
+                'model_configuration_change':getattr(error,'routing_change',None)}) from None
     execution_id=str(uuid.uuid4())
     state.update(status='running',runtime_status='running',budget_state=budget)
     state['session']={**root,'status':'running','execution_id':execution_id}
     state['review_status']={**review,'runtime_status':'running','reason':None,'budget_state':budget,
         'user_control':{**control,'state':'resumed','resumed_at':utc_now_naive().isoformat(),
             'resume_request_id':str(payload.request_id),'execution_id':execution_id}}
+    if interruption:
+        state['session'].update(user_resume_node=node,
+            execution_recovery_attempts=int(root.get('execution_recovery_attempts') or 0)+1)
+        state.update(current_executing_nodes=[],executing_nodes=[],tool_handoffs={},tool_result_envelopes={})
+        state['review_status']['user_control']=review.get('user_control')
+        state['review_status']['last_error_category']=None
+        state['review_status']['execution_recovery']={'reason':'worker_interrupted','state':'resumed',
+            'previous_execution_id':str(record['execution_id']),'execution_id':execution_id,
+            'checkpoint_seq':int(record['checkpoint_seq']),'resume_node':node,
+            'attempts':state['session']['execution_recovery_attempts'],'request_id':str(payload.request_id),
+            'at':utc_now_naive().isoformat()}
     async with pool.acquire() as conn,conn.transaction():
-        locked=await conn.fetchrow('''SELECT s.status,s.execution_id,r.checkpoint_seq
+        locked=await conn.fetchrow('''SELECT s.status,s.execution_id,r.checkpoint_seq,r.last_heartbeat_at
             FROM research_sessions s JOIN session_runtime_state r ON r.session_id=s.id
             WHERE s.id=$1::uuid AND s.owner_id=$2::uuid FOR UPDATE OF s,r''',session_id,owner)
-        if (not locked or locked['status']!='paused' or locked['execution_id']!=record['execution_id']
+        if (not locked or locked['status']!=record['status'] or locked['execution_id']!=record['execution_id']
                 or locked['checkpoint_seq']!=record['checkpoint_seq']):
             raise HTTPException(409,'resume_checkpoint_changed')
+        if interruption:
+            from app.research_interruption import heartbeat_expired
+            from app.execution_control import execution_is_active
+            latest_budget=await receipt_budget(conn,session_id,owner,budget)
+            if (not heartbeat_expired(locked['last_heartbeat_at']) or execution_is_active(session_id,record['execution_id'])
+                    or any(latest_budget.get(key) for key in ('inflight_model_requests','reserved_inflight_tokens','reserved_inflight_tool_calls'))
+                    or any(latest_budget.get(key)!=budget.get(key) for key in ('used_total_tokens','used_tool_calls','used_cost_usd'))):
+                raise HTTPException(409,'resume_checkpoint_changed')
         await conn.execute('''UPDATE research_sessions SET status='running',execution_id=$3::uuid,
             review_status=$4::jsonb,completed_at=NULL,updated_at=NOW()
             WHERE id=$1::uuid AND owner_id=$2::uuid''',session_id,owner,execution_id,dumps_json(state['review_status']))

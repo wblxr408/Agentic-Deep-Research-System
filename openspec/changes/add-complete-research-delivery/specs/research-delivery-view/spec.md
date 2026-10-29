@@ -399,3 +399,10 @@ The system SHALL freeze answer, summary, comparison, report or data-analysis int
 #### Scenario: 工具结果租约已过期
 - **WHEN** 原交接控制点拒绝结果并生成未知消费记录
 - **THEN** 审计可保存原完整调用标识、拒因及关联操作，原根消费和权限规则继续执行，不因旧64字符列限制终止整个研究
+
+### Requirement: Interrupted acquisition resumes within the original root
+系统 SHALL 允许本人在持久化心跳过期、本实例无活动执行、无在途预留及未接纳结果的只读取证边界接续同一根，至多两次；原资料权限、模型、消费和开始时间 MUST 保持，提交时 SHALL 原子重核执行／检查点／心跳／收据并更换执行身份。中断模型、审批、MCP及其他自定义执行 MUST NOT 绕过其原控制点。
+
+#### Scenario: 主机重启但取证资料与边界已提交
+- **WHEN** 本人请求恢复旧执行且原额度和期限仍可用
+- **THEN** 已完成节点和证据保留，未执行节点在新执行绑定下继续；记录实际中断恢复而非用户暂停，旧执行迟到结果不得写入
