@@ -2395,6 +2395,17 @@ async def analyst_node(state: ResearchState) -> dict:
             analyst_hints=_agent_skill_hints(state, "analyst"),organization_research=state.get("organization_research"),
             resume_state=state.get('analysis_workflow'),on_progress=on_question)
     except TokenBudgetExceeded as error:
+        if error.reason in {'insufficient_context_budget','token_budget_exhausted'}:
+            from app.research_context import retained_revision_handoff
+            handoff=retained_revision_handoff(state,_synthesis_question(state),
+                _skill_prompt(state,'analyst') or None,_agent_skill_hints(state,'analyst'))
+            if handoff is not None:
+                session,budget_state=_apply_llm_usage_to_state(state,'analyst',_agent_model_usage(agent))
+                return {**handoff,'session':session,'budget_state':budget_state,
+                    'status':TaskStatus.RUNNING.value,'runtime_status':RuntimeStatus.RUNNING.value,
+                    'agent_trace':[_append_trace_event(state,EventType.AGENT_COMPLETE,'analyst',
+                        '修订阶段输入空间不足，保留完整分析及新增资料，转入报告纠正和逐项核对。',
+                        {'reason':'retained_revision_handoff','completed_analysis_reused':True})]}
         return _model_budget_pause(state,agent,'analyst',error)
     organization_result = build_organization_findings(
         state.get("organization_research"), state.get("collected_evidence", []), agent.last_organization_data,
@@ -3105,7 +3116,8 @@ def compile_research_graph() -> StateGraph:
 
     # 分析 → 反思
     builder.add_conditional_edges('analyst',lambda state:('recover' if recovery_eligible(state) else 'stop') if state.get('status') == 'paused'
-        else 'report' if (state.get('iteration_control') or {}).get('reason')=='unchanged_material_analysis_reused'
+        else 'report' if (state.get('iteration_control') or {}).get('reason') in {
+            'unchanged_material_analysis_reused','retained_analysis_requires_report_correction'}
         else 'continue', {'stop':END,'continue':'reflection','report':'report','recover':'automatic_recovery'})
     builder.add_conditional_edges('automatic_recovery',lambda state:'analyst' if state.get('status')=='running' else 'stop',
         {'analyst':'analyst','stop':END})

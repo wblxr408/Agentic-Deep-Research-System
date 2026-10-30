@@ -82,7 +82,8 @@ async def lifespan(app: FastAPI):
 
     # Startup
     try:
-        await init_db()
+        import os
+        await init_db(prepared_schema=os.environ.get('DATABASE_SCHEMA_PREPARED','false').lower() in {'true','1','yes'})
         await load_runtime_llm_config_from_db()
         await get_skill_registry().load()
         logger.info("Database initialized")

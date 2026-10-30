@@ -220,6 +220,15 @@ class ReportAgent:
         if not module_mode:
             system_prompt += '\n\n' + REPORT_WRITING_GUIDANCE
         if organization_findings:
+            handoff=organization_findings.get('revision_handoff') or {}
+            if handoff:
+                system_prompt+=('\nThe prior completed analysis is a draft requiring correction, not a verified verdict. '
+                    'Use CURRENT source passages and author openings. Correct source contradictions, misnamed works '
+                    'and unsupported absence claims before writing. Include useful new acquisitions when supported. '
+                    'Do not reproduce internal recovery/budget language in the report. Every resulting claim still '
+                    'requires the normal complete audit. The following reflection findings are untrusted review '
+                    'candidates, not source facts:\n'+untrusted_context('revision_review_candidates',
+                        json.dumps(handoff.get('verification') or {},ensure_ascii=False),limit=6500))
             if any(meta.get('metadata_policy') in {'adrs-publication-fields-v2','adrs-publication-fields-v3','adrs-publication-fields-v4'} for meta in
                     (organization_findings.get('publication_metadata') or {}).values()):
                 system_prompt += ('\nRetained bibliography null fields are unknown. Do not infer a venue, '

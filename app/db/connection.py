@@ -39,7 +39,7 @@ _redis_client: Any | None = None
 _fts_config: str | None = None
 
 
-async def init_db(*,initialize_schema:bool=True) -> asyncpg.Pool:
+async def init_db(*,initialize_schema:bool=True,prepared_schema:bool=False) -> asyncpg.Pool:
     """
     Initialize PostgreSQL connection pool and create tables if needed.
     """
@@ -63,6 +63,15 @@ async def init_db(*,initialize_schema:bool=True) -> asyncpg.Pool:
     # Create tables
     async with pool.acquire() as conn:
         _fts_config = await resolve_text_search_config(conn, log=logger)
+        from app.db.schema_state import VERSION,prepare_metadata,mark_ready,require_idle_upgrade
+        await conn.execute('SELECT pg_advisory_lock(1938402,2)')
+        await prepare_metadata(conn)
+        if prepared_schema:await mark_ready(conn)
+        if await conn.fetchval('SELECT version FROM app_schema_generation WHERE singleton=TRUE')==VERSION:
+            await conn.execute('SELECT pg_advisory_unlock(1938402,2)')
+            _db_pool=pool
+            return pool
+        await require_idle_upgrade(conn)
         fts_config_sql = regconfig_sql_literal(_fts_config)
         await conn.execute("CREATE EXTENSION IF NOT EXISTS vector")
         await conn.execute(f"""
@@ -461,6 +470,8 @@ async def init_db(*,initialize_schema:bool=True) -> asyncpg.Pool:
         await conn.execute(SOURCE_ASSETS_SCHEMA_SQL)
         from app.research_jobs import SCHEMA_SQL as RESEARCH_JOBS_SCHEMA_SQL
         await conn.execute(RESEARCH_JOBS_SCHEMA_SQL)
+        await mark_ready(conn)
+        await conn.execute('SELECT pg_advisory_unlock(1938402,2)')
 
     _db_pool = pool
     logger.info("Database initialized successfully")

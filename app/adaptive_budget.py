@@ -48,8 +48,10 @@ def stage_allocation(state, root, stage):
     broad = signals['complexity'] == 'complex' or signals['module_count'] > 3
     audit_extra = min(total // 10, flexible // 4) if demanding else 0
     report_extra = min(total // 20, max(0, flexible - audit_extra) // 5) if broad else 0
-    if stage == 'replan' and signals['specific_gap']:
-        audit_extra //= 2
+    if stage in {'replan','analyst','reflection'} and signals['specific_gap']:
+        # The corrective analysis belongs to the same revision as its planner.
+        # Reinstating the extras here strands the work after acquisition.
+        audit_extra = 0
         report_extra = 0
     audit_hold = min(remaining, base_audit + audit_extra)
     report_hold = min(max(0, remaining - audit_hold), base_report + report_extra)

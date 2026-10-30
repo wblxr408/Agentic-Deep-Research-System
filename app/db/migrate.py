@@ -412,6 +412,11 @@ async def run_migration(
 
     try:
         async with pool.acquire() as conn:
+            from app.db.schema_state import prepare_metadata,require_idle_upgrade
+            await conn.execute('SELECT pg_advisory_lock(1938402,2)')
+            await prepare_metadata(conn)
+            await require_idle_upgrade(conn)
+            await conn.execute("INSERT INTO app_schema_generation(singleton,version) VALUES(TRUE,'requires_api_initialization') ON CONFLICT(singleton) DO UPDATE SET version=EXCLUDED.version,updated_at=NOW()")
             # Enable pgvector extension
             await conn.execute("CREATE EXTENSION IF NOT EXISTS vector")
 
@@ -483,6 +488,7 @@ async def run_migration(
             from app.research_jobs import SCHEMA_SQL as RESEARCH_JOBS_SCHEMA_SQL
             await conn.execute(RESEARCH_JOBS_SCHEMA_SQL)
             logger.info("Database migration completed successfully")
+            await conn.execute('SELECT pg_advisory_unlock(1938402,2)')
 
 
     finally:

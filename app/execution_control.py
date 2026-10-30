@@ -12,12 +12,17 @@ from datetime import UTC,datetime,timedelta
 
 logger=logging.getLogger(__name__)
 _current=contextvars.ContextVar('adrs_current_execution',default=None)
+_publication_connection=contextvars.ContextVar('adrs_publication_connection',default=None)
 _active={}
 _active_lock=threading.Lock()
 
 
 def current_control():
     return _current.get()
+
+
+def current_publication_connection():
+    return _publication_connection.get()
 
 
 def check_execution():
@@ -139,7 +144,9 @@ class ExecutionControl:
                 self.binding['session_id'],self.binding['owner_id'],self.binding['execution_id'],self.local_mode())
             # Cancellation locks the same root row. Enqueue happens before the
             # share lock releases, so it cannot follow a committed cancellation.
-            yield bool(row)
+            token=_publication_connection.set(conn)
+            try:yield bool(row)
+            finally:_publication_connection.reset(token)
 
     async def _write_model(self,record,admission):
         from app.db.connection import get_db_pool

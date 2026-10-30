@@ -53,6 +53,13 @@ def rebind_checkpoint_plan(state,execution_id,previous_execution_id,*,recovery_p
     manifest['plan_version']=identity(manifest)
     state['plan_manifest']=manifest
     state['plan_history']=[*(state.get('plan_history') or []),deepcopy(manifest)]
+    frame=state.get('retained_synthesis')
+    if isinstance(frame,dict) and frame:
+        root=state.get('session') or {}
+        if (frame.get('execution_id') not in allowed or frame.get('task_id')!=str(state.get('task_id'))
+                or frame.get('owner_id')!=str(root.get('owner_id'))):
+            raise PlanningError('resume_retained_analysis_binding_unavailable')
+        frame['execution_id']=str(execution_id)
 
 
 def dependency_batches(nodes: list[PlanNode]) -> list[list[str]]:

@@ -2112,7 +2112,10 @@ async def _resume_retained_synthesis(session_id, background_tasks, principal, *,
             and reason in {'analysis_output_incomplete','analysis_provider_unavailable','model_output_limit','insufficient_context_budget','analysis_checkpoint_unavailable'})
         failures=(workflow.get('failed_attempts') or {}).get(phase) or []
         if failures and (failures[-1].get('admission') or {}).get('reason')=='no_acquired_source_fits':
-            raise HTTPException(409,'analysis_source_acquisition_required')
+            from app.research_context import retained_revision_handoff
+            if retained_revision_handoff(state,_synthesis_question(state),
+                    _skill_prompt(state,'analyst') or None,_agent_skill_hints(state,'analyst')) is None:
+                raise HTTPException(409,'analysis_source_acquisition_required')
     if (not recoverable or str(root.get('owner_id'))!=str(principal.id)
             or str(root.get('session_id'))!=session_id or str(state.get('task_id'))!=session_id
             or root.get('execution_id')!=str(record['execution_id'])

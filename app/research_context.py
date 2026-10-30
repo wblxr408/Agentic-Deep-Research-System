@@ -157,6 +157,61 @@ def analysis_input_matches(state, query, skills, hints, evidence):
         research_strategy_version=workflow.get('research_strategy_version'),question_seed_version=seed_version)
 
 
+def retained_revision_handoff(state, query, skills, hints):
+    """Hand an exact retained analysis to writing for correction, never approval.
+
+    New acquisitions may extend the evidence ledger. The original full input
+    must still match, including each original body's version and permissions.
+    This is only a budget-stop fallback; writing and its complete claim audit
+    must use the current evidence, not the earlier reflection's verdict.
+    """
+    from app.graph.state import deserialize_evidence
+    from app.planning_control import retained_evidence_version
+    frame=state.get('retained_synthesis') or {}
+    identity=_synthesis_identity(state)
+    if (frame.get('version')!=RETAINED_SYNTHESIS_VERSION or not all(identity.values())
+            or any(frame.get(key)!=value for key,value in identity.items())
+            or state.get('evidence_access_gaps') or not state.get('revision_count')):
+        return None
+    prior=frame.get('workflow') or {}
+    if (not frame.get('analysis') or prior.get('status')!='completed'
+            or prior.get('question_seed_version')!=QUESTION_SEED_VERSION):return None
+    evidence=[deserialize_evidence(item) for item in state.get('collected_evidence',[])]
+    subset=_bound_evidence_subset(evidence,frame.get('evidence_ids'))
+    if subset is None or prior.get('binding')!=analysis_binding(query,state.get('organization_research'),
+            skills,hints,subset,packing_version=workflow_packing_version(prior),
+            research_strategy_version=prior.get('research_strategy_version')):return None
+    positions={item.evidence_id:index for index,item in enumerate(evidence,1)}
+    mapping={index:positions[key] for index,key in enumerate(frame['evidence_ids'],1)}
+    def citations(value):
+        if isinstance(value,str):
+            return re.sub(r'\[citation:(\d+)\]',lambda m:'[citation:'+str(mapping.get(int(m[1]),int(m[1])))+']',value)
+        if isinstance(value,list):return [citations(item) for item in value]
+        if isinstance(value,dict):
+            result={key:citations(item) for key,item in value.items()}
+            if type(value.get('citation_id')) is int:result['citation_id']=mapping.get(value['citation_id'],value['citation_id'])
+            if isinstance(value.get('citation_ids'),list):
+                result['citation_ids']=[mapping.get(item,item) for item in value['citation_ids']]
+            return result
+        return value
+    workflow=citations(deepcopy(prior))
+    # The old input was verified above. The handoff now binds the complete
+    # current ledger; no old per-question result is resumed under this binding.
+    workflow['binding']=analysis_binding(query,state.get('organization_research'),skills,hints,evidence,
+        packing_version=workflow_packing_version(prior),research_strategy_version=prior.get('research_strategy_version'))
+    findings=citations(deepcopy(frame.get('organization_result') or {}))
+    findings['revision_handoff']={'version':'adrs-retained-revision-handoff-v1',
+        'original_binding':prior['binding'],'current_binding':workflow['binding'],
+        'original_evidence_ids':frame['evidence_ids'],'material_version':retained_evidence_version(state),
+        'partial_revision':deepcopy(state.get('analysis_workflow')),
+        'verification':citations(deepcopy(frame.get('verification'))),
+        'reason':'revision_context_allowance_exhausted','requires_current_source_audit':True}
+    return {'analysis':citations(frame['analysis']),'analysis_workflow':workflow,
+        'organization_result':findings,'verification':citations(deepcopy(frame.get('verification'))),
+        'revision_needed':False,'iteration_control':{'action':'report',
+            'reason':'retained_analysis_requires_report_correction','semantic_review':'full_current_report_audit_required'}}
+
+
 def publication_identity_handoff(findings, evidence, *, max_bytes=10000, output_ids=None):
     """Carry checked identities with current literal author openings, not prose.
 

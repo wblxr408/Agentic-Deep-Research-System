@@ -662,6 +662,14 @@ Collected Evidence:
                 'available_tokens':self.request_budget.available() if self.request_budget else None}
             raise error
         if organization_research and not self.last_context_manifest.get('sources'):
+            # Repack before any dispatch: a large output hold can squeeze an
+            # acquired opening out even though a smaller complete answer fits.
+            if _output_tokens>4096:
+                _output_tokens=4096
+                messages,self.last_context_manifest=fit_messages(build_messages,self.request_budget,
+                    'research',_output_tokens,max_bytes=int(repair.get('max_bytes') or 18000),
+                    request_extra={'response_format':{'type':'json_object'}})
+        if organization_research and not self.last_context_manifest.get('sources'):
             error=TokenBudgetExceeded('insufficient_context_budget')
             error.admission={'reason':'no_acquired_source_fits','prompt_bound':self.last_context_manifest.get('prompt_bound'),
                 'requested_output_tokens':_output_tokens,'available_tokens':self.request_budget.available() if self.request_budget else None,

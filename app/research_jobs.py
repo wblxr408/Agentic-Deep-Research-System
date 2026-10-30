@@ -13,6 +13,7 @@ from pathlib import Path
 import subprocess
 import sys
 from uuid import uuid4
+from contextlib import asynccontextmanager
 
 from app.db.json import dumps_json
 from app.db.execution_control import decoded,persist_workflow_failure
@@ -88,7 +89,14 @@ async def retain_event(session_id,execution_id,event_type,data):
     value=dumps_json(data)
     if len(value.encode('utf-8'))>262144:
         value=dumps_json({'execution_id':execution_id,'delivery_gap':True,'recovery':'reload_saved_research'})
-    async with pool.acquire() as conn:
+    from app.execution_control import current_publication_connection
+    @asynccontextmanager
+    async def connection():
+        existing=current_publication_connection()
+        if existing is not None:yield existing
+        else:
+            async with pool.acquire() as acquired:yield acquired
+    async with connection() as conn:
         event_id=await conn.fetchval('''INSERT INTO research_execution_events(session_id,execution_id,event_type,payload)
             SELECT s.id,s.execution_id,$3,$4::jsonb FROM research_sessions s
             WHERE s.id=$1::uuid AND s.execution_id=$2::uuid RETURNING id''',session_id,execution_id,event_type,value)
