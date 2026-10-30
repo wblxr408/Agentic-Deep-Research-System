@@ -9,7 +9,7 @@ import re
 from uuid import UUID
 
 
-def select_source_pages(reading, evidence, *, max_pages=8, per_output=2):
+def select_source_pages(reading, evidence, *, max_pages=8, per_output=2,locate_captions=False):
     max_pages=min(8,max(1,max_pages)) if type(max_pages) is int else 8
     per_output=min(2,max(1,per_output)) if type(per_output) is int else 2
     result={'pages':[],'pending':[]}
@@ -53,10 +53,19 @@ def select_source_pages(reading, evidence, *, max_pages=8, per_output=2):
             if not label_match:pending(output_id,'unsupported_label');continue
             kind,number,panel=label_match.groups()
             kind_pattern=r'(?:Figure|Fig\.?)' if kind.casefold().startswith('fig') else re.escape(kind)
-            pattern=r'^\s*'+kind_pattern+r'\s*'+re.escape(number)+r'(?!\d|\.\d)'+re.escape(panel or '')+r'\s*[:：.．]'
+            pattern=r'^[^\S\r\n]*'+kind_pattern+r'\s*'+re.escape(number)+r'(?!\d|\.\d)'+re.escape(panel or '')+r'\s*[:：.．]'
             # A prose mention on some other page is not a caption location.
             if not re.match(pattern,quote,re.I) or content[content.rfind('\n',0,start)+1:start].strip():
-                pending(output_id,'not_a_literal_caption');continue
+                if not locate_captions:pending(output_id,'not_a_literal_caption');continue
+                matches=list(re.finditer(pattern,content,re.I|re.M))
+                if len(matches)!=1:pending(output_id,'caption_not_unique_in_retained_pdf');continue
+                start=matches[0].start()
+                containing=[row for row in meta.get('pages',[]) if isinstance(row,dict)
+                    and type(row.get('start')) is int and type(row.get('end')) is int
+                    and row['start']<=start<row['end']]
+                if len(containing)!=1:pending(output_id,'page_not_unambiguous');continue
+                end=min(containing[0]['end'],start+800)
+                quote=content[start:end]
             page_rows=meta.get('pages')
             if not isinstance(page_rows,list):pending(output_id,'page_metadata_unavailable');continue
             pages=[page for page in page_rows[:80] if isinstance(page,dict)
@@ -66,7 +75,8 @@ def select_source_pages(reading, evidence, *, max_pages=8, per_output=2):
             if len(pages)!=1:pending(output_id,'page_not_unambiguous');continue
             page=pages[0]['number'];supplied=reference.get('page')
             if supplied is not None and (type(supplied) is not int or supplied!=page):
-                pending(output_id,'requested_page_conflicts');continue
+                pending(output_id,'requested_page_conflicts')
+                if not locate_captions:continue
             key=(asset_id,page);used=by_output.setdefault(output_id,set())
             if key not in used and len(used)>=per_output:pending(output_id,'output_page_limit');continue
             if key not in selected:
@@ -79,6 +89,6 @@ def select_source_pages(reading, evidence, *, max_pages=8, per_output=2):
             for field,value in (('evidence_ids',proof['evidence_id']),('output_ids',output_id),('titles',title[:300])):
                 if value not in row[field]:row[field].append(value)
             if len(row['captions'])<12 and quote not in row['captions']:row['captions'].append(quote)
-            located={key:proof[key] for key in ('evidence_id','start','end','quote')}
+            located={'evidence_id':proof['evidence_id'],'start':start,'end':end,'quote':quote}
             if len(row['proofs'])<12 and located not in row['proofs']:row['proofs'].append(located)
     return result

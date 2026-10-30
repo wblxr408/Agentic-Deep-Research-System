@@ -2076,6 +2076,12 @@ async def finalize_research_supported_prose(session_id:str,background_tasks:Back
     return await _resume_retained_synthesis(session_id,background_tasks,principal,stage='supported')
 
 
+@router.post('/{session_id}/delivery/resume')
+async def complete_research_original_pages(session_id:str,background_tasks:BackgroundTasks,
+        principal:Principal=principal_dependency):
+    return await _resume_retained_synthesis(session_id,background_tasks,principal,stage='delivery')
+
+
 async def _resume_retained_synthesis(session_id, background_tasks, principal, *, stage):
     from datetime import UTC, datetime
     from app.graph.compiler import _build_budget_state, _stage_model_budget, _synthesis_question, _skill_prompt, _agent_skill_hints
@@ -2094,8 +2100,9 @@ async def _resume_retained_synthesis(session_id, background_tasks, principal, *,
     root=state.get('session') or {}; workflow=state.get('analysis_workflow') or {}
     report_resume=stage=='report'
     supported_finalization=stage=='supported'
+    delivery_resume=stage=='delivery'
     reader_revision=stage=='reader'
-    audit_resume=stage in {'audit','reader','supported'}
+    audit_resume=stage in {'audit','reader','supported','delivery'}
     report_stage=report_resume or audit_resume
     review=state.get('review_status') or {}
     module_report=(state.get('organization_result') or {}).get('module_report') or {}
@@ -2122,7 +2129,14 @@ async def _resume_retained_synthesis(session_id, background_tasks, principal, *,
             if restored:
                 state.update(restored);workflow=state['analysis_workflow']
                 legacy_report_repair=True
-    if reader_revision or supported_finalization:
+    if delivery_resume:
+        audit=review.get('final_report_audit') or {}
+        recoverable=(record['status']=='completed' and state.get('status')=='completed'
+            and review.get('report_binding')==report_binding(state) and bool(state.get('final_report'))
+            and audit and not audit.get('needs_review',True) and not audit.get('audit_incomplete')
+            and not audit.get('budget_incomplete') and workflow.get('status')=='completed'
+            and (state.get('organization_result') or {}).get('source_media',{}).get('status')=='no_located_pages')
+    elif reader_revision or supported_finalization:
         recoverable=(record['status']=='paused' and state.get('status')=='paused'
             and state.get('runtime_status')=='report_paused' and review.get('reason')=='final_report_needs_revision'
             and review.get('report_binding')==report_binding(state) and bool(state.get('final_report'))
@@ -2173,7 +2187,9 @@ async def _resume_retained_synthesis(session_id, background_tasks, principal, *,
         raise HTTPException(409,'reader_revision_attempt_limit')
     if supported_finalization and int(root.get('supported_finalization_attempts') or 0)>=1:
         raise HTTPException(409,'supported_finalization_attempt_limit')
-    if audit_resume and not (reader_revision or supported_finalization) and int(root.get('audit_resume_attempts') or 0)>=1:
+    if delivery_resume and int(root.get('delivery_resume_attempts') or 0)>=1:
+        raise HTTPException(409,'delivery_resume_attempt_limit')
+    if audit_resume and not (reader_revision or supported_finalization or delivery_resume) and int(root.get('audit_resume_attempts') or 0)>=1:
         raise HTTPException(409,'audit_resume_attempt_limit')
     if not report_stage and int((workflow.get('attempts') or {}).get(phase,0))>=10:
         raise HTTPException(409,'analysis_phase_attempt_limit')
@@ -2254,12 +2270,13 @@ async def _resume_retained_synthesis(session_id, background_tasks, principal, *,
     state['session']['reader_revision_mode']=reader_revision
     state['session']['supported_finalization_mode']=supported_finalization
     if supported_finalization:state['session']['supported_finalization_attempts']=int(root.get('supported_finalization_attempts') or 0)+1
+    if delivery_resume:state['session']['delivery_resume_attempts']=int(root.get('delivery_resume_attempts') or 0)+1
     if reader_revision:state['session']['reader_revision_attempts']=int(root.get('reader_revision_attempts') or 0)+1
     if report_resume:
         state['session']['report_resume_attempts']=int(root.get('report_resume_attempts') or 0)+1
         state['session']['report_contract_resume']=retained_contract
         state['review_status']['report_resume_attempts']=state['session']['report_resume_attempts']
-    if audit_resume and not (reader_revision or supported_finalization):
+    if audit_resume and not (reader_revision or supported_finalization or delivery_resume):
         state['session']['audit_resume_attempts']=int(root.get('audit_resume_attempts') or 0)+1
         state['review_status']['audit_resume_attempts']=state['session']['audit_resume_attempts']
     async with pool.acquire() as conn,conn.transaction():

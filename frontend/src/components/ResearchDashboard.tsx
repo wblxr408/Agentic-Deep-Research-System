@@ -466,7 +466,8 @@ function ResearchDashboard({ onBack,ownerId }: ResearchDashboardProps) {
   }, [clearEvents])
 
   const displayReport = result?.status === 'completed' ? result.report : streamedReport || result?.report || ''
-  const normalizedCitations = Array.isArray(result?.citations) ? result.citations : []
+  const normalizedCitations = Array.isArray(result?.delivery_view?.citations)
+    ? result.delivery_view.citations : Array.isArray(result?.citations) ? result.citations : []
   const effectiveSkillIds = result?.skill_context?.effective_skill_ids || []
   const autoMatchedSkillIds = result?.skill_context?.auto_matched_skill_ids || []
   const effectiveTools = result?.skill_context?.effective_tool_allowlist || []

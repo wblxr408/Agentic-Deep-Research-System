@@ -12,7 +12,7 @@ from pathlib import Path
 from app.db.source_assets import PAGE_RENDERER,current_original,current_page,retain_page
 from app.source_figure_locations import select_source_pages
 
-POLICY='adrs-source-media-v2'
+POLICY='adrs-source-media-v3'
 
 
 def _rasterize(original,pages,timeout):
@@ -38,7 +38,7 @@ async def prepare_source_media(state,organization_result,*,deadline):
     result={'policy':POLICY,'status':'ready','pages':[],'pending':[],'model_calls':0,'network_calls':0,
         'presentation':'original_pdf_page_not_segmented_figure',
         'evidence_version':retained_evidence_version(state)}
-    selected=select_source_pages((organization_result or {}).get('technical_reading'),state.get('collected_evidence'))
+    selected=select_source_pages((organization_result or {}).get('technical_reading'),state.get('collected_evidence'),locate_captions=True)
     result['pending']=selected['pending']
     # A missing or ambiguous caption remains a documented source gap; it does
     # not authorize guessing an image. An eligible page that fails rendering
@@ -95,10 +95,11 @@ async def hydrate_source_media(conn,state,organization_result,owner_id):
     from app.planning_control import retained_evidence_version
     media=(organization_result or {}).get('source_media')
     if not media:return {'status':'legacy_no_original_pages','pages':[]}
-    if media.get('policy')!=POLICY or media.get('evidence_version')!=retained_evidence_version(state):
+    if media.get('policy') not in {POLICY,'adrs-source-media-v2'} or media.get('evidence_version')!=retained_evidence_version(state):
         raise ValueError('source_media_current_version_changed')
     if media.get('status') not in {'rendered','no_located_pages'}:raise ValueError('source_media_not_complete')
-    selected=select_source_pages((organization_result or {}).get('technical_reading'),state.get('collected_evidence'))
+    selected=select_source_pages((organization_result or {}).get('technical_reading'),state.get('collected_evidence'),
+        locate_captions=media.get('policy')==POLICY)
     expected={(page['asset_id'],page['page']):page for page in selected['pages']}
     stored=media.get('pages') or []
     if len(stored)!=len(expected):raise ValueError('source_media_current_locations_changed')
