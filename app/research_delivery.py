@@ -151,12 +151,13 @@ def build_delivery_view(*, task_id: str, execution_id: str | None, query: str, r
         values, refs = [card.get('title') or card.get('output_id', '')], []
         for key, _ in fields:
             field = (card.get('fields') or {}).get(key) or {}
-            values.append(field.get('text') or '—')
-            refs.extend(evidence_citations[p['evidence_id']] for p in field.get('proofs', [])
-                if p.get('evidence_id') in evidence_citations)
-        if any(value != '—' for value in values[1:]):
+            field_refs=[evidence_citations[p['evidence_id']] for p in field.get('proofs', [])
+                if p.get('evidence_id') in evidence_citations]
+            values.append(field.get('text') if field_refs and field.get('text') else '—')
+            refs.extend(field_refs)
+        if refs and any(value != '—' for value in values[1:]):
             technical_rows.append({'values': values, 'citation_ids': list(dict.fromkeys(refs))})
-    if technical_rows:
+    if len(technical_rows)>1:
         charts.append({'chart_id': 'technical_comparison', 'title': '问题、机制与实验条件对照',
             'module': 'deep_dive', 'kind': 'table', 'unit_label': '来源中的技术说明',
             'columns': ['成果', *[label for _, label in fields]], 'rows': technical_rows,
