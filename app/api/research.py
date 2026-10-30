@@ -2064,6 +2064,12 @@ async def resume_research_audit(session_id: str, background_tasks: BackgroundTas
     return await _resume_retained_synthesis(session_id, background_tasks, principal, stage='audit')
 
 
+@router.post('/{session_id}/report/reader-revision')
+async def revise_research_for_reader(session_id:str,background_tasks:BackgroundTasks,
+        principal:Principal=principal_dependency):
+    return await _resume_retained_synthesis(session_id,background_tasks,principal,stage='reader')
+
+
 async def _resume_retained_synthesis(session_id, background_tasks, principal, *, stage):
     from datetime import UTC, datetime
     from app.graph.compiler import _build_budget_state, _stage_model_budget, _synthesis_question, _skill_prompt, _agent_skill_hints
@@ -2081,7 +2087,8 @@ async def _resume_retained_synthesis(session_id, background_tasks, principal, *,
     state=deepcopy(_json_object(record['state_snapshot_json']))
     root=state.get('session') or {}; workflow=state.get('analysis_workflow') or {}
     report_resume=stage=='report'
-    audit_resume=stage=='audit'
+    reader_revision=stage=='reader'
+    audit_resume=stage in {'audit','reader'}
     report_stage=report_resume or audit_resume
     review=state.get('review_status') or {}
     module_report=(state.get('organization_result') or {}).get('module_report') or {}
@@ -2108,7 +2115,14 @@ async def _resume_retained_synthesis(session_id, background_tasks, principal, *,
             if restored:
                 state.update(restored);workflow=state['analysis_workflow']
                 legacy_report_repair=True
-    if audit_resume:
+    if reader_revision:
+        recoverable=(record['status']=='paused' and state.get('status')=='paused'
+            and state.get('runtime_status')=='report_paused' and review.get('reason')=='final_report_needs_revision'
+            and review.get('report_binding')==report_binding(state) and bool(state.get('final_report'))
+            and bool(module_report.get('raw_model_response')) and bool(module_report.get('reading_structure'))
+            and not (review.get('final_report_audit') or {}).get('audit_incomplete')
+            and workflow.get('status')=='completed' and bool(state.get('analysis')))
+    elif audit_resume:
         audit=review.get('final_report_audit') or {}
         recoverable=(record['status']=='paused' and state.get('status')=='paused'
             and state.get('runtime_status')=='report_paused' and review.get('output_stage')=='report'
@@ -2148,7 +2162,9 @@ async def _resume_retained_synthesis(session_id, background_tasks, principal, *,
         and not module_report.get('validation_errors') and module_report.get('reading_structure'))
     if report_resume and int(root.get('report_resume_attempts') or 0)>=(2 if retained_contract else 1):
         raise HTTPException(409,'report_resume_attempt_limit')
-    if audit_resume and int(root.get('audit_resume_attempts') or 0)>=1:
+    if reader_revision and int(root.get('reader_revision_attempts') or 0)>=1:
+        raise HTTPException(409,'reader_revision_attempt_limit')
+    if audit_resume and not reader_revision and int(root.get('audit_resume_attempts') or 0)>=1:
         raise HTTPException(409,'audit_resume_attempt_limit')
     if not report_stage and int((workflow.get('attempts') or {}).get(phase,0))>=10:
         raise HTTPException(409,'analysis_phase_attempt_limit')
@@ -2226,11 +2242,13 @@ async def _resume_retained_synthesis(session_id, background_tasks, principal, *,
     state['review_status'].update(plan_manifest=state.get('plan_manifest'),plan_history=state.get('plan_history'))
     state['session']={**root,'status':'running','execution_id':execution_id}
     state['session']['audit_resume_mode']=audit_resume
+    state['session']['reader_revision_mode']=reader_revision
+    if reader_revision:state['session']['reader_revision_attempts']=int(root.get('reader_revision_attempts') or 0)+1
     if report_resume:
         state['session']['report_resume_attempts']=int(root.get('report_resume_attempts') or 0)+1
         state['session']['report_contract_resume']=retained_contract
         state['review_status']['report_resume_attempts']=state['session']['report_resume_attempts']
-    if audit_resume:
+    if audit_resume and not reader_revision:
         state['session']['audit_resume_attempts']=int(root.get('audit_resume_attempts') or 0)+1
         state['review_status']['audit_resume_attempts']=state['session']['audit_resume_attempts']
     async with pool.acquire() as conn,conn.transaction():

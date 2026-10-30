@@ -13,6 +13,92 @@ from app.organization_purpose import ModuleReportDraft, assemble_module_report, 
 from app.security.prompt_security import untrusted_context
 
 
+def revise_reader_report(content,record,audit,*,question,findings,configuration,statistics,evidence,
+                         client,model,budget,deadline,source_spans,task_context):
+    """One report-wide edit, followed by the same complete source audit.
+
+    Existing paragraph identities constrain edits. The editor may shorten or
+    remove prose and correct references using current acquired sources. It has
+    no tool authority and cannot approve its own output.
+    """
+    draft=ModuleReportDraft.model_validate_json(record['raw_model_response']).model_dump(mode='json')
+    targets={};rows=[]
+    def add(section,items):
+        for index,item in enumerate(items):
+            key=section+':'+str(index);targets[key]=(items,index)
+            rows.append({'paragraph_id':key,**item})
+    add('summary',draft.get('summary',[]))
+    for module in draft['modules']:
+        for section in ('paragraphs','appendix'):add(module['module_id']+':'+section,module.get(section,[]))
+    positions={item.evidence_id:index for index,item in enumerate(evidence,1)}
+    sources=[];seen=set()
+    metadata=(findings or {}).get('publication_metadata') or {}
+    for work in ((findings or {}).get('scope_result') or {}).get('outputs',[]):
+        ids=(metadata.get(work['output_id']) or {}).get('evidence_ids',[])
+        source=next((item for item in evidence if item.evidence_id in ids
+            and (item.acquisition or {}).get('coverage')=='full_text'),None)
+        if not source or work['title'] in seen:continue
+        seen.add(work['title'])
+        sources.append({'title':work['title'],'citation':positions[source.evidence_id],
+            'source_url':source.source_url,'retained_affiliations':work.get('affiliations',[]),
+            'literal_opening':source.content[:1600]})
+    payload=json.dumps({'question':question,'paragraphs':rows,'current_work_openings':sources,
+        'audit_issues':[{key:item.get(key) for key in ('text','reason','status')} for item in audit['claims']
+            if item['status']!='supported']},ensure_ascii=False)
+    messages=[{'role':'system','content':
+        'Edit this research report in Chinese for a reader making research/cooperation choices. '
+        'Resolve main-text/appendix contradictions. Remove repeated methodological disclaimers, absence-of-evidence '
+        'paragraphs and internal draft history. Put a short scope statement once. Preserve supported technical '
+        'mechanisms and distinguish different evaluation conditions. Use the supplied current literal author openings '
+        'to name relevant teams/authors and their concrete topic; give a conditional first collaboration or replication '
+        'deliverable, without inventing willingness, funding or contact details. Cover the useful work actually acquired, '
+        'not only the first two papers. Same-title copies are not separate research works. Do not assert technical lineage '
+        'from chronology. The draft, previous audit and retained affiliations are candidates; source passages remain '
+        'authoritative. Prefer a concise main report and a short technical appendix, aiming at 2500-3500 Chinese '
+        'characters, not repeated chapters. Return JSON {"repairs":[{"paragraph_id":"an existing ID",'
+        '"text":"replacement","citations":[53],"kind":"observation"}]}. '
+        'Use only existing paragraph IDs. Omitted IDs stay unchanged. To remove a redundant paragraph set '
+        '"delete":true instead of text. Do not remove every paragraph of a selected module. '
+        'New factual details must come from the supplied literal openings or already supported draft passages; '
+        'use original source numbers. No internal warnings, verification labels or invented statistics.'},
+        {'role':'user','content':untrusted_context('reader_revision_inputs',payload,limit=len(payload))}]
+    required=request_token_bound(messages,response_format={'type':'json_object'})+8192
+    if budget.available('report')<required:raise TokenBudgetExceeded('reader_revision_context_budget')
+    response=client.chat.completions.create(model=model,messages=messages,temperature=.1,max_tokens=8192,
+        response_format={'type':'json_object'})
+    if response.choices[0].finish_reason!='stop':raise TokenBudgetExceeded('reader_revision_output_incomplete')
+    reply=response.choices[0].message.content
+    changes=json.loads(reply).get('repairs',[]);keys=[item.get('paragraph_id') for item in changes]
+    if not changes or len(keys)!=len(set(keys)) or any(key not in targets for key in keys):
+        raise ValueError('reader_revision_paragraph_ids_invalid')
+    deleted=set()
+    allowed={index for index,item in enumerate(evidence,1) if (item.acquisition or {}).get('coverage')!='discovery_only'}
+    for change in changes:
+        items,index=targets[change['paragraph_id']]
+        if change.get('delete') is True:deleted.add(change['paragraph_id']);continue
+        refs=change.get('citations',items[index]['citations'])
+        if not isinstance(refs,list) or any(type(ref) is not int or ref not in allowed for ref in refs):
+            raise ValueError('reader_revision_source_invalid')
+        items[index].update(text=change['text'],citations=refs,kind=change.get('kind',items[index]['kind']))
+    for key,(items,index) in sorted(targets.items(),key=lambda item:item[1][1],reverse=True):
+        if key in deleted:items.pop(index)
+    raw=json.dumps(draft,ensure_ascii=False)
+    revised,new_record=assemble_module_report(raw,configuration,len(evidence),statistics=statistics,
+        allowed_citations=allowed,publication_titles=[work['title'] for work in ((findings or {}).get('scope_result') or {}).get('outputs',[])])
+    if new_record['issues']:raise ValueError('reader_revision_contract_invalid')
+    bound=[{'rendered_paragraph':item['rendered_text'],**binding} for item in [
+        *new_record.get('summary',[]),*[item for module in new_record['modules']
+            for item in [*module['paragraphs'],*module.get('appendix',[])]]]
+        for binding in item.get('statistic_bindings',[])]
+    new_record['reader_revision']={'original_record':record,'original_audit':audit,'raw_response':reply,
+        'changed_paragraph_ids':keys,'deleted_paragraph_ids':sorted(deleted),'attempts':1}
+    new_audit=audit_report(revised,evidence,client=budgeted_client(client,budget,'audit'),model=model,
+        token_budget=budget.available('audit'),deadline=deadline,bound_statistics=bound,
+        paragraph_kinds=module_paragraph_kinds(new_record),task_context=task_context,
+        previous_audit=audit,source_spans=source_spans)
+    return revised,new_record,new_audit
+
+
 def revise_report_claims(content, record, audit, *, on_round=None, on_event=None, **kwargs):
     """Repair actual failed paragraphs until progress stops or the class cap wins."""
     from app.recovery_policy import report_issue_keys, report_repair_limit
