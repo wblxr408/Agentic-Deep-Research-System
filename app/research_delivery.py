@@ -66,6 +66,13 @@ def report_for_reading(report: str, citations: list[dict] | None = None) -> str:
         if title in {'核验结果', '本次保留依据定位'}:
             continue
         body = section['markdown']
+        if title.casefold() in {'references','参考文献','参考资料'} and citations is not None:
+            # The research ledger retains every discovered source. The reader
+            # bibliography contains the references actually used in this view,
+            # preserving original source numbers rather than renumbering.
+            body='\n\n'.join('['+row['citation_id'].replace('citation:','')+'] '+
+                str(row.get('source_title') or '')+' — '+str(row.get('source_url') or '')
+                for row in citations if re.fullmatch(r'citation:\d+',row.get('citation_id','')))
         for label in ('来源摘述（待审核）', '分析判断（待复核）', '证据缺口'):
             body = re.sub(r'(?m)^\*\*' + re.escape(label) + r'\*\*：', '', body)
         body = '\n'.join(line for line in body.splitlines()
@@ -104,7 +111,8 @@ def build_delivery_view(*, task_id: str, execution_id: str | None, query: str, r
     relationships = result.get('relationship_view') or summary.get('relationships') or {}
     stats_id = statistics.get('snapshot_id')
     all_sources = deepcopy(summary.get('sources') or [])
-    citations = deepcopy(citations)
+    used={'citation:'+number for number in re.findall(r'\[citation:(\d+)\]',report)}
+    citations = deepcopy([row for row in citations if row.get('citation_id') in used]) if used else deepcopy(citations)
     reader_report = report_for_reading(report, citations)
     sections = _sections(reader_report)
     main_sections, appendix_sections, in_appendix = [], [], False
