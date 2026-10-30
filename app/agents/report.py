@@ -9,6 +9,8 @@ from __future__ import annotations
 import json
 import logging
 import time
+import httpx
+from openai import APIConnectionError,APITimeoutError
 from copy import deepcopy
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
@@ -349,15 +351,36 @@ Evidence Sources:
                     if on_chunk and not module_mode:
                         on_chunk(delta)
 
+            def request_content(client,request):
+                nonlocal finish_reason
+                if not module_mode:
+                    consume(client.chat.completions.create(**request,stream=True));return
+                # Structured reports are published only after audit. Native
+                # non-streaming responses retain complete JSON plus usage and
+                # avoid a second, unobserved chunked-stream failure boundary.
+                for attempt in range(2):
+                    try:
+                        response=client.chat.completions.create(**request,stream=False)
+                        break
+                    except (httpx.TransportError,APIConnectionError,APITimeoutError):
+                        if attempt:raise
+                        from app.llm_budget import request_token_bound
+                        required=request_token_bound(request['messages'],
+                            **({'response_format':request['response_format']} if request.get('response_format') else {}))+request['max_tokens']
+                        if (self.request_budget.available('report')<required
+                                or time.monotonic()>=self.request_budget.call_deadline('report')):raise
+                        self.recovery_events.append({'phase':'report','kind':'transport',
+                            'attempt':attempt+1,'action':'retry_complete_structured_response',
+                            'previous_unknown_usage_retained':True})
+                choice=response.choices[0] if response.choices else None
+                finish_reason=getattr(choice,'finish_reason',None)
+                content=(choice.message.content or '') if choice else ''
+                chunks.append(content)
+                self.last_partial_response=''.join(chunks)
+
             try:
-                consume(active_client.chat.completions.create(
-                    model=active_model,
-                    messages=messages,
-                    temperature=0.3,
-                    max_tokens=output_tokens,
-                    stream=True,
-                    **({'response_format': {'type': 'json_object'}} if module_mode else {}),
-                ))
+                request_content(active_client,dict(model=active_model,messages=messages,temperature=0.3,
+                    max_tokens=output_tokens,**({'response_format':{'type':'json_object'}} if module_mode else {})))
             except Exception as primary_error:
                 if isinstance(primary_error,TokenBudgetExceeded):
                     raise
@@ -374,14 +397,8 @@ Evidence Sources:
                 fallback_client = budgeted_client(fallback_client,self.request_budget,'report')
                 if skill_prompt:fallback_client=skill_context_client(fallback_client)
                 logger.warning("Primary report stream failed before output; using fallback: %s", type(primary_error).__name__)
-                consume(fallback_client.chat.completions.create(
-                    model=active_model,
-                    messages=messages,
-                    temperature=0.3,
-                    max_tokens=output_tokens,
-                    stream=True,
-                    **({'response_format': {'type': 'json_object'}} if module_mode else {}),
-                ))
+                request_content(fallback_client,dict(model=active_model,messages=messages,temperature=0.3,
+                    max_tokens=output_tokens,**({'response_format':{'type':'json_object'}} if module_mode else {})))
 
             content = "".join(chunks).strip()
             # A later correction can be refused before dispatch. Keep this
@@ -431,8 +448,8 @@ Evidence Sources:
                             required_tokens=request_token_bound(repair_messages,response_format={'type':'json_object'})+1024):
                         active_model=self.model
                     chunks = []; finish_reason = None
-                    consume(self.client.chat.completions.create(model=active_model, messages=repair_messages,
-                        temperature=0, max_tokens=output_tokens, stream=True, response_format={'type': 'json_object'}))
+                    request_content(self.client,dict(model=active_model,messages=repair_messages,
+                        temperature=0,max_tokens=output_tokens,response_format={'type':'json_object'}))
                     if finish_reason == 'length':
                         raise TokenBudgetExceeded('model_output_limit')
                     repaired_raw = ''.join(chunks)
@@ -525,6 +542,10 @@ Evidence Sources:
             self.last_usage = self.request_budget.usage()
             if chunks:self.last_partial_response = ''.join(chunks)
             raise
+        except (httpx.TransportError,APIConnectionError,APITimeoutError) as error:
+            self.last_usage=self.request_budget.usage()
+            if chunks:self.last_partial_response=''.join(chunks)
+            raise StreamInterruptedError('report_transport_interrupted') from error
         except (OSError, RuntimeError, TypeError, ValueError, KeyError, AttributeError) as e:
             logger.error(f"Report generation error: {e}")
             self.last_usage = None

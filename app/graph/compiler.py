@@ -2842,6 +2842,8 @@ async def report_node(state: ResearchState) -> dict:
             "runtime_status": RuntimeStatus.RETRYABLE_FAILED.value,
             "session": session,
             'budget_state':budget_state,
+            'organization_result':{**(organization_result or {}),'module_report':agent.last_module_report,
+                'report_context':agent.last_context_manifest,'writing_plan':agent.last_writing_plan},
             "review_status": {
                 "blocked": False,
                 "last_error_category": "llm_stream_interrupted",

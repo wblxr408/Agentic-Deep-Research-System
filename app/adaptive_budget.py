@@ -56,6 +56,13 @@ def stage_allocation(state, root, stage):
     audit_hold = min(remaining, base_audit + audit_extra)
     report_hold = min(max(0, remaining - audit_hold), base_report + report_extra)
     is_report = stage == 'report'
+    # Unknown dispatched usage remains charged. A recovery cannot simultaneously
+    # retain that charge and reserve almost all remaining tokens for an audit
+    # of a draft which cannot be written. Share the remaining root, explicitly;
+    # incomplete auditing still blocks delivery. No grant/refund is introduced.
+    recovery_share=bool(is_report and any(item.get('status')=='unknown'
+        and item.get('purpose')=='report' for item in root.get('model_requests') or []))
+    if recovery_share:audit_hold=min(audit_hold,remaining*3//5)
     local_limit = remaining if is_report else max(0, remaining - audit_hold - report_hold)
     return {'version': VERSION, 'stage': stage, **signals,
             'root_limit': total, 'root_used': used, 'root_inflight': inflight, 'root_remaining': remaining,
@@ -63,6 +70,7 @@ def stage_allocation(state, root, stage):
             'report_base': base_report, 'report_extra': report_extra, 'report_hold': report_hold,
             'writing_available': max(0, remaining - audit_hold) if is_report else None,
             'stage_limit': local_limit, 'unchanged_root_limit': True,
+            'unknown_report_usage_remaining_share':recovery_share,
             'semantics': 'bounded_holds_not_spend_or_quality_guarantee'}
 
 

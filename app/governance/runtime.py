@@ -280,24 +280,30 @@ class RuntimePersistence:
                     and latest.get('attempts')==incoming.get('attempts'))
                 stale_phase=bool(latest and same_execution and (not incoming or (
                     latest.get('binding')==incoming.get('binding') and (missing_completed or newer_attempts or newer_status))))
+                handoff=(state.get('organization_result') or {}).get('revision_handoff') or {}
+                partial=handoff.get('partial_revision') or {}
+                accepted_handoff=bool(same_execution and incoming.get('status')=='completed'
+                    and handoff.get('version')=='adrs-retained-revision-handoff-v1'
+                    and handoff.get('current_binding')==incoming.get('binding')==latest.get('binding')
+                    and partial==latest and handoff.get('requires_current_source_audit') is True)
                 prior_budget=(previous or {}).get('budget_state') or {}
                 paid_progress=bool(same_execution and (
                     int(prior_budget.get('used_total_tokens') or 0)>int(budget_state.get('used_total_tokens') or 0)
                     or len(prior_budget.get('model_requests') or [])>len(budget_state.get('model_requests') or [])
                     or not {item.get('upgrade_id') for item in prior_budget.get('capability_upgrades') or []}
                         <={item.get('upgrade_id') for item in budget_state.get('capability_upgrades') or []}))
-                if stale_phase or paid_progress:
+                if (stale_phase and not accepted_handoff) or paid_progress:
                     # An earlier graph value can arrive while the analyst is
                     # saving phases. Keep newer phase results and paid usage;
                     # final graph values with equal/newer phases still replace.
-                    state['analysis_workflow']=latest
+                    if not accepted_handoff:state['analysis_workflow']=latest
                     budget_state={**(previous.get('budget_state') or {}),
                         'elapsed_wall_clock_seconds':max(int(budget_state.get('elapsed_wall_clock_seconds') or 0),
                             int((previous.get('budget_state') or {}).get('elapsed_wall_clock_seconds') or 0))}
                     state['budget_state']=budget_state
                     state['session']={**state.get('session',{}),**previous.get('session',{})}
                     review_status['budget_state']=budget_state
-                    if paid_progress:
+                    if paid_progress and not accepted_handoff:
                         state['organization_result']=previous.get('organization_result')
                         review_status['organization_result']=previous.get('organization_result')
                 if stored:

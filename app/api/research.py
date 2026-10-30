@@ -2089,6 +2089,25 @@ async def _resume_retained_synthesis(session_id, background_tasks, principal, *,
     reason=workflow.get('stop_reason')
     if report_stage:
         from app.db.report_delivery import report_binding
+    legacy_report_repair=False
+    if report_resume and record['status']=='failed':
+        failure=review.get('workflow_failure') or {}
+        # Repair only a retained report transport failure from older code.
+        # A concrete paid report receipt and the exact prior analysis are both
+        # required; arbitrary workflow errors cannot jump directly to writing.
+        async with pool.acquire() as conn:
+            report_call=await conn.fetchval('''SELECT EXISTS(SELECT 1 FROM research_model_receipts
+                WHERE session_id=$1::uuid AND owner_id=$2::uuid AND execution_id=$3::uuid
+                AND payload->'routing'->>'stage'='report')''',session_id,principal.id,str(record['execution_id']))
+        if (report_call and failure.get('execution_id')==str(record['execution_id'])
+                and failure.get('error_type') in {'RemoteProtocolError','APIConnectionError','APITimeoutError'}
+                and (state.get('organization_result') or {}).get('revision_handoff')):
+            from app.research_context import retained_revision_handoff
+            restored=retained_revision_handoff(state,_synthesis_question(state),
+                _skill_prompt(state,'analyst') or None,_agent_skill_hints(state,'analyst'))
+            if restored:
+                state.update(restored);workflow=state['analysis_workflow']
+                legacy_report_repair=True
     if audit_resume:
         audit=review.get('final_report_audit') or {}
         recoverable=(record['status']=='paused' and state.get('status')=='paused'
@@ -2099,7 +2118,7 @@ async def _resume_retained_synthesis(session_id, background_tasks, principal, *,
             and bool(state.get('final_report')) and bool(module_report.get('reading_structure'))
             and workflow.get('status')=='completed' and bool(state.get('analysis')))
     elif report_resume:
-        recoverable=(record['status'] in {'failed','paused'} and state.get('status')==record['status']
+        recoverable=legacy_report_repair or (record['status'] in {'failed','paused'} and state.get('status')==record['status']
             and state.get('runtime_status') in {'retryable_failed','report_paused'}
             and review.get('output_stage')=='report' and review.get('report_payload_kind')=='partial_response'
             and review.get('report_binding')==report_binding(state)
