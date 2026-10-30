@@ -144,7 +144,27 @@ async def revise_budget(conn,session_id,owner_id,request):
                     or event['previous_revision']!=request.expected_revision):
                 raise ValueError('budget_request_conflict')
             return {**view,'replayed':True}
-    if row['status']!='paused' or state.get('status')!='paused':raise ValueError('budget_pause_required')
+    review=deepcopy(decoded(row['review_status']))
+    failure=review.get('workflow_failure') or {}
+    storage_recovery=bool(row['status']=='failed' and state.get('status')=='failed'
+        and failure.get('execution_id')==str(row['execution_id'])
+        and failure.get('error_type')=='ValueError'
+        and failure.get('message') in {'report_history_payload_limit','report_history_version_limit_64'}
+        and state.get('final_report') and (state.get('analysis_workflow') or {}).get('status')=='completed')
+    if row['status']!='paused' or state.get('status')!='paused':
+        if not storage_recovery:raise ValueError('budget_pause_required')
+        saved=await conn.fetchrow('''SELECT report_id,payload FROM research_report_versions
+            WHERE session_id=$1::uuid AND owner_id=$2::uuid AND payload->>'kind'='report'
+            AND payload->>'report'=$3 ORDER BY sequence DESC LIMIT 1''',str(session_id),str(owner_id),state['final_report'])
+        if not saved:raise ValueError('budget_storage_checkpoint_unavailable')
+        from app.db.report_delivery import report_binding
+        # Recover the last actually saved draft, not the lost paid revision.
+        review.update(reason='final_report_needs_revision',runtime_status='report_paused',
+            report_binding=report_binding(state),output_stage='report',report_payload_kind='report',
+            storage_recovery={'report_id':saved['report_id'],'lost_revision_recovered':False,
+                'failure':failure,'usage_refunded':False})
+        state.update(status='paused',runtime_status='report_paused')
+        state.setdefault('session',{})['status']='paused'
     session=state.get('session') or {}
     if (str(row['execution_id'])!=str(request.execution_id) or
             str(session.get('execution_id'))!=str(request.execution_id) or
@@ -159,7 +179,6 @@ async def revise_budget(conn,session_id,owner_id,request):
     if (values['max_total_tokens']<=view['usage']['tokens'] or values['max_tool_calls']<view['usage']['tool_calls'] or
             values['max_wall_clock_seconds']<=view['usage']['elapsed_seconds']):
         raise ValueError('budget_below_used_allowance')
-    review=deepcopy(decoded(row['review_status']))
     event={'revision':view['revision']+1,'previous_revision':view['revision'],'request_id':str(request.request_id),
            'execution_id':str(request.execution_id),'owner_id':str(owner_id),'at':datetime.now(UTC).isoformat(),
            'previous_limits':view['limits'],'limits':values,'usage_at_revision':view['usage'],
@@ -180,10 +199,10 @@ async def revise_budget(conn,session_id,owner_id,request):
         review.update(reason='final_audit_incomplete',runtime_status='report_paused')
         state['runtime_status']='report_paused'
     state.update(budget_state=budget,review_status={**review,'budget_state':budget})
-    await conn.execute('''UPDATE research_sessions SET review_status=$3::jsonb,updated_at=NOW()
+    await conn.execute('''UPDATE research_sessions SET review_status=$3::jsonb,status='paused',updated_at=NOW()
         WHERE id=$1::uuid AND owner_id=$2::uuid''',str(session_id),str(owner_id),dumps_json(state['review_status']))
     await conn.execute('''UPDATE session_runtime_state SET state_snapshot_json=$2::jsonb,
-        runtime_status=$3,checkpoint_seq=checkpoint_seq+1 WHERE session_id=$1::uuid''',
+        runtime_status=$3,public_status='paused',checkpoint_seq=checkpoint_seq+1 WHERE session_id=$1::uuid''',
         str(session_id),dumps_json(state),state.get('runtime_status','analysis_paused'))
     await persist_receipt_budget(conn,session_id,owner_id,budget)
     await conn.execute('''UPDATE session_budget_state SET max_total_tokens=$2,max_tool_calls=$3,

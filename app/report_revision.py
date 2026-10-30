@@ -90,12 +90,65 @@ def revise_reader_report(content,record,audit,*,question,findings,configuration,
         *new_record.get('summary',[]),*[item for module in new_record['modules']
             for item in [*module['paragraphs'],*module.get('appendix',[])]]]
         for binding in item.get('statistic_bindings',[])]
-    new_record['reader_revision']={'original_record':record,'original_audit':audit,'raw_response':reply,
+    new_record['reader_revision']={'original_record':{'raw_model_response':record['raw_model_response']},
+        'original_audit':_prior_audit_summary(audit),'raw_response':reply,
         'changed_paragraph_ids':keys,'deleted_paragraph_ids':sorted(deleted),'attempts':1}
     new_audit=audit_report(revised,evidence,client=budgeted_client(client,budget,'audit'),model=model,
         token_budget=budget.available('audit'),deadline=deadline,bound_statistics=bound,
         paragraph_kinds=module_paragraph_kinds(new_record),task_context=task_context,
         previous_audit=audit,source_spans=source_spans)
+    return revised,new_record,new_audit
+
+
+def _prior_audit_summary(audit):
+    """Detailed old audits have their own retained report snapshot."""
+    from app.query_understanding import identity
+    return {'content_identity':identity(audit),**{key:audit.get(key) for key in
+        ('audit_model','total_claims','supported_claims','audit_incomplete','needs_review')},
+        'issues':[{key:row.get(key) for key in ('text','reason','status')}
+            for row in audit.get('claims',[]) if row.get('status')!='supported']}
+
+
+def finalize_supported_report(content,record,audit,*,configuration,statistics,evidence,client,model,
+                              budget,deadline,source_spans,task_context):
+    """Remove unresolved paragraphs as a whole; never relabel their claims.
+
+    The original complete draft and audit remain in history. Unchanged claims
+    may reuse only the normal source-checked judgments. Every selected module
+    must still contain research prose, otherwise assembly blocks delivery.
+    """
+    draft=ModuleReportDraft.model_validate_json(record['raw_model_response']).model_dump(mode='json')
+    failed={row['paragraph_context'] for row in audit.get('claims',[]) if row.get('status')!='supported'}
+    removed=[]
+    def retain(items,section):
+        kept=[]
+        for index,item in enumerate(items):
+            wire=(report_prose(item['text'])+' '+' '.join(f'[citation:{number}]' for number in item['citations'])).rstrip()
+            # A few selected paper passages cannot establish a universal
+            # absence/uniqueness claim about the complete retained collection.
+            coverage_claim=bool(re.search(r'本(?:次|轮)(?:取得的|所获|的)?材料|本次.*(?:唯一|没有任何)',item['text'])
+                and re.search(r'唯一|均未|没有任何|未取得|未包含|未提供|未显示|不存在|没有出现',item['text']))
+            if wire in failed or coverage_claim:removed.append({'paragraph_id':section+':'+str(index),
+                'reason':'taskwide_absence_not_established_by_paper_excerpt' if coverage_claim else 'unresolved_source_audit'})
+            else:kept.append(item)
+        return kept
+    draft['summary']=retain(draft['summary'],'summary')
+    for module in draft['modules']:
+        module['paragraphs']=retain(module['paragraphs'],module['module_id']+':paragraphs')
+        module['appendix']=retain(module.get('appendix',[]),module['module_id']+':appendix')
+        if module['module_id'] not in {'landscape','deep_dive'}:
+            removed.extend({'paragraph_id':module['module_id']+':appendix:'+str(index),
+                'reason':'optional_non_technical_appendix'} for index in range(len(module['appendix'])))
+            module['appendix']=[]
+    revised,new_record=assemble_module_report(json.dumps(draft,ensure_ascii=False),configuration,len(evidence),statistics=statistics)
+    if new_record['issues']:raise TokenBudgetExceeded('supported_report_module_incomplete')
+    new_audit=audit_report(revised,evidence,client=budgeted_client(client,budget,'audit'),model=model,
+        token_budget=budget.available('audit'),deadline=deadline,
+        paragraph_kinds=module_paragraph_kinds(new_record),task_context=task_context,
+        previous_audit=audit,source_spans=source_spans)
+    new_record['supported_finalization']={'removed_paragraphs':removed,'original_record':{
+        'raw_model_response':record['raw_model_response']},'original_audit':_prior_audit_summary(audit),
+        'semantics':'reduced_prose_requires_complete_audit_not_approval_of_deleted_claims'}
     return revised,new_record,new_audit
 
 
@@ -283,7 +336,8 @@ def _revise_report_once(content, record, audit, *, configuration, statistics, ev
             token_budget=budget.available('audit'),deadline=deadline,bound_statistics=bound,
             paragraph_kinds=module_paragraph_kinds(new_record), task_context=task_context,previous_audit=audit,
             source_spans=source_spans)
-        new_record['semantic_revision']={'original_record':deepcopy(record),'original_audit':deepcopy(audit),
+        new_record['semantic_revision']={'original_record':{'raw_model_response':record['raw_model_response']},
+            'original_audit':_prior_audit_summary(audit),
             'revised_paragraph_ids':list(replacements),'attempts':1,'request_attempts':request_attempts}
         new_audit['revision_attempt']={'attempted':True,'status':'reaudited','paragraph_count':len(targets),
             'request_attempts':request_attempts,'raw_responses':list(replies)}

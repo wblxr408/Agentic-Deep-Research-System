@@ -2799,6 +2799,7 @@ async def report_node(state: ResearchState) -> dict:
                 report_context=(organization_result or {}).get('report_context'),
                 writing_plan=(organization_result or {}).get('writing_plan'),
                 reader_revision=bool((state.get('session') or {}).get('reader_revision_mode')),
+                supported_finalization=bool((state.get('session') or {}).get('supported_finalization_mode')),
                 organization_findings=organization_result)
         else:
             report, citations = await asyncio.to_thread(agent.generate_stream,

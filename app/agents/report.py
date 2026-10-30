@@ -574,7 +574,7 @@ Evidence Sources:
                      organization_statistics: dict | None, technical_reading: dict | None,
                      analysis_workflow: dict | None, report_context: dict | None,
                      writing_plan: dict | None,reader_revision:bool=False,
-                     organization_findings:dict|None=None) -> tuple[str, list[Citation]]:
+                     organization_findings:dict|None=None,supported_finalization:bool=False) -> tuple[str, list[Citation]]:
         """Continue only the unfinished audit of an unchanged, retained draft."""
         from app.claim_verification import module_paragraph_kinds, research_method_context
         from app.research_context import reading_source_spans
@@ -611,11 +611,12 @@ Evidence Sources:
             for paragraph in paragraphs for binding in paragraph.get('statistic_bindings',[])]
         method_context=research_method_context(user_query,organization_research,evidence_list)
         located_spans=reading_source_spans(technical_reading,evidence_list,analysis_workflow)
-        if reader_revision:
-            from app.report_revision import revise_reader_report
+        if reader_revision or supported_finalization:
+            from app.report_revision import revise_reader_report,finalize_supported_report
             try:
-                content,self.last_module_report,self.last_audit=revise_reader_report(content,self.last_module_report,
-                    self.last_audit,question=user_query,findings=organization_findings,
+                revision=finalize_supported_report if supported_finalization else revise_reader_report
+                content,self.last_module_report,self.last_audit=revision(content,self.last_module_report,
+                    self.last_audit,**({} if supported_finalization else {'question':user_query,'findings':organization_findings}),
                     configuration=organization_research,statistics=organization_statistics,evidence=evidence_list,
                     client=active_client,model=active_model,budget=self.request_budget,deadline=self.request_budget.deadline,
                     source_spans=located_spans,task_context=method_context)
@@ -624,7 +625,7 @@ Evidence Sources:
             except (ValueError,TypeError,KeyError,AttributeError) as error:
                 raise TokenBudgetExceeded('reader_revision_contract_invalid') from error
         try:
-            if not reader_revision:self.last_audit=audit_report(content,evidence_list,
+            if not (reader_revision or supported_finalization):self.last_audit=audit_report(content,evidence_list,
                 client=budgeted_client(active_client,self.request_budget,'audit'),model=active_model,
                 token_budget=self.request_budget.available('audit'),deadline=self.request_budget.deadline,
                 bound_statistics=bound_statistics,paragraph_kinds=module_paragraph_kinds(self.last_module_report),

@@ -2070,6 +2070,12 @@ async def revise_research_for_reader(session_id:str,background_tasks:BackgroundT
     return await _resume_retained_synthesis(session_id,background_tasks,principal,stage='reader')
 
 
+@router.post('/{session_id}/report/finalize-supported')
+async def finalize_research_supported_prose(session_id:str,background_tasks:BackgroundTasks,
+        principal:Principal=principal_dependency):
+    return await _resume_retained_synthesis(session_id,background_tasks,principal,stage='supported')
+
+
 async def _resume_retained_synthesis(session_id, background_tasks, principal, *, stage):
     from datetime import UTC, datetime
     from app.graph.compiler import _build_budget_state, _stage_model_budget, _synthesis_question, _skill_prompt, _agent_skill_hints
@@ -2087,8 +2093,9 @@ async def _resume_retained_synthesis(session_id, background_tasks, principal, *,
     state=deepcopy(_json_object(record['state_snapshot_json']))
     root=state.get('session') or {}; workflow=state.get('analysis_workflow') or {}
     report_resume=stage=='report'
+    supported_finalization=stage=='supported'
     reader_revision=stage=='reader'
-    audit_resume=stage in {'audit','reader'}
+    audit_resume=stage in {'audit','reader','supported'}
     report_stage=report_resume or audit_resume
     review=state.get('review_status') or {}
     module_report=(state.get('organization_result') or {}).get('module_report') or {}
@@ -2115,7 +2122,7 @@ async def _resume_retained_synthesis(session_id, background_tasks, principal, *,
             if restored:
                 state.update(restored);workflow=state['analysis_workflow']
                 legacy_report_repair=True
-    if reader_revision:
+    if reader_revision or supported_finalization:
         recoverable=(record['status']=='paused' and state.get('status')=='paused'
             and state.get('runtime_status')=='report_paused' and review.get('reason')=='final_report_needs_revision'
             and review.get('report_binding')==report_binding(state) and bool(state.get('final_report'))
@@ -2164,7 +2171,9 @@ async def _resume_retained_synthesis(session_id, background_tasks, principal, *,
         raise HTTPException(409,'report_resume_attempt_limit')
     if reader_revision and int(root.get('reader_revision_attempts') or 0)>=1:
         raise HTTPException(409,'reader_revision_attempt_limit')
-    if audit_resume and not reader_revision and int(root.get('audit_resume_attempts') or 0)>=1:
+    if supported_finalization and int(root.get('supported_finalization_attempts') or 0)>=1:
+        raise HTTPException(409,'supported_finalization_attempt_limit')
+    if audit_resume and not (reader_revision or supported_finalization) and int(root.get('audit_resume_attempts') or 0)>=1:
         raise HTTPException(409,'audit_resume_attempt_limit')
     if not report_stage and int((workflow.get('attempts') or {}).get(phase,0))>=10:
         raise HTTPException(409,'analysis_phase_attempt_limit')
@@ -2243,12 +2252,14 @@ async def _resume_retained_synthesis(session_id, background_tasks, principal, *,
     state['session']={**root,'status':'running','execution_id':execution_id}
     state['session']['audit_resume_mode']=audit_resume
     state['session']['reader_revision_mode']=reader_revision
+    state['session']['supported_finalization_mode']=supported_finalization
+    if supported_finalization:state['session']['supported_finalization_attempts']=int(root.get('supported_finalization_attempts') or 0)+1
     if reader_revision:state['session']['reader_revision_attempts']=int(root.get('reader_revision_attempts') or 0)+1
     if report_resume:
         state['session']['report_resume_attempts']=int(root.get('report_resume_attempts') or 0)+1
         state['session']['report_contract_resume']=retained_contract
         state['review_status']['report_resume_attempts']=state['session']['report_resume_attempts']
-    if audit_resume and not reader_revision:
+    if audit_resume and not (reader_revision or supported_finalization):
         state['session']['audit_resume_attempts']=int(root.get('audit_resume_attempts') or 0)+1
         state['review_status']['audit_resume_attempts']=state['session']['audit_resume_attempts']
     async with pool.acquire() as conn,conn.transaction():

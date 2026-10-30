@@ -140,7 +140,7 @@ async def retain_report_version(conn,state,review,*,owner_id,session_id):
     result=state.get('organization_result') or {}
     payload={'schema_version':'adrs-report-history-v1','session_id':str(session_id),
         'owner_id':str(owner_id),'execution_id':str((state.get('session') or {}).get('execution_id') or ''),
-        'kind':kind,'report':report,'citations':state.get('citations') or [],'audit':audit,
+        'kind':kind,'report':report,'citations':state.get('citations') or [],'audit':_history_audit(audit),
         'status':'supported_report' if supported else 'saved_draft' if kind=='report' else 'incomplete_response',
         'source_versions':sources,'source_semantics':'retained_candidate_source_map_not_proof_all_sources_were_read',
         'plan_version':(state.get('plan_manifest') or {}).get('plan_version'),
@@ -156,13 +156,38 @@ async def retain_report_version(conn,state,review,*,owner_id,session_id):
     if await conn.fetchval('SELECT 1 FROM research_report_versions WHERE session_id=$1::uuid AND owner_id=$2::uuid AND report_id=$3',str(session_id),str(owner_id),report_id):return report_id
     # Bounded by the original task's finite revisions and paid budget; never delete history to fit.
     count=await conn.fetchval('SELECT COUNT(*) FROM research_report_versions WHERE session_id=$1::uuid',str(session_id))
-    if count>=64:raise ValueError('report_history_version_limit_64')
+    if count>=64:
+        if review.get('report_version_id'):review['previous_report_version_id']=review.pop('report_version_id')
+        review['report_history_status']={'status':'pending','reason':'report_history_version_limit_64'}
+        return None
     encoded=json.dumps(payload,ensure_ascii=False,default=str)
-    if len(encoded.encode('utf-8'))>8_000_000:raise ValueError('report_history_payload_limit')
+    if len(encoded.encode('utf-8'))>8_000_000:
+        # History is a secondary view. Its capacity must not roll back the
+        # authoritative paid report/checkpoint or silently erase older versions.
+        if review.get('report_version_id'):review['previous_report_version_id']=review.pop('report_version_id')
+        review['report_history_status']={'status':'pending','reason':'report_history_payload_limit'}
+        return None
     await conn.execute('''INSERT INTO research_report_versions(session_id,owner_id,report_id,sequence,execution_id,payload)
         VALUES($1::uuid,$2::uuid,$3,$4,$5::uuid,$6::jsonb)''',str(session_id),str(owner_id),report_id,int(count)+1,
         (state.get('session') or {}).get('execution_id'),encoded)
     return report_id
+
+
+def _history_audit(value):
+    """Keep the current audit; refer to nested prior snapshots without copying.
+
+    Content identities identify exact candidate snapshots, not database version
+    IDs. Earlier saved versions remain separately owner scoped and immutable.
+    """
+    if isinstance(value,list):return [_history_audit(item) for item in value]
+    if not isinstance(value,dict):return value
+    result={}
+    for key,item in value.items():
+        if key in {'original_record','original_audit','repair_history'} and isinstance(item,(dict,list)):
+            result[key]={'content_identity':identity(item),
+                'retention':'prior_snapshot_reference_not_database_version_id'}
+        else:result[key]=_history_audit(item)
+    return result
 
 
 def report_binding(state):
