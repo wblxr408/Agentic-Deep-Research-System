@@ -6,6 +6,27 @@
 
 ## ADDED Requirements
 
+### Requirement: Retained read failures explain the actual failed layer
+实际公开读取收据 SHALL 保留有界脱敏的后端、失败阶段、HTTP状态、超时／DNS／TLS分类及Retry-After；旧通用network／upstream_error记录 MUST NOT 被猜测补全。界面 SHALL 区分模型服务失败与尚未进入模型的取证失败。
+
+#### Scenario: A publisher rejects a source read
+- **WHEN** 实际公开读取已取得明确HTTP错误状态
+- **THEN** 系统 SHALL 保留该状态及本次实际消费，按权限／风险／限流／临时服务等类别决定后续，不能将其全部变成无区别的upstream_error
+
+### Requirement: Source recovery preserves the original trust and delivery contract
+auto模式 SHALL 按实际错误和剩余原额度选择有限的可用读取路径；source-only、scoped、权限／风险／证书及出站边界 MUST 保持。系统 MUST NOT 将摘要、缓存的不同来源或第三方转换结果标作本次已取得的原PDF。
+
+#### Scenario: No authorized alternative remains
+- **WHEN** 当前读取失败且原来源限制、额度或安全边界不允许其他读取路径
+- **THEN** 系统 SHALL 保留具体缺口和尝试，不增加权限／额度，不把重试或搜索线索当作全文成功
+
+### Requirement: Lost executions do not remain indistinguishably running
+系统 SHALL 依持久化执行身份、租约／心跳、原期限及收据识别失联或到期状态，并向本人界面明确解释；不能由历史running字段推断当前有工作进程。恢复 MUST 保留owner、execution围栏、未知消费及原期限，不通过启动扫描自动派发历史付费研究。
+
+#### Scenario: The application exits during a long research run
+- **WHEN** 原执行已失联且原根期限耗尽
+- **THEN** 系统 SHALL 显示原根无法在原额度内继续的实际状态，保留材料和收据，不展示为持续进行的真实执行或静默重启
+
 ### Requirement: Verified source locations survive unaccepted technical summaries
 系统 SHALL 将本根已保存技术提案中能在当前已授权原文重新定位的引文作为检索线索，即使其字段摘要因数值／覆盖不足未采纳；不得因此提升该摘要。未知来源ID、发现片段、不支持字段、无可核原文的提案 MUST NOT 成为线索。系统 SHALL 保存阶段字段拒收原因，正文不展示内部状态。
 
