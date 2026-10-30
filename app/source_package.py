@@ -5,6 +5,7 @@ import base64
 import io
 import json
 import zipfile
+from fastapi.encoders import jsonable_encoder
 
 MAX_PACKAGE_BYTES=128*1024*1024
 MAX_TEXT_BYTES=24*1024*1024
@@ -67,9 +68,9 @@ def build_source_package(export_view,state,originals):
         markdown=view.get('report_markdown') or ''
         if gallery:markdown+='\n\n## 原文图示\n\n'+'\n\n'.join(gallery)+'\n'
         write('report.md',markdown)
-        write('report.json',json.dumps(export_view,ensure_ascii=False,indent=2))
+        write('report.json',json.dumps(jsonable_encoder(export_view),ensure_ascii=False,indent=2))
         # The manifest describes the archive; it is a research record, separate
         # from the normal report. Source-controlled titles never become paths.
-        write('sources.json',json.dumps(manifest,ensure_ascii=False,indent=2))
+        write('sources.json',json.dumps(jsonable_encoder(manifest),ensure_ascii=False,indent=2))
     if output.tell()>MAX_PACKAGE_BYTES:raise ValueError('source_package_byte_limit')
     return output.getvalue()
