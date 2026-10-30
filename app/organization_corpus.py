@@ -230,7 +230,8 @@ def _read_corpus_source(url: str, configuration: dict, *, timeout: float,on_requ
     validator=admit_corpus_request(url,configuration)
     response = HttpReader(url_validator=validator).read(url, timeout=min(30, timeout), max_bytes=8*1024*1024,on_request=on_request)
     if response.status >= 400:
-        raise ChannelError('upstream_error')
+        from app.channels.execution import response_error
+        raise response_error(response)
     content_type = response.headers.get('content-type', '').lower()
     title, acquisition = response.url, {'format': 'text', 'coverage': 'metadata_or_page_text', 'truncated': False}
     if response.body.startswith(b'%PDF-'):
@@ -240,7 +241,8 @@ def _read_corpus_source(url: str, configuration: dict, *, timeout: float,on_requ
         complete = document.get('coverage')=='full_text' and not document['truncated'] and document['retained_pages'] == document['total_pages']
         acquisition = {**document, 'format': 'pdf', 'coverage': 'full_text' if complete else 'partial_text'}
     elif any(kind in content_type for kind in ('text/', 'json', 'xml')):
-        text = response.body.decode('utf-8', errors='replace')
+        from app.channels.execution import decode_public_text
+        text,acquisition['text_encoding']=decode_public_text(response)
         if 'html' in content_type:
             match = re.search(r'<title[^>]*>(.*?)</title\s*>', text, re.I | re.S)
             if match:

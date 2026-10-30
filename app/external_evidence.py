@@ -166,18 +166,26 @@ def collect_public_source(url,configuration,understanding,agent,*,owner_id,max_c
         return agent.execute_browse(url,owner_id=owner_id,max_calls=max_calls,timeout_seconds=timeout_seconds,analyze_page=False)
     if mode=='auto' and not scoped and channel!='web' and operation=='read':
         return agent.execute_browse(url,owner_id=owner_id,max_calls=max_calls,timeout_seconds=timeout_seconds,analyze_page=False)
-    deadline=time.monotonic()+timeout_seconds;attempts=[];results=[]
+    deadline=time.monotonic()+timeout_seconds;attempts=[];results=[];try_external_reader=False
+    recovery=policy.get('read_recovery_policy')=='bounded_public_read_v1'
     try:
         if mode!='rendered':
             try:
-                results=read_corpus_source(url,config,timeout=max(0,deadline-time.monotonic()),max_calls=max_calls)
+                results=read_corpus_source(url,config,
+                    timeout=max(0,deadline-time.monotonic())*(.7 if recovery and mode=='auto' and not scoped else 1),
+                    max_calls=max(1,max_calls-2) if recovery and mode=='auto' and not scoped and max_calls>2 else max_calls)
                 used=max((item.acquisition or {}).get('network_call_count',0) for item in results)
                 attempts.append({'channel':'web','backend':'pinned-http','status':'success','call_count':used,'result_count':len(results)})
             except Exception as error:
                 used=getattr(error,'network_call_count',0)
                 attempts.append({'channel':'web','backend':'pinned-http','status':'failed','call_count':used,
-                    'result_count':0,'error_category':error.category if isinstance(error,ChannelError) else type(error).__name__})
-                if mode!='auto' or scoped or not isinstance(error,ChannelError) or error.category!='empty_content':raise
+                    'result_count':0,'error_category':error.category if isinstance(error,ChannelError) else type(error).__name__,
+                    'diagnostics':getattr(error,'diagnostics',{})})
+                transient=(isinstance(error,ChannelError) and (error.category in {'network','timeout'} or
+                    error.category=='upstream_error' and 500<=int((error.diagnostics or {}).get('http_status') or 0)<600))
+                if (mode!='auto' or scoped or not isinstance(error,ChannelError) or
+                        not (error.category=='empty_content' or recovery and transient)):raise
+                try_external_reader=recovery and transient and (understanding or {}).get('temporal',{}).get('mode')!='realtime'
             requires_dom=not results or any((item.acquisition or {}).get('format')=='html'
                 and len(item.extracted_content)<2000 and any(marker in item.extracted_content.casefold()
                     for marker in ('enable javascript','javascript is required','请开启javascript','请启用javascript')) for item in results)
@@ -185,6 +193,25 @@ def collect_public_source(url,configuration,understanding,agent,*,owner_id,max_c
                 agent.last_channel_attempts=attempts
                 return results
         used=sum(item['call_count'] for item in attempts)
+        if try_external_reader and used<max_calls and time.monotonic()<deadline:
+            # This existing channel reads via an independently hosted public
+            # text reader, only if the owner already enables that backend. It
+            # validates the original DNS target and never inherits a login.
+            from app.channels import ChannelService,CollectionRequest
+            collected=ChannelService(owner_id).collect(CollectionRequest(channel='web',operation='read',query=url,max_chars=20000),
+                max_calls=max_calls-used,timeout_seconds=max(0,deadline-time.monotonic()))
+            attempts.extend(item.model_dump() for item in collected.attempts)
+            if collected.items:
+                from app.graph.state import BrowserResult
+                agent.last_channel_attempts=attempts
+                return [BrowserResult(url=item.url,title=item.title,extracted_content=item.content,
+                    citations=[item.url],citation=item.url,channel=item.channel,backend=item.backend,collected_at=item.collected_at,
+                    acquisition={'format':'text','coverage':'page_text','truncated':len(item.content)>=20000,
+                        'source_fetched_at':item.collected_at,'requested_url':url,'final_url':item.url,
+                        'text_scope':'external_reader_transcription_not_original_pdf','original_bytes_retained':False,
+                        'reader_version':'bounded_public_read_v1','upstream_freshness':'not_independently_observed',
+                        'data_governance':item.data_governance}) for item in collected.items]
+            used=sum(item['call_count'] for item in attempts)
         if used>=max_calls or time.monotonic()>=deadline:
             if results:
                 agent.last_channel_attempts=attempts

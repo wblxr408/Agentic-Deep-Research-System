@@ -968,27 +968,16 @@ async def create_research(
             skill_context=skill_context,
         )
 
-    if requires_confirmation:
-        return response
-
-    # Start background execution
-    background_tasks.add_task(
-        run_research_workflow,
-        session_id=session_id,
-        query=request.query,
-        max_revision=request.max_revision,
-        user_confirmed=request.user_confirmed,
-        use_internal_docs=request.use_internal_docs,
-        rag_group=request.rag_group if request.use_internal_docs else None,
-        output_length=output_length.value,
-        skill_context=skill_context,
-        owner_id=_principal_id(principal),
-        channels=request.channels,
-        execution_id=execution_id,
-        organization_research=organization_research,
-        query_understanding=query_understanding,
-        initial_budget=budget,
-    )
+        if not requires_confirmation:
+            from app.research_jobs import enqueue
+            await enqueue(conn,
+                session_id=session_id,query=request.query,max_revision=request.max_revision,
+                user_confirmed=request.user_confirmed,use_internal_docs=request.use_internal_docs,
+                rag_group=request.rag_group if request.use_internal_docs else None,
+                output_length=output_length.value,skill_context=skill_context,
+                owner_id=_principal_id(principal),channels=request.channels,execution_id=execution_id,
+                organization_research=organization_research,query_understanding=query_understanding,initial_budget=budget,
+            )
 
     return response
 
@@ -1445,7 +1434,9 @@ async def retain_quality_feedback(session_id:uuid.UUID,payload:QualityFeedback,p
 async def get_research_result(session_id: str, principal: Principal = principal_dependency):
     """Get the final research result."""
     pool = await get_db_pool()
-    async with pool.acquire() as conn:
+    async with pool.acquire() as conn,conn.transaction():
+        from app.research_jobs import reconcile
+        await reconcile(conn,session_id=session_id,owner_id=_principal_id(principal))
         row = await conn.fetchrow(
             """
             SELECT id, execution_id, user_query, status, final_report, citations, agent_trace, review_status, created_at, completed_at
@@ -1462,6 +1453,8 @@ async def get_research_result(session_id: str, principal: Principal = principal_
                     WHERE session_id = research_sessions.id) AS root_session,
                    (SELECT last_heartbeat_at FROM session_runtime_state
                     WHERE session_id = research_sessions.id) AS execution_heartbeat,
+                   EXISTS(SELECT 1 FROM research_execution_jobs j WHERE j.execution_id=research_sessions.execution_id
+                     AND j.status='running' AND j.lease_until>NOW()) AS durable_execution_active,
                    (SELECT state_snapshot_json FROM session_runtime_state
                     WHERE session_id = research_sessions.id AND research_sessions.status IN ('running','failed')
                       AND last_heartbeat_at < NOW()-INTERVAL '120 seconds') AS interruption_state
@@ -1608,7 +1601,7 @@ async def get_research_result(session_id: str, principal: Principal = principal_
         from app.research_interruption import acquisition_resume_node,planner_throttling_repair
         result['interruption_recovery_available']=acquisition_resume_node(
             {'status':row['status'],'execution_id':row['execution_id'],'created_at':row['created_at'],
-                'last_heartbeat_at':row.get('execution_heartbeat')},interrupted_state,
+                'last_heartbeat_at':row.get('execution_heartbeat'),'durable_execution_active':row.get('durable_execution_active')},interrupted_state,
             review_status.get('budget_state') or {}) is not None
         if result['interruption_recovery_available']:
             result['interruption_recovery_reason']=('planner_rate_limited' if planner_throttling_repair(
@@ -1884,6 +1877,10 @@ async def resolve_research_approval(
                 state_snapshot = resume_approved_state(snapshot, resolutions, owner_id=principal.id, session_id=session_id)
             except (ValueError, KeyError, TypeError) as exc:
                 raise HTTPException(status_code=409, detail="invalid_approval_checkpoint") from exc
+            from app.planning_control import rebind_checkpoint_plan,PlanningError
+            try:rebind_checkpoint_plan(state_snapshot,execution_id,state_snapshot['session']['execution_id'])
+            except PlanningError as error:raise HTTPException(409,error.category) from None
+            state_snapshot.setdefault('review_status',{}).update(plan_manifest=state_snapshot.get('plan_manifest'),plan_history=state_snapshot.get('plan_history'))
             state_snapshot["session"]["execution_id"] = execution_id
             await conn.execute(
                 "UPDATE research_sessions SET status = 'running', completed_at = NULL, execution_id = $3::uuid, updated_at = NOW() WHERE id = $1::uuid AND owner_id = $2::uuid",
@@ -1893,21 +1890,17 @@ async def resolve_research_approval(
                 "UPDATE session_runtime_state SET state_snapshot_json = $2::jsonb, runtime_status = 'running', public_status = 'running', pending_approval_count = 0 WHERE session_id = $1::uuid",
                 session_id, dumps_json(state_snapshot),
             )
-    if state_snapshot is not None:
-        kwargs = dict(
-            session_id=session_id, query=state_snapshot["user_query"],
-            max_revision=int(state_snapshot.get("session", {}).get("max_revisions", 3)),
-            user_confirmed=bool(state_snapshot.get("user_confirmed", False)),
-            use_internal_docs=bool(state_snapshot.get("use_internal_docs", False)),
-            rag_group=state_snapshot.get("rag_group"), output_length=state_snapshot.get("output_length", "medium"),
-            skill_context=state_snapshot["skill_context"], owner_id=principal.id,
-            channels=state_snapshot.get("session", {}).get("channels", []),
-            resume_state=state_snapshot, execution_id=execution_id,
-        )
-        if background_tasks is not None:
-            background_tasks.add_task(run_research_workflow, **kwargs)
-        else:
-            asyncio.create_task(run_research_workflow(**kwargs))
+        if state_snapshot is not None:
+            from app.research_jobs import enqueue
+            await enqueue(conn,
+                session_id=session_id,query=state_snapshot['user_query'],
+                max_revision=int(state_snapshot.get('session',{}).get('max_revisions',3)),
+                user_confirmed=bool(state_snapshot.get('user_confirmed',False)),
+                use_internal_docs=bool(state_snapshot.get('use_internal_docs',False)),
+                rag_group=state_snapshot.get('rag_group'),output_length=state_snapshot.get('output_length','medium'),
+                skill_context=state_snapshot['skill_context'],owner_id=principal.id,
+                channels=state_snapshot.get('session',{}).get('channels',[]),
+                resume_state=state_snapshot,execution_id=execution_id)
     return {"approval_id": approval_id, "session_id": session_id, "status": resolved_status,
             "approved_by": principal.username, "request_payload": approval_payload,
             "resumed": state_snapshot is not None}
@@ -1946,7 +1939,9 @@ async def _resume_controlled_checkpoint(session_id,payload,background_tasks,prin
     pool=await get_db_pool()
     async with pool.acquire() as conn:
         record=await conn.fetchrow('''SELECT s.status,s.execution_id,s.created_at,s.review_status,
-            s.total_tokens,s.total_cost_usd,r.state_snapshot_json,r.checkpoint_seq,r.last_heartbeat_at
+            s.total_tokens,s.total_cost_usd,r.state_snapshot_json,r.checkpoint_seq,r.last_heartbeat_at,
+            EXISTS(SELECT 1 FROM research_execution_jobs j WHERE j.execution_id=s.execution_id
+                AND j.status='running' AND j.lease_until>NOW()) AS durable_execution_active
             FROM research_sessions s JOIN session_runtime_state r ON r.session_id=s.id
             WHERE s.id=$1::uuid AND s.owner_id=$2::uuid''',session_id,owner)
         if not record:raise HTTPException(404,'resume_task_not_found')
@@ -2044,13 +2039,14 @@ async def _resume_controlled_checkpoint(session_id,payload,background_tasks,prin
         await conn.execute('''UPDATE session_runtime_state SET state_snapshot_json=$2::jsonb,
             public_status='running',runtime_status='running',last_heartbeat_at=NOW()
             WHERE session_id=$1::uuid''',session_id,dumps_json(state))
+        from app.research_jobs import enqueue
+        await enqueue(conn,session_id=session_id,query=state['user_query'],
+            owner_id=owner,execution_id=execution_id,resume_state=state,resume_at='user_resume',
+            max_revision=int(root.get('max_revisions',3)),user_confirmed=bool(state.get('user_confirmed')),
+            use_internal_docs=bool(state.get('use_internal_docs')),rag_group=state.get('rag_group'),
+            output_length=state.get('output_length','medium'),skill_context=state.get('skill_context'),
+            channels=root.get('channels',[]))
     await get_sse_manager().begin_run(session_id)
-    background_tasks.add_task(run_research_workflow,session_id=session_id,query=state['user_query'],
-        owner_id=owner,execution_id=execution_id,resume_state=state,resume_at='user_resume',
-        max_revision=int(root.get('max_revisions',3)),user_confirmed=bool(state.get('user_confirmed')),
-        use_internal_docs=bool(state.get('use_internal_docs')),rag_group=state.get('rag_group'),
-        output_length=state.get('output_length','medium'),skill_context=state.get('skill_context'),
-        channels=root.get('channels',[]))
     return {'session_id':session_id,'execution_id':execution_id,'status':'running','resumed':True}
 
 
@@ -2199,6 +2195,10 @@ async def _resume_retained_synthesis(session_id, background_tasks, principal, *,
     state['review_status']={**(state.get('review_status') or {}),'blocked':False,'reason':None,
         'last_error_category':None,'runtime_status':'running','budget_state':budget}
     execution_id=str(uuid.uuid4())
+    from app.planning_control import rebind_checkpoint_plan,PlanningError
+    try:rebind_checkpoint_plan(state,execution_id,record['execution_id'])
+    except PlanningError as error:raise HTTPException(409,error.category) from None
+    state['review_status'].update(plan_manifest=state.get('plan_manifest'),plan_history=state.get('plan_history'))
     state['session']={**root,'status':'running','execution_id':execution_id}
     state['session']['audit_resume_mode']=audit_resume
     if report_resume:
@@ -2220,13 +2220,14 @@ async def _resume_retained_synthesis(session_id, background_tasks, principal, *,
         await conn.execute('''UPDATE session_runtime_state SET state_snapshot_json=$2::jsonb,
             runtime_status='running',public_status='running',last_heartbeat_at=NOW()
             WHERE session_id=$1::uuid''',session_id,dumps_json(state))
+        from app.research_jobs import enqueue
+        await enqueue(conn,session_id=session_id,query=state['user_query'],
+            max_revision=int(root.get('max_revisions',3)),user_confirmed=bool(state.get('user_confirmed')),
+            use_internal_docs=bool(state.get('use_internal_docs')),rag_group=state.get('rag_group'),
+            output_length=state.get('output_length','medium'),skill_context=state.get('skill_context'),
+            owner_id=principal.id,channels=root.get('channels',[]),resume_state=state,execution_id=execution_id,
+            resume_at='report_resume' if report_stage else 'analysis_resume')
     await get_sse_manager().begin_run(session_id)
-    background_tasks.add_task(run_research_workflow,session_id=session_id,query=state['user_query'],
-        max_revision=int(root.get('max_revisions',3)),user_confirmed=bool(state.get('user_confirmed')),
-        use_internal_docs=bool(state.get('use_internal_docs')),rag_group=state.get('rag_group'),
-        output_length=state.get('output_length','medium'),skill_context=state.get('skill_context'),
-        owner_id=principal.id,channels=root.get('channels',[]),resume_state=state,execution_id=execution_id,
-        resume_at='report_resume' if report_stage else 'analysis_resume')
     return {'session_id':session_id,'execution_id':execution_id,'status':'running','resumed':True}
 
 @controlled_execution
@@ -2248,6 +2249,8 @@ async def run_research_workflow(
     query_understanding: dict[str, Any] | None = None,
     resume_at: str = 'approval_resume',
     initial_budget: dict[str, Any] | None = None,
+    frozen_model_routing: dict[str, Any] | None = None,
+    original_created_at: str | None = None,
 ):
     """
     Execute the LangGraph research workflow in background.
@@ -2269,7 +2272,7 @@ async def run_research_workflow(
         if resume_state is None:
             from app.model_routing import freeze_model_routing
             from app.data_governance import model_class
-            state['model_routing']=freeze_model_routing(private=use_internal_docs,
+            state['model_routing']=deepcopy(frozen_model_routing) if frozen_model_routing else freeze_model_routing(private=use_internal_docs,
                 data_class=model_class(((query_understanding or {}).get('data_governance') or {}).get('initial_class','internal' if use_internal_docs else 'public')),
                 deep=((query_understanding or {}).get('slots') or {}).get('depth')=='deep',
                 complexity=((query_understanding or {}).get('complexity') or {}).get('level','moderate'))
@@ -2314,6 +2317,9 @@ async def run_research_workflow(
             state["session"]["checkpoint_seq"] = 0
             state["session"]["skill_context"] = skill_context or {}
         state["session"]["execution_id"] = execution_id
+        if original_created_at:
+            state['created_at']=original_created_at
+            state['session']['created_at']=original_created_at
         # The execution decorator has claimed a running root. Initial state
         # defaults are pending and must not undo that admission in the first save.
         state['status']=TaskStatus.RUNNING.value

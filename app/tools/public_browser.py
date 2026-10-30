@@ -55,6 +55,9 @@ class PublicBrowserGateway:
 
     async def prepare(self, url: str) -> str:
         response = await self._read(url)
+        if response.status>=400:
+            from app.channels.execution import response_error
+            raise response_error(response)
         self.primary_response=response
         self._prepared[response.url] = response
         return response.url

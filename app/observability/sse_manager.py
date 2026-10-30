@@ -40,6 +40,10 @@ class SSEManager:
     async def _publish(self,session_id,event_type,data):
         from app.disclosure import projection
         data=projection(data)
+        if data.get('execution_id'):
+            from app.research_jobs import retain_event
+            retained=await retain_event(str(session_id),str(data['execution_id']),event_type,data)
+            if retained is None:return
         await self._ensure_session(session_id)
         async with self._locks[session_id]:
             sequence=self._sequence[session_id]+1;self._sequence[session_id]=sequence
@@ -54,6 +58,27 @@ class SSEManager:
                 queue.put_nowait(delivery)
 
     async def stream(self,session_id:str,*,authorize=None,execution_id=_UNBOUND,last_event_id=None)->AsyncGenerator[dict[str,Any],None]:
+        if execution_id is not _UNBOUND and execution_id is not None:
+            from app.research_jobs import event_rows
+            from app.db.execution_control import decoded
+            cursor=0
+            if isinstance(last_event_id,str) and last_event_id.startswith('db:'):
+                value=last_event_id[3:]
+                if value.isdecimal() and len(value)<20 and int(value)<=9223372036854775807:cursor=int(value)
+            async def admitted():
+                try:return authorize is None or bool(await authorize())
+                except Exception:return False
+            if not await admitted():return
+            yield {'event':'connected','data':json.dumps({'session_id':session_id,'execution_id':execution_id})}
+            while await admitted():
+                rows=await event_rows(str(session_id),str(execution_id),cursor)
+                for row in rows:
+                    if not await admitted():return
+                    cursor=row['id']
+                    yield {'id':'db:'+str(cursor),'event':row['event_type'],
+                        'data':json.dumps(decoded(row['payload']),ensure_ascii=False)}
+                await asyncio.sleep(.75 if not rows else .05)
+            return
         async def permitted():
             if authorize is None:return True
             try:return bool(await authorize())

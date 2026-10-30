@@ -43,7 +43,15 @@ def diagnose_stop(state,*,active_execution=False):
         'summary':'','findings':[],'blockers':blockers,'next_step':'','action':'restart',
         'remaining_tokens':remaining,'remaining_seconds':seconds,
         'automatic_recovery':{'attempts':attempts,'limit':ROOT_RECOVERY_LIMIT,'eligible':False,'status':'exhausted' if attempts else 'not_applicable'}}
-    if state.get('runtime_status')=='user_paused':
+    if reason in {'worker_lease_expired','execution_interrupted'}:
+        result.update(summary='研究执行已中断，进度和用量已保留',
+            next_step='系统已停止失联执行；可接续的进度会显示继续入口。',action='resume')
+        return result
+    elif reason=='execution_deadline_expired':
+        result.update(summary='原研究期限已结束，已保留资料和用量',
+            next_step='可调整研究范围和额度后开始新研究。',action='restart')
+        return result
+    elif state.get('runtime_status')=='user_paused':
         result.update(summary='研究已按你的要求暂停',next_step='由你决定何时继续。',action='resume')
         return result
     audit=review.get('final_report_audit') or {}

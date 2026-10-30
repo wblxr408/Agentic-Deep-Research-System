@@ -39,7 +39,7 @@ _redis_client: Any | None = None
 _fts_config: str | None = None
 
 
-async def init_db() -> asyncpg.Pool:
+async def init_db(*,initialize_schema:bool=True) -> asyncpg.Pool:
     """
     Initialize PostgreSQL connection pool and create tables if needed.
     """
@@ -53,6 +53,12 @@ async def init_db() -> asyncpg.Pool:
         min_size=2,
         max_size=20,
     )
+    if not initialize_schema:
+        # Detached jobs attach to an already committed API schema; repeated
+        # ALTERs must not block another root's active tool receipts.
+        async with pool.acquire() as conn:_fts_config=await resolve_text_search_config(conn,log=logger)
+        _db_pool=pool
+        return pool
 
     # Create tables
     async with pool.acquire() as conn:
@@ -453,6 +459,8 @@ async def init_db() -> asyncpg.Pool:
         await conn.execute(SOURCE_CDC_SCHEMA_SQL)
         await conn.execute(DOCUMENT_PROCESSING_SCHEMA_SQL)
         await conn.execute(SOURCE_ASSETS_SCHEMA_SQL)
+        from app.research_jobs import SCHEMA_SQL as RESEARCH_JOBS_SCHEMA_SQL
+        await conn.execute(RESEARCH_JOBS_SCHEMA_SQL)
 
     _db_pool = pool
     logger.info("Database initialized successfully")

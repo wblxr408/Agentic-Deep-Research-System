@@ -282,7 +282,7 @@ async def update_llm_config(config: LLMConfigRequest, principal: Principal = pri
     # Validate provider-specific model names
     provider_models = {
         "qwen": ["qwen-plus", "qwen-turbo", "qwen-max", "qwen-long", "qwen2.5-72b-instruct"],
-        "deepseek": ["deepseek-chat", "deepseek-coder", "deepseek-reasoner"],
+        "deepseek": ["deepseek-flash", "deepseek-v4-pro", "deepseek-chat", "deepseek-coder", "deepseek-reasoner"],
         "openai": ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "gpt-3.5-turbo", "o1", "o1-mini"],
     }
 
@@ -455,8 +455,10 @@ async def get_available_providers():
             {
                 "id": "deepseek",
                 "name": "DeepSeek",
-                "description": "国产大模型，性价比极高",
+                "description": "DeepSeek API",
                 "models": [
+                    {"id": "deepseek-flash", "name": "DeepSeek Flash", "description": "通用研究与结构化分析"},
+                    {"id": "deepseek-v4-pro", "name": "DeepSeek Pro", "description": "复杂研究分析"},
                     {"id": "deepseek-chat", "name": "DeepSeek Chat", "description": "通用对话模型"},
                     {"id": "deepseek-coder", "name": "DeepSeek Coder", "description": "代码专用"},
                     {"id": "deepseek-reasoner", "name": "DeepSeek Reasoner", "description": "深度推理"},

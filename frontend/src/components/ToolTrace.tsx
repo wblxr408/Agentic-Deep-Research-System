@@ -1,11 +1,6 @@
 import {useLocale,t} from '../i18n'
 /**
- * ToolTrace - Xiaomi-style tool invocation timeline.
- *
- * Xiaomi design:
- * - Clean horizontal timeline with dots
- * - Tool icons + status
- * - Subtle animations
+ * Owner-authorized tool execution records and live channel results.
  */
 
 import { useMemo } from 'react'
@@ -37,6 +32,19 @@ export interface PersistedToolCall {
   result_summary?: string | null
   started_at?: string | null
   completed_at?: string | null
+  safety_json?: {read_failure?:Record<string,unknown>;channel_attempts?:Array<Record<string,unknown>>}
+}
+
+function readFailure(value:Record<string,unknown>|undefined):string|undefined {
+  if(!value)return undefined
+  const kinds:Record<string,string>={dns_resolution_failed:'域名解析失败',dns_transport_failed:'域名解析连接失败',
+    non_public_or_invalid_target:'来源地址不允许访问',certificate_verification_failed:'来源证书校验失败',
+    socket_timeout:'来源连接超时',tls_handshake_failed:'来源加密连接失败',
+    connection_or_http_transport_failed:'来源连接失败',read_deadline:'来源读取超时',response_byte_limit:'来源内容超过读取上限'}
+  const label=kinds[String(value.kind)]
+  const status=typeof value.http_status==='number'?`HTTP ${value.http_status}`:undefined
+  const delay=typeof value.retry_after_seconds==='number'?t('来源要求等待 {0} 秒',Math.ceil(value.retry_after_seconds)):undefined
+  return [label?t(label):undefined,status,delay].filter(Boolean).join(' · ')||undefined
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -145,7 +153,8 @@ function ToolTrace({ events, records }: ToolTraceProps) {
       return { id: record.call_id, toolName: record.tool_name, agent: record.agent_type,
         status: record.status === 'success' ? 'success' : record.status === 'error' ? 'error'
           : ['running', 'started', 'pending'].includes(record.status) ? 'running' : 'unknown',
-        query: getQuery({args: record.args_json}), error: record.error_message || undefined, duration }
+        query: getQuery({args: record.args_json}), error:readFailure(record.safety_json?.read_failure)||
+          readFailure(record.safety_json?.channel_attempts?.find(attempt=>isRecord(attempt.diagnostics))?.diagnostics as Record<string,unknown>|undefined)||record.error_message||undefined,duration }
     })
     const calls: ToolCall[] = []
     const callIndexById = new Map<string, number>()
@@ -157,7 +166,7 @@ function ToolTrace({ events, records }: ToolTraceProps) {
           calls.push({ id: `channel-${idx}-${attemptIndex}`, toolName: `${getString(attempt.channel) || 'channel'} / ${getString(attempt.backend) || 'backend'}`,
             status: attempt.status === 'success' ? 'success' : 'error', duration: Number(attempt.duration_ms) || 0,
             query:getString(attempt.query),
-            error: getString(attempt.error_category) })
+            error:readFailure(isRecord(attempt.diagnostics)?attempt.diagnostics:undefined)||getString(attempt.error_category) })
         })
         return
       }

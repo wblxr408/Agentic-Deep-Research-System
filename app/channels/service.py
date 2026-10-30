@@ -171,7 +171,8 @@ class ChannelService:
                             from app.evidence_selection import matches_query_terms
                             partial_items=[item for item in partial_items if matches_query_terms(
                                 item.title+' '+item.content,request.required_terms)]
-                    result.attempts.append(Attempt(channel=request.channel, backend=backend, status="failed", error_category=exc.category, duration_ms=int((time.monotonic()-attempt_started)*1000), call_count=budget.used-calls_before))
+                    result.attempts.append(Attempt(channel=request.channel, backend=backend, status="failed", error_category=exc.category,
+                        diagnostics=exc.diagnostics,duration_ms=int((time.monotonic()-attempt_started)*1000),call_count=budget.used-calls_before))
                     independent_limit=provider_scoped and backend in PUBLIC_SEARCH_BACKENDS and exc.category=='rate_limited'
                     if exc.category in STOP_ERRORS and not independent_limit:
                         break

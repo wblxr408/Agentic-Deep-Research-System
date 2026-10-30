@@ -47,8 +47,11 @@ def binding_repair(record,state):
 
 def acquisition_resume_node(record,state,budget):
     from app.execution_control import execution_is_active
-    if ((record['status']!='running' and not binding_repair(record,state) and not planner_throttling_repair(record,state)) or not heartbeat_expired(record.get('last_heartbeat_at'))
-            or execution_is_active(state.get('task_id'),record['execution_id'])
+    failure=(state.get('review_status') or {}).get('workflow_failure') or {}
+    worker_lost=(record['status']=='failed' and failure.get('category')=='worker_lease_expired'
+        and failure.get('execution_id')==str(record['execution_id']))
+    if ((record['status']!='running' and not binding_repair(record,state) and not planner_throttling_repair(record,state) and not worker_lost) or not heartbeat_expired(record.get('last_heartbeat_at'))
+            or execution_is_active(state.get('task_id'),record['execution_id']) or record.get('durable_execution_active')
             or state.get('analysis_workflow') or state.get('pending_approvals')
             or int((state.get('session') or {}).get('execution_recovery_attempts') or 0)>=2
             or budget.get('inflight_model_requests') or budget.get('reserved_inflight_tokens')

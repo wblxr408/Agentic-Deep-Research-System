@@ -678,7 +678,7 @@ def _classify_error_category(error: str | None) -> str:
         return 'data_governance'
     if message in {'source_out_of_scope', 'unsupported_source_transport', 'discovery_only'}:
         return message
-    if message in {'upstream_error','access_denied','not_found','irrelevant_results'}:
+    if message in {'upstream_error','access_denied','not_found','irrelevant_results','tls_validation_failed'}:
         return message
     if message in {"auth_required", "account_risk", "rate_limited", "disabled", "configuration_required", "dependency_missing", "empty_content", "budget_exceeded", "output_limit", "domain_blocked", "unsupported_input", "unsupported_operation", "invalid_output"}:
         return message
@@ -697,7 +697,7 @@ def _classify_error_category(error: str | None) -> str:
 
 def _is_terminal_error_category(category: str | None) -> bool:
     return category in {
-        'unknown_error','access_denied','not_found','irrelevant_results',
+        'unknown_error','access_denied','not_found','irrelevant_results','tls_validation_failed',
         'data_governance',
         'source_out_of_scope', 'unsupported_source_transport', 'discovery_only',
         "schema_validation",
@@ -1928,6 +1928,7 @@ def browser_node(state: ResearchState) -> dict:
                 attempts=[{'channel':'web','backend':'pinned-http','status':'failed',
                     'call_count':e.network_call_count,'result_count':0,'error_category':category}]
             if attempts:_update_tool_safety(tool_history,channel_attempts=attempts)
+            if getattr(e,'diagnostics',None):_update_tool_safety(tool_history,read_failure=e.diagnostics)
             _finish_tool_history(tool_history, status="error", error=str(e))
             node_outcomes.append(_make_node_outcome(
                 node_id=node.node_id,

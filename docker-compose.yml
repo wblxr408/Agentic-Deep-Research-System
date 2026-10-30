@@ -1,5 +1,5 @@
 services:
-  api:
+  api: &research-api
     env_file:
       - .env
     build:
@@ -9,6 +9,7 @@ services:
     ports:
       - "${API_PORT:-8000}:8000"
     environment:
+      - RESEARCH_DISPATCHER_ENABLED=false
       - DATABASE_URL=${DOCKER_DATABASE_URL:-postgresql://deepintel:deepintel_secret@db:5432/deepintel}
       - REDIS_URL=${DOCKER_REDIS_URL:-redis://redis:6379/0}
       - LLM_PROVIDER=${LLM_PROVIDER:-qwen}
@@ -48,6 +49,14 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+
+  research-worker:
+    <<: *research-api
+    container_name: deepintel-research-worker
+    ports: []
+    command: ["python", "-m", "app.research_dispatcher"]
+    healthcheck:
+      disable: true
 
   db:
     image: pgvector/pgvector:pg16

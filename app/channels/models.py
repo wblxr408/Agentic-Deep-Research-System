@@ -45,6 +45,7 @@ class Attempt(BaseModel):
     error_category: str | None = None
     duration_ms: int = 0
     call_count: int = 0
+    diagnostics: dict = Field(default_factory=dict)
 
 
 class CollectionResult(BaseModel):
@@ -65,7 +66,17 @@ class ChannelConfig(BaseModel):
 
 
 class ChannelError(RuntimeError):
-    def __init__(self, category: str, *, partial_items: list[dict] | None = None):
+    def __init__(self, category: str, *, partial_items: list[dict] | None = None, diagnostics:dict|None=None):
         self.category = category
         self.partial_items = partial_items or []
+        detail=diagnostics or {};self.diagnostics={}
+        for key,allowed in {'stage':{'dns','validation','connect','tls','request','headers','body','admission','http'},
+                'kind':{'dns_resolution_failed','non_public_or_invalid_target','dns_transport_failed','http_response_error',
+                    'read_deadline','response_byte_limit','certificate_verification_failed','socket_timeout',
+                    'tls_handshake_failed','connection_or_http_transport_failed','all_public_addresses_failed'}}.items():
+            if isinstance(detail.get(key),str) and detail[key] in allowed:self.diagnostics[key]=detail[key]
+        import math
+        for key,low,high in [('http_status',100,599),('address_attempt',1,3),('retry_after_seconds',0,86400)]:
+            value=detail.get(key)
+            if type(value) in {int,float} and math.isfinite(value) and low<=value<=high:self.diagnostics[key]=value
         super().__init__(category)

@@ -227,6 +227,15 @@ class BudgetedClient:
         if control:control.check()
         validator=getattr(self._client,'validate_dispatch',None)
         if validator is not None:validator()
+        # The previous chat configuration uses non-thinking completions. Keep
+        # that contract with the current official Flash name: hidden thinking
+        # must not consume the phase's entire structured-output reservation.
+        if request.get('model')=='deepseek-flash':
+            from app.llm_client import get_llm_client_config
+            provider=(self.route_info or {}).get('provider') or get_llm_client_config().get('provider')
+            if provider=='deepseek':
+                request={**request,'extra_body':{**(request.get('extra_body') or {})}}
+                request['extra_body'].setdefault('thinking',{'type':'disabled'})
         from app.data_governance import provider_request
         try:
             request,admission=provider_request(request,self.budget.data_governance,self.route_info)
@@ -236,6 +245,8 @@ class BudgetedClient:
             raise
         self.budget.data_events.append({**admission,'stage':(self.route_info or {}).get('stage',self.purpose),'status':'admitted'})
         request, record = self.budget.reserve(request,self.purpose,self.route_info)
+        if request.get('model')=='deepseek-flash' and isinstance(request.get('extra_body'),dict):
+            record['model_options']={'thinking':(request['extra_body'].get('thinking') or {}).get('type')}
         record['data_governance']=admission
         if self.skill_packet:
             from app.data_governance import scrub_urls

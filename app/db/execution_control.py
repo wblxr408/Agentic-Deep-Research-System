@@ -32,7 +32,8 @@ def decoded(value):
 
 
 def task_budget(row):
-    value=dict(decoded(row['review_status']).get('budget_state') or {})
+    review=decoded(row['review_status'])
+    value=dict(review.get('budget_state') or review.get('initial_budget') or {})
     value['used_total_tokens']=max(int(value.get('used_total_tokens') or 0),int(row.get('total_tokens') or 0))
     value['used_cost_usd']=max(float(value.get('used_cost_usd') or 0),float(row.get('total_cost_usd') or 0))
     return value
@@ -138,7 +139,7 @@ async def persist_receipt_budget(conn,session_id,owner_id,budget):
 async def persist_workflow_failure(conn,binding,error,category='workflow_error'):
     """The caller owns one transaction; never replace a committed research result."""
     session_id,owner_id,execution_id=(binding[key] for key in ('session_id','owner_id','execution_id'))
-    row=await conn.fetchrow('''SELECT status,execution_id,review_status,total_tokens,total_cost_usd
+    row=await conn.fetchrow('''SELECT status,execution_id,review_status,total_tokens,total_cost_usd,created_at
         FROM research_sessions WHERE id=$1::uuid AND owner_id=$2::uuid FOR UPDATE''',session_id,owner_id)
     if not row or str(row['execution_id'])!=execution_id:return None
     review=decoded(row['review_status'])
@@ -148,6 +149,7 @@ async def persist_workflow_failure(conn,binding,error,category='workflow_error')
     stored=await conn.fetchrow('''SELECT state_snapshot_json,checkpoint_seq,last_checkpoint_ref,current_batch_json
         FROM session_runtime_state WHERE session_id=$1::uuid FOR UPDATE''',session_id)
     snapshot=decoded(stored['state_snapshot_json']) if stored else {}
+    if row['created_at']:snapshot.setdefault('created_at',row['created_at'].isoformat())
     event={'category':category,'error_type':type(error).__name__,
         'message':str(projection(str(error)))[:1500],'at':datetime.now(UTC).isoformat(),
         'execution_id':execution_id,'checkpoint_seq':int(stored['checkpoint_seq'] or 0) if stored else 0}

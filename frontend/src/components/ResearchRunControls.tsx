@@ -20,6 +20,7 @@ const reasons:Record<string,string>=uiDefinition({
   tool_call_limit:'工具调用次数已用完',user_requested_pause:'由你暂停',
   final_audit_reservation_not_released:'报告核对尚未完成',awaiting_approval:'等待你的确认',
   llm_stream_interrupted:'模型输出连接中断',workflow_error:'执行遇到错误',
+  worker_lease_expired:'研究执行已中断',execution_interrupted:'研究执行已中断',execution_deadline_expired:'原研究期限已结束',
 })
 const errors:Record<string,string>=uiDefinition({
   pause_execution_changed_reload:'任务已变化，请刷新。',pause_task_not_running:'任务当前不在运行。',

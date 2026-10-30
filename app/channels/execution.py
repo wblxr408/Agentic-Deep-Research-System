@@ -15,7 +15,7 @@ import threading
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from urllib.parse import urljoin, urlsplit
+from urllib.parse import quote,urljoin,urlsplit
 
 from app.channels.models import ChannelError
 from app.execution_control import check_execution,current_control
@@ -35,12 +35,16 @@ def public_url(url: str, *, resolve: bool = False) -> tuple[str, list[str]]:
             literal = None
         if literal and not literal.is_global:
             raise ValueError("private address")
-        addresses = [a[4][0] for a in socket.getaddrinfo(host, 443, type=socket.SOCK_STREAM)] if resolve else []
+        addresses = list(dict.fromkeys(a[4][0] for a in socket.getaddrinfo(host, 443, type=socket.SOCK_STREAM))) if resolve else []
         if resolve and (not addresses or any(not ipaddress.ip_address(a).is_global for a in addresses)):
             raise ValueError("private DNS target")
         return host, addresses
-    except (ValueError, OSError):
-        raise ChannelError("domain_blocked") from None
+    except socket.gaierror:
+        raise ChannelError('network',diagnostics={'stage':'dns','kind':'dns_resolution_failed'}) from None
+    except ValueError:
+        raise ChannelError('domain_blocked',diagnostics={'stage':'validation','kind':'non_public_or_invalid_target'}) from None
+    except OSError:
+        raise ChannelError('network',diagnostics={'stage':'dns','kind':'dns_transport_failed'}) from None
 
 
 class _PinnedHTTPS(http.client.HTTPSConnection):
@@ -50,7 +54,11 @@ class _PinnedHTTPS(http.client.HTTPSConnection):
     def connect(self):
         check_execution()
         sock = socket.create_connection((self.address, 443), self.timeout)
-        self.sock = self._context.wrap_socket(sock, server_hostname=self.host)
+        try:
+            self.sock=self._context.wrap_socket(sock,server_hostname=self.host,do_handshake_on_connect=False)
+            self.sock.do_handshake()
+        except BaseException:
+            self.close();sock.close();raise
         check_execution()
 
 
@@ -62,6 +70,38 @@ class PublicResponse:
     body: bytes
 
 
+def response_error(response):
+    """Preserve status and retry timing, never provider text or response headers."""
+    from email.utils import parsedate_to_datetime
+    from datetime import UTC,datetime
+    status=response.status
+    category={401:'auth_required',403:'access_denied',404:'not_found',408:'timeout',410:'not_found',
+        412:'account_risk',429:'rate_limited'}.get(status,'upstream_error')
+    if status==403 and response.headers.get('x-ratelimit-remaining')=='0':category='rate_limited'
+    detail={'stage':'http','http_status':status,'kind':'http_response_error'}
+    raw=response.headers.get('retry-after')
+    if isinstance(raw,str) and len(raw)<=128:
+        try:delay=float(raw)
+        except ValueError:
+            try:delay=(parsedate_to_datetime(raw)-datetime.now(UTC)).total_seconds()
+            except (TypeError,ValueError,OverflowError):delay=None
+        if delay is not None and 0<=delay<=86400:detail['retry_after_seconds']=delay
+    return ChannelError(category,diagnostics=detail)
+
+
+def decode_public_text(response):
+    """Honor declared public text encodings without running a charset plugin."""
+    hint=response.headers.get('content-type','')[:512]
+    declared=re.search(r'charset\s*=\s*[\"\x27]?([A-Za-z0-9_-]{1,32})',hint,re.I)
+    if declared is None:
+        head=response.body[:4096].decode('ascii',errors='ignore')
+        declared=re.search(r'<meta\b[^>]{0,512}?charset\s*=\s*[\"\x27]?([A-Za-z0-9_-]{1,32})',head,re.I)
+    choices={'utf-8':'utf-8-sig','utf8':'utf-8-sig','gb2312':'gb18030','gbk':'gb18030','gb18030':'gb18030',
+        'big5':'big5','iso-8859-1':'iso-8859-1','windows-1252':'cp1252','utf-16':'utf-16','utf-16le':'utf-16-le','utf-16be':'utf-16-be'}
+    encoding=choices.get(declared[1].lower(),'utf-8-sig') if declared else 'utf-8-sig'
+    return response.body.decode(encoding,errors='replace'),encoding
+
+
 class HttpReader:
     def __init__(self, *, url_validator=None):
         self.url_validator = url_validator
@@ -69,19 +109,16 @@ class HttpReader:
     def get(self, url: str, *, timeout: float = 20, max_bytes: int = 1024 * 1024,on_request=None) -> str:
         response = self.read(url, timeout=timeout, max_bytes=max_bytes,on_request=on_request)
         if response.status >= 400:
-            raise ChannelError({401: "auth_required", 403: "access_denied", 404: "not_found", 412: "account_risk", 429: "rate_limited"}.get(response.status, "upstream_error"))
-        return response.body.decode("utf-8", errors="replace")
+            raise response_error(response)
+        return decode_public_text(response)[0]
 
     def get_github(self, url: str, *, credential=None, timeout: float = 20,
                    max_bytes: int = 1024 * 1024,on_request=None) -> str:
         response = self.read(url,timeout=timeout,max_bytes=max_bytes,on_request=on_request,
                              _github_api=True,_github_credential=credential)
         if response.status >= 400:
-            category = ({401:'auth_required',403:'access_denied',404:'not_found',412:'account_risk',429:'rate_limited'}
-                        .get(response.status,'upstream_error'))
-            if response.status == 403 and response.headers.get('x-ratelimit-remaining') == '0': category='rate_limited'
-            raise ChannelError(category)
-        return response.body.decode('utf-8',errors='replace')
+            raise response_error(response)
+        return decode_public_text(response)[0]
 
     def read(self, url: str, *, method: str = "GET", timeout: float = 20, max_bytes: int = 1024 * 1024,on_request=None,
              _github_api: bool = False,_github_credential=None,conditional: dict | None = None) -> PublicResponse:
@@ -101,63 +138,71 @@ class HttpReader:
                 if parsed.scheme != 'https' or parsed.hostname != 'api.github.com' or not allowed_path or method != 'GET' or sensitive_url(url):
                     raise ChannelError('personal_connection_redirect_blocked')
             host, addresses = public_url(url, resolve=True)
-            remaining = deadline - time.monotonic()
-            if on_request is not None:remaining=min(remaining,on_request())
-            if remaining <= 0:
-                raise ChannelError("timeout")
-            connection = _PinnedHTTPS(host, addresses[0], remaining)
-            control=current_control();close_key='http:'+str(id(connection))
-            def abort(connection=connection):
-                if connection.sock:
-                    try:connection.sock.shutdown(socket.SHUT_RDWR)
-                    except OSError:pass
-                connection.close()
-            if control:control.add_closer(close_key,abort)
-            try:
+            # Try both address families before spending the entire deadline on
+            # one unusable route. All answers were checked above; no DNS rebind.
+            other=next((value for value in addresses if (':' in value)!=(':' in addresses[0])),None)
+            ordered=list(dict.fromkeys([addresses[0],*([other] if other else []),*addresses]))[:3]
+            redirected=False
+            for index,address in enumerate(ordered):
                 check_execution()
-                headers={"User-Agent": "DeepIntel/1.0", "Accept": "application/json,text/plain,text/html,*/*", "Accept-Encoding": "identity"}
-                # Conditional values are restricted to validators obtained from
-                # an earlier response; they cannot introduce arbitrary headers.
-                for key,header in (('etag','If-None-Match'),('last_modified','If-Modified-Since')):
-                    value=(conditional or {}).get(key)
-                    if isinstance(value,str) and 0<len(value)<=512 and all(32<=ord(char)<=126 for char in value):
-                        headers[header]=value
-                if _github_api:
-                    headers.update({'Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2026-03-10'})
-                if _github_credential is not None:
-                    credential = _github_credential()
-                    if not isinstance(credential,str) or not 20 <= len(credential) <= 512 or not re.fullmatch(r'[A-Za-z0-9_.-]+',credential):
-                        raise ChannelError('personal_connection_unavailable')
-                    headers['Authorization']='Bearer '+credential
-                connection.request(method, (parsed.path or "/") + ("?" + parsed.query if parsed.query else ""),headers=headers)
-                response = connection.getresponse()
-                if response.status in (301, 302, 303, 307, 308):
-                    if _github_api: raise ChannelError('github_redirect_blocked')
-                    url = urljoin(url, response.getheader("Location", ""))
-                    continue
-                data = bytearray()
-                while True:
-                    check_execution()
-                    if time.monotonic() >= deadline:
-                        raise ChannelError("timeout")
+                remaining=deadline-time.monotonic()
+                if on_request is not None:remaining=min(remaining,on_request())
+                if remaining<=0:raise ChannelError('timeout',diagnostics={'stage':'admission','kind':'read_deadline'})
+                connection=_PinnedHTTPS(host,address,min(10,max(.1,remaining/(len(ordered)-index))))
+                control=current_control();close_key='http:'+str(id(connection));stage='connect'
+                def abort(connection=connection):
                     if connection.sock:
-                        connection.sock.settimeout(max(0.001, deadline - time.monotonic()))
-                    chunk = response.read(min(8192, max_bytes - len(data) + 1))
-                    if not chunk:
-                        break
-                    data.extend(chunk)
-                    if len(data) > max_bytes:
-                        raise ChannelError("output_limit")
-                # Do not relay credentials, cookies, connection framing or a
-                # redirect already followed by this pinned transport.
-                allowed_headers = {"content-type", "content-language", "cache-control", "etag", "last-modified", "date", "expires", "content-security-policy", "x-frame-options", "access-control-allow-origin", "access-control-allow-methods", "access-control-allow-headers", "x-ratelimit-remaining"}
-                headers = {k.lower(): v for k, v in response.getheaders() if k.lower() in allowed_headers}
-                return PublicResponse(url, response.status, headers, bytes(data))
-            except (OSError, http.client.HTTPException):
-                raise ChannelError("network") from None
-            finally:
-                if control:control.remove_closer(close_key)
-                connection.close()
+                        try:connection.sock.shutdown(socket.SHUT_RDWR)
+                        except OSError:pass
+                    connection.close()
+                if control:control.add_closer(close_key,abort)
+                try:
+                    headers={'User-Agent':'DeepIntel/1.0','Accept':'application/json,text/plain,text/html,*/*','Accept-Encoding':'identity'}
+                    for key,header in (('etag','If-None-Match'),('last_modified','If-Modified-Since')):
+                        value=(conditional or {}).get(key)
+                        if isinstance(value,str) and 0<len(value)<=512 and all(32<=ord(char)<=126 for char in value):headers[header]=value
+                    if _github_api:headers.update({'Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2026-03-10'})
+                    if _github_credential is not None:
+                        credential=_github_credential()
+                        if not isinstance(credential,str) or not 20<=len(credential)<=512 or not re.fullmatch(r'[A-Za-z0-9_.-]+',credential):
+                            raise ChannelError('personal_connection_unavailable')
+                        headers['Authorization']='Bearer '+credential
+                    connection.connect();stage='request'
+                    if time.monotonic()>=deadline:raise ChannelError('timeout',diagnostics={'stage':stage,'kind':'read_deadline'})
+                    connection.sock.settimeout(max(.001,deadline-time.monotonic()))
+                    target=quote(parsed.path or '/',safe="/%:@-._~!$&'()*+,;=")
+                    if parsed.query:target+='?'+quote(parsed.query,safe="/%?:@-._~!$&'()*+,;=")
+                    connection.request(method,target,headers=headers)
+                    stage='headers';response=connection.getresponse()
+                    if response.status in (301,302,303,307,308):
+                        if _github_api:raise ChannelError('github_redirect_blocked')
+                        url=urljoin(url,response.getheader('Location',''));redirected=True;break
+                    allowed_headers={'content-type','content-language','cache-control','etag','last-modified','date','expires',
+                        'content-security-policy','x-frame-options','access-control-allow-origin','access-control-allow-methods',
+                        'access-control-allow-headers','x-ratelimit-remaining','retry-after'}
+                    headers={key.lower():value for key,value in response.getheaders() if key.lower() in allowed_headers}
+                    if response.status>=400:return PublicResponse(url,response.status,headers,b'')
+                    stage='body';data=bytearray()
+                    while method!='HEAD':
+                        check_execution()
+                        if time.monotonic()>=deadline:raise ChannelError('timeout',diagnostics={'stage':stage,'kind':'read_deadline'})
+                        if connection.sock:connection.sock.settimeout(max(.001,deadline-time.monotonic()))
+                        chunk=response.read(min(8192,max_bytes-len(data)+1))
+                        if not chunk:break
+                        data.extend(chunk)
+                        if len(data)>max_bytes:raise ChannelError('output_limit',diagnostics={'stage':stage,'kind':'response_byte_limit'})
+                    return PublicResponse(url,response.status,headers,bytes(data))
+                except ssl.SSLCertVerificationError:
+                    raise ChannelError('tls_validation_failed',diagnostics={'stage':'tls','kind':'certificate_verification_failed'}) from None
+                except (OSError,http.client.HTTPException) as error:
+                    category='timeout' if isinstance(error,(TimeoutError,socket.timeout)) else 'network'
+                    kind='socket_timeout' if category=='timeout' else 'tls_handshake_failed' if isinstance(error,ssl.SSLError) else 'connection_or_http_transport_failed'
+                    failure=ChannelError(category,diagnostics={'stage':stage,'kind':kind,'address_attempt':index+1})
+                    if index+1==len(ordered) or time.monotonic()>=deadline:raise failure from None
+                finally:
+                    if control:control.remove_closer(close_key)
+                    connection.close()
+            if not redirected:raise ChannelError('network',diagnostics={'stage':'connect','kind':'all_public_addresses_failed'})
         raise ChannelError("redirect_limit")
 
 

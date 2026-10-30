@@ -651,6 +651,8 @@ class BrowserAgent:
             )
 
         except (ChannelError, OSError, PlaywrightError, RuntimeError, TypeError, ValueError) as e:
+            gateway.failure_diagnostics=getattr(e,'diagnostics',{})
+            gateway.failure_category=getattr(e,'category',None)
             logger.error(f"Browser Use failed for {query_or_url}: {e}")
             return self._fallback_result(query_or_url, error_message=str(e))
         finally:
@@ -659,6 +661,8 @@ class BrowserAgent:
             finally:
                 gateway.close()
                 self.last_channel_attempts=[{'channel':'web','backend':'public-browser','call_count':gateway.budget.used,
+                    'error_category':getattr(gateway,'failure_category',None),
+                    'diagnostics':getattr(gateway,'failure_diagnostics',{}),
                     'status':'success' if completed else 'failed',
                     'result_count':int(completed),'remaining_request_allowance':max(0,gateway.budget.max_calls-gateway.budget.used)}]
 

@@ -378,6 +378,7 @@ def interpret_query(query: str, options: QueryOptions, delivery: DeliveryRequest
                 'reason':drawing_policy.get('reason')})
     result = {'schema_version': VERSION,
         'external_evidence':{'version':'adrs-external-evidence-v1','task_cache_hours':options.web_cache_hours,
+            'read_recovery_policy':'bounded_public_read_v1',
             'read_mode':options.web_read_mode,'document_parser_policy':request_limits.get('document_parser_policy'),
             'source_media_policy':'adrs-source-media-v2',
             'reuse_scope':'same_owned_task_only','automatic_archive':False,

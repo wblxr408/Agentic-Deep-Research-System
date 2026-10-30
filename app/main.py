@@ -99,12 +99,18 @@ async def lifespan(app: FastAPI):
     from app.source_cdc import CdcDispatcher
     cdc_dispatcher=CdcDispatcher()
     await cdc_dispatcher.start()
+    from app.research_jobs import ResearchDispatcher
+    research_dispatcher=ResearchDispatcher()
+    import os
+    if os.environ.get('RESEARCH_DISPATCHER_ENABLED','true').lower() in {'true','1','yes'}:
+        research_dispatcher.start()
     try:
         yield
     finally:
         # Stop child processes before releasing their database pool. A later
         # process can reclaim unfinished leases within the original deadline.
         logger.info("Shutting down DeepIntel API")
+        await research_dispatcher.stop()
         await cdc_dispatcher.stop()
         await source_sync_dispatcher.stop()
         await layout_dispatcher.stop()

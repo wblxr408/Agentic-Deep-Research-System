@@ -480,6 +480,8 @@ async def run_migration(
             await conn.execute(SOURCE_SYNC_SCHEMA_SQL)
             await conn.execute(SOURCE_CDC_SCHEMA_SQL)
             await conn.execute(DOCUMENT_PROCESSING_SCHEMA_SQL)
+            from app.research_jobs import SCHEMA_SQL as RESEARCH_JOBS_SCHEMA_SQL
+            await conn.execute(RESEARCH_JOBS_SCHEMA_SQL)
             logger.info("Database migration completed successfully")
 
 
