@@ -163,6 +163,7 @@ class ReportAgent:
         analysis_workflow: dict | None = None,
         research_judgments: dict | None = None,
         organization_findings: dict | None = None,
+        retained_draft: str | None = None,
     ) -> tuple[str, list[Citation]]:
         """
         Generate the final research report.
@@ -379,8 +380,14 @@ Evidence Sources:
                 self.last_partial_response=''.join(chunks)
 
             try:
-                request_content(active_client,dict(model=active_model,messages=messages,temperature=0.3,
-                    max_tokens=output_tokens,**({'response_format':{'type':'json_object'}} if module_mode else {})))
+                if retained_draft and module_mode:
+                    # The protected continuation binds the original full draft
+                    # to its current evidence. Revalidate it before audit; do
+                    # not pay to regenerate a report already received.
+                    chunks.append(retained_draft);finish_reason='stop'
+                else:
+                    request_content(active_client,dict(model=active_model,messages=messages,temperature=0.3,
+                        max_tokens=output_tokens,**({'response_format':{'type':'json_object'}} if module_mode else {})))
             except Exception as primary_error:
                 if isinstance(primary_error,TokenBudgetExceeded):
                     raise
@@ -474,7 +481,7 @@ Evidence Sources:
                         publication_titles=publication_titles)
                     self.last_module_report['repair_history'] = [first_record]
                 if self.last_module_report['issues']:
-                    self.last_partial_response = ''.join(chunks)
+                    self.last_partial_response = self.last_module_report.get('raw_model_response') or ''.join(chunks)
                     self.last_draft = content
                     raise ReportContractError('report_contract_invalid')
             elif not content:

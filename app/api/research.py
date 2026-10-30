@@ -2143,7 +2143,10 @@ async def _resume_retained_synthesis(session_id, background_tasks, principal, *,
             or workflow.get('schema_version')!='adrs-analysis-questions-v2'
             or state.get('pending_approvals')):
         raise HTTPException(409,f'{stage}_checkpoint_not_recoverable')
-    if report_resume and int(root.get('report_resume_attempts') or 0)>=1:
+    retained_contract=bool(report_resume and review.get('last_error_category')=='report_contract_invalid'
+        and isinstance(module_report.get('raw_model_response'),str) and module_report['raw_model_response'].strip()
+        and not module_report.get('validation_errors') and module_report.get('reading_structure'))
+    if report_resume and int(root.get('report_resume_attempts') or 0)>=(2 if retained_contract else 1):
         raise HTTPException(409,'report_resume_attempt_limit')
     if audit_resume and int(root.get('audit_resume_attempts') or 0)>=1:
         raise HTTPException(409,'audit_resume_attempt_limit')
@@ -2225,6 +2228,7 @@ async def _resume_retained_synthesis(session_id, background_tasks, principal, *,
     state['session']['audit_resume_mode']=audit_resume
     if report_resume:
         state['session']['report_resume_attempts']=int(root.get('report_resume_attempts') or 0)+1
+        state['session']['report_contract_resume']=retained_contract
         state['review_status']['report_resume_attempts']=state['session']['report_resume_attempts']
     if audit_resume:
         state['session']['audit_resume_attempts']=int(root.get('audit_resume_attempts') or 0)+1

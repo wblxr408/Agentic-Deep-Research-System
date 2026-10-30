@@ -2804,6 +2804,8 @@ async def report_node(state: ResearchState) -> dict:
                 analysis=state["analysis"] + findings_context(organization_result),
                 research_judgments=(organization_result or {}).get('research_judgments'),
                 organization_findings=organization_result,
+                retained_draft=((organization_result or {}).get('module_report') or {}).get('raw_model_response')
+                    if (state.get('session') or {}).get('report_contract_resume') else None,
                 evidence_list=evidence_list,
                 reflection=verification,
                 output_length=state.get("output_length") or state.get("session", {}).get("output_length"),

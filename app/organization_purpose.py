@@ -346,7 +346,7 @@ def assemble_module_report(raw: str, configuration: dict, citation_count: int, *
         # earlier experimental percentage (e.g. SLO target, then overhead share).
         # Keep numeric commas together; source measurements still face audit.
         for clause in re.split(r'[，。；;\n]|,(?!\d)',remainder):
-            aggregate=re.search(r'样本|采纳|发表|家族|分类|标签|占比|占总|sample|publication|families|percentage',clause,re.I)
+            aggregate=re.search(r'样本|采纳|发表|家族|分类|标签|占(?:全部|总|当前)?(?:论文|成果|来源)|sample|publication|families',clause,re.I)
             if aggregate and re.search(number+r'\s*(?:[%％]|/\s*'+number+r')',clause):
                 raise ValueError('unbound_sample_ratio')
         bindings=[{'metric_id':key,'snapshot_id':statistics['snapshot_id'],'display':registry[key]['display'],
