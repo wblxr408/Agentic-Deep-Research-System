@@ -117,6 +117,15 @@ class ReportAgent:
         self.last_context_manifest: dict = {}
         self.last_writing_plan:dict={}
         self.recovery_events:list[dict]=[]
+        self.on_candidate=None
+
+    def retain_candidate(self, raw, *, content=None, record=None, stage='provider_response'):
+        """Persist paid output before a later model call; this never publishes it."""
+        if not self.on_candidate:return
+        self.on_candidate({'raw_model_response':raw,'content':content,'module_report':record,
+            'stage':stage,'review_status':'not_reviewed','model':self.model,
+            'citations':[item.model_dump(mode='json') for item in self.last_citations],
+            'report_context':self.last_context_manifest})
 
     @property
     def client(self) -> OpenAI:
@@ -164,6 +173,8 @@ class ReportAgent:
         research_judgments: dict | None = None,
         organization_findings: dict | None = None,
         retained_draft: str | None = None,
+        retained_model: str | None = None,
+        retained_sections: dict | None = None,
     ) -> tuple[str, list[Citation]]:
         """
         Generate the final research report.
@@ -279,6 +290,19 @@ class ReportAgent:
             system_prompt+=instructions
             for evidence_id,spans in handoff_spans({'records':research_judgments.get('records',[])},evidence_list).items():
                 located_spans.setdefault(evidence_id,[]).extend(spans)
+        complete_handoff=(organization_research or {}).get('research_handoff_policy')=='adrs-complete-evidence-handoff-v2'
+        writing_groups={}
+        if complete_handoff:
+            metadata=(organization_findings or {}).get('publication_metadata') or {}
+            # Select the sources of the actual deep-reading records before
+            # choosing windows; located proofs alone cannot select a source.
+            for card in (technical_reading or {}).get('cards',[]):
+                output_id=card.get('output_id')
+                ids=list((metadata.get(output_id) or {}).get('evidence_ids',[]))
+                for statement in card.get('fields',{}).values():
+                    if isinstance(statement,dict):
+                        ids.extend(proof['evidence_id'] for proof in statement.get('proofs',[]) if proof.get('evidence_id'))
+                if output_id and ids:writing_groups[output_id]=list(dict.fromkeys(ids))
         def build_messages(allowance):
             from app.research_context import publication_identity_handoff
             identities=publication_identity_handoff(organization_findings,evidence_list,
@@ -290,7 +314,9 @@ class ReportAgent:
             formatted_evidence, manifest = evidence_context(evidence_list, user_query,
                 deep=bool(located_spans) or module_mode and 'deep_dive' in organization_research['modules'],
                 max_bytes=int(allowance*(.59 if judgments else .69)),
-                located_spans=located_spans,packing_version=packing_version,acquired_only=acquired_only)
+                located_spans=located_spans,packing_version=packing_version,acquired_only=acquired_only,
+                required_groups=writing_groups or None,
+                preferred_ids=list(dict.fromkeys(identifier for ids in writing_groups.values() for identifier in ids)) or None)
             stats = dict(computed_statistics) if computed_statistics else None
             if stats:
                 stats['metric_registry'] = dict(stats['metric_registry'])
@@ -323,6 +349,12 @@ Evidence Sources:
             },
             ]
             manifest['omitted_analysis_blocks'] = omitted
+            if complete_handoff:
+                selected_ids={row['evidence_id'] for row in manifest.get('sources',[])}
+                manifest['required_work_sources']=writing_groups
+                manifest['unrepresented_required_works']=[work for work,ids in writing_groups.items()
+                    if not selected_ids.intersection(ids)]
+                manifest['coverage_semantics']='source_selected_not_complete_conditions_or_reader_quality'
             if identities:manifest['publication_identity']={
                 'selected_output_ids':[row['output_id'] for row in identities['records']],
                 'omitted_output_ids':identities['omitted_output_ids']}
@@ -330,9 +362,13 @@ Evidence Sources:
                 'omitted_ids':judgments['omitted_judgment_ids'],'semantic_support':'requires_final_report_audit'}
             manifest['omitted_metrics'] = stats.get('omitted_metrics', 0) if stats else 0
             return messages, manifest
-        messages, self.last_context_manifest = fit_messages(build_messages, self.request_budget, 'report',
-            output_tokens, max_bytes=60000,
-            request_extra={'response_format': {'type': 'json_object'}} if module_mode else None)
+        if complete_handoff and module_mode:
+            messages=[]
+            self.last_context_manifest={'version':'adrs-section-composition-v1','sources':[]}
+        else:
+            messages, self.last_context_manifest = fit_messages(build_messages, self.request_budget, 'report',
+                output_tokens, max_bytes=60000,
+                request_extra={'response_format': {'type': 'json_object'}} if module_mode else None)
 
         try:
             chunks: list[str] = []
@@ -378,19 +414,41 @@ Evidence Sources:
                 content=(choice.message.content or '') if choice else ''
                 chunks.append(content)
                 self.last_partial_response=''.join(chunks)
+                if finish_reason=='stop':self.retain_candidate(content)
 
             try:
                 if retained_draft and module_mode:
+                    if retained_model and retained_model!=active_model:
+                        raise TokenBudgetExceeded('report_candidate_model_changed')
                     # The protected continuation binds the original full draft
                     # to its current evidence. Revalidate it before audit; do
                     # not pay to regenerate a report already received.
                     chunks.append(retained_draft);finish_reason='stop'
+                elif complete_handoff and module_mode:
+                    from app.report_composition import compose_sections
+                    def retain_section(raw,section_id,context):
+                        self.last_partial_response=raw
+                        self.last_context_manifest={**context,'version':'adrs-section-composition-v1',
+                            'section_id':section_id,'sources':[{'evidence_id':row['evidence_id'],
+                                'citation_id':'citation:'+str(row['citation']),
+                                'excerpts':[{'start':part['start'],'end':part['end']} for part in row['excerpts']]}
+                                for row in context.get('sources',[])]}
+                        self.retain_candidate(raw,stage='writing_section:'+section_id)
+                    raw,manifest=compose_sections(question=user_query,analysis=analysis,
+                        configuration=organization_research,findings=organization_findings,evidence=evidence_list,
+                        statistics=computed_statistics,system_prompt=system_prompt,client=active_client,
+                        model=active_model,budget=self.request_budget,on_section=retain_section,
+                        retained_sections=retained_sections)
+                    self.last_context_manifest=manifest
+                    chunks.append(raw);finish_reason='stop'
+                    self.retain_candidate(raw)
                 else:
                     request_content(active_client,dict(model=active_model,messages=messages,temperature=0.3,
                         max_tokens=output_tokens,**({'response_format':{'type':'json_object'}} if module_mode else {})))
             except Exception as primary_error:
                 if isinstance(primary_error,TokenBudgetExceeded):
                     raise
+                if complete_handoff and module_mode:raise
                 if chunks:
                     raise StreamInterruptedError(
                         "primary_llm_stream_interrupted_after_output"
@@ -421,6 +479,8 @@ Evidence Sources:
                     statistics=organization_statistics,allowed_citations=allowed_citations,publication_titles=publication_titles)
                 if normalizations:self.last_module_report['envelope_normalizations']=normalizations
                 if self.last_module_report['issues']:
+                    # Section composition still needs the existing bounded
+                    # whole-report contract correction after assembly.
                     first_record = self.last_module_report
                     first_raw = normalized_raw
                     from app.research_context import encoded
@@ -489,6 +549,9 @@ Evidence Sources:
                 self._emit_fallback_chunks(content, on_chunk)
 
             self.last_draft = content
+            if self.last_module_report:
+                self.retain_candidate(self.last_module_report['raw_model_response'],content=content,
+                    record=self.last_module_report,stage='assembled_before_audit')
             audit_tokens = self.request_budget.available('audit')
             from app.claim_verification import module_paragraph_kinds, research_method_context
             method_context = research_method_context(user_query, organization_research, evidence_list) if module_mode else None
@@ -503,7 +566,7 @@ Evidence Sources:
                 client=budgeted_client(self.client,self.request_budget,'audit'), model=active_model,
                 token_budget=audit_tokens, deadline=verification_deadline,bound_statistics=bound_statistics,
                 paragraph_kinds=module_paragraph_kinds(self.last_module_report), task_context=method_context,
-                source_spans=located_spans)
+                source_spans=located_spans,review_scope=(organization_research or {}).get('claim_review_scope'))
             if self.last_module_report is not None:
                 from app.report_revision import revise_report_claims
                 def upgrade_correction(trigger,details,required_tokens):
@@ -520,7 +583,8 @@ Evidence Sources:
                     configuration=organization_research,statistics=organization_statistics,evidence=evidence_list,
                     client=self.client,model=active_model,budget=self.request_budget,deadline=verification_deadline,
                     citation_count=len(citations),upgrade_callback=upgrade_correction, task_context=method_context,
-                    source_spans=located_spans,on_round=retain_correction,on_event=self.recovery_events.append)
+                    source_spans=located_spans,on_round=retain_correction,on_event=self.recovery_events.append,
+                    on_candidate=self.retain_candidate)
                 self.last_audit['module_contract'] = self.last_module_report
                 self._emit_fallback_chunks(content,on_chunk)
             # Append references section if not present
@@ -574,7 +638,9 @@ Evidence Sources:
                      organization_statistics: dict | None, technical_reading: dict | None,
                      analysis_workflow: dict | None, report_context: dict | None,
                      writing_plan: dict | None,reader_revision:bool=False,
-                     organization_findings:dict|None=None,supported_finalization:bool=False) -> tuple[str, list[Citation]]:
+                     organization_findings:dict|None=None,supported_finalization:bool=False,
+                     audit_unit_frontier:str|None=None,proposal_reassessment:bool=False,
+                     pending_excerpt_window:int|None=None) -> tuple[str, list[Citation]]:
         """Continue only the unfinished audit of an unchanged, retained draft."""
         from app.claim_verification import module_paragraph_kinds, research_method_context
         from app.research_context import reading_source_spans
@@ -597,7 +663,11 @@ Evidence Sources:
         expected=content
         if '## References' not in content and '## 参考' not in content:
             expected+='\n\n---\n\n## References\n\n'+self._build_reference_list(citations)
-        if saved_report!=expected:
+        from app.query_understanding import identity
+        editorial=(organization_findings or {}).get('editorial_request') or {}
+        retained_candidate_body=(reader_revision and editorial.get('authority')=='explicit_owner_refinement'
+            and editorial.get('source_report_identity')==identity(saved_report) and saved_report==content)
+        if saved_report!=expected and not retained_candidate_body:
             raise TokenBudgetExceeded('audit_resume_report_changed')
 
         active_client=self.client  # Select the authorized route before checking the model.
@@ -619,18 +689,28 @@ Evidence Sources:
                     self.last_audit,**({} if supported_finalization else {'question':user_query,'findings':organization_findings}),
                     configuration=organization_research,statistics=organization_statistics,evidence=evidence_list,
                     client=active_client,model=active_model,budget=self.request_budget,deadline=self.request_budget.deadline,
-                    source_spans=located_spans,task_context=method_context)
+                    source_spans=located_spans,task_context=method_context,on_candidate=self.retain_candidate)
                 self.last_draft=content
             except TokenBudgetExceeded:raise
             except (ValueError,TypeError,KeyError,AttributeError) as error:
                 raise TokenBudgetExceeded('reader_revision_contract_invalid') from error
         try:
+            if audit_unit_frontier:
+                from app.claim_verification import extract_claims
+                from app.query_understanding import identity
+                units=[{'text':row['text'],'citation_ids':row['citation_ids']} for row in extract_claims(content)]
+                if identity(units)!=audit_unit_frontier:raise ValueError('audit_unit_frontier_changed')
             if not (reader_revision or supported_finalization):self.last_audit=audit_report(content,evidence_list,
                 client=budgeted_client(active_client,self.request_budget,'audit'),model=active_model,
                 token_budget=self.request_budget.available('audit'),deadline=self.request_budget.deadline,
                 bound_statistics=bound_statistics,paragraph_kinds=module_paragraph_kinds(self.last_module_report),
                 task_context=method_context,previous_audit=saved_audit,source_spans=located_spans,
-                resume_judged=True)
+                paragraph_source_context=(self.last_module_report or {}).get('source_audit_context'),
+                proposal_reassessment=proposal_reassessment,
+                pending_excerpt_window=pending_excerpt_window,
+                review_scope=(self.last_module_report or {}).get('claim_review_scope')
+                    or (organization_research or {}).get('claim_review_scope'),
+                resume_judged=not bool(audit_unit_frontier or proposal_reassessment))
         except ValueError as error:
             raise TokenBudgetExceeded('audit_resume_judgment_binding_changed') from error
 
@@ -644,11 +724,13 @@ Evidence Sources:
             self.last_draft=draft
             self.last_module_report=record
             self.last_audit=audit
-        content,self.last_module_report,self.last_audit=revise_report_claims(content,self.last_module_report,self.last_audit,
-            configuration=organization_research,statistics=organization_statistics,evidence=evidence_list,
-            client=self.client,model=active_model,budget=self.request_budget,deadline=self.request_budget.deadline,
-            citation_count=len(citations),upgrade_callback=upgrade_correction,task_context=method_context,
-            source_spans=located_spans,on_round=retain_correction,on_event=self.recovery_events.append)
+        if not (reader_revision and (self.last_audit.get('revision_attempt') or {}).get('attempted')):
+            content,self.last_module_report,self.last_audit=revise_report_claims(content,self.last_module_report,self.last_audit,
+                configuration=organization_research,statistics=organization_statistics,evidence=evidence_list,
+                client=self.client,model=active_model,budget=self.request_budget,deadline=self.request_budget.deadline,
+                citation_count=len(citations),upgrade_callback=upgrade_correction,task_context=method_context,
+                source_spans=located_spans,on_round=retain_correction,on_event=self.recovery_events.append,
+                on_candidate=self.retain_candidate)
         self.last_audit['module_contract']=self.last_module_report
         if '## References' not in content and '## 参考' not in content:
             content+='\n\n---\n\n## References\n\n'+self._build_reference_list(citations)

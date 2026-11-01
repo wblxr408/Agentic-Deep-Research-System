@@ -55,14 +55,20 @@ class ModelTokenBudget:
         self.skill_packet:dict|None=None
         self.skill_tracking=False
         self.skill_guidance=False
+        self.resource_scheduler=None
+        self.resource_scheduler_released=False
         self._lock = threading.Lock()
 
     def available(self, purpose: str = 'research') -> int:
+        if self.resource_scheduler and not self.resource_scheduler_released:
+            self.resource_scheduler(self)
         held = self.remaining_audit_tokens() if purpose != 'audit' else 0
         remaining=max(0, self.limit - self.spent - self.inflight - held)
         return min(remaining,self.context_limit) if self.context_limit else remaining
 
     def call_deadline(self, purpose: str) -> float | None:
+        if self.resource_scheduler and not self.resource_scheduler_released:
+            self.resource_scheduler(self)
         return None if self.deadline is None else self.deadline - (self.remaining_audit_seconds() if purpose != 'audit' else 0)
 
     def remaining_audit_tokens(self) -> int:
@@ -96,6 +102,7 @@ class ModelTokenBudget:
                     'released_tokens':self.remaining_audit_tokens(),'released_seconds':self.remaining_audit_seconds(),
                     'limit_unchanged':True,'original_deadline_unchanged':True})
                 self.audit_reserve=0;self.audit_seconds=0
+                self.resource_scheduler_released=True
         return True
 
     def reserve(self, request: dict, purpose: str, route: dict | None = None) -> tuple[dict, dict]:

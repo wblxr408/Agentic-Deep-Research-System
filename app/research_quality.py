@@ -213,6 +213,8 @@ def quality_view(state,feedback):
             'parsing_accuracy':None,'reason':'no_independently_labeled_parse_reference'},
         'retrieval_runs':runs,'ranking_judgments':judgments,'question_coverage':question_quality(state),
         'answer':{'model_audit_supported_claims':supported,'model_audit_total_claims':total,
+            'required_claims':audit.get('required_claims'),'required_supported_claims':audit.get('required_supported_claims'),
+            'excluded_claims':audit.get('excluded_claims'),'required_support_rate':audit.get('required_support_rate'),
             'model_audit_source_supported_claims':audit.get('source_supported_claims'),
             'model_audit_method_supported_claims':audit.get('method_supported_claims'),
             'model_audit_supported_ratio':supported/total if complete_audit and isinstance(supported,int) and total else None,

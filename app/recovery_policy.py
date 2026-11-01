@@ -12,6 +12,7 @@ POLICIES = {
     'length': (2, 0, '压缩可选原文并缩短单次回答'),
     'context': (2, 0, '重新分配本次输入和输出空间'),
     'checkpoint': (2, 1, '从已保存阶段继续并重新保存进度'),
+    'discovery': (1, 0, '沿已保留的具体成果线索补读全文'),
 }
 PROVIDER_KINDS = {'APIConnectionError': 'connection', 'APITimeoutError': 'timeout',
                   'InternalServerError': 'server', 'RateLimitError': 'rate_limit'}
@@ -29,6 +30,9 @@ def recovery_plan(state):
     kind = PROVIDER_KINDS.get(failure.get('provider_error_type')) if reason == 'analysis_provider_unavailable' else {
         'analysis_output_incomplete': 'structure', 'model_output_limit': 'length',
         'insufficient_context_budget': 'context','analysis_checkpoint_unavailable':'checkpoint'}.get(reason)
+    if reason == 'research_discovery_incomplete':
+        from app.discovery_handoff import discovery_gap_recoverable
+        if discovery_gap_recoverable(state):kind = 'discovery'
     limit, base, action = POLICIES.get(kind, (0, 0, ''))
     total = int((state.get('session') or {}).get('automatic_recovery_attempts') or 0)
     counts = (workflow.get('recovery_counts') or {}).get(phase) or {}
@@ -41,6 +45,12 @@ def recovery_plan(state):
         blocked = '模型账号额度或账单限制需要处理，重复请求不会解除限制';limit=0
     elif failure.get('provider_error_code') == 'tls_validation_failed':
         blocked = '模型连接证书验证失败，系统不会关闭证书校验继续请求';limit=0
+    elif ((state.get('budget_state') or {}).get('budget_policy_version')==4
+            and kind in {'server','connection','timeout'} and len(failures)>=2
+            and failures[-1].get('reason')==failures[-2].get('reason')
+            and failures[-1].get('provider_error_type')==failures[-2].get('provider_error_type')
+            and not failures[-1].get('raw_response') and not failures[-2].get('raw_response')):
+        blocked = '同一阶段连续两次未取得模型响应，已保留成果；需处理服务问题后再继续'
     elif admission.get('reason') == 'no_acquired_source_fits': blocked = '当前问题缺少可选原文，不能靠重复模型请求补出证据'
     elif total >= ROOT_RECOVERY_LIMIT: blocked = '本任务已达到自动恢复总上限'
     elif attempts >= limit: blocked = '当前问题已达到此类错误的重试上限'
@@ -70,8 +80,8 @@ def recovery_plan(state):
 def report_issue_keys(audit):
     """Do not count claim IDs which can change when paragraphs are rewritten."""
     return {(row.get('status'), row.get('text') or row.get('paragraph_context'))
-            for row in audit.get('claims', []) if row.get('status') != 'supported'}
+            for row in audit.get('claims', []) if row.get('verification_required',True) and row.get('status') != 'supported'}
 
 
 def report_repair_limit(audit):
-    return 3 if any(row.get('status') == 'contradicted' for row in audit.get('claims', [])) else 2
+    return 3 if any(row.get('verification_required',True) and row.get('status') == 'contradicted' for row in audit.get('claims', [])) else 2

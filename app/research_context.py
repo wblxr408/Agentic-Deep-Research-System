@@ -314,9 +314,33 @@ def identity_batches(evidence, *, acquired_only=False, configuration=None):
         groups.append(list(dict.fromkeys(ids)));seen.update(ids)
     for item in publishers:
         if item.evidence_id not in seen:groups.append([item.evidence_id]);seen.add(item.evidence_id)
-    if not groups:groups=[[item.evidence_id] for item in evidence]
+    supplemental=[]
+    if (configuration or {}).get('research_handoff_policy')=='adrs-complete-evidence-handoff-v2':
+        # A retained HTML article may contain the actual work even when the
+        # transport conservatively labels it metadata_or_page_text. Presence
+        # of some PDFs must not suppress every other acquired article. These
+        # structural cues select identity reading; they do not certify identity.
+        for item in evidence:
+            meta=item.acquisition or {}
+            from app.discovery_handoff import _arxiv_document
+            hint=_arxiv_document(item.source_url or '')
+            represented=bool(hint and hint[1] and any(
+                (other:=_arxiv_document(page.source_url or '')) and other[:2]==hint[:2]
+                for page in primary))
+            sections=[row for row in meta.get('scientific_sections',[]) if isinstance(row,dict)
+                and type(row.get('start')) is int and type(row.get('end')) is int
+                and 0<=row['start']<row['end']<=len(item.content)]
+            if (item.evidence_id not in seen and not represented and meta.get('coverage')!='discovery_only'
+                    and meta.get('format')=='html' and len(sections)>=2
+                    and re.search(r'(?im)^\s*(?:abstract|摘要)(?:[.：:\s—–-]|$)',item.content[:8000])):
+                supplemental.append([item.evidence_id]);seen.add(item.evidence_id)
+    if not groups:
+        groups=[[item.evidence_id] for item in evidence]
+        supplemental=[]
     batches = [list(dict.fromkeys(key for group in groups[index:index+2] for key in group))
         for index in range(0,len(groups),2)] or [[]]
+    batches += [list(dict.fromkeys(key for group in supplemental[index:index+2] for key in group))
+        for index in range(0,len(supplemental),2)]
     if configuration:
         from app.organization_identity import identity_sources
         anchors = identity_sources(configuration,[item.model_dump(mode='json') for item in evidence])
@@ -331,7 +355,7 @@ def encoded(value) -> str:
     return json.dumps(value, ensure_ascii=False, separators=(',', ':'))
 
 
-def question_seed(seed, *, deep=False, max_bytes=12000):
+def question_seed(seed, *, deep=False, complete=False, max_bytes=12000):
     """Keep every assigned deep-reading identity, without repeating attribution.
 
     Full validated affiliations remain in the root. Deep reading consumes the
@@ -341,10 +365,17 @@ def question_seed(seed, *, deep=False, max_bytes=12000):
     value=deepcopy(seed or {})
     value.pop('pending_records',None)
     value['omitted_output_ids']=[]
-    if deep:
+    if deep or complete:
         value['outputs']=[{key:item for key,item in output.items() if key!='affiliations'}
             for output in value.get('outputs',[])]
         value['attribution_context']='server_accepted_affiliations_retained_in_root_not_reextracted_here'
+        if complete:
+            # Identity validation diagnostics are retained at the root; their
+            # repeated serialization must not crowd out technical originals.
+            fields={'evidence_ids','work_id','version','version_sources','canonical_primary_url',
+                    'venue','venue_status','output_type','output_type_status','date_basis','metadata_policy'}
+            value['publication_metadata']={key:{name:item for name,item in row.items() if name in fields}
+                for key,row in value.get('publication_metadata',{}).items()}
     else:
         while value.get('outputs') and len(encoded(value).encode('utf-8'))>max_bytes:
             removed=value['outputs'].pop()
@@ -356,7 +387,7 @@ def question_seed(seed, *, deep=False, max_bytes=12000):
             'records':[row for row in value['publication_identity'].get('records',[]) if row['output_id'] in selected]}
     manifest={'version':QUESTION_SEED_VERSION,'selected_output_ids':[item['output_id'] for item in value.get('outputs',[])],
         'omitted_output_ids':list(value['omitted_output_ids']),
-        'all_assigned_identities_required':deep,'retained_seed_bytes':len(encoded(value).encode('utf-8')),
+        'all_assigned_identities_required':deep or complete,'retained_seed_bytes':len(encoded(value).encode('utf-8')),
         'affiliation_details':'current_literal_identity_projection_with_full_root_records' if deep else 'included_for_selected_outputs',
         'source_reading_and_semantic_support':'not_established_by_seed_presence'}
     return value,manifest

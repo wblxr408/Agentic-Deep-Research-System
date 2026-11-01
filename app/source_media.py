@@ -82,6 +82,17 @@ async def prepare_source_media(state,organization_result,*,deadline):
                 pixel=cached[page['page']]
                 result['pages'].append({**page,'renderer':PAGE_RENDERER,'width':pixel['width'],'height':pixel['height']})
         result['status']='rendered'
+        previous=(organization_result or {}).get('source_media') or {}
+        if previous.get('evidence_version')==result['evidence_version']:
+            old={(row['asset_id'],row['page']):row for row in previous.get('pages',[])}
+            for page in result['pages']:
+                saved=old.get((page['asset_id'],page['page'])) or {}
+                if all(saved.get(key)==value for key,value in page.items()):
+                    for key in ('explanation','report_anchor','explanation_binding','explanation_basis',
+                            'explanation_claim_context','explanation_draft'):
+                        if key in saved:page[key]=saved[key]
+            for key in ('explanation_binding','explanation_model','explanation_status','explanation_contract','model_calls'):
+                if key in previous:result[key]=previous[key]
         return result
     except TokenBudgetExceeded:raise
     except Exception as error:

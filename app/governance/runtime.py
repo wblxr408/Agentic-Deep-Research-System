@@ -140,12 +140,17 @@ class RuntimePersistence:
     async def persist_analysis_checkpoint(self, session_id: str, state: dict[str, Any]) -> int | None:
         return await self.persist_model_checkpoint(session_id,state)
 
-    async def persist_model_checkpoint(self, session_id: str, state: dict[str, Any]) -> int | None:
+    async def persist_model_checkpoint(self, session_id: str, state: dict[str, Any], *, include_analysis: bool = True) -> int | None:
         """Save model progress before dispatch without replacing the evidence ledger."""
         session=state.get('session') or {}
         owner,execution=session.get('owner_id'),session.get('execution_id')
         if (not owner or not execution or str(state.get('task_id'))!=str(session_id)
                 or str(session.get('session_id'))!=str(session_id)):return None
+        # Serialize research payloads before acquiring the root lock. Report
+        # checkpoints do not replace the unchanged, large analysis history.
+        research_patch={'organization_result':state.get('organization_result')}
+        if include_analysis:research_patch['analysis_workflow']=state.get('analysis_workflow') or {}
+        encoded_research=dumps_json(research_patch)
         pool=await get_db_pool()
         async with asyncio.timeout(20),pool.acquire() as conn,conn.transaction():
             await conn.execute("SELECT set_config('lock_timeout','3000',true)")
@@ -159,17 +164,16 @@ class RuntimePersistence:
             session.update(total_tokens=int(budget.get('used_total_tokens') or 0),
                 total_cost_usd=float(budget.get('used_cost_usd') or 0))
             sequence=await conn.fetchval('''UPDATE session_runtime_state SET
-                state_snapshot_json=jsonb_set(jsonb_set(jsonb_set(jsonb_set(jsonb_set(state_snapshot_json,
-                    '{analysis_workflow}',$2::jsonb,true),'{budget_state}',$3::jsonb,true),
-                    '{session}',$4::jsonb,true),'{session,checkpoint_seq}',to_jsonb(checkpoint_seq+1),true),
-                    '{organization_result}',$7::jsonb,true)||'{"status":"running","runtime_status":"running"}'::jsonb,
+                state_snapshot_json=state_snapshot_json||($2::jsonb||jsonb_build_object(
+                    'budget_state',$3::jsonb,'session',$4::jsonb||jsonb_build_object('checkpoint_seq',checkpoint_seq+1),
+                    'status','running','runtime_status','running')),
                 runtime_status='running',public_status='running',
                 checkpoint_seq=checkpoint_seq+1,last_heartbeat_at=NOW()
                 WHERE session_id=$1::uuid AND state_snapshot_json->'session'->>'execution_id'=$5
                     AND COALESCE(state_snapshot_json->'plan_manifest'->>'plan_version','')=$6
-                RETURNING checkpoint_seq''',session_id,dumps_json(state.get('analysis_workflow') or {}),
+                RETURNING checkpoint_seq''',session_id,encoded_research,
                 dumps_json(state.get('budget_state') or {}),dumps_json(session),str(execution),
-                str((state.get('plan_manifest') or {}).get('plan_version') or ''),dumps_json(state.get('organization_result')))
+                str((state.get('plan_manifest') or {}).get('plan_version') or ''))
             if sequence is None:return None
             await conn.execute('''UPDATE research_sessions SET total_tokens=$2,
                 review_status=jsonb_set(jsonb_set(COALESCE(review_status,'{}'::jsonb),'{budget_state}',$3::jsonb,true),

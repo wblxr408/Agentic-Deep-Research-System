@@ -10,7 +10,7 @@ from copy import deepcopy
 import logging
 import uuid
 from collections.abc import AsyncGenerator
-from typing import Any
+from typing import Any, Literal
 
 import asyncpg
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request
@@ -1596,6 +1596,25 @@ async def get_research_result(session_id: str, principal: Principal = principal_
         "created_at": row["created_at"].isoformat(),
         "completed_at": row["completed_at"].isoformat() if row["completed_at"] else None,
     }
+    # Reflect owner progress continuation in the workbench; the POST route
+    # still performs authoritative binding, lease and allowance checks.
+    continuation_root=_json_object(row.get('root_session'))
+    continuation_result=review_status.get('organization_result') or {}
+    continuation_sections=set(continuation_result.get('report_section_drafts') or {})
+    continuation_record=continuation_result.get('module_report') or {}
+    issue_baseline=continuation_root.get('report_continuation_contract_issues')
+    if issue_baseline is None and continuation_record.get('repair_history'):
+        issue_baseline=len(continuation_record['repair_history'][0].get('issues') or [])
+    progress=(continuation_sections>set(continuation_root.get('report_continuation_sections') or [])
+        or issue_baseline is not None and len(continuation_record.get('issues') or [])<issue_baseline)
+    if (row['status'] in {'failed','paused'} and workflow.get('status')=='completed'
+            and continuation_sections and progress and review_status.get('reason') in {
+                'section_evidence_bundle_exceeds_context','section_repair_original_allowance_insufficient',
+                'section_writing_original_allowance_insufficient','report_contract_invalid'}
+            and pause_diagnosis and not pause_diagnosis.get('blockers')
+            and (pause_diagnosis.get('remaining_seconds') or 0)>0
+            and (pause_diagnosis.get('remaining_tokens') or 0)>=1024):
+        result['report_recovery_available']=True
     interrupted_state=_json_object(row.get('interruption_state'))
     if interrupted_state:
         from app.research_interruption import acquisition_resume_node,planner_throttling_repair
@@ -1701,6 +1720,23 @@ async def download_source_package(session_id:uuid.UUID,principal:Principal=princ
     except ValueError as error:raise HTTPException(409,str(error)) from error
     return Response(payload,media_type='application/zip',headers={
         'Content-Disposition':f'attachment; filename="research-{session_id}-sources.zip"',
+        'Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff'})
+
+
+@router.get('/{session_id}/report.pdf')
+async def download_report_pdf(session_id:uuid.UUID,part:Literal['main','appendix']='main',
+        principal:Principal=principal_dependency):
+    from fastapi.responses import Response
+    from app.report_pdf import export_pdf
+    from app.source_media import owned_delivery_snapshot
+    retained,_=await _source_download_state(session_id,principal)
+    try:
+        payload=await asyncio.to_thread(export_pdf,retained['delivery_view'],part)
+        await owned_delivery_snapshot(session_id,_principal_id(principal),
+            execution_id=retained.get('execution_id'),report=retained['report'])
+    except ValueError as error:raise HTTPException(409,str(error)) from error
+    return Response(payload,media_type='application/pdf',headers={
+        'Content-Disposition':f'attachment; filename="research-{session_id}-{part}.pdf"',
         'Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff'})
 
 
@@ -1929,7 +1965,13 @@ async def resume_interrupted_acquisition(session_id:uuid.UUID,payload:Cancellati
     return await _resume_controlled_checkpoint(session_id,payload,background_tasks,principal,interruption=True)
 
 
-async def _resume_controlled_checkpoint(session_id,payload,background_tasks,principal,*,interruption=False):
+@router.post('/{session_id}/discovery/resume')
+async def resume_retained_discovery(session_id:uuid.UUID,payload:CancellationRequest,
+        background_tasks:BackgroundTasks,principal:Principal=principal_dependency):
+    return await _resume_controlled_checkpoint(session_id,payload,background_tasks,principal,discovery=True)
+
+
+async def _resume_controlled_checkpoint(session_id,payload,background_tasks,principal,*,interruption=False,discovery=False):
     from app.db.research_pause import RESUME_NODES
     from app.graph.compiler import _build_budget_state
     from app.source_lifecycle import current_synthesis_state
@@ -1953,16 +1995,24 @@ async def _resume_controlled_checkpoint(session_id,payload,background_tasks,prin
         from app.research_interruption import acquisition_resume_node
         node=acquisition_resume_node(record,state,budget)
         if node is None:raise HTTPException(409,'resume_interruption_not_available')
+    if discovery:
+        from app.discovery_handoff import discovery_gap_recoverable
+        from app.recovery_policy import ROOT_RECOVERY_LIMIT
+        if (record['status'] != 'paused' or not discovery_gap_recoverable(state)
+                or record['durable_execution_active']
+                or int(root.get('automatic_recovery_attempts') or 0) >= ROOT_RECOVERY_LIMIT):
+            raise HTTPException(409,'resume_discovery_not_available')
+        node='dag_executor'
     if str(record['execution_id'])!=str(payload.execution_id):
         raise HTTPException(409,'resume_execution_changed_reload')
-    if ((not interruption and (record['status']!='paused' or state.get('runtime_status')!='user_paused'
+    if ((not interruption and not discovery and (record['status']!='paused' or state.get('runtime_status')!='user_paused'
             or control.get('state')!='paused' or control.get('resume_node')!=node))
             or node not in RESUME_NODES or state.get('pending_approvals')
             or str(root.get('owner_id'))!=owner or str(state.get('task_id'))!=session_id
             or str(root.get('session_id'))!=session_id
             or str(root.get('execution_id'))!=str(record['execution_id'])):
         raise HTTPException(409,'resume_checkpoint_not_recoverable')
-    if int(budget.get('inflight_model_requests') or 0):
+    if any(budget.get(key) for key in ('inflight_model_requests','reserved_inflight_tokens','reserved_inflight_tool_calls')):
         raise HTTPException(409,'resume_receipts_pending')
     current=await current_synthesis_state(state)
     if current.get('collected_evidence')!=state.get('collected_evidence'):
@@ -1983,7 +2033,7 @@ async def _resume_controlled_checkpoint(session_id,payload,background_tasks,prin
             (budget.get('max_cost_usd') is not None and
              float(budget.get('used_cost_usd') or 0)>=float(budget['max_cost_usd']))):
         raise HTTPException(409,'resume_original_allowance_exhausted')
-    if interruption and state.get('model_routing'):
+    if (interruption or discovery) and state.get('model_routing'):
         await bind_owner_model(principal.id)
         from app.model_routing import validate_current
         from app.llm_budget import TokenBudgetExceeded
@@ -1991,6 +2041,15 @@ async def _resume_controlled_checkpoint(session_id,payload,background_tasks,prin
         except TokenBudgetExceeded as error:
             raise HTTPException(409,{'category':error.reason,
                 'model_configuration_change':getattr(error,'routing_change',None)}) from None
+    if discovery:
+        from app.discovery_handoff import prepare_discovery_gap
+        from app.graph.compiler import _channel_budget, _effective_tool_allowlist
+        calls,seconds=_channel_budget(state,[])
+        try:
+            state=prepare_discovery_gap(state,remaining_calls=calls,remaining_seconds=seconds,
+                allowed_tools=_effective_tool_allowlist(state,state.get('guardrail_decision') or {}))
+        except ValueError as error:raise HTTPException(409,str(error)) from None
+        root=state['session']
     execution_id=str(uuid.uuid4())
     from app.planning_control import rebind_checkpoint_plan,PlanningError
     from app.research_interruption import binding_repair,planner_throttling_repair
@@ -2018,6 +2077,14 @@ async def _resume_controlled_checkpoint(session_id,payload,background_tasks,prin
             'checkpoint_seq':int(record['checkpoint_seq']),'resume_node':node,
             'attempts':state['session']['execution_recovery_attempts'],'request_id':str(payload.request_id),
             'at':utc_now_naive().isoformat()}
+    if discovery:
+        state['session'].update(user_resume_node=node,
+            automatic_recovery_attempts=int(root.get('automatic_recovery_attempts') or 0)+1)
+        state['review_status']['user_control']=review.get('user_control')
+        state['review_status']['automatic_recovery']={'policy':'discovery','status':'running',
+            'attempts':state['session']['automatic_recovery_attempts'],'policy_attempts':1,'policy_limit':1,
+            'action':'沿已保留的具体成果线索补读全文','previous_execution_id':str(record['execution_id'])}
+        state.update(current_executing_nodes=[],executing_nodes=[],tool_handoffs={},tool_result_envelopes={})
     async with pool.acquire() as conn,conn.transaction():
         locked=await conn.fetchrow('''SELECT s.status,s.execution_id,r.checkpoint_seq,r.last_heartbeat_at
             FROM research_sessions s JOIN session_runtime_state r ON r.session_id=s.id
@@ -2030,6 +2097,15 @@ async def _resume_controlled_checkpoint(session_id,payload,background_tasks,prin
             from app.execution_control import execution_is_active
             latest_budget=await receipt_budget(conn,session_id,owner,budget)
             if (not heartbeat_expired(locked['last_heartbeat_at']) or execution_is_active(session_id,record['execution_id'])
+                    or any(latest_budget.get(key) for key in ('inflight_model_requests','reserved_inflight_tokens','reserved_inflight_tool_calls'))
+                    or any(latest_budget.get(key)!=budget.get(key) for key in ('used_total_tokens','used_tool_calls','used_cost_usd'))):
+                raise HTTPException(409,'resume_checkpoint_changed')
+        if discovery:
+            from app.execution_control import execution_is_active
+            latest_budget=await receipt_budget(conn,session_id,owner,budget)
+            job_active=await conn.fetchval('''SELECT EXISTS(SELECT 1 FROM research_execution_jobs
+                WHERE execution_id=$1::uuid AND status='running' AND lease_until>NOW())''',record['execution_id'])
+            if (job_active or execution_is_active(session_id,record['execution_id'])
                     or any(latest_budget.get(key) for key in ('inflight_model_requests','reserved_inflight_tokens','reserved_inflight_tool_calls'))
                     or any(latest_budget.get(key)!=budget.get(key) for key in ('used_total_tokens','used_tool_calls','used_cost_usd'))):
                 raise HTTPException(409,'resume_checkpoint_changed')
@@ -2057,11 +2133,33 @@ async def resume_research_report(session_id: str, background_tasks: BackgroundTa
     return await _resume_retained_synthesis(session_id, background_tasks, principal, stage='report')
 
 
+class ClaimScopeExclusion(BaseModel):
+    claim_id: str = Field(min_length=1,max_length=80)
+    text: str = Field(min_length=1,max_length=12000)
+    category: Literal['background','implementation_detail','secondary_measurement',
+        'proposed_protocol','evaluative_phrasing','incidental_adoption']
+    reason: str = Field(min_length=1,max_length=1000)
+
+
+class ClaimReviewScopeAmendment(BaseModel):
+    request_id: uuid.UUID
+    expected_execution_id: uuid.UUID
+    mode: Literal['essential'] = 'essential'
+    instruction: str = Field(min_length=1,max_length=6000)
+    exclusions: list[ClaimScopeExclusion] = Field(min_length=1,max_length=500)
+
+
+class AuditResumeRequest(BaseModel):
+    review_scope: ClaimReviewScopeAmendment | None = None
+
+
 @router.post('/{session_id}/audit/resume')
 async def resume_research_audit(session_id: str, background_tasks: BackgroundTasks,
-                                principal: Principal = principal_dependency):
+                                principal: Principal = principal_dependency,
+                                request: AuditResumeRequest | None = None):
     """Resume the unfinished review of this owner's unchanged draft once."""
-    return await _resume_retained_synthesis(session_id, background_tasks, principal, stage='audit')
+    return await _resume_retained_synthesis(session_id, background_tasks, principal, stage='audit',
+        scope_amendment=request.review_scope if request else None)
 
 
 @router.post('/{session_id}/report/reader-revision')
@@ -2082,7 +2180,22 @@ async def complete_research_original_pages(session_id:str,background_tasks:Backg
     return await _resume_retained_synthesis(session_id,background_tasks,principal,stage='delivery')
 
 
-async def _resume_retained_synthesis(session_id, background_tasks, principal, *, stage):
+class ReportRefinementRequest(BaseModel):
+    expected_execution_id: str = Field(min_length=36,max_length=36)
+    feedback: str = Field(min_length=20,max_length=6000)
+    mode: Literal['full','coherence'] = 'full'
+
+
+@router.post('/{session_id}/report/refine')
+async def refine_completed_report(session_id:str,request:ReportRefinementRequest,
+        background_tasks:BackgroundTasks,principal:Principal=principal_dependency):
+    """Explicit owner editing of a completed version, reusing its research."""
+    return await _resume_retained_synthesis(session_id,background_tasks,principal,
+        stage='refine',refinement=request)
+
+
+async def _resume_retained_synthesis(session_id, background_tasks, principal, *, stage,refinement=None,
+        scope_amendment=None):
     from datetime import UTC, datetime
     from app.graph.compiler import _build_budget_state, _stage_model_budget, _synthesis_question, _skill_prompt, _agent_skill_hints
     from app.graph.state import deserialize_evidence
@@ -2101,15 +2214,85 @@ async def _resume_retained_synthesis(session_id, background_tasks, principal, *,
     report_resume=stage=='report'
     supported_finalization=stage=='supported'
     delivery_resume=stage=='delivery'
-    reader_revision=stage=='reader'
-    audit_resume=stage in {'audit','reader','supported','delivery'}
+    explicit_refinement=stage=='refine'
+    reader_revision=stage in {'reader','refine'}
+    audit_resume=stage in {'audit','reader','supported','delivery','refine'}
     report_stage=report_resume or audit_resume
     review=state.get('review_status') or {}
     module_report=(state.get('organization_result') or {}).get('module_report') or {}
+    if scope_amendment is not None:
+        from app.claim_verification import ESSENTIAL_REVIEW_POLICY,apply_review_scope,claim_scope_key
+        from app.query_understanding import identity as scope_identity
+        if (stage!='audit' or record['status']!='paused'
+                or str(scope_amendment.expected_execution_id)!=str(record['execution_id'])):
+            raise HTTPException(409,'claim_scope_execution_changed')
+        old_audit=review.get('final_report_audit') or {}
+        claims={row['claim_id']:row for row in old_audit.get('claims',[])}
+        if len({item.claim_id for item in scope_amendment.exclusions})!=len(scope_amendment.exclusions):
+            raise HTTPException(422,'duplicate_claim_scope_exclusion')
+        exclusions=[]
+        for item in scope_amendment.exclusions:
+            claim=claims.get(item.claim_id)
+            if not claim or item.text!=claim['text']:
+                raise HTTPException(409,'claim_scope_text_changed')
+            exclusions.append({'claim_key':claim_scope_key(claim),'claim_id':item.claim_id,
+                'category':item.category,'reason':item.reason})
+        scope={'policy':ESSENTIAL_REVIEW_POLICY,'mode':'essential','question':state.get('user_query'),
+            'instruction':scope_amendment.instruction,'authority':'explicit_owner',
+            'request_id':str(scope_amendment.request_id),'exclusions':exclusions}
+        amendment_id=scope_identity(scope)
+        prior=root.get('claim_scope_amendment') or {}
+        if prior.get('request_id')==scope['request_id'] and prior.get('identity')!=amendment_id:
+            raise HTTPException(409,'claim_scope_request_id_conflict')
+        root['claim_scope_amendment']={'request_id':scope['request_id'],'identity':amendment_id,
+            'source_execution_id':str(record['execution_id'])}
+        module_report['claim_review_scope']=scope
+        state['organization_result']['module_report']=module_report
+        scoped_audit=apply_review_scope(old_audit,scope)
+        review['final_report_audit']=scoped_audit
+        if not scoped_audit.get('needs_review',True) and not scoped_audit.get('audit_incomplete'):
+            quality={'policy':module_report.get('reader_quality_policy'),'status':'incomplete','passed':False,
+                'binding':scope_identity({'scope':scope,'report':state.get('final_report')}),
+                'reason':'reader_scope_changed'}
+            scoped_audit['reader_quality']=quality
+            state['organization_result']['reader_quality']=quality
+            review['reason']='reader_quality_incomplete'
+            state['runtime_status']='report_paused'
     phase=workflow.get('active_phase')
     reason=workflow.get('stop_reason')
     if report_stage:
-        from app.db.report_delivery import report_binding
+        from app.db.report_delivery import report_binding,retained_report_candidate,retained_report_sections
+    refinement_candidate=retained_report_candidate(state) if explicit_refinement else None
+    refinement_failure=review.get('workflow_failure') or {}
+    interrupted_refinement=bool(explicit_refinement and refinement_candidate
+        and record['status']=='failed' and state.get('status')=='failed'
+        and refinement_failure.get('category')=='worker_lease_expired'
+        and refinement_failure.get('execution_id')==str(record['execution_id'])
+        and refinement.mode=='coherence')
+    audit_mode_recovery=False
+    if (stage=='audit' and record['status']=='paused'
+            and review.get('reason')=='report_candidate_binding_changed'
+            and root.get('report_candidate_resume') and root.get('audit_resume_attempts')
+            and not review.get('final_report_audit') and state.get('final_report')):
+        # Older audit resumes inherited the writing mode and stopped before
+        # dispatch. Recover only the identical owner's immutable report audit.
+        async with pool.acquire() as conn:
+            dispatched=await conn.fetchval('''SELECT EXISTS(SELECT 1 FROM research_model_receipts
+                WHERE session_id=$1::uuid AND owner_id=$2::uuid AND execution_id=$3::uuid)''',
+                session_id,principal.id,record['execution_id'])
+            saved=await conn.fetchval('''SELECT payload FROM research_report_versions
+                WHERE session_id=$1::uuid AND owner_id=$2::uuid AND payload->>'kind'='report'
+                AND payload->>'report'=$3 AND payload->'audit'->>'audit_incomplete'='true'
+                ORDER BY sequence DESC LIMIT 1''',session_id,principal.id,state['final_report'])
+        saved=_json_object(saved)
+        if (not dispatched and saved and saved.get('citations')==state.get('citations')
+                and not (saved.get('disclosure') or {}).get('requires_reaudit')):
+            audit_mode_recovery=True
+            review.update(final_report_audit=saved['audit'],reason='final_audit_incomplete',
+                report_payload_kind='report',audit_mode_recovery={'from_execution_id':str(record['execution_id']),
+                    'saved_execution_id':saved['execution_id'],'paid_requests':0})
+    candidate=retained_report_candidate(state) if report_resume else None
+    section_candidates=retained_report_sections(state) if report_resume else {}
     legacy_report_repair=False
     if report_resume and record['status']=='failed':
         failure=review.get('workflow_failure') or {}
@@ -2129,31 +2312,340 @@ async def _resume_retained_synthesis(session_id, background_tasks, principal, *,
             if restored:
                 state.update(restored);workflow=state['analysis_workflow']
                 legacy_report_repair=True
-    if delivery_resume:
+    reader_partition_recovery=False
+    repair_rounds=module_report.get('repair_rounds') or []
+    from app.query_understanding import identity as report_identity
+    reader_claim_frontier=report_identity(state.get('final_report'))
+    from app.report_revision import CLAIM_EDIT_CONTRACT
+    claim_attempt=(review.get('final_report_audit') or {}).get('revision_attempt') or {}
+    reader_claim_contract_recovery=bool(reader_revision and record['status']=='paused'
+        and review.get('reason')=='final_report_needs_revision'
+        and module_report.get('reader_revision') and claim_attempt.get('status')=='reaudited'
+        and claim_attempt.get('contract')!=CLAIM_EDIT_CONTRACT
+        and root.get('reader_claim_edit_contract')!=CLAIM_EDIT_CONTRACT
+        and not (review.get('final_report_audit') or {}).get('audit_incomplete'))
+    clause_format_recovery=bool(reader_revision and record['status']=='paused'
+        and review.get('reason')=='final_report_needs_revision'
+        and claim_attempt.get('status')=='ValueError' and claim_attempt.get('raw_responses')
+        and root.get('reader_claim_edit_contract')==CLAIM_EDIT_CONTRACT
+        and not root.get('reader_clause_format_recovery') and module_report.get('reader_revision')
+        and not (review.get('final_report_audit') or {}).get('audit_incomplete'))
+    reader_claim_contract_recovery=reader_claim_contract_recovery or clause_format_recovery
+    reader_claim_progress=bool(reader_revision and review.get('reason')=='final_report_needs_revision'
+        and repair_rounds and repair_rounds[-1].get('after',0)<min(
+            repair_rounds[-1].get('before',0),root.get('reader_claim_remaining',repair_rounds[-1].get('before',0)))
+        and ((review.get('final_report_audit') or {}).get('revision_attempt') or {}).get('status')=='reaudited'
+        and reader_claim_frontier!=root.get('reader_claim_frontier'))
+    quality=(review.get('final_report_audit') or {}).get('reader_quality') or {}
+    pending_audit=review.get('final_report_audit') or {}
+    audit_pending_frontier=report_identity({'report':state.get('final_report'),
+        'unfinished':pending_audit.get('unfinished_claim_ids')})
+    audit_pending_recovery=bool(stage=='audit' and record['status']=='paused'
+        and review.get('reason')=='final_audit_budget_exhausted'
+        and pending_audit.get('audit_incomplete') and pending_audit.get('budget_incomplete')
+        and pending_audit.get('unfinished_claim_ids')
+        and root.get('audit_pending_frontier')!=audit_pending_frontier)
+    from app.claim_verification import PROPOSAL_REVIEW_CONTRACT
+    proposal_gaps=[row for row in (review.get('final_report_audit') or {}).get('claims',[])
+        if row.get('verification_required',True) and row.get('status')!='supported']
+    proposal_review_recovery=bool(stage=='audit' and review.get('reason')=='final_report_needs_revision'
+        and proposal_gaps and all(row.get('assessment_kind')=='proposal'
+            and row.get('status') in {'unsupported','unverifiable'} and row.get('premise_status')=='insufficient'
+            for row in proposal_gaps)
+        and not (review.get('final_report_audit') or {}).get('audit_incomplete')
+        and root.get('proposal_review_contract')!=PROPOSAL_REVIEW_CONTRACT)
+    from app.report_quality import REVIEW_CONTRACT
+    from app.report_quality import PACKET_CONTRACT, READING_IMPACT_CONTRACT
+    reader_impact_frontier=report_identity({'binding':quality.get('binding'),'contract':READING_IMPACT_CONTRACT})
+    impact_gaps=[row for row in quality.get('checks',[]) if row.get('status')=='gap']
+    reader_impact_recovery=bool(stage=='audit' and review.get('reason')=='reader_quality_needs_revision'
+        and quality.get('global_review_valid') is True and len(impact_gaps)==1
+        and impact_gaps[0].get('id')=='reading' and impact_gaps[0].get('repair_groups')
+        and all(group.get('kind')=='repetition' for group in impact_gaps[0]['repair_groups'])
+        and ((review.get('final_report_audit') or {}).get('review_scope') or {}).get('mode')=='essential'
+        and root.get('reader_impact_frontier')!=reader_impact_frontier
+        and not (review.get('final_report_audit') or {}).get('needs_review',True)
+        and not (review.get('final_report_audit') or {}).get('audit_incomplete'))
+    reader_packet_recovery=bool(stage=='audit' and review.get('reason')=='reader_quality_incomplete'
+        and quality.get('reason') in {'token_budget_exhausted','reader_review_requires_section_partition'}
+        and root.get('reader_review_packet_contract')!=PACKET_CONTRACT
+        and not (review.get('final_report_audit') or {}).get('needs_review',True)
+        and not (review.get('final_report_audit') or {}).get('audit_incomplete'))
+    quality_contract_recovery=bool(stage=='audit' and review.get('reason') in {
+            'reader_quality_needs_revision','reader_quality_incomplete'}
+        and quality.get('binding') and quality.get('status') in {'needs_revision','incomplete'}
+        and quality.get('review_contract') in {None,'adrs-reader-purpose-v1','adrs-reader-purpose-v2','adrs-reader-purpose-v3'}
+        and quality.get('policy')==module_report.get('reader_quality_policy')
+        and root.get('reader_quality_contract_resume')!=REVIEW_CONTRACT
+        and not (review.get('final_report_audit') or {}).get('needs_review',True)
+        and not (review.get('final_report_audit') or {}).get('audit_incomplete'))
+    quality_resume=reader_impact_recovery or reader_packet_recovery or quality_contract_recovery or bool(stage=='audit' and review.get('reason')=='reader_quality_incomplete'
+        and quality.get('binding') and quality.get('binding')!=root.get('reader_quality_resume_binding'))
+    surface=(review.get('final_report_audit') or {}).get('surface_review') or {}
+    surface_resume=bool(stage=='audit' and review.get('reason')=='report_surfaces_need_revision'
+        and surface.get('binding') and surface['binding']!=root.get('surface_resume_binding'))
+    audit_unit_recovery=False
+    audit_unit_frontier=None
+    if stage=='audit' and review.get('reason') in {'final_report_needs_revision','audit_resume_judgment_binding_changed'}:
+        from app.claim_verification import extract_claims
+        saved_audit=review.get('final_report_audit') or {}
+        units=[{'text':row['text'],'citation_ids':row['citation_ids']}
+            for row in extract_claims(state.get('final_report') or '')]
+        prior_units=[{'text':row['text'],'citation_ids':row['citation_ids']}
+            for row in saved_audit.get('claims',[])]
+        audit_unit_frontier=report_identity(units)
+        audit_unit_recovery=bool(units and prior_units and units!=prior_units
+            and not saved_audit.get('audit_incomplete')
+            and audit_unit_frontier!=root.get('audit_unit_frontier'))
+        if (not audit_unit_recovery and units!=prior_units and units and prior_units
+                and review.get('reason')=='audit_resume_judgment_binding_changed'
+                and audit_unit_frontier==root.get('audit_unit_frontier')
+                and not saved_audit.get('audit_incomplete')):
+            async with pool.acquire() as conn:
+                audit_unit_recovery=not await conn.fetchval('''SELECT EXISTS(SELECT 1 FROM research_model_receipts
+                    WHERE session_id=$1::uuid AND owner_id=$2::uuid AND execution_id=$3::uuid)''',
+                    session_id,principal.id,record['execution_id'])
+    reader_note_recovery=bool(reader_revision and review.get('reason') in {'reader_revision_context_budget','reader_quality_needs_revision'}
+        and quality.get('status')=='needs_revision' and quality.get('binding')
+        and quality['binding']!=root.get('reader_note_binding')
+        and any(row.get('status')=='gap' for row in quality.get('checks',[])))
+    reader_review_format_recovery=bool(reader_revision and review.get('reason')=='reader_quality_incomplete'
+        and quality.get('status')=='incomplete' and (quality.get('reason')=='reader_review_response_incomplete'
+            or quality.get('contract_error') in {
+            'missing_repair',"'work_coverage'",'reading_repetition_owner_invalid'})
+        and quality.get('binding') and quality['binding']!=root.get('reader_note_binding')
+        and not (review.get('final_report_audit') or {}).get('needs_review',True))
+    reader_note_recovery=reader_note_recovery or reader_review_format_recovery
+    correction=(review.get('final_report_audit') or {}).get('revision_attempt') or {}
+    from app.query_understanding import identity as correction_identity
+    correction_frontier=correction_identity(correction.get('raw_responses'))
+    reader_correction_recovery=bool(reader_revision and record['status']=='paused'
+        and review.get('reason')=='final_report_needs_revision'
+        and correction.get('status')=='correction_contract_invalid'
+        and correction.get('raw_responses') and correction_frontier!=root.get('reader_correction_frontier'))
+    editor_candidate=(state.get('organization_result') or {}).get('report_candidate') or {}
+    from app.source_media_explanations import PAGE_EXPLANATION_CONTRACT,REPORT_CONTEXT_CONTRACT
+    from app.report_quality import reader_quality_satisfied
+    if (delivery_resume and record['status']=='paused'
+            and review.get('reason')=='source_page_audited_context_binding_changed'
+            and root.get('source_page_context_finalization')
+            and reader_quality_satisfied(module_report,review.get('final_report_audit'))):
+        # Older media preparation retained the explanation but dropped its
+        # paid selection/provenance fields. Restore only that queued snapshot.
+        async with pool.acquire() as conn:
+            retained_media=await conn.fetchval('''SELECT payload->'resume_state'->'organization_result'->'source_media'
+                FROM research_execution_jobs WHERE session_id=$1::uuid AND owner_id=$2::uuid
+                AND execution_id=$3::uuid AND payload->'resume_state'->>'final_report'=$4''',
+                session_id,principal.id,record['execution_id'],state.get('final_report'))
+        retained_media=_json_object(retained_media)
+        current_media=(state.get('organization_result') or {}).get('source_media') or {}
+        old_pages={(page['asset_id'],page['page']):page for page in retained_media.get('pages',[])}
+        if (retained_media.get('explanation_contract')==REPORT_CONTEXT_CONTRACT
+                and retained_media.get('evidence_version')==current_media.get('evidence_version')
+                and set(old_pages)=={(page['asset_id'],page['page']) for page in current_media.get('pages',[])}
+                and all(old_pages[(page['asset_id'],page['page'])].get('proofs')==page.get('proofs')
+                    for page in current_media.get('pages',[]))):
+            state['organization_result']['source_media']=retained_media
+    source_page_frontier=report_identity({'contract':PAGE_EXPLANATION_CONTRACT,
+        'report':state.get('final_report'),'candidate':editor_candidate.get('raw_model_response')
+            if str(editor_candidate.get('stage','')).startswith('source_page_explanations') else None})
+    source_page_interrupted=False
+    delivery_failure=review.get('workflow_failure') or {}
+    source_context_recovery=bool(delivery_resume and record['status']=='failed' and state.get('status')=='failed'
+        and delivery_failure.get('execution_id')==str(record['execution_id'])
+        and delivery_failure.get('error_type')=='NameError'
+        and delivery_failure.get('message')=="name 'APIError' is not defined"
+        and editor_candidate.get('stage')=='source_page_explanations_partial'
+        and editor_candidate.get('execution_id')==str(record['execution_id'])
+        and root.get('source_page_context_contract')!=REPORT_CONTEXT_CONTRACT
+        and reader_quality_satisfied(module_report,review.get('final_report_audit')))
+    if source_context_recovery:
+        saved_pages=_json_object(editor_candidate.get('raw_model_response'))
+        media_pages=(state.get('organization_result') or {}).get('source_media',{}).get('pages') or []
+        source_context_recovery=bool(saved_pages.get('contract')==PAGE_EXPLANATION_CONTRACT and media_pages
+            and set(saved_pages.get('parts') or {})=={page['asset_id']+':'+str(page['page']) for page in media_pages})
+    if (source_context_recovery or delivery_resume and record['status']=='failed' and state.get('status')=='failed'
+            and root.get('source_page_resume_frontier')==source_page_frontier
+            and int(root.get('source_page_interruption_attempts') or 0)<2
+            and delivery_failure.get('category')=='worker_lease_expired'
+            and delivery_failure.get('execution_id')==str(record['execution_id'])):
+        # An expired delivery worker which never dispatched a provider request
+        # may continue its retained report. Unknown/paid requests are not replayed.
+        async with pool.acquire() as conn:
+            source_page_interrupted=await conn.fetchval('''SELECT ($6 OR NOT EXISTS(
+                SELECT 1 FROM research_model_receipts WHERE session_id=$1::uuid
+                AND owner_id=$2::uuid AND execution_id=$3::uuid)) AND NOT EXISTS(
+                SELECT 1 FROM research_model_receipts WHERE session_id=$1::uuid
+                AND owner_id=$2::uuid AND (payload->>'status'='inflight'
+                    OR execution_id=$3::uuid AND payload->>'status'='unknown')) AND EXISTS(
+                SELECT 1 FROM research_execution_jobs WHERE execution_id=$3::uuid
+                AND ($6 OR status='interrupted' AND error_category='worker_lease_expired')
+                AND payload->'resume_state'->>'final_report'=$4
+                AND payload->'resume_state'->'review_status'->'report_binding'=$5::jsonb)''',
+                session_id,principal.id,record['execution_id'],state.get('final_report'),
+                dumps_json(review.get('report_binding')),source_context_recovery)
+        if source_page_interrupted:
+            expected_binding=report_binding(state)
+            prior_binding=review.get('report_binding') or {}
+            manifest=state.get('plan_manifest') or {}
+            plan_matches=(prior_binding.get('plan_version')==expected_binding.get('plan_version')
+                or manifest.get('reason')=='execution_resumed_dag_preserved'
+                and manifest.get('parent_plan_version')==prior_binding.get('plan_version')
+                and manifest.get('execution_id')==str(record['execution_id'])
+                and any(item.get('previous_execution_id')==prior_binding.get('execution_id')
+                    and item.get('execution_id')==str(record['execution_id'])
+                    for item in manifest.get('adjustments') or []))
+            source_page_interrupted=bool(plan_matches and prior_binding.get('retained_evidence_version')
+                ==expected_binding.get('retained_evidence_version'))
+            if source_page_interrupted:
+                # The queued resume advanced execution before the worker could
+                # rebind its unchanged retained report. Preserve the old binding.
+                review['delivery_interrupted_report_binding']=prior_binding
+                review['report_binding']=expected_binding
+    source_page_recovery=bool(delivery_resume and record['status']=='paused'
+        and review.get('reason') in {'source_page_explanation_original_allowance_insufficient',
+            'source_page_explanation_requires_partition','source_page_explanation_response_incomplete',
+            'source_page_explanation_contract_invalid','source_page_audited_context_binding_changed'}
+        and reader_quality_satisfied(module_report,review.get('final_report_audit'))
+        and (state.get('organization_result') or {}).get('source_media',{}).get('pages')
+        and root.get('source_page_resume_frontier')!=source_page_frontier)
+    source_page_recovery=bool(source_page_recovery or source_page_interrupted
+        and reader_quality_satisfied(module_report,review.get('final_report_audit'))
+        and (state.get('organization_result') or {}).get('source_media',{}).get('pages'))
+    from app.report_revision import READER_DELETE_CONTRACT, READER_AUDIT_EDIT_CONTRACT
+    reader_audit_edit_recovery=bool(reader_revision and record['status']=='paused'
+        and review.get('reason')=='reader_revision_context_budget'
+        and quality.get('reason')=='reader_review_response_incomplete'
+        and root.get('reader_audit_edit_contract')!=READER_AUDIT_EDIT_CONTRACT
+        and not (review.get('final_report_audit') or {}).get('needs_review',True))
+    reader_note_recovery=reader_note_recovery or reader_audit_edit_recovery
+    reader_unit_recovery=bool(reader_revision and record['status']=='paused'
+        and review.get('reason')=='reader_revision_contract_invalid'
+        and editor_candidate.get('stage')=='reader_revision_response'
+        and editor_candidate.get('execution_id')==str(record['execution_id'])
+        and editor_candidate.get('raw_model_response')
+        and root.get('reader_delete_contract')!=READER_DELETE_CONTRACT
+        and not (review.get('final_report_audit') or {}).get('needs_review',True))
+    from app.query_understanding import identity as input_identity
+    reader_section_frontier=input_identity(editor_candidate.get('raw_model_response'))
+    reader_section_recovery=bool(reader_revision and record['status']=='paused'
+        and review.get('reason')=='reader_revision_contract_invalid'
+        and (str(editor_candidate.get('stage','')).startswith('structural_revision_section_response:')
+            or editor_candidate.get('stage')=='structural_revision_contract_rejected')
+        and editor_candidate.get('raw_model_response')
+        and reader_section_frontier!=root.get('reader_section_frontier'))
+    reader_local_output_recovery=bool(reader_revision and record['status']=='paused'
+        and review.get('reason')=='reader_revision_output_incomplete'
+        and editor_candidate.get('stage') in {'before_structural_revision','reader_revision_response_incomplete'}
+        and editor_candidate.get('raw_model_response')
+        and editor_candidate.get('execution_id')==str(record['execution_id'])
+        and quality.get('status')=='needs_revision'
+        and reader_section_frontier!=root.get('reader_section_frontier'))
+    reader_section_recovery=reader_section_recovery or reader_local_output_recovery or reader_unit_recovery
+    editor_saved=_json_object(((state.get('organization_result') or {}).get('report_editor_sections') or {}).get('raw_model_response'))
+    selection_saved=(editor_saved.get('sections') or {}).get('editorial_selection') or {}
+    if (reader_revision and record['status']=='paused'
+            and review.get('reason')=='reader_revision_contract_invalid'
+            and editor_candidate.get('stage')=='structural_revision_sections'
+            and selection_saved.get('binding') and selection_saved.get('raw_response')
+            and not selection_saved.get('repair_attempted')):
+        # A new paid allocation response is a recoverable frontier even when
+        # the editor policy removed an obsolete whole-report/lead section.
+        # Its single bounded allocation repair cannot be replayed unchanged.
+        reader_section_frontier=input_identity(selection_saved)
+        reader_section_recovery=reader_section_frontier!=root.get('reader_section_frontier')
+    editor_sections=sorted((editor_saved.get('sections') or {}).keys())
+    reader_editor_progress=bool(reader_revision and record['status']=='paused'
+        and review.get('reason') in {'reader_revision_output_incomplete','reader_revision_context_budget','reader_revision_contract_invalid'}
+        and set(editor_sections)>set(root.get('reader_continuation_sections') or []))
+    adjustment=((state.get('budget_state') or {}).get('budget_adjustments') or [{}])[-1]
+    reader_budget_recovery=bool(reader_revision and record['status']=='paused'
+        and review.get('reason')=='reader_revision_context_budget'
+        and adjustment.get('authority')=='explicit_owner_budget_revision'
+        and adjustment.get('execution_id')==str(record['execution_id'])
+        and adjustment.get('previous_stop_reason')=='reader_revision_context_budget'
+        and int(adjustment.get('revision') or 0)>int(root.get('reader_budget_revision') or 0)
+        and int((adjustment.get('limits') or {}).get('max_total_tokens') or 0)>
+            int((adjustment.get('previous_limits') or {}).get('max_total_tokens') or 0))
+    reader_transport_recovery=bool(reader_revision and record['status']=='failed'
+        and (review.get('workflow_failure') or {}).get('execution_id')==str(record['execution_id'])
+        and (review.get('workflow_failure') or {}).get('error_type') in {'APIConnectionError','APITimeoutError','RemoteProtocolError'}
+        and root.get('reader_revision_mode') and not root.get('reader_transport_recovery'))
+    checkpoint_failure=review.get('workflow_failure') or {}
+    reader_checkpoint_frontier=input_identity(editor_candidate)
+    reader_checkpoint_recovery=bool(reader_revision and record['status']=='failed'
+        and root.get('reader_revision_mode')
+        and checkpoint_failure.get('execution_id')==str(record['execution_id'])
+        and checkpoint_failure.get('error_type')=='RuntimeError'
+        and checkpoint_failure.get('message')=='report_candidate_checkpoint_unavailable'
+        and editor_candidate.get('execution_id')==str(record['execution_id'])
+        and editor_candidate.get('raw_model_response') and editor_saved.get('binding')
+        and str(editor_candidate.get('stage','')).startswith('structural_revision_section_response:')
+        and reader_checkpoint_frontier!=root.get('reader_checkpoint_frontier'))
+    if reader_transport_recovery or reader_checkpoint_recovery:
+        state.update(status='paused',runtime_status='report_paused')
+        review.update(reason='final_report_needs_revision',report_payload_kind='report',
+            report_binding=report_binding(state))
+    if (reader_revision and record['status']=='paused'
+            and review.get('reason') in {'reader_revision_requires_section_partition','audit_resume_report_changed'}):
+        async with pool.acquire() as conn:
+            dispatched=await conn.fetchval('''SELECT EXISTS(SELECT 1 FROM research_model_receipts
+                WHERE session_id=$1::uuid AND owner_id=$2::uuid AND execution_id=$3::uuid)''',
+                session_id,principal.id,record['execution_id'])
+        reader_partition_recovery=not dispatched
+    if explicit_refinement:
         audit=review.get('final_report_audit') or {}
-        recoverable=(record['status']=='completed' and state.get('status')=='completed'
-            and review.get('report_binding')==report_binding(state) and bool(state.get('final_report'))
+        recoverable=(interrupted_refinement or record['status']=='completed' and state.get('status')=='completed'
+            and review.get('report_binding')==report_binding(state)
+            and not audit.get('needs_review',True) and not audit.get('audit_incomplete')) and (
+            refinement.expected_execution_id==str(record['execution_id'])
+            and bool(state.get('final_report'))
+            and bool(module_report.get('raw_model_response')) and bool(module_report.get('reading_structure'))
+            and workflow.get('status')=='completed' and bool(state.get('analysis')))
+    elif delivery_resume:
+        audit=review.get('final_report_audit') or {}
+        recoverable=((record['status']=='completed' and state.get('status')=='completed'
+                and (state.get('organization_result') or {}).get('source_media',{}).get('status')=='no_located_pages')
+            or source_page_recovery and (state.get('status')=='paused' or source_page_interrupted)) and (
+            review.get('report_binding')==report_binding(state) and bool(state.get('final_report'))
             and audit and not audit.get('needs_review',True) and not audit.get('audit_incomplete')
-            and not audit.get('budget_incomplete') and workflow.get('status')=='completed'
-            and (state.get('organization_result') or {}).get('source_media',{}).get('status')=='no_located_pages')
+            and not audit.get('budget_incomplete') and workflow.get('status')=='completed')
     elif reader_revision or supported_finalization:
-        recoverable=(record['status']=='paused' and state.get('status')=='paused'
-            and state.get('runtime_status')=='report_paused' and review.get('reason')=='final_report_needs_revision'
+        recoverable=((record['status']=='paused' or reader_transport_recovery or reader_checkpoint_recovery) and state.get('status')=='paused'
+            and state.get('runtime_status')=='report_paused' and review.get('reason') in (
+                {'final_report_needs_revision','reader_quality_needs_revision',
+                    *({'reader_quality_incomplete'} if reader_review_format_recovery else set()),
+                    *({'reader_revision_requires_section_partition','audit_resume_report_changed'} if reader_partition_recovery else set()),
+                    *({'reader_revision_context_budget'} if reader_budget_recovery or reader_note_recovery else set()),
+                    *({'reader_revision_output_incomplete','reader_revision_context_budget','reader_revision_contract_invalid'} if reader_editor_progress else set()),
+                    *({'reader_revision_contract_invalid','reader_revision_output_incomplete'} if reader_section_recovery else set())}
+                if reader_revision else {'final_report_needs_revision'})
             and review.get('report_binding')==report_binding(state) and bool(state.get('final_report'))
             and bool(module_report.get('raw_model_response')) and bool(module_report.get('reading_structure'))
             and not (review.get('final_report_audit') or {}).get('audit_incomplete')
             and workflow.get('status')=='completed' and bool(state.get('analysis')))
     elif audit_resume:
         audit=review.get('final_report_audit') or {}
+        quality_incomplete=(review.get('reason')=='reader_quality_incomplete'
+            and (audit.get('reader_quality') or {}).get('status')=='incomplete'
+            and not audit.get('needs_review',True))
+        surface_incomplete=(review.get('reason') in {'report_surfaces_need_revision','drawing_requires_reviewed_data'}
+            and module_report.get('surface_review_policy')=='adrs-report-surfaces-v1'
+            and bool(audit.get('surface_review')) and not audit.get('needs_review',True))
         recoverable=(record['status']=='paused' and state.get('status')=='paused'
-            and state.get('runtime_status')=='report_paused' and review.get('output_stage')=='report'
-            and review.get('report_payload_kind')=='report' and review.get('reason')=='final_audit_incomplete'
-            and review.get('report_binding')==report_binding(state) and bool(audit.get('audit_incomplete'))
+            and (state.get('runtime_status')=='report_paused'
+                or audit_pending_recovery and state.get('runtime_status')=='budget_exhausted')
+            and review.get('output_stage')=='report'
+            and review.get('report_payload_kind')=='report'
+            and (reader_impact_recovery or audit_pending_recovery or audit_unit_recovery or proposal_review_recovery or reader_packet_recovery or quality_contract_recovery or quality_incomplete or surface_incomplete or review.get('reason')=='final_audit_incomplete' and bool(audit.get('audit_incomplete')))
+            and review.get('report_binding')==report_binding(state)
             and not (review.get('disclosure') or {}).get('requires_reaudit')
             and bool(state.get('final_report')) and bool(module_report.get('reading_structure'))
             and workflow.get('status')=='completed' and bool(state.get('analysis')))
     elif report_resume:
-        recoverable=legacy_report_repair or (record['status'] in {'failed','paused'} and state.get('status')==record['status']
+        recoverable=(bool(candidate or section_candidates) and record['status'] in {'failed','paused'}
+            and state.get('status')==record['status'] and workflow.get('status')=='completed'
+            and bool(state.get('analysis'))) or legacy_report_repair or (record['status'] in {'failed','paused'} and state.get('status')==record['status']
             and state.get('runtime_status') in {'retryable_failed','report_paused'}
             and review.get('output_stage')=='report' and review.get('report_payload_kind')=='partial_response'
             and review.get('report_binding')==report_binding(state)
@@ -2164,6 +2656,35 @@ async def _resume_retained_synthesis(session_id, background_tasks, principal, *,
             and state.get('runtime_status')=='analysis_paused' and workflow.get('status')=='paused'
             and isinstance(phase,str)
             and reason in {'analysis_output_incomplete','analysis_provider_unavailable','model_output_limit','insufficient_context_budget','analysis_checkpoint_unavailable'})
+        failure=review.get('workflow_failure') or {}
+        selection=(workflow.get('completed') or {}).get(phase) or {}
+        # Older complete-handoff code validated a full reading plan after the
+        # phase checkpoint, although its seed packer had omitted work IDs.
+        # Restore only this evidenced contract failure; source/budget/binding
+        # checks below still apply, and the analyst invalidates just that phase.
+        retained_selection_failure=(record['status']=='failed' and state.get('status')=='failed'
+            and (state.get('organization_research') or {}).get('research_handoff_policy')=='adrs-complete-evidence-handoff-v2'
+            and failure.get('execution_id')==str(record['execution_id'])
+            and failure.get('error_type')=='ValueError' and failure.get('message')=='reading_plan_incomplete'
+            and phase in {'question:landscape','question:reading_selection'}
+            and bool(((selection.get('context') or {}).get('publication_seed') or {}).get('omitted_output_ids'))
+            and isinstance((selection.get('organization_data') or {}).get('reading_plan'),list))
+        recoverable=recoverable or retained_selection_failure
+        coverage_repair=False
+        if (record['status']=='paused' and state.get('status')=='paused'
+                and state.get('runtime_status')=='report_paused' and workflow.get('status')=='completed'
+                and (state.get('organization_research') or {}).get('research_handoff_policy')=='adrs-complete-evidence-handoff-v2'
+                and not root.get('retained_identity_coverage_repair')):
+            from app.research_context import identity_batches
+            batches=identity_batches([deserialize_evidence(item) for item in state.get('collected_evidence',[])],
+                acquired_only=True,configuration=state['organization_research'])
+            missing=[{'phase_id':f'extract_publications:{index+1}','evidence_ids':ids}
+                for index,ids in enumerate(batches) if ids and f'extract_publications:{index+1}' not in workflow.get('completed',{})]
+            if missing:
+                coverage_repair=True
+                root['retained_identity_coverage_repair']={'missing_batches':missing,
+                    'reason':'acquired_article_omitted_from_identity_reading','new_acquisition':False}
+        recoverable=recoverable or coverage_repair
         failures=(workflow.get('failed_attempts') or {}).get(phase) or []
         if failures and (failures[-1].get('admission') or {}).get('reason')=='no_acquired_source_fits':
             from app.research_context import retained_revision_handoff
@@ -2181,15 +2702,49 @@ async def _resume_retained_synthesis(session_id, background_tasks, principal, *,
     retained_contract=bool(report_resume and review.get('last_error_category')=='report_contract_invalid'
         and isinstance(module_report.get('raw_model_response'),str) and module_report['raw_model_response'].strip()
         and not module_report.get('validation_errors') and module_report.get('reading_structure'))
-    if report_resume and int(root.get('report_resume_attempts') or 0)>=(2 if retained_contract else 1):
+    serialization_recovery=(report_resume and bool(section_candidates)
+        and review.get('reason')=='section_writing_inputs_changed'
+        and any(not (item.get('report_context') or {}).get('section_binding_version')
+            for item in section_candidates.values()))
+    if serialization_recovery:
+        async with pool.acquire() as conn:
+            dispatched=await conn.fetchval('''SELECT EXISTS(SELECT 1 FROM research_model_receipts
+                WHERE session_id=$1::uuid AND owner_id=$2::uuid AND execution_id=$3::uuid)''',
+                session_id,principal.id,record['execution_id'])
+        serialization_recovery=not dispatched
+    section_continuation=(report_resume and bool(section_candidates) and review.get('reason') in {
+        'section_evidence_bundle_exceeds_context','section_repair_original_allowance_insufficient',
+        'section_writing_original_allowance_insufficient'})
+    report_resume_limit=4 if section_continuation else 2 if retained_contract or serialization_recovery else 1
+    if section_continuation and (state.get('budget_state') or {}).get('budget_policy_version')==4:
+        from app.recovery_policy import ROOT_RECOVERY_LIMIT
+        report_resume_limit=max(0,ROOT_RECOVERY_LIMIT-int(root.get('automatic_recovery_attempts') or 0))
+    # Explicit owner continuation of newly saved work is not an automatic
+    # retry. Each protected section frontier may be resumed only once. Existing
+    # receipts, attempt history, source bindings and deadline remain intact.
+    progress_frontier=None
+    if section_continuation or retained_contract:
+        from app.query_understanding import identity
+        current_sections=sorted(section_candidates)
+        previous=root.get('report_continuation_sections') or []
+        if set(current_sections)>set(previous):
+            progress_frontier=identity(current_sections)
+        if retained_contract and not progress_frontier:
+            history=module_report.get('repair_history') or []
+            previous_issues=root.get('report_continuation_contract_issues')
+            if previous_issues is None and history:
+                previous_issues=len(history[0].get('issues') or [])
+            if previous_issues is not None and len(module_report.get('issues') or [])<previous_issues:
+                progress_frontier=identity({'contract':module_report['raw_model_response']})
+    if report_resume and int(root.get('report_resume_attempts') or 0)>=report_resume_limit and not progress_frontier:
         raise HTTPException(409,'report_resume_attempt_limit')
-    if reader_revision and int(root.get('reader_revision_attempts') or 0)>=1:
+    if reader_revision and int(root.get('reader_revision_attempts') or 0)>=1 and not (explicit_refinement or reader_partition_recovery or reader_transport_recovery or reader_checkpoint_recovery or reader_budget_recovery or reader_section_recovery or reader_editor_progress or reader_correction_recovery or reader_claim_contract_recovery or reader_claim_progress or reader_note_recovery):
         raise HTTPException(409,'reader_revision_attempt_limit')
     if supported_finalization and int(root.get('supported_finalization_attempts') or 0)>=1:
         raise HTTPException(409,'supported_finalization_attempt_limit')
-    if delivery_resume and int(root.get('delivery_resume_attempts') or 0)>=1:
+    if delivery_resume and not source_page_recovery and int(root.get('delivery_resume_attempts') or 0)>=1:
         raise HTTPException(409,'delivery_resume_attempt_limit')
-    if audit_resume and not (reader_revision or supported_finalization or delivery_resume) and int(root.get('audit_resume_attempts') or 0)>=1:
+    if audit_resume and not (reader_revision or supported_finalization or delivery_resume or audit_mode_recovery or audit_pending_recovery or proposal_review_recovery or quality_resume or surface_resume or audit_unit_recovery) and int(root.get('audit_resume_attempts') or 0)>=1:
         raise HTTPException(409,'audit_resume_attempt_limit')
     if not report_stage and int((workflow.get('attempts') or {}).get(phase,0))>=10:
         raise HTTPException(409,'analysis_phase_attempt_limit')
@@ -2260,6 +2815,11 @@ async def _resume_retained_synthesis(session_id, background_tasks, principal, *,
     state.update(status='running',runtime_status='running',budget_state=budget)
     state['review_status']={**(state.get('review_status') or {}),'blocked':False,'reason':None,
         'last_error_category':None,'runtime_status':'running','budget_state':budget}
+    old_failure=state['review_status'].pop('workflow_failure',None)
+    state['review_status'].pop('automatic_recovery_blocked',None)
+    if old_failure:
+        state['review_status']['prior_workflow_failures']=[
+            *(state['review_status'].get('prior_workflow_failures') or []),old_failure][-8:]
     execution_id=str(uuid.uuid4())
     from app.planning_control import rebind_checkpoint_plan,PlanningError
     try:rebind_checkpoint_plan(state,execution_id,record['execution_id'])
@@ -2267,14 +2827,87 @@ async def _resume_retained_synthesis(session_id, background_tasks, principal, *,
     state['review_status'].update(plan_manifest=state.get('plan_manifest'),plan_history=state.get('plan_history'))
     state['session']={**root,'status':'running','execution_id':execution_id}
     state['session']['audit_resume_mode']=audit_resume
+    state['session']['audit_unit_resume_mode']=audit_unit_recovery
+    if audit_resume:
+        state['session'].pop('report_candidate_resume',None)
+        state['session'].pop('report_contract_resume',None)
     state['session']['reader_revision_mode']=reader_revision
+    if explicit_refinement:
+        findings=state['organization_result']
+        findings.setdefault('editorial_history',[]).append({
+            'execution_id':str(record['execution_id']),'report':state['final_report'],
+            'module_report':deepcopy(module_report),'audit':deepcopy(review.get('final_report_audit'))})
+        if interrupted_refinement:
+            # The complete source-bound candidate was committed before its
+            # worker died. Reuse its content, never approve the unfinished audit.
+            module_report=deepcopy(refinement_candidate['module_report'])
+            findings['module_report']=module_report
+            state['final_report']=refinement_candidate['content']
+            state['citations']=deepcopy(refinement_candidate['citations'])
+        findings['editorial_request']={'feedback':refinement.feedback,
+            'mode':refinement.mode,
+            'source_execution_id':str(record['execution_id']),
+            'source_report_identity':report_identity(state['final_report']),
+            'authority':'explicit_owner_refinement','policy':'adrs-section-editor-v3'}
+        for key in ('report_editor_sections','report_candidate'):
+            findings.pop(key,None)
     state['session']['supported_finalization_mode']=supported_finalization
     if supported_finalization:state['session']['supported_finalization_attempts']=int(root.get('supported_finalization_attempts') or 0)+1
     if delivery_resume:state['session']['delivery_resume_attempts']=int(root.get('delivery_resume_attempts') or 0)+1
+    if source_page_recovery:state['session']['source_page_resume_frontier']=source_page_frontier
+    if source_page_interrupted:
+        state['session']['source_page_interruption_attempts']=int(root.get('source_page_interruption_attempts') or 0)+1
+    if source_context_recovery:
+        state['session'].update(source_page_context_contract=REPORT_CONTEXT_CONTRACT,
+            source_page_context_finalization=True)
     if reader_revision:state['session']['reader_revision_attempts']=int(root.get('reader_revision_attempts') or 0)+1
+    if reader_transport_recovery:state['session']['reader_transport_recovery']=True
+    if reader_checkpoint_recovery:state['session']['reader_checkpoint_frontier']=reader_checkpoint_frontier
+    if reader_budget_recovery:state['session']['reader_budget_revision']=adjustment['revision']
+    if reader_section_recovery:state['session']['reader_section_frontier']=reader_section_frontier
+    if reader_unit_recovery:state['session']['reader_delete_contract']=READER_DELETE_CONTRACT
+    if reader_audit_edit_recovery:state['session']['reader_audit_edit_contract']=READER_AUDIT_EDIT_CONTRACT
+    if reader_editor_progress:state['session']['reader_continuation_sections']=editor_sections
+    if reader_correction_recovery:state['session']['reader_correction_frontier']=correction_frontier
+    if quality_resume and quality.get('binding'):state['session']['reader_quality_resume_binding']=quality['binding']
+    if reader_packet_recovery:state['session']['reader_review_packet_contract']=PACKET_CONTRACT
+    if reader_impact_recovery:state['session']['reader_impact_frontier']=reader_impact_frontier
+    if quality_contract_recovery:state['session']['reader_quality_contract_resume']=REVIEW_CONTRACT
+    state['session']['proposal_review_mode']=proposal_review_recovery
+    state['session']['audit_pending_compaction']=audit_pending_recovery
+    if audit_pending_recovery:state['session']['audit_pending_frontier']=audit_pending_frontier
+    if proposal_review_recovery:state['session']['proposal_review_contract']=PROPOSAL_REVIEW_CONTRACT
+    if surface_resume:state['session']['surface_resume_binding']=surface['binding']
+    if audit_unit_recovery:state['session']['audit_unit_frontier']=audit_unit_frontier
+    if reader_claim_progress:
+        state['session']['reader_claim_frontier']=reader_claim_frontier
+        state['session']['reader_claim_remaining']=repair_rounds[-1]['after']
+    if reader_claim_contract_recovery:
+        state['session']['reader_claim_edit_contract']=CLAIM_EDIT_CONTRACT
+        state['session']['reader_claim_remaining']=sum(row.get('verification_required',True) and row.get('status')!='supported'
+            for row in (review.get('final_report_audit') or {}).get('claims',[]))
+    if clause_format_recovery:state['session']['reader_clause_format_recovery']=True
+    if explicit_refinement or reader_note_recovery:state['session'].pop('reader_claim_remaining',None)
+    if reader_note_recovery:state['session']['reader_note_binding']=quality['binding']
     if report_resume:
         state['session']['report_resume_attempts']=int(root.get('report_resume_attempts') or 0)+1
+        if progress_frontier:
+            state['session']['report_continuation_sections']=sorted(section_candidates)
+            state['session']['report_continuation_frontier']=progress_frontier
+            if retained_contract:
+                state['session']['report_continuation_contract_issues']=len(module_report.get('issues') or [])
         state['session']['report_contract_resume']=retained_contract
+        state['session']['report_candidate_resume']=bool(candidate or section_candidates)
+        if section_candidates:
+            state['organization_result']['report_section_drafts']={key:{**value,'binding':report_binding(state),
+                'execution_id':execution_id,'resumed_from_execution_id':value.get('execution_id')}
+                for key,value in section_candidates.items()}
+        if candidate:
+            # Rebind only after all existing owner, source, allowance and route
+            # checks. The transaction below fences the old checkpoint/execution.
+            candidate={**candidate,'binding':report_binding(state),'execution_id':execution_id,
+                'resumed_from_execution_id':candidate.get('execution_id')}
+            state['organization_result']['report_candidate_draft']=candidate
         state['review_status']['report_resume_attempts']=state['session']['report_resume_attempts']
     if audit_resume and not (reader_revision or supported_finalization or delivery_resume):
         state['session']['audit_resume_attempts']=int(root.get('audit_resume_attempts') or 0)+1
@@ -2286,6 +2919,11 @@ async def _resume_retained_synthesis(session_id, background_tasks, principal, *,
         if (not locked or locked['status']!=record['status'] or locked['execution_id']!=record['execution_id']
                 or locked['checkpoint_seq']!=record['checkpoint_seq']):
             raise HTTPException(409,f'{stage}_checkpoint_changed')
+        if source_page_interrupted and not source_context_recovery:
+            if await conn.fetchval('''SELECT EXISTS(SELECT 1 FROM research_model_receipts
+                    WHERE session_id=$1::uuid AND owner_id=$2::uuid AND execution_id=$3::uuid)''',
+                    session_id,principal.id,record['execution_id']):
+                raise HTTPException(409,'delivery_receipts_changed')
         await conn.execute('''UPDATE research_sessions SET status='running',execution_id=$3::uuid,
             review_status=$4::jsonb,completed_at=NULL,updated_at=NOW()
             WHERE id=$1::uuid AND owner_id=$2::uuid''',session_id,principal.id,execution_id,dumps_json(state['review_status']))

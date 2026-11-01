@@ -106,6 +106,8 @@ def build_delivery_view(*, task_id: str, execution_id: str | None, query: str, r
     frozen = (understanding or {}).get('delivery') or {}
     template, theme = frozen.get('template', 'markdown-v1'), frozen.get('theme', 'plain-v1')
     result = organization_result or {}
+    from app.report_quality import reader_quality_satisfied
+    reader_quality_ok=reader_quality_satisfied(result.get('module_report'),audit)
     summary = result.get('report_summary') or {}
     statistics = result.get('statistics') or summary.get('statistics') or {}
     relationships = result.get('relationship_view') or summary.get('relationships') or {}
@@ -149,14 +151,20 @@ def build_delivery_view(*, task_id: str, execution_id: str | None, query: str, r
     fields = [('problem', '问题'), ('mechanism', '机制'), ('conditions', '实验条件'), ('results', '来源结果')]
     for card in (result.get('technical_reading') or {}).get('cards', [])[:20]:
         values, refs = [card.get('title') or card.get('output_id', '')], []
+        cell_refs={}
         for key, _ in fields:
-            field = (card.get('fields') or {}).get(key) or {}
-            field_refs=[evidence_citations[p['evidence_id']] for p in field.get('proofs', [])
+            source_fields=card.get('fields') or {}
+            members=[source_fields.get(name) or {} for name in
+                (('conditions','experimental_design','baselines') if key=='conditions' else (key,))]
+            members=[field for field in members if field.get('text') and field.get('proofs')]
+            field_refs=[evidence_citations[p['evidence_id']] for field in members for p in field.get('proofs', [])
                 if p.get('evidence_id') in evidence_citations]
-            values.append(field.get('text') if field_refs and field.get('text') else '—')
+            values.append('\n'.join(dict.fromkeys(field['text'] for field in members)) if field_refs else '—')
+            cell_refs[str(len(values)-1)]=list(dict.fromkeys(field_refs))
             refs.extend(field_refs)
         if refs and any(value != '—' for value in values[1:]):
-            technical_rows.append({'values': values, 'citation_ids': list(dict.fromkeys(refs))})
+            technical_rows.append({'values': values, 'citation_ids': list(dict.fromkeys(refs)),
+                'cell_citation_ids':cell_refs})
     if len(technical_rows)>1:
         charts.append({'chart_id': 'technical_comparison', 'title': '问题、机制与实验条件对照',
             'module': 'deep_dive', 'kind': 'table', 'unit_label': '来源中的技术说明',
@@ -222,6 +230,21 @@ def build_delivery_view(*, task_id: str, execution_id: str | None, query: str, r
             'total_points': len(domains), 'truncated': len(domains) > 200,
             'citation_ids': sorted(available_citations), 'source_binding': 'retained_citation_ids',
             'note': '按参考资料所属域名统计引用条目。'})
+    corrections=result.get('surface_corrections') or {}
+    if corrections:
+        from app.report_surface_review import surface_binding
+        if corrections.get('base_binding')==surface_binding(charts,None):
+            by_chart={row['chart_id']:row for row in charts}
+            for correction in corrections.get('cells',[]):
+                parts=correction['cell_id'].rsplit(':',2)
+                if len(parts)!=3 or not parts[1].isdigit() or not parts[2].isdigit():continue
+                chart=by_chart.get(parts[0]);row_index,column=int(parts[1]),int(parts[2])
+                if (chart and chart.get('kind') in {'table','matrix'} and row_index<len(chart.get('rows',[]))
+                        and 0<column<len(chart['rows'][row_index]['values'])):
+                    chart['rows'][row_index]['values'][column]=correction['text']
+    if result.get('delivery_target')=='main_and_appendix_pdf':
+        from app.report_pdf import printed_charts
+        charts=printed_charts(charts)
     selected_modules = ((understanding or {}).get('slots') or {}).get('modules') or []
     if template == 'custom':
         specs = frozen.get('pages') or []
@@ -260,6 +283,14 @@ def build_delivery_view(*, task_id: str, execution_id: str | None, query: str, r
             gaps.append('尚无与自定义页面标题精确对应的回答；模块片段仅供参考，未证明已回答本页问题。')
         applicable = [chart for chart in charts if chart.get('module') == module] if module else []
         requested_kind = spec.get('chart_kind', 'auto')
+        if ((result.get('module_report') or {}).get('reader_quality_policy')=='adrs-reader-quality-v1'
+                and requested_kind=='auto' and template!='custom' and frozen.get('layout') is None):
+            report_module=next((row for row in (result.get('module_report') or {}).get('modules',[])
+                if row.get('module_id')==module),{})
+            used_metrics={binding['metric_id'] for paragraph in [*report_module.get('paragraphs',[]),
+                *report_module.get('appendix',[])] for binding in paragraph.get('statistic_bindings',[])}
+            applicable=[chart for chart in applicable if chart['kind'] in {'table','matrix','network'}
+                or used_metrics.intersection(chart.get('metric_ids',[]))]
         chosen = []
         if requested_kind != 'none':
             if requested_kind in ('auto', 'table'):
@@ -271,7 +302,7 @@ def build_delivery_view(*, task_id: str, execution_id: str | None, query: str, r
                 chosen = [chart for chart in applicable if chart['kind'] == 'network']
             else:
                 gaps.append('此图型尚无内置适配器；请明确改选表格、条形、折线或关系图。')
-            if not chosen:
+            if not chosen and (requested_kind!='auto' or template=='custom'):
                 gaps.append('本页没有匹配图型的可追溯数据，不从正文猜测数值或生成装饰图。')
         chart_refs = []
         for chart in chosen:
@@ -332,8 +363,14 @@ def build_delivery_view(*, task_id: str, execution_id: str | None, query: str, r
             for chart in charts:
                 matches=[item for item in assets if item.get('source_chart_id')==chart['chart_id']]
                 if matches:chart['rendered_assets']=deepcopy(matches)
+    surface_ok=True
+    if (result.get('module_report') or {}).get('surface_review_policy')=='adrs-report-surfaces-v1':
+        from app.report_surface_review import surface_binding
+        surface_review=(audit or {}).get('surface_review') or {}
+        surface_ok=(surface_review.get('passed') is True and surface_review.get('binding')==
+            surface_binding(charts,source_media if source_media is not None else result.get('source_media')))
     view = {'schema_version': VERSION, 'task_id': task_id, 'execution_id': execution_id,
-        'delivery_complete': not bool((result.get('module_report') or {}).get('issues'))
+        'delivery_complete': surface_ok and reader_quality_ok and not bool((result.get('module_report') or {}).get('issues'))
             and drawing['status'] in {'ready','rendered','not_needed'}
             and not (layout_binding and layout_binding['required_missing'])
             and bool(audit) and not audit.get('needs_review',True) and not audit.get('audit_incomplete',False),
@@ -344,7 +381,7 @@ def build_delivery_view(*, task_id: str, execution_id: str | None, query: str, r
             if re.search(r'^#\s+(.+)$', report, re.M) else query[:180]),
         'question':query, 'report_markdown': reader_report,
         'main_report_markdown': main_report, 'appendix_markdown': appendix_report,
-        'review_status':'draft_needs_review' if not audit or audit.get('needs_review',True) else 'automatic_review_completed_human_review_pending',
+        'review_status':'draft_needs_review' if not surface_ok or not reader_quality_ok or not audit or audit.get('needs_review',True) else 'automatic_review_completed_human_review_pending',
         'pages': pages, 'charts': charts, 'drawing': drawing,
         'source_media':deepcopy(source_media or {'status':'not_loaded','pages':[]}),
         **({'layout_binding':layout_binding} if layout_binding is not None else {}),
@@ -353,10 +390,10 @@ def build_delivery_view(*, task_id: str, execution_id: str | None, query: str, r
             [('relationships', 'relationship_view'), ('deep_dive', 'technical_reading'), ('evolution', 'trend_view'), ('actions', 'actions')]},
         'gaps': list(dict.fromkeys(str(gap) for gap in [*(summary.get('gaps') or []), *(result.get('gaps') or []),
             *(['未保存正文来源支持审核，不能把已生成报告标为已核实。'] if not audit else [])])),
-        'formats': [{'format': name, 'status': 'ready' if name in {'markdown', 'html', 'json'} else
-            'browser_print' if name == 'pdf' else 'adapter_unavailable',
+        'formats': [{'format': name, 'status': 'ready' if name in {'markdown', 'html', 'json','pdf'} else
+            'adapter_unavailable',
             'alternative': 'browser_print_to_pdf' if name == 'pdf' else None,
-            'presentation': 'static_print_from_same_report' if name == 'pdf' else
+            'presentation': 'server_pdf_from_same_reviewed_report' if name == 'pdf' else
                 'standalone_interactive' if name == 'html' else 'source_text' if name == 'markdown' else
                 'structured_data' if name == 'json' else None} for name in formats],
         'full_report_available': True, 'effects': {'model_calls': 0, 'network_calls': 0, 'permissions_changed': False}}

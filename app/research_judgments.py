@@ -42,6 +42,7 @@ class Judgment(ScopeRecord):
     entity_ids:tuple[Identifier,...]=Field(default=(),max_length=12)
     alternatives:tuple[Alternative,...]=Field(default=(),max_length=3)
     choice:Choice|None=None
+    supersedes:tuple[Identifier,...]=Field(default=(),max_length=12)
 
 
 def freeze_strategy(query, configuration, slots):
@@ -173,6 +174,26 @@ def bounded_records(records,max_bytes):
     return selected,omitted
 
 
+def reconcile_judgments(current,incoming,*,allow_supersession=False):
+    """Only located replacement judgments may retire known prior candidates."""
+    active=list(current);retired=[];pending=[]
+    for item in incoming:
+        replaced=set(item.get('supersedes') or [])
+        known={row['judgment_id'] for row in active}
+        if replaced and (not allow_supersession or not replaced<=known):
+            pending.append({'reason':'judgment_supersession_not_in_current_synthesis',
+                'judgment_id':item['judgment_id'],'supersedes':sorted(replaced)})
+            continue
+        if item['judgment_id'] in known:
+            pending.append({'reason':'judgment_repeated_identity','judgment_id':item['judgment_id']})
+            continue
+        retired.extend({**row,'status':'superseded','superseded_by':item['judgment_id']}
+            for row in active if row['judgment_id'] in replaced)
+        active=[row for row in active if row['judgment_id'] not in replaced]
+        active.append(item)
+    return active,retired,pending
+
+
 def judgment_context(view,max_bytes=8000,*,evidence=None):
     rows=(view or {}).get('records',[])
     if evidence is not None:
@@ -189,7 +210,49 @@ def judgment_context(view,max_bytes=8000,*,evidence=None):
         'semantics':'analysis_candidates_original_sources_and_final_audit_remain_required'}
 
 
-def stage_handoff(technical,judgments,max_bytes,*,prior_records=None):
+def stage_handoff(technical,judgments,max_bytes,*,prior_records=None,complete_records=False,evidence=None):
+    if complete_records:
+        # A result never travels without the conditions and comparison that
+        # qualify it. Quotes remain in authoritative evidence, linked by span.
+        bundles=[]
+        originals={item.evidence_id:item.content for item in evidence or []}
+        for output_id,card in technical.items():
+            fields={};proofs=[]
+            for field,statement in card.get('fields',{}).items():
+                if not isinstance(statement,dict) or not statement.get('text'):continue
+                pointers=[]
+                for proof in statement.get('proofs',[]):
+                    compact={key:proof[key] for key in ('evidence_id','start','end','quote') if key in proof}
+                    text=originals.get(proof.get('evidence_id'));quote=proof.get('quote')
+                    if text is not None and isinstance(quote,str) and quote:
+                        match=re.search(r'\s+'.join(re.escape(part) for part in quote.split()),text,re.I)
+                        if match:
+                            compact={'evidence_id':proof['evidence_id'],'start':match.start(),'end':match.end()}
+                    found=next((index for index,item in enumerate(proofs)
+                        if {key:value for key,value in item.items() if key!='proof_id'}==compact),None)
+                    if found is None:
+                        found=len(proofs)
+                        proofs.append({**compact,'proof_id':f'{output_id}:proof:{found+1}'})
+                    pointers.append(proofs[found]['proof_id'])
+                fields[field]={'text':statement['text'],'proof_ids':list(dict.fromkeys(pointers))}
+            if fields:bundles.append({'kind':'technical_evidence_bundle','output_id':output_id,
+                'fields':fields,'proofs':proofs,'field':'complete_technical_record',
+                'semantic_status':'candidate_requires_source_review'})
+        candidates=[{'kind':'judgment_candidate',**{key:item[key] for key in
+            ('judgment_id','question','conclusion','reasoning','significance','alternatives','choice','related_output_ids') if key in item},
+            'basis':[{key:proof[key] for key in ('evidence_id','start','end') if key in proof}
+                for proof in item.get('basis',[])]} for item in reversed(judgments)]
+        # Rotate record types, preventing a run of old judgments from consuming
+        # all room before any technical evidence can be handed forward.
+        queues=[bundles,list(prior_records or []),candidates];ordered=[]
+        while any(queues):
+            for queue in queues:
+                if queue:ordered.append(queue.pop(0))
+        selected,omitted=bounded_records(ordered,max_bytes)
+        return {'records':selected,'omitted_record_ids':omitted,
+            'complete_record_policy':'indivisible_technical_fields',
+            'proof_reference_contract':'field proof_ids refer to the same bundle proofs; positions locate current original evidence',
+            'semantics':'candidates_not_facts_omission_is_not_absence'}
     rows=[]
     for item in reversed(judgments):
         rows.append({'kind':'judgment_candidate',**{key:item[key] for key in
@@ -210,7 +273,7 @@ def handoff_spans(handoff,evidence):
     sources={item.evidence_id:item for item in evidence};spans={}
     for record in (handoff or {}).get('records',[]):
         proofs=record.get('basis') or record.get('proofs') or []
-        for proof in proofs[:4]:
+        for proof in proofs if record.get('kind')=='technical_evidence_bundle' else proofs[:4]:
             source=sources.get(proof.get('evidence_id')) if isinstance(proof,dict) else None
             quote=proof.get('quote') if isinstance(proof,dict) else None
             if source is not None and quote is None and type(proof.get('start')) is int and type(proof.get('end')) is int:
@@ -220,5 +283,6 @@ def handoff_spans(handoff,evidence):
             match=re.search(r'\s+'.join(re.escape(part) for part in quote.split()),source.content,re.I)
             if match:
                 current=spans.setdefault(source.evidence_id,[])
-                if len(current)<8:current.append((record.get('field','prior_judgment'),match.start(),match.end()))
+                limit=32 if record.get('kind')=='technical_evidence_bundle' else 8
+                if len(current)<limit:current.append((record.get('field','prior_judgment'),match.start(),match.end()))
     return spans

@@ -6,6 +6,7 @@ from datetime import UTC, datetime
 from math import ceil
 import re
 from uuid import UUID
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -17,12 +18,19 @@ class ResearchLimits(BaseModel):
     max_wall_clock_seconds: int = Field(ge=60, le=21600, strict=True)
 
 
+class ContinuedResearchLimits(ResearchLimits):
+    """Explicit owner grants may extend a retained task beyond initial presets."""
+    max_total_tokens: int = Field(ge=4000, le=20_000_000, strict=True)
+    max_wall_clock_seconds: int = Field(ge=60, le=604800, strict=True)
+
+
 class BudgetRevision(BaseModel):
     model_config = ConfigDict(extra='forbid')
-    limits: ResearchLimits
+    limits: ContinuedResearchLimits
     expected_revision: int = Field(ge=0, strict=True)
     execution_id: UUID
     request_id: UUID
+    target_policy_version: Literal[4] | None = None
 
 
 def limits_view(budget):
@@ -95,7 +103,7 @@ def selected_budget(base, limits):
     budget=deepcopy(base)
     if limits is None:return budget
     values=limits.model_dump() if isinstance(limits,ResearchLimits) else ResearchLimits.model_validate(limits).model_dump()
-    budget.update(values,budget_policy_version=3,
+    budget.update(values,budget_policy_version=base.get('budget_policy_version',3),
         audit_token_reserve=int(values['max_total_tokens']*.30),
         report_token_reserve=int(values['max_total_tokens']*.10),
         audit_seconds_reserve=min(1200,int(values['max_wall_clock_seconds']*.20)),
@@ -125,6 +133,7 @@ async def read_budget(conn, session_id, owner_id, *, locked=False):
     advice['recommended']['max_wall_clock_seconds']=min(21600,ceil(advice['recommended']['max_wall_clock_seconds']/60)*60)
     view={'session_id':str(session_id),'execution_id':str(row['execution_id']),
           'status':row['status'],'revision':int(budget.get('budget_revision') or 0),'limits':limits_view(budget),
+          'budget_policy_version':budget.get('budget_policy_version',1),
           'usage':{'tokens':int(budget.get('used_total_tokens') or 0),'tool_calls':int(budget.get('used_tool_calls') or 0),
                    'elapsed_seconds':elapsed},'advice':advice,
           'adjustments':budget.get('budget_adjustments') or []}
@@ -141,7 +150,8 @@ async def revise_budget(conn,session_id,owner_id,request):
     for event in history:
         if event['request_id']==str(request.request_id):
             if (event['limits']!=values or event['execution_id']!=str(request.execution_id)
-                    or event['previous_revision']!=request.expected_revision):
+                    or event['previous_revision']!=request.expected_revision
+                    or event.get('requested_policy_version')!=request.target_policy_version):
                 raise ValueError('budget_request_conflict')
             return {**view,'replayed':True}
     review=deepcopy(decoded(row['review_status']))
@@ -151,7 +161,8 @@ async def revise_budget(conn,session_id,owner_id,request):
         and failure.get('error_type')=='ValueError'
         and failure.get('message') in {'report_history_payload_limit','report_history_version_limit_64'}
         and state.get('final_report') and (state.get('analysis_workflow') or {}).get('status')=='completed')
-    if row['status']!='paused' or state.get('status')!='paused':
+    completed_revision=row['status']=='completed' and state.get('status')=='completed'
+    if not completed_revision and (row['status']!='paused' or state.get('status')!='paused'):
         if not storage_recovery:raise ValueError('budget_pause_required')
         saved=await conn.fetchrow('''SELECT report_id,payload FROM research_report_versions
             WHERE session_id=$1::uuid AND owner_id=$2::uuid AND payload->>'kind'='report'
@@ -174,7 +185,7 @@ async def revise_budget(conn,session_id,owner_id,request):
     if view['revision']!=request.expected_revision:raise ValueError('budget_revision_changed')
     if (budget.get('inflight_model_requests') or budget.get('reserved_inflight_tokens') or
             budget.get('reserved_inflight_tool_calls')):raise ValueError('budget_requests_inflight')
-    if view['usage']['tokens']>=2_000_000 or view['usage']['tool_calls']>256 or view['usage']['elapsed_seconds']>=21600:
+    if view['usage']['tokens']>=20_000_000 or view['usage']['tool_calls']>256 or view['usage']['elapsed_seconds']>=604800:
         raise ValueError('budget_new_research_required')
     if (values['max_total_tokens']<=view['usage']['tokens'] or values['max_tool_calls']<view['usage']['tool_calls'] or
             values['max_wall_clock_seconds']<=view['usage']['elapsed_seconds']):
@@ -182,8 +193,12 @@ async def revise_budget(conn,session_id,owner_id,request):
     event={'revision':view['revision']+1,'previous_revision':view['revision'],'request_id':str(request.request_id),
            'execution_id':str(request.execution_id),'owner_id':str(owner_id),'at':datetime.now(UTC).isoformat(),
            'previous_limits':view['limits'],'limits':values,'usage_at_revision':view['usage'],
+           'previous_policy_version':budget.get('budget_policy_version',1),
+           'requested_policy_version':request.target_policy_version,
            'previous_stop_reason':review.get('reason'),'authority':'explicit_owner_budget_revision'}
     budget=selected_budget(budget,request.limits)
+    if request.target_policy_version is not None:
+        budget['budget_policy_version']=request.target_policy_version
     budget.update(budget_revision=event['revision'],budget_adjustments=[*history,event],
                   elapsed_wall_clock_seconds=view['usage']['elapsed_seconds'])
     # New limits do not clear provider, authorization, receipt or cost guards.
@@ -199,13 +214,15 @@ async def revise_budget(conn,session_id,owner_id,request):
         review.update(reason='final_audit_incomplete',runtime_status='report_paused')
         state['runtime_status']='report_paused'
     state.update(budget_state=budget,review_status={**review,'budget_state':budget})
-    await conn.execute('''UPDATE research_sessions SET review_status=$3::jsonb,status='paused',updated_at=NOW()
-        WHERE id=$1::uuid AND owner_id=$2::uuid''',str(session_id),str(owner_id),dumps_json(state['review_status']))
+    retained_status='completed' if completed_revision else 'paused'
+    await conn.execute('''UPDATE research_sessions SET review_status=$3::jsonb,status=$4,updated_at=NOW()
+        WHERE id=$1::uuid AND owner_id=$2::uuid''',str(session_id),str(owner_id),dumps_json(state['review_status']),retained_status)
     await conn.execute('''UPDATE session_runtime_state SET state_snapshot_json=$2::jsonb,
-        runtime_status=$3,public_status='paused',checkpoint_seq=checkpoint_seq+1 WHERE session_id=$1::uuid''',
-        str(session_id),dumps_json(state),state.get('runtime_status','analysis_paused'))
+        runtime_status=$3,public_status=$4,checkpoint_seq=checkpoint_seq+1 WHERE session_id=$1::uuid''',
+        str(session_id),dumps_json(state),state.get('runtime_status','analysis_paused'),retained_status)
     await persist_receipt_budget(conn,session_id,owner_id,budget)
     await conn.execute('''UPDATE session_budget_state SET max_total_tokens=$2,max_tool_calls=$3,
         max_wall_clock_seconds=$4 WHERE session_id=$1::uuid''',str(session_id),values['max_total_tokens'],
         values['max_tool_calls'],values['max_wall_clock_seconds'])
-    return {**view,'revision':event['revision'],'limits':values,'adjustments':[*history,event],'replayed':False}
+    return {**view,'revision':event['revision'],'limits':values,'adjustments':[*history,event],'replayed':False,
+        'budget_policy_version':budget['budget_policy_version']}

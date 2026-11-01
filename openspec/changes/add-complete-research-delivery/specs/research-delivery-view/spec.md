@@ -6,6 +6,39 @@
 
 ## ADDED Requirements
 
+### Requirement: Remaining work drives resource allocation
+新根 SHALL 冻结预算策略4，依据已完成阶段、有效候选、已结算和在途消费估算剩余需求，并在原账本上限内调整阶段预留。系统 MUST NOT 因预留调整增加总额、延长根期限、退回未知消费或免除质量审核。历史根 SHALL 保持冻结策略，当前端到端根不迁移。
+
+#### Scenario: Mandatory work exceeds the forecast allowance
+- **WHEN** 剩余必需分析、写作及审核的估算需求超过可分配余额
+- **THEN** 工作台展示估算缺口和预留调整，保留成果，实际调用遵守根准入；不能以删掉重要内容或跳过审核宣称完成
+
+#### Scenario: New draft follows earlier audit
+- **WHEN** 保存的当前候选发生变化
+- **THEN** 新稿重新估算审核需求，旧稿审核不作为新稿质量批准
+
+#### Scenario: Repeated provider failure
+- **WHEN** 策略4下同一分析阶段连续两次同类服务／连接／超时失败且没有响应
+- **THEN** 系统停止自动重试、保留未知用量与阶段成果，不自行换模型或增加额度
+
+### Requirement: Reader quality controls delivery
+系统 SHALL 按 docs/research-quality-r1-r8.md 的十项读者任务判断适用内容是否完成。来源支持、模块非空、页数和图数 MUST NOT 单独决定质量通过。覆盖、章节证据、综合判断、合作卡、图表说明与最终审核 SHALL 有实际消费路径。新合同须冻结，历史任务不得静默升级。
+
+#### Scenario: Supported prose loses a required answer
+- **WHEN** 修订删除了回答关键研究问题的段落
+- **THEN** 系统保留删除记录和候选稿，重新判断覆盖，未补足前不得发布为质量合格
+
+### Requirement: Research artifacts survive editing and storage failures
+系统 SHALL 完整保存收到的候选结果后再进行审核与辅助归档；编辑允许有界结构重组，不限制固定字数或按模块清空附录。相同机构 SHALL 可保留多个有据课题，人员、公开资源、条件、首个产出和评价方式进入写作。所有恢复保持原权限、执行版本、消费和期限。
+
+#### Scenario: Archive capacity is exhausted
+- **WHEN** 完整付费候选稿已收到但历史投影容量不足
+- **THEN** 当前候选稿仍持久可恢复，归档缺口单独记录，未审核稿不成为正式交付
+
+#### Scenario: Relevant evidence is omitted from a prompt
+- **WHEN** 全文已保存但当前章节证据包装不下必要条件
+- **THEN** 按具体问题拆分或补读，不能以局部未见声明机构不存在该方向
+
 ### Requirement: Retained read failures explain the actual failed layer
 实际公开读取收据 SHALL 保留有界脱敏的后端、失败阶段、HTTP状态、超时／DNS／TLS分类及Retry-After；旧通用network／upstream_error记录 MUST NOT 被猜测补全。界面 SHALL 区分模型服务失败与尚未进入模型的取证失败。
 
@@ -434,3 +467,48 @@ hybrid规划收到原生429且结构化type／code明确为临时限流时，系
 - **WHEN** 本人失败根尚无计划、材料或分析，原生限流失败绑定当前execution且全部原接续条件满足
 - **THEN** 系统 SHALL 在原期限、消费、冻结模型与两次恢复上限内接续，记录planner_rate_limited及新执行绑定，跳过一次模型规划，保留原未知收据和失败记录
 
+
+
+### Requirement: Retained audit continuation excludes writing mode
+审核续作 MUST 清除旧写稿和候选恢复标记，直接使用绑定当前正文、引用、来源与审核合同的保存判断；不能因旧候选执行绑定阻挡审核。旧版本模式冲突导致当前执行零派发时，SHALL 只允许从本人不可变报告恢复逐字相同正文及相同引用的审核，并保留尝试历史及消费；有模型收据或资料变化必须拒绝该兼容恢复。
+
+#### Scenario: Writing was resumed before an audit budget pause
+- **WHEN** 本人提高原根额度后继续审核同一保存稿
+- **THEN** 仅未完成声明继续判断，已保存的支持／不支持结论不被直接升级，正文与图文质量门继续生效
+
+
+### Requirement: Retained-field refinement and whole-report editing
+The normal workflow SHALL reconcile saved source-located follow-up fields before composition, table generation and review. A malformed field SHALL NOT discard other valid fields. Main text and appendix SHALL undergo a whole-report editorial pass that removes semantic repetition while preserving distinct supported mechanisms, settings and results. An explicit owner refinement SHALL bind the expected execution, retain the prior report, reuse existing research, and require complete factual and reader review. A lost worker's complete candidate MAY be refined only after its exact input/source bindings and terminal lease failure are confirmed.
+
+#### Scenario: 阅读缺口需要跨章局部修订
+- WHEN 事实审核完成且只有reading缺口
+- THEN 系统 SHALL 按当前全文重新取得可执行的问题组，而非只修少数示例锚点；重复组 SHALL 列出相关位置、逐字引文与唯一保留段落
+- AND 局部编辑 SHALL 处理组内全部非保留位置，保留独有技术内容及引用数组，禁止删除保留段落；其余正文只读
+- AND 系统 SHALL 在事实复核前保存候选及已消费编辑状态，后续事实措辞修正不得丢失该状态；最终全文事实和读者审核仍为必需
+- AND 系统 SHALL 按根要求的审核策略判断交付，未知策略或策略不匹配 MUST NOT 直接视为通过
+
+#### Scenario: 阅读编辑后重新发现事实核对问题
+- WHEN 阅读修订后的完整审核发现句子缺证或原文内部冲突
+- THEN 系统 SHALL 限定DS纠正为原段唯一且互不重叠的字面分句替换，其余文字与引用保持；补充同段当前被引原文上下文，供纠正与后续审核共同消费
+- AND 上下文 SHALL 逐次核对来源身份、引用范围、原文位置及文字；旧支持判定不得代替新稿审核
+- AND 原文图例与图注不一致时 SHALL 区分其表述；本报告提出的问题或复现建议 SHALL 明确其角色，并审核经验前提，不要求论文作者提出完全相同的措辞
+- AND 同根显式接续 SHALL 保留原消费和期限，只对已知旧纠正合同提供一次新合同机会；后续进展须以最近一轮未支持项严格减少判定
+
+#### Scenario: Export reviewed main text and appendix
+- WHEN the owner requests a PDF for a completed, deliverable report
+- THEN the service SHALL render the current authorized content and retained original pages with fixed application layout, preserve source references, and recheck execution and access before returning bytes
+- AND an incomplete review SHALL NOT be presented as completed PDF delivery.
+
+### Requirement: Reader-essential factual review
+系统 SHALL 按读者问题和显式用户核验范围选择必需来源核验的主张。背景评价、实现枚举、次要数字及明确标注的复现提案，若不影响核心结论，SHALL 不触发来源补证或阻塞报告；决定性结论、归属及支撑它们的必要事实仍需核验。免核 MUST NOT 被记作事实支持。
+
+#### Scenario: 用户排除当前非核心核对项
+- WHEN 本人针对当前执行提供逐字一致的声明、免核类别及范围说明
+- THEN 系统 SHALL 在正常审核接续内记录显式范围，保留旧判定，按必需集合计算审核是否完成
+- AND 正文和来源不变、模型和账本上限不变，排除项不进入后续来源核对或事实纠正
+- AND 报告记录 SHALL 分别显示必需项支持数与免核数；该变化 MUST NOT 直接批准最终读者门
+
+#### Scenario: 新报告含类似实现或复现细节
+- WHEN 已冻结核心主张核验策略且新声明尚未来源核验
+- THEN 系统 SHALL 先以实际读者问题判断该声明错误是否会改变结论，再对必要项执行来源核验
+- AND 缺失或无效的重要性选择不得产生免核，核心比较需要的机制或数字不得因位于附录就免核

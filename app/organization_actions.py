@@ -13,6 +13,7 @@ from app.research_matching import MetricCondition, RelationKind, WeightConfigura
 from app.organization_relationships import RelationProof
 
 VERSION='adrs-purpose-actions-v1'
+TOPIC_POLICY='adrs-topic-actions-v2'
 Text=Annotated[str,Field(min_length=3,max_length=1200)]
 
 
@@ -40,6 +41,10 @@ class ActionProposal(ScopeRecord):
     complementary_hypothesis:Text|None=None
     steps:tuple[Text,...]=Field(default=(),max_length=8)
     public_contacts:tuple[ContactPointer,...]=Field(default=(),max_length=5)
+    related_output_ids:tuple[Identifier,...]=Field(default=(),max_length=12)
+    required_resources:tuple[Text,...]=Field(default=(),max_length=8)
+    first_deliverable:Text|None=None
+    acceptance_criteria:tuple[Text,...]=Field(default=(),max_length=8)
 
 
 class ActionPreviewRequest(ScopeRecord):
@@ -50,9 +55,21 @@ class ActionPreviewRequest(ScopeRecord):
 
 def action_instructions(config):
     if 'actions' not in (config or {}).get('modules',[]):return ''
-    return '''\nPurpose-specific actions: add "action_cards" INSIDE organization_data.
+    topic_guidance=('\nEach topic card also supplies related_output_ids (accepted works only), required_resources '
+        '(conditional needs, not claims about user assets), first_deliverable and acceptance_criteria. '
+        'Give distinct action_id values for distinct topics at the same institution. Bind people to those works. '
+        'Explain a feasible first output using the available resources; do not replace a cooperation topic with '
+        'a request to repeat the whole investigation. Missing user goals, assets or a time window do not prevent '
+        'a conditional research proposal: formulate a source-grounded question, distinguish publicly available '
+        'resources from resources that would need access, and specify a first research artifact and its evaluation. '
+        'Do not claim the user owns those resources or that the team agrees to collaborate. A requirements '
+        'questionnaire, contact verification or a request to clarify goals alone is not a first research output. '
+        'Select topics across the relevant retained works and teams; do not default to the last paper read. '
+        'Public contacts and named resources still require sources.'
+        if config.get('topic_action_policy')==TOPIC_POLICY else '')
+    return topic_guidance+'''\nPurpose-specific actions: add "action_cards" INSIDE organization_data.
 Shape: [{"action_id":"id","entity_id":"SELECTED ID","mode":"research_validation|cooperation","question":"a concrete question to validate or discuss","basis":[{"evidence_id":"ev-ID","quote":"literal supporting source"}],"complementary_hypothesis":null,"steps":["bounded proposed next step, not already performed"],"public_contacts":[]}].
-Use research_validation for research development; cooperation for cooperation discovery; comprehensive may contain both. Missing cooperation_goal/offering/time_window are missing requirements, never fill them using model guesses. Use only retained sources for actual people/teams/contact pointers; historical author affiliation does not prove present employment or contactability. A public contact pointer needs the exact URL in a retained original public link, not an invented URL or email. Suggestions do not send messages or publish. Priority, scores, hard conditions and confirmed relationship status are computed by the server; do not supply or invent them. Keep 1–3 compact action cards. The raw action requirements are user constraints, not proof of feasibility.'''
+Use research_validation for research development; cooperation for cooperation discovery; comprehensive may contain both. Missing cooperation_goal/offering/time_window remain unknown user requirements; never invent their values or treat conditional needs as supplied assets. Use only retained sources for actual people/teams/contact pointers; historical author affiliation does not prove present employment or contactability. A public contact pointer needs the exact URL in a retained original public link, not an invented URL or email. Suggestions do not send messages or publish. Priority, scores, hard conditions and confirmed relationship status are computed by the server; do not supply or invent them. Choose substantive, distinct cards by question and team coverage, within the existing 20-card response limit; do not pad to a count. The raw action requirements are user constraints, not proof of feasibility.'''
 
 
 def frozen_weight_request(config):
@@ -77,6 +94,9 @@ def build_action_view(config,findings,evidence,proposals=None,*,requirements=Non
     purpose=config.get('purpose','research_development')
     modes={'research_development':('research_validation',),'cooperation_discovery':('cooperation',),'comprehensive':('research_validation','cooperation')}[purpose]
     pending=[];proposed={};values=proposals.get('action_cards',[])
+    topic_policy=config.get('topic_action_policy')==TOPIC_POLICY
+    outputs={row['output_id']:row for row in scoped.get('outputs',[])}
+    seen_ids=set()
     if not isinstance(values,list):values=[];pending.append({'reason':'action_cards_expected_array'})
     if len(values)>20:pending.append({'reason':'action_card_limit_20','received_count':len(values)})
     def proof(value):
@@ -89,8 +109,13 @@ def build_action_view(config,findings,evidence,proposals=None,*,requirements=Non
         try:
             item=ActionProposal.model_validate(raw)
             if item.entity_id not in entities or item.mode not in modes:raise ValueError('action target or mode is outside selected research purpose')
-            key=(item.entity_id,item.mode)
+            key=(item.entity_id,item.mode,item.action_id if topic_policy else '')
             if key in proposed:raise ValueError('duplicate target/mode action')
+            if topic_policy and item.action_id in seen_ids:raise ValueError('duplicate action identity')
+            if topic_policy and any(identifier not in outputs or not any(
+                    aff['entity_id']==item.entity_id for aff in outputs[identifier]['affiliations'])
+                    for identifier in item.related_output_ids):
+                raise ValueError('action work outside accepted target outputs')
             anchors=[proof(value) for value in item.basis]
             names=[entities[item.entity_id]['name'],*entities[item.entity_id].get('aliases',[])]
             if not any(any(re.search(r'\s+'.join(re.escape(word) for word in name.split()),sources[anchor['evidence_id']]['content'],re.I) for name in names) for anchor in anchors):
@@ -109,7 +134,10 @@ def build_action_view(config,findings,evidence,proposals=None,*,requirements=Non
                 contacts.append({'url':pointer.url,'evidence_id':pointer.evidence_id,'source_url':source['source_url'],
                     'status':'published_pointer_identity_and_current_contactability_unverified','basis':'retained_original_anchor_href'})
             proposed[key]={'action_id':item.action_id,'question':item.question,'basis':anchors,'steps':list(item.steps),
-                'complementary_hypothesis':item.complementary_hypothesis,'public_contacts':contacts}
+                'complementary_hypothesis':item.complementary_hypothesis,'public_contacts':contacts,
+                **({name:getattr(item,name) for name in ('related_output_ids','required_resources',
+                    'first_deliverable','acceptance_criteria')} if topic_policy else {})}
+            seen_ids.add(item.action_id)
         except (ValueError,KeyError) as error:pending.append({'reason':str(error)[:450]})
 
     priority=None;priority_gap=None
@@ -134,10 +162,10 @@ def build_action_view(config,findings,evidence,proposals=None,*,requirements=Non
                     'effective_weights':group['effective_weights'],**row})
         exclusions={item['entity_id']:item['reasons'] for item in priority['excluded']}
 
-    cards=[];pairs=list(proposed) or [(identity,mode) for identity in entities for mode in modes][:20]
+    cards=[];pairs=list(proposed) or [(identity,mode,'') for identity in entities for mode in modes][:20]
     relationship_records=(findings.get('relationship_view') or {}).get('records',[])
-    for identity,mode in pairs:
-        proposal=proposed.get((identity,mode));entity=entities[identity]
+    for identity,mode,topic in pairs:
+        proposal=proposed.get((identity,mode,topic));entity=entities[identity]
         missing=[]
         if mode=='cooperation':
             for key in ('cooperation_goal','offering','time_window'):
@@ -146,6 +174,7 @@ def build_action_view(config,findings,evidence,proposals=None,*,requirements=Non
         relevant=[record for record in relationship_records if identity in record['entity_ids']]
         people={}
         for output in scoped.get('outputs',[]):
+            if topic_policy and output['output_id'] not in (proposal or {}).get('related_output_ids',[]):continue
             for affiliation in output['affiliations']:
                 if affiliation['entity_id']==identity:
                     person=people.setdefault(affiliation['author_id'],{'name':affiliation['author_id'],'publication_ids':[],
@@ -159,6 +188,10 @@ def build_action_view(config,findings,evidence,proposals=None,*,requirements=Non
             'basis':proposal['basis'] if proposal else [],'proposed_steps':proposal['steps'] if proposal else [],
             'complementary_hypothesis':proposal['complementary_hypothesis'] if proposal else None,
             'public_contacts':proposal['public_contacts'] if proposal else [],'missing_requirements':missing,
+            **({name:(proposal or {}).get(name) for name in ('related_output_ids','required_resources',
+                'first_deliverable','acceptance_criteria')} if topic_policy else {}),
+            **({'content_gaps':[name for name in ('related_output_ids','required_resources','first_deliverable',
+                'acceptance_criteria','public_contacts') if not (proposal or {}).get(name)]} if topic_policy else {}),
             'goal':request.cooperation_goal if mode=='cooperation' else request.research_goal or config['scope']['topic'],
             'unverified_constraints':list(request.constraints),'priority_groups':priorities,'hard_condition_reasons':excluded,
             'related_people':list(people.values())[:50],'related_people_count':len(people),
@@ -179,10 +212,14 @@ def build_action_view(config,findings,evidence,proposals=None,*,requirements=Non
 def action_context(view):
     if not view:return None
     cards=[]
-    for card in view['cards'][:5]:
+    for card in view['cards']:
         selected={key:card[key] for key in ('action_id','entity_id','entity_name','mode','status','question','proposed_steps',
             'complementary_hypothesis','missing_requirements','goal','unverified_constraints','hard_condition_reasons')}
         selected['basis_references']=[{key:proof[key] for key in ('evidence_id','start','end')} for proof in card['basis']]
+        selected['public_contacts']=card.get('public_contacts',[])
+        selected['related_people']=card.get('related_people',[])
+        for key in ('related_output_ids','required_resources','first_deliverable','acceptance_criteria','content_gaps'):
+            if key in card:selected[key]=card[key]
         selected['priority_groups']=[{key:group.get(key) for key in ('group_id','score','lower_bound','upper_bound','coverage','missing_dimensions')} for group in card['priority_groups']]
         cards.append(selected)
     return {**{key:view[key] for key in ('schema_version','purpose','requirements','priority_gap','boundaries')},

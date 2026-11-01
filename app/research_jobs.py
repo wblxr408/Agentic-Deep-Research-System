@@ -153,7 +153,7 @@ class ResearchDispatcher:
                 process=subprocess.Popen([sys.executable,'-m','app.research_worker',execution,token],cwd=str(root),
                     stdin=subprocess.DEVNULL,stdout=output,stderr=output,
                     env={**os.environ,'PYTHONUTF8':'1'},
-                    creationflags=(subprocess.DETACHED_PROCESS|subprocess.CREATE_NEW_PROCESS_GROUP) if os.name=='nt' else 0,
+                    creationflags=(subprocess.CREATE_NO_WINDOW|subprocess.CREATE_NEW_PROCESS_GROUP) if os.name=='nt' else 0,
                     start_new_session=os.name!='nt',close_fds=True)
             self.children[execution]=process
             async with pool.acquire() as conn:

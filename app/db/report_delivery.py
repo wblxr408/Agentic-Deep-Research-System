@@ -138,6 +138,10 @@ async def retain_report_version(conn,state,review,*,owner_id,session_id):
     sources=[{'evidence_id':key,'source_id':event['source_id'],'version_id':event['version_id'],'coverage':event.get('coverage')}
         for key,event in sorted((ledger.get('events') or {}).items())]
     result=state.get('organization_result') or {}
+    from app.report_quality import reader_quality_satisfied
+    supported=bool(supported and reader_quality_satisfied(result.get('module_report'),audit))
+    if (result.get('module_report') or {}).get('surface_review_policy')=='adrs-report-surfaces-v1':
+        supported=bool(supported and (audit.get('surface_review') or {}).get('passed') is True)
     payload={'schema_version':'adrs-report-history-v1','session_id':str(session_id),
         'owner_id':str(owner_id),'execution_id':str((state.get('session') or {}).get('execution_id') or ''),
         'kind':kind,'report':report,'citations':state.get('citations') or [],'audit':_history_audit(audit),
@@ -195,3 +199,50 @@ def report_binding(state):
     return {'execution_id':(state.get('session') or {}).get('execution_id'),
         'plan_version':(state.get('plan_manifest') or {}).get('plan_version'),
         'retained_evidence_version':retained_evidence_version(state)}
+
+
+def candidate_input_binding(state):
+    """Bind reusable writing output to research inputs, separate from execution."""
+    result=state.get('organization_result') or {}
+    return identity({key:state.get(key) for key in (
+        'user_query','organization_research','analysis','query_understanding','skill_context','model_routing')}
+        | {'analysis_binding':(state.get('analysis_workflow') or {}).get('binding'),
+           'statistics':result.get('statistics')})
+
+
+def retained_report_candidate(state):
+    """Only a complete assembled candidate can bypass another writing call."""
+    candidate=(state.get('organization_result') or {}).get('report_candidate_draft') or {}
+    record=candidate.get('module_report') or {}
+    if (candidate.get('binding')!=report_binding(state)
+            or candidate.get('input_binding')!=candidate_input_binding(state)
+            or candidate.get('review_status')!='not_reviewed'
+            or not isinstance(candidate.get('raw_model_response'),str)
+            or not candidate['raw_model_response'].strip()
+            or not isinstance(candidate.get('model'),str)
+            or not candidate['model']
+            or record.get('issues') or record.get('validation_errors')
+            or not record.get('reading_structure')):
+        return None
+    return candidate
+
+
+def retained_report_sections(state):
+    sections=(state.get('organization_result') or {}).get('report_section_drafts') or {}
+    binding=report_binding(state);inputs=candidate_input_binding(state)
+    selected={key:{**value,'validated_root_input':True} for key,value in sections.items() if isinstance(value,dict)
+        and value.get('binding')==binding and value.get('input_binding')==inputs
+        and value.get('stage')=='writing_section:'+key
+        and isinstance(value.get('raw_model_response'),str) and value['raw_model_response'].strip()
+        and (value.get('report_context') or {}).get('section_input_id')}
+    # Compatibility for the pre-admission marker used by the first section
+    # implementation. The terminal reason proves that request was not sent;
+    # other failures, including interrupted dispatch, do not regain an attempt.
+    review=state.get('review_status') or {}
+    latest=((state.get('organization_result') or {}).get('report_candidate') or {}).get('stage')
+    if review.get('reason')=='section_repair_original_allowance_insufficient':
+        for key,value in list(selected.items()):
+            context=value.get('report_context') or {}
+            if value.get('stage')==latest and context.get('repair_attempted') and not context.get('finish_reason'):
+                selected[key]={**value,'report_context':{**context,'repair_admission_denied':True}}
+    return selected

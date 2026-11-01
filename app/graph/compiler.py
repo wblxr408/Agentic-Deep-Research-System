@@ -408,6 +408,7 @@ def _apply_llm_usage_to_state(
 
 
 def _stage_model_budget(state: ResearchState, stage: str) -> ModelTokenBudget:
+    budget_observed_at=time.monotonic()
     root = _build_budget_state(state)
     from app.adaptive_budget import stage_allocation
     allocation = stage_allocation(state,root,stage)
@@ -416,12 +417,54 @@ def _stage_model_budget(state: ResearchState, stage: str) -> ModelTokenBudget:
     report = allocation['report_hold'] if allocation else min(max(0,int(root['max_total_tokens'])-audit),max(0,int(root['report_token_reserve'])))
     seconds = max(0,float(root['max_wall_clock_seconds'])-float(root['elapsed_wall_clock_seconds']))
     audit_seconds = min(float(root['max_wall_clock_seconds']),max(0,float(root['audit_seconds_reserve'])))
+    dynamic=root.get('budget_policy_version')==4
+    if dynamic:audit_seconds=float(allocation['audit_seconds_hold'])
     meter=ModelTokenBudget(remaining if stage == 'report' else max(0,remaining-audit-report),
         audit_reserve=audit if stage == 'report' else 0,
         deadline=time.monotonic()+max(0,seconds-(0 if stage == 'report' else audit_seconds)),
         audit_seconds=audit_seconds if stage == 'report' else 0)
     if allocation:
         meter.phase_events.append({'phase':'stage_allocation',**allocation})
+    if dynamic:
+        scheduler_started=budget_observed_at
+        scheduler_deadline=scheduler_started+seconds
+        last_decision=allocation
+        audit_candidate=id((state.get('organization_result') or {}).get('report_candidate_draft'))
+        audit_epoch=0
+        def refresh_resources(current_meter):
+            nonlocal last_decision,audit_candidate,audit_epoch
+            audit_calls=sum(row.get('purpose')=='audit' and row.get('status')=='settled'
+                and row.get('response_received') for row in current_meter.calls)
+            candidate=id((state.get('organization_result') or {}).get('report_candidate_draft'))
+            if candidate!=audit_candidate:
+                audit_candidate=candidate
+                audit_epoch=audit_calls  # A changed draft needs its own review.
+            live={**root,
+                'used_total_tokens':int(root['used_total_tokens'])+current_meter.spent,
+                'reserved_inflight_tokens':int(root.get('reserved_inflight_tokens') or 0)+current_meter.inflight,
+                'elapsed_wall_clock_seconds':float(root['elapsed_wall_clock_seconds'])+time.monotonic()-scheduler_started,
+                'model_requests':[*root.get('model_requests',[]),*current_meter.calls],
+                'remaining_writing_units':getattr(current_meter,'remaining_writing_units',None),
+                'current_stage_audit_calls':max(0,audit_calls-audit_epoch)}
+            decision=stage_allocation(state,live,stage)
+            current_meter.limit=current_meter.spent+current_meter.inflight+decision['stage_limit']
+            current_meter.deadline=scheduler_deadline-(0 if stage=='report' else decision['audit_seconds_hold'])
+            if stage=='report':
+                accounted=sum(row['reserved_tokens'] if row['status']=='inflight' else row.get('total_tokens',0)
+                    for row in current_meter.calls if row['purpose']=='audit')
+                current_meter.audit_reserve=accounted+decision['audit_hold']
+                used_audit_seconds=current_meter.audit_seconds-current_meter.remaining_audit_seconds()
+                current_meter.audit_seconds=used_audit_seconds+decision['audit_seconds_hold']
+            # Time changes continuously; emit decisions only when consumption
+            # or remaining work changes. Checkpoints preserve these events.
+            keys=('root_used','root_inflight','demand','audit_hold','report_hold','status')
+            if any(decision.get(key)!=last_decision.get(key) for key in keys):
+                current_meter.phase_events.append({'phase':'stage_allocation',**decision,
+                    'previous_audit_hold':last_decision['audit_hold'],
+                    'previous_report_hold':last_decision['report_hold']})
+                current_meter.phase_events=current_meter.phase_events[-64:]
+                last_decision=decision
+        meter.resource_scheduler=refresh_resources
     meter.upgrade_history=list(root.get('capability_upgrades') or [])
     from app.data_governance import effective_context
     meter.data_governance=effective_context(state)
@@ -2654,8 +2697,9 @@ async def report_node(state: ResearchState) -> dict:
     from app.source_lifecycle import current_synthesis_state
     retained_state=state
     audit_resume=bool((state.get('session') or {}).get('audit_resume_mode'))
+    candidate_resume=not audit_resume and bool((state.get('session') or {}).get('report_candidate_resume'))
     state=await current_synthesis_state(state)
-    if audit_resume and state.get('collected_evidence')!=retained_state.get('collected_evidence'):
+    if (audit_resume or candidate_resume) and state.get('collected_evidence')!=retained_state.get('collected_evidence'):
         from app.graph.state import Citation
         agent=ReportAgent()
         agent.request_budget=_stage_model_budget(retained_state,'report')
@@ -2686,7 +2730,7 @@ async def report_node(state: ResearchState) -> dict:
     organization_result = state.get('organization_result')
     from app.organization_taxonomy import classify_publications
     org_config = state.get('organization_research') or {}
-    if not audit_resume:
+    if not (audit_resume or candidate_resume):
         if org_config.get('taxonomy'):
             organization_result = {**(organization_result or {}), 'classification': classify_publications(
                 org_config['taxonomy'], organization_result or {}, state.get('collected_evidence', []), org_config['scope'])}
@@ -2766,7 +2810,7 @@ async def report_node(state: ResearchState) -> dict:
         if agent.last_audit is not None:record['audit_before_upgrade']=agent.last_audit
         sequence=await RuntimePersistence().persist_model_checkpoint(str(session_id),{
             **state,'organization_result':record,'session':session,'budget_state':budget,
-            'agent_trace':[*state.get('agent_trace',[]),*agent.recovery_events]})
+            'agent_trace':[*state.get('agent_trace',[]),*agent.recovery_events]},include_analysis=False)
         if sequence is None:raise TokenBudgetExceeded('model_upgrade_checkpoint_unavailable')
         state['session']['checkpoint_seq']=sequence
         await sse.publish(session_id,EventType.STATE_UPDATE.value,{'model_upgrade':decision,'status':'running'})
@@ -2780,12 +2824,58 @@ async def report_node(state: ResearchState) -> dict:
             raise TokenBudgetExceeded('model_upgrade_checkpoint_unavailable') from error
     agent.on_capability_upgrade=on_report_upgrade
 
+    async def save_report_candidate(candidate):
+        nonlocal organization_result
+        from app.governance.runtime import RuntimePersistence
+        current=await current_synthesis_state(state)
+        if current.get('collected_evidence')!=state.get('collected_evidence'):
+            raise RuntimeError('report_candidate_sources_changed')
+        session,budget=_apply_llm_usage_to_state(state,'report',_agent_model_usage(agent))
+        from app.db.report_delivery import candidate_input_binding
+        candidate={**candidate,'binding':report_binding(state),'execution_id':session.get('execution_id'),
+            'input_binding':candidate_input_binding({**state,'organization_result':organization_result})}
+        record={**(organization_result or {}),'report_candidate':candidate}
+        if candidate.get('stage')=='structural_revision_sections':
+            record['report_editor_sections']=candidate
+        if str(candidate.get('stage','')).startswith('writing_section:'):
+            section_id=candidate['stage'].removeprefix('writing_section:')
+            record['report_section_drafts']={**record.get('report_section_drafts',{}),section_id:candidate}
+        if candidate.get('module_report') and not candidate['module_report'].get('issues'):
+            record['report_candidate_draft']=candidate
+        sequence=await RuntimePersistence().persist_model_checkpoint(str(session_id),{
+            **state,'organization_result':record,'session':session,'budget_state':budget},include_analysis=False)
+        if sequence is None:raise RuntimeError('report_candidate_checkpoint_unavailable')
+        # Keep the same retained candidate in subsequent checkpoints and errors.
+        organization_result=record
+        state['organization_result']=record
+        state['session']['checkpoint_seq']=sequence
+
+    def on_report_candidate(candidate):
+        future=asyncio.run_coroutine_threadsafe(save_report_candidate(candidate),loop)
+        try:future.result(timeout=30)
+        except Exception as error:
+            future.cancel()
+            raise RuntimeError('report_candidate_checkpoint_unavailable') from error
+    agent.on_candidate=on_report_candidate
+
+    if organization_result:
+        from app.organization_deep_dive import reconcile_retained_technical
+        organization_result['technical_reading']=reconcile_retained_technical(
+            state.get('organization_research') or {},organization_result,
+            [item.model_dump(mode='json') for item in evidence_list],state.get('analysis_workflow'))
+        state['organization_result']=organization_result
     report_budget = _build_budget_state(state)
     remaining_report_tokens = max(0, int(report_budget.get("max_total_tokens") or 0)
                                   - int(report_budget.get("used_total_tokens") or 0))
     remaining_report_seconds = max(0, float(report_budget.get("max_wall_clock_seconds") or 0)
                                    - float(report_budget.get("elapsed_wall_clock_seconds") or 0))
     try:
+        candidate=None;section_candidates={}
+        if candidate_resume:
+            from app.db.report_delivery import retained_report_candidate,retained_report_sections
+            candidate=retained_report_candidate(state)
+            section_candidates=retained_report_sections(state)
+            if candidate is None and not section_candidates:raise TokenBudgetExceeded('report_candidate_binding_changed')
         if audit_resume:
             report,citations=await asyncio.to_thread(agent.resume_audit,
                 user_query=_synthesis_question(state),evidence_list=evidence_list,
@@ -2799,7 +2889,11 @@ async def report_node(state: ResearchState) -> dict:
                 report_context=(organization_result or {}).get('report_context'),
                 writing_plan=(organization_result or {}).get('writing_plan'),
                 reader_revision=bool((state.get('session') or {}).get('reader_revision_mode')),
+                audit_unit_frontier=(state.get('session') or {}).get('audit_unit_frontier')
+                    if (state.get('session') or {}).get('audit_unit_resume_mode') else None,
                 supported_finalization=bool((state.get('session') or {}).get('supported_finalization_mode')),
+                proposal_reassessment=bool((state.get('session') or {}).get('proposal_review_mode')),
+                pending_excerpt_window=450 if (state.get('session') or {}).get('audit_pending_compaction') else None,
                 organization_findings=organization_result)
         else:
             report, citations = await asyncio.to_thread(agent.generate_stream,
@@ -2807,8 +2901,11 @@ async def report_node(state: ResearchState) -> dict:
                 analysis=state["analysis"] + findings_context(organization_result),
                 research_judgments=(organization_result or {}).get('research_judgments'),
                 organization_findings=organization_result,
-                retained_draft=((organization_result or {}).get('module_report') or {}).get('raw_model_response')
-                    if (state.get('session') or {}).get('report_contract_resume') else None,
+                retained_draft=candidate['raw_model_response'] if candidate else (
+                    ((organization_result or {}).get('module_report') or {}).get('raw_model_response')
+                    if (state.get('session') or {}).get('report_contract_resume') else None),
+                retained_model=candidate['model'] if candidate else None,
+                retained_sections=section_candidates,
                 evidence_list=evidence_list,
                 reflection=verification,
                 output_length=state.get("output_length") or state.get("session", {}).get("output_length"),
@@ -2887,10 +2984,61 @@ async def report_node(state: ResearchState) -> dict:
             report=report,citations=citations)
         paused['organization_result']=organization_result
         return paused
-    if not agent.request_budget.complete_audit(agent.last_audit):
-        paused=_model_budget_pause(state,agent,'report',TokenBudgetExceeded('final_audit_reservation_not_released'),report=report,citations=citations)
-        paused['organization_result']=organization_result
-        return paused
+    if org_config.get('reader_quality_policy'):
+        from app.report_quality import review_reader_quality
+        for editorial_round in range(2):
+            try:
+                quality=await asyncio.to_thread(review_reader_quality,
+                    question=_synthesis_question(state),configuration=org_config,
+                    record=agent.last_module_report or {},findings={**(organization_result or {}),
+                        'claim_review_scope':(agent.last_audit or {}).get('review_scope'),
+                        'reader_quality':(agent.last_audit or {}).get('reader_quality')
+                            or (organization_result or {}).get('reader_quality')},
+                    client=agent.client,model=agent.model,budget=agent.request_budget)
+            except TokenBudgetExceeded as error:
+                quality={'policy':org_config['reader_quality_policy'],'status':'incomplete','passed':False,'reason':error.reason}
+            finally:
+                agent.last_usage=agent.request_budget.usage()
+            organization_result={**(organization_result or {}),'reader_quality':quality}
+            agent.last_audit={**agent.last_audit,'reader_quality':quality}
+            module=agent.last_module_report or {}
+            if (quality['status']!='needs_revision' or editorial_round
+                    or module.get('reader_revision') or module.get('structural_revision_attempted')):break
+            # Save the actual pre-edit report and the consumed editorial attempt
+            # before dispatch, so interruption cannot reset the bounded edit.
+            module['structural_revision_attempted']=True
+            try:
+                await asyncio.to_thread(agent.retain_candidate,module['raw_model_response'],
+                    content=report,record=module,stage='before_structural_revision')
+                report,citations=await asyncio.to_thread(agent.resume_audit,
+                    user_query=_synthesis_question(state),evidence_list=evidence_list,
+                    saved_report=report,saved_citations=[item.model_dump() for item in citations],
+                    saved_audit=agent.last_audit,module_report=module,organization_research=org_config,
+                    organization_statistics=(organization_result or {}).get('statistics'),
+                    technical_reading=(organization_result or {}).get('technical_reading'),
+                    analysis_workflow=state.get('analysis_workflow'),report_context=agent.last_context_manifest,
+                    writing_plan=agent.last_writing_plan,reader_revision=True,organization_findings=organization_result)
+            except TokenBudgetExceeded as error:
+                paused=_model_budget_pause(state,agent,'report',error,
+                    report=agent.last_draft,citations=agent.last_citations)
+                paused['organization_result']={**(organization_result or {}),'module_report':agent.last_module_report}
+                return paused
+            organization_result={**(organization_result or {}),'module_report':agent.last_module_report}
+            if (agent.last_audit or {}).get('needs_review',True):
+                paused=_model_budget_pause(state,agent,'report',TokenBudgetExceeded(
+                    'final_audit_incomplete' if agent.last_audit.get('audit_incomplete') else 'final_report_needs_revision'),
+                    report=report,citations=citations)
+                paused['organization_result']=organization_result
+                return paused
+        if not quality['passed']:
+            paused=_model_budget_pause(state,agent,'report',TokenBudgetExceeded(
+                'reader_quality_needs_revision' if quality['status']=='needs_revision' else 'reader_quality_incomplete'),
+                report=report,citations=citations)
+            paused['organization_result']=organization_result
+            return paused
+    if org_config.get('reader_quality_policy'):
+        report_summary=build_report_summary(org_config,organization_result,state.get('collected_evidence',[]))
+        if report_summary:organization_result={**(organization_result or {}),'report_summary':report_summary}
     try:
         ensure_report_disclosure(report)
     except TokenBudgetExceeded as error:
@@ -2970,6 +3118,103 @@ async def report_node(state: ResearchState) -> dict:
         if media['pages']:
             rendering_trace.append(_append_trace_event(state,EventType.AGENT_COMPLETE,'report',
                 f"已保留{len(media['pages'])}页原文图示及对应PDF。"))
+    if org_config.get('surface_review_policy')=='adrs-report-surfaces-v1':
+        if (state.get('session') or {}).get('source_page_context_finalization'):
+            organization_result={**(organization_result or {}),'delivery_target':'main_and_appendix_pdf'}
+        from app.research_delivery import build_delivery_view
+        from app.report_surface_review import review_surfaces
+        from app.research_context import reading_source_spans
+        media=(organization_result or {}).get('source_media') or {'pages':[]}
+        if media.get('pages'):
+            from app.source_media_explanations import explain_source_pages
+            try:
+                media=await asyncio.to_thread(explain_source_pages,media,agent.last_module_report or {},evidence_list,
+                    question=_synthesis_question(state),client=agent.client,model=agent.model,
+                    budget=agent.request_budget,on_candidate=agent.retain_candidate,
+                    retained=(organization_result or {}).get('report_candidate'),report_audit=agent.last_audit,
+                    reuse_report_context=bool((state.get('session') or {}).get('source_page_context_finalization')))
+            except TokenBudgetExceeded as error:
+                paused=_model_budget_pause(state,agent,'report',error,report=report,citations=citations)
+                paused['organization_result']=organization_result
+                return paused
+            organization_result={**(organization_result or {}),'source_media':media}
+        surface_view=build_delivery_view(task_id=str(state['task_id']),execution_id=state.get('session',{}).get('execution_id'),
+            query=state['user_query'],report=report,citations=[item.model_dump() for item in citations],
+            understanding=state.get('query_understanding'),organization_result=organization_result,
+            audit=agent.last_audit,source_media=media)
+        try:
+            surfaces=await asyncio.to_thread(review_surfaces,surface_view,media,evidence_list,
+                statistics=(organization_result or {}).get('statistics'),client=agent.client,model=agent.model,
+                budget=agent.request_budget,source_spans=reading_source_spans(
+                    (organization_result or {}).get('technical_reading'),evidence_list,state.get('analysis_workflow')),
+                previous=(organization_result or {}).get('surface_review'),
+                review_scope=(agent.last_audit or {}).get('review_scope'),report_audit=agent.last_audit)
+        except TokenBudgetExceeded as error:
+            surfaces={'policy':'adrs-report-surfaces-v1','passed':False,'status':'incomplete','reason':error.reason}
+        finally:agent.last_usage=agent.request_budget.usage()
+        if (not surfaces['passed'] and surfaces.get('claim_audit')
+                and surfaces.get('binding')!=(organization_result or {}).get('surface_repair_binding')):
+            from app.report_surface_review import repair_table_cells
+            organization_result={**(organization_result or {}),'surface_repair_attempted':True,
+                'surface_repair_binding':surfaces.get('binding'),'surface_review':surfaces}
+            try:
+                await asyncio.to_thread(agent.retain_candidate,agent.last_module_report['raw_model_response'],
+                    content=report,record=agent.last_module_report,stage='before_table_cell_revision')
+                corrections=await asyncio.to_thread(repair_table_cells,surface_view,surfaces,
+                    client=agent.client,model=agent.model,budget=agent.request_budget,on_candidate=agent.retain_candidate,media=media)
+                if corrections:
+                    for correction in corrections.get('pages',[]):
+                        for page in media.get('pages',[]):
+                            if correction['cell_id']=='original_page:'+page['asset_id']+':'+str(page['page']):
+                                page['explanation']=correction['text']
+                    organization_result={**organization_result,'source_media':media}
+                    # Retain earlier table repairs against their original descriptor
+                    # binding when this pass only edits original-page explanations.
+                    if not corrections.get('cells') and organization_result.get('surface_corrections'):
+                        corrections=organization_result['surface_corrections']
+                    organization_result={**(organization_result or {}),'surface_corrections':corrections}
+                    surface_view=build_delivery_view(task_id=str(state['task_id']),execution_id=state.get('session',{}).get('execution_id'),
+                        query=state['user_query'],report=report,citations=[item.model_dump() for item in citations],
+                        understanding=state.get('query_understanding'),organization_result=organization_result,
+                        audit=agent.last_audit,source_media=media)
+                    surfaces=await asyncio.to_thread(review_surfaces,surface_view,media,evidence_list,
+                        statistics=(organization_result or {}).get('statistics'),client=agent.client,model=agent.model,
+                        budget=agent.request_budget,source_spans=reading_source_spans(
+                            (organization_result or {}).get('technical_reading'),evidence_list,state.get('analysis_workflow')),
+                        previous=surfaces,review_scope=(agent.last_audit or {}).get('review_scope'),
+                        report_audit=agent.last_audit)
+            except TokenBudgetExceeded as error:
+                surfaces={**surfaces,'passed':False,'status':'incomplete','repair_reason':error.reason}
+            finally:agent.last_usage=agent.request_budget.usage()
+        organization_result={**(organization_result or {}),'surface_review':surfaces}
+        agent.last_audit={**agent.last_audit,'surface_review':surfaces}
+        if (surfaces['passed'] and drawing_mode!='builtin' and not layout_without_figures
+                and surface_view.get('drawing',{}).get('status')=='blocked'):
+            current=await current_synthesis_state(state)
+            if current.get('collected_evidence')!=state.get('collected_evidence'):
+                state['evidence_access_gaps']=current.get('evidence_access_gaps',[])
+                return _model_budget_pause(state,agent,'report',TokenBudgetExceeded('drawing_sources_changed'),report=report,citations=citations)
+            drawing=await asyncio.to_thread(execute_drawing,surface_view,policy,
+                client=drawing_client,model=drawing_model,budget=agent.request_budget,
+                previous=(organization_result or {}).get('chart_rendering'),
+                cache_context={'owner_id':state.get('session',{}).get('owner_id'),
+                    'evidence_version':retained_evidence_version(state)})
+            organization_result={**(organization_result or {}),'chart_rendering':drawing}
+            agent.last_usage=agent.request_budget.usage()
+            if drawing['status']!='rendered':
+                paused=_model_budget_pause(state,agent,'report',TokenBudgetExceeded('drawing_requires_reviewed_data'),report=report,citations=citations)
+                paused['organization_result']=organization_result
+                return paused
+            rendering_trace.append(_append_trace_event(state,EventType.AGENT_COMPLETE,'report',
+                '图表文字修订已通过来源审核，静态图已按当前数据重新生成。'))
+        if not surfaces['passed']:
+            paused=_model_budget_pause(state,agent,'report',TokenBudgetExceeded('report_surfaces_need_revision'),report=report,citations=citations)
+            paused['organization_result']=organization_result
+            return paused
+    if not agent.request_budget.complete_audit(agent.last_audit):
+        paused=_model_budget_pause(state,agent,'report',TokenBudgetExceeded('final_audit_reservation_not_released'),report=report,citations=citations)
+        paused['organization_result']=organization_result
+        return paused
     session, budget_state = _apply_llm_usage_to_state(state, "report", _agent_model_usage(agent))
     if budget_state.get('hard_stop_reason') in {'token_limit','cost_limit','wall_clock_limit'}:
         reason='model_time_reservation_exhausted' if budget_state['hard_stop_reason']=='wall_clock_limit' else 'token_budget_exhausted'
@@ -2995,6 +3240,7 @@ async def report_node(state: ResearchState) -> dict:
     # 更新会话状态
     session["status"] = TaskStatus.COMPLETED.value
     session.pop('audit_resume_mode',None)
+    session.pop('report_candidate_resume',None)
     session["completed_at"] = utc_now_naive().isoformat()
 
     complete_event = _append_trace_event(state, EventType.AGENT_COMPLETE, "report", f"Report generated: {len(report)} chars")
@@ -3126,8 +3372,9 @@ def compile_research_graph() -> StateGraph:
         else 'report' if (state.get('iteration_control') or {}).get('reason') in {
             'unchanged_material_analysis_reused','retained_analysis_requires_report_correction'}
         else 'continue', {'stop':END,'continue':'reflection','report':'report','recover':'automatic_recovery'})
-    builder.add_conditional_edges('automatic_recovery',lambda state:'analyst' if state.get('status')=='running' else 'stop',
-        {'analyst':'analyst','stop':END})
+    builder.add_conditional_edges('automatic_recovery',lambda state:(state.get('session') or {}).get(
+        'automatic_recovery_target','analyst') if state.get('status')=='running' else 'stop',
+        {'analyst':'analyst','dag_executor':'dag_executor','stop':END})
 
     # 反思 → 重规划或报告（条件分支）
     builder.add_conditional_edges(

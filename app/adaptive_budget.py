@@ -4,6 +4,128 @@ from __future__ import annotations
 
 VERSION = 'adrs-adaptive-stage-budget-v1'
 POLICY_VERSION = 3
+DYNAMIC_POLICY_VERSION = 4
+
+
+def remaining_work(state, root, stage):
+    """Forecast work, not facts or permission to skip a required phase."""
+    from math import ceil
+    config=state.get('organization_research') or {}
+    modules=config.get('modules') or ['report']
+    workflow=state.get('analysis_workflow') or {}
+    completed=workflow.get('completed') or {}
+    plan=workflow.get('reading_plan') or []
+    selected=[row for row in plan if row.get('role') in {'core','supporting'}]
+    findings=state.get('organization_result') or {}
+    works=(findings.get('scope_result') or {}).get('outputs') or []
+    work_count=len(selected) or len(works)
+    analysis_units=0
+    for module in modules:
+        if module=='report':continue
+        expected=max(1,ceil(work_count/2)) if module=='deep_dive' else 1
+        done=sum(key=='question:'+module or key.startswith('question:'+module+':') for key in completed)
+        analysis_units+=max(0,expected-done)
+    if config.get('research_handoff_policy')=='adrs-complete-evidence-handoff-v2':
+        analysis_units+=int('question:post_reading_synthesis' not in completed)
+    active=workflow.get('active_phase')
+    if active and active not in completed:analysis_units=max(1,analysis_units)
+    if stage=='report':analysis_units=0  # This route has already accepted analysis.
+    # A raw section can still need parsing/repair; only a bound, assembled
+    # candidate removes drafting demand. Existing recovery validates it again.
+    from app.db.report_delivery import retained_report_candidate
+    candidate=retained_report_candidate(state) if stage=='report' and findings.get('report_candidate_draft') else None
+    writing_units=1 if candidate else len(modules)+1  # Retain room for a required editorial repair.
+    if not candidate and root.get('remaining_writing_units') is not None:
+        writing_units=max(1,_nonnegative(root['remaining_writing_units']))
+    if candidate:
+        draft=candidate.get('module_report') or {}
+        paragraph_count=sum(len(row.get('paragraphs') or [])+len(row.get('appendix') or [])
+            for row in draft.get('modules') or [])+len(draft.get('summary') or [])
+    else:paragraph_count=max(6,len(modules)*6+work_count*2)
+    # Claim batches, reader review and surface review remain required even if
+    # an earlier report passed: its audit cannot approve a new candidate.
+    if candidate and candidate.get('content'):
+        from app.claim_verification import extract_claims
+        claim_count=len(extract_claims(candidate['content']))
+        required_audit_units=ceil(claim_count/20)+2
+    else:
+        claim_count=None
+        required_audit_units=ceil(paragraph_count/8)+2
+    saved_audit=(state.get('review_status') or {}).get('final_report_audit') or {}
+    session=state.get('session') or {}
+    if (stage=='report' and session.get('audit_resume_mode')
+            and not session.get('reader_revision_mode') and not session.get('supported_finalization_mode')
+            and saved_audit and not saved_audit.get('needs_review',True)
+            and not saved_audit.get('audit_incomplete') and not saved_audit.get('budget_incomplete')):
+        from app.report_quality import reader_quality_satisfied
+        if reader_quality_satisfied(findings.get('module_report'),saved_audit):
+            # Unchanged reviewed text needs the remaining surface-review phase,
+            # not another forecast of all paragraph and reader audit batches.
+            # This only reallocates the original allowance; it approves no surface.
+            required_audit_units=1
+    audit_units=max(1,required_audit_units-_nonnegative(root.get('current_stage_audit_calls')))
+    samples={'analysis':[],'writing':[],'audit':[]}
+    seen=set()
+    for row in root.get('model_requests') or []:
+        call=row.get('call_id')
+        if not call or call in seen:continue
+        seen.add(call)
+        if row.get('status')!='settled' or not row.get('response_received'):continue
+        category='audit' if row.get('purpose')=='audit' else 'writing' if row.get('agent')=='report' else 'analysis'
+        value=_nonnegative(row.get('total_tokens'))
+        if value:samples[category].append(value)
+    defaults={'analysis':8000,'writing':6000,'audit':6000}
+    costs={}
+    for key,values in samples.items():
+        ordered=sorted(values)
+        # Upper quartile plus headroom avoids treating the cheapest call as
+        # representative. Provider admission still uses the exact request bound.
+        costs[key]=max(2048,ceil((ordered[min(len(ordered)-1,ceil(len(ordered)*.75)-1)]
+            if ordered else defaults[key])*1.25))
+    units={'analysis':analysis_units,'writing':writing_units,'audit':audit_units}
+    return {'units':units,'unit_tokens':costs,'assembled_claim_count':claim_count,
+        'tokens':{key:units[key]*costs[key] for key in units},
+        'sample_counts':{key:len(value) for key,value in samples.items()},
+        'basis':'remaining_phases_and_bound_candidate_with_observed_usage',
+        'estimated':True,'quality_approval':False}
+
+
+def dynamic_allocation(state, root, stage):
+    remaining=max(0,_nonnegative(root.get('max_total_tokens'))-
+        _nonnegative(root.get('used_total_tokens'))-_nonnegative(root.get('reserved_inflight_tokens')))
+    demand=remaining_work(state,root,stage)
+    needs=demand['tokens']
+    # The current stage needs room even before a reading plan exists.
+    current=needs['analysis'] if stage!='report' else needs['writing']
+    if stage!='report':current=max(current,demand['unit_tokens']['analysis'])
+    future=needs['audit']+(needs['writing'] if stage!='report' else 0)
+    total=current+future
+    shortfall=max(0,total-remaining)
+    # When the forecast cannot fit, retain proportional room for all mandatory
+    # work rather than reserve 100% for downstream stages. This is a warning,
+    # never permission to omit review, refund unknown use or enlarge the root.
+    scale=min(1,remaining/max(1,total))
+    audit=min(remaining,int(needs['audit']*scale))
+    report=min(remaining-audit,int(needs['writing']*scale)) if stage!='report' else 0
+    seconds=max(0,float(root.get('max_wall_clock_seconds') or 0)-float(root.get('elapsed_wall_clock_seconds') or 0))
+    cost_limit=float(root.get('max_cost_usd') or 0)
+    cost_used=float(root.get('used_cost_usd') or 0)
+    return {'version':'adrs-dynamic-resource-budget-v1','stage':stage,**_signals(state),
+        'root_limit':_nonnegative(root.get('max_total_tokens')),
+        'root_used':_nonnegative(root.get('used_total_tokens')),
+        'root_inflight':_nonnegative(root.get('reserved_inflight_tokens')),'root_remaining':remaining,
+        'audit_hold':audit,'report_hold':report,
+        'stage_limit':remaining if stage=='report' else remaining-audit-report,
+        'writing_available':remaining-audit if stage=='report' else None,
+        'audit_seconds_hold':min(seconds,seconds*needs['audit']/max(1,total)),
+        'remaining_seconds':seconds,
+        'known_cost_remaining_usd':max(0,cost_limit-cost_used) if cost_limit else None,
+        'cost_forecast':'not_estimated_without_complete_provider_prices',
+        'remaining_tool_calls':max(0,_nonnegative(root.get('max_tool_calls'))-_nonnegative(root.get('used_tool_calls'))),
+        'demand':demand,'forecast_shortfall_tokens':shortfall,
+        'status':'forecast_shortfall' if shortfall else 'forecast_fits',
+        'reason':'remaining_required_work_exceeds_allowance' if shortfall else 'reallocated_for_remaining_required_work',
+        'unchanged_root_limit':True,'semantics':'estimate_not_completion_guarantee_or_quality_approval'}
 
 
 def _nonnegative(value):
@@ -20,10 +142,17 @@ def _signals(state):
     complexity = (understanding.get('complexity') or {}).get('level')
     control = state.get('iteration_control') or {}
     specific_gap = bool(control.get('action') == 'replan' and control.get('gap_reasons'))
+    reasons=list(control.get('gap_reasons') or [])[:8] if specific_gap else []
+    retained_gap=(state.get('session') or {}).get('retained_identity_coverage_repair') or {}
+    if (config.get('research_handoff_policy')=='adrs-complete-evidence-handoff-v2'
+            and retained_gap.get('reason')=='acquired_article_omitted_from_identity_reading'
+            and retained_gap.get('missing_batches')):
+        specific_gap=True
+        reasons.append('retained_article_identity_coverage')
     return {'depth': depth, 'complexity': complexity if complexity in {'simple', 'moderate', 'complex'} else 'unknown',
             'module_count': len(modules), 'deep_reading_selected': 'deep_dive' in modules,
             'specific_gap': specific_gap,
-            'gap_reasons': list(control.get('gap_reasons') or [])[:8] if specific_gap else []}
+            'gap_reasons': reasons}
 
 
 def stage_allocation(state, root, stage):
@@ -35,6 +164,8 @@ def stage_allocation(state, root, stage):
     to bounded acquisition/replanning. A prior report's audit cannot cover a
     newly generated report, so its base hold is not erased on resume.
     """
+    if root.get('budget_policy_version') == DYNAMIC_POLICY_VERSION:
+        return dynamic_allocation(state,root,stage)
     if root.get('budget_policy_version') != POLICY_VERSION: return None
     signals = _signals(state)
     total = _nonnegative(root.get('max_total_tokens'))
@@ -77,7 +208,7 @@ def stage_allocation(state, root, stage):
 def tool_allocation(state, node_type, share):
     """Cap one handoff; unused calls remain available to later steps."""
     root = state.get('budget_state') or {}
-    if root.get('budget_policy_version') != POLICY_VERSION: return None
+    if root.get('budget_policy_version') not in {POLICY_VERSION,DYNAMIC_POLICY_VERSION}: return None
     signals = _signals(state)
     share = _nonnegative(share)
     cap = {'brief': 2, 'standard': 4, 'deep': 8}[signals['depth']]
@@ -93,6 +224,21 @@ def tool_allocation(state, node_type, share):
         # Explicitly selected channels and variants may require distinct calls;
         # the existing route still validates transport and source scope.
         cap = max(cap, len(channels) * variants)
-    return {'version': VERSION, 'node_type': node_type, **signals,
+    pending_count=None
+    if root.get('budget_policy_version')==DYNAMIC_POLICY_VERSION:
+        dag=state.get('dag') or {}
+        if hasattr(dag,'model_dump'):dag=dag.model_dump()
+        done=set(state.get('completed_nodes') or [])
+        pending_count=sum(row.get('node_type') in {'search','browser','rag'} and row.get('node_id') not in done
+            for row in dag.get('nodes',[]) if isinstance(row,dict))
+        remaining=max(0,_nonnegative(root.get('max_tool_calls'))-_nonnegative(root.get('used_tool_calls')))
+        # Fair-share the remaining requests across actual unfinished tool nodes.
+        # A targeted gap uses the existing bounded extra allowance instead.
+        if pending_count and not signals['specific_gap']:
+            from math import ceil
+            cap=min(cap,max(1,ceil(remaining/pending_count)))
+        cap=min(cap,remaining)
+    return {'version': 'adrs-dynamic-resource-budget-v1' if pending_count is not None else VERSION,
+            'node_type': node_type, **signals,'pending_tool_nodes':pending_count,
             'root_share': share, 'per_step_cap': cap, 'call_allowance': min(share, cap),
             'semantics': 'unused_calls_remain_in_original_root'}

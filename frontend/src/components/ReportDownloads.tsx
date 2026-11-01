@@ -91,9 +91,21 @@ export default function ReportDownloads({ result, reportElement }: { result: Rep
 
   const [error, setError] = useState('')
   const [packaging,setPackaging]=useState(false)
-  const canDownload = result.status === 'completed' && !!result.report && result.delivery_view?.delivery_complete !== false
+  const finalDelivery = result.status === 'completed' && !!result.report && result.delivery_view?.delivery_complete !== false
+  const draftExport = result.status === 'paused' && !!result.report
+  const canDownload = finalDelivery || draftExport
+  async function downloadPdf(part:'main'|'appendix') {
+    setError('')
+    try {
+      const response=await fetch(`/api/v1/research/${encodeURIComponent(result.session_id)}/report.pdf?part=${part}`)
+      if(!response.ok)throw new Error(t('PDF导出失败，请重新读取已完成的报告后重试。'))
+      const url=URL.createObjectURL(await response.blob()),link=document.createElement('a')
+      link.href=url;link.download=`research-${result.session_id}-${part}.pdf`
+      document.body.append(link);link.click();link.remove();window.setTimeout(()=>URL.revokeObjectURL(url),1000)
+    } catch(failure) {setError(failure instanceof Error?uiMessage(failure.message):t('PDF导出失败。'))}
+  }
   async function downloadPackage() {
-    if(packaging||!canDownload)return
+    if(packaging||!finalDelivery)return
     setPackaging(true);setError('')
     try {
       const response=await fetch(`/api/v1/research/${encodeURIComponent(result.session_id)}/source-package`)
@@ -136,9 +148,13 @@ export default function ReportDownloads({ result, reportElement }: { result: Rep
         }
         // The online evidence buttons become links to the same retained
         // citations in the offline document before other React controls leave.
+        // The research export owns the complete collection. Reader downloads
+        // include only references used by the report being exported.
+        const usedReferences = new Set(Array.from(readerReport.matchAll(/\[(?:citation:)?(\d+)\]/g), match => 'citation:' + match[1]))
         const citationRows=Array.isArray(result.citations)?result.citations:[]
         const missing=citationRows.filter((citation:unknown)=>{
           if(!citation||typeof citation!=='object'||!('citation_id' in citation))return false
+          if(!usedReferences.has(String(citation.citation_id)))return false
           const id=String(citation.citation_id).replace(/[^a-zA-Z0-9-]/g,'-')
           return !clone.querySelector(`[id="report-source-${id}"]`)
         }) as Array<{citation_id:string;source_title?:string;source_url?:string;extracted_evidence?:string}>
@@ -182,6 +198,7 @@ export default function ReportDownloads({ result, reportElement }: { result: Rep
         const viewport = doc.createElement('meta'); viewport.name = 'viewport'; viewport.content = 'width=device-width,initial-scale=1'; doc.head.append(viewport)
         const csp=doc.createElement('meta');csp.httpEquiv='Content-Security-Policy';csp.content="default-src 'none'; img-src data:; style-src 'unsafe-inline'; script-src 'unsafe-inline'; base-uri 'none'; form-action 'none'";doc.head.append(csp)
         const style = doc.createElement('style'); style.textContent = css; doc.head.append(style)
+        if(draftExport){const notice=doc.createElement('aside');notice.textContent=t('草稿：审核尚未完成，不能作为已验收报告。');doc.body.append(notice)}
         const main = doc.createElement('main'); main.append(...Array.from(clone.childNodes)); doc.body.append(main)
         const script=doc.createElement('script');script.textContent=offlineScript;doc.body.append(script)
         content = '<!doctype html>\n' + doc.documentElement.outerHTML
@@ -205,14 +222,17 @@ export default function ReportDownloads({ result, reportElement }: { result: Rep
       const mime = format === 'html' ? 'text/html' : format === 'json' ? 'application/json' : 'text/markdown'
       const objectUrl = URL.createObjectURL(new Blob([content], { type: mime + ';charset=utf-8' }))
       const extension = format.endsWith('-md') ? 'md' : format
-      const suffix = format.endsWith('-md') ? '-' + format.replace('-md','') : ''
+      const suffix = (draftExport ? '-draft' : '') + (format.endsWith('-md') ? '-' + format.replace('-md','') : '')
       const anchor = document.createElement('a'); anchor.href = objectUrl; anchor.download = `research-${result.session_id}${suffix}.${extension}`
       document.body.append(anchor); anchor.click(); anchor.remove()
       window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000)
     } catch (failure) { setError(failure instanceof Error ? uiMessage(failure.message) : t("报告导出失败，请重试。")) }
   }
   return <div className="flex flex-wrap items-center gap-2" aria-label={t("报告下载")}>
-    <button type="button" className="btn-ghost text-xs" disabled={!canDownload||packaging} onClick={()=>void downloadPackage()}>{packaging?t('正在打包…'):t('下载资料包')}</button>
+    {draftExport&&<span>{t('草稿：审核尚未完成，不能作为已验收报告。')}</span>}
+    <button type="button" className="btn-ghost text-xs" disabled={!finalDelivery} onClick={()=>void downloadPdf('main')}>{t('下载主文 PDF')}</button>
+    {result.delivery_view?.appendix_markdown&&<button type="button" className="btn-ghost text-xs" disabled={!finalDelivery} onClick={()=>void downloadPdf('appendix')}>{t('下载技术附录 PDF')}</button>}
+    <button type="button" className="btn-ghost text-xs" disabled={!finalDelivery||packaging} onClick={()=>void downloadPackage()}>{packaging?t('正在打包…'):t('下载资料包')}</button>
     {(['md', 'json', 'html', 'print'] as const).map((format, index) => <button type="button" className="btn-ghost text-xs" key={format}
       disabled={!canDownload} onClick={() => download(format)}>
       {[t("下载 Markdown"), t("下载研究数据"), t("下载 HTML"), t("打印 / 另存 PDF")][index]}

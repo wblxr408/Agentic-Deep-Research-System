@@ -15,7 +15,7 @@ POLICY_VERSION = 'adrs-analysis-modules-v1'
 REPORT_WRITING_GUIDANCE = '''
 面向报告读者的写作要求：
 用自然、连贯的研究报告语言直接陈述发现、解释和建议，技术术语按读者理解需要说明。
-在开头用一处简洁的方法说明交代研究对象、时间、样本和来源范围；具体实验数字注明论文或作者的报告及适用条件。
+开头直接给出有依据的核心判断。范围与资料方法集中放在附录一处，仅当范围改变核心判断时在开头简要说明；具体实验数字注明论文或作者的报告及适用条件。
 在结论处交代真正影响判断的材料限制，不反复写“不能保证”“不代表”“未经独立验证”等免责句。
 段落kind仅用于内部记录，不在文字中写“来源摘述”“待审核”“待复核”“证据缺口”等工作流标签。
 不写产物/数据/规则版本、冻结配置、任务ID、预算、审批、工具权限、内部错误码或模型置信度。
@@ -26,12 +26,12 @@ REPORT_WRITING_GUIDANCE = '''
 '''
 PURPOSES = {'research_development': '布局与演进', 'cooperation_discovery': '合作发现', 'comprehensive': '综合研究'}
 MODULES = {
-    'landscape': ('研究全景', '声明样本与公开研究方向；不把论文量解释为投入。'),
+    'landscape': ('研究全景', '解释主要研究方向、各自瓶颈与代表成果，给出与读者问题有关的布局判断。'),
     'evolution': ('研究演进', '区分观测变化与覆盖变化；只有一个年度样本时不能确立多年趋势。'),
-    'relationships': ('关系分析', '分别表述已知署名／共著、资助、项目及协议；未知保持未知。'),
+    'relationships': ('关系分析', '定位具体研究者、团队和公开资源入口，区分共著线索与已证实的项目或合作关系。'),
     'deep_dive': ('成果深读', '仅解释实际取得的原文，无法核清的方法、条件和图表保留缺口。'),
-    'validation': ('交叉验证', '列出支持、冲突及未取得材料，不把相关线索当作部署证明。'),
-    'actions': ('后续行动', '发展目的提出研究验证问题；合作目的缺需求时先列待补条件，不擅自联系。'),
+    'validation': ('交叉验证', '解释会改变研究判断的证据冲突、实验可比性和适用条件；范围说明集中一次。'),
+    'actions': ('后续行动', '提出有团队、资源、首项产出和评价方法的条件性研究课题；未知用户条件用于划分可行路径。'),
 }
 DEFAULTS = {
     'research_development': ('landscape', 'evolution', 'validation'),
@@ -97,6 +97,16 @@ class ModuleReportDraft(ScopeRecord):
     modules: tuple[ModuleDraft, ...] = Field(min_length=1, max_length=6)
 
 
+CHAPTER_RESPONSIBILITIES = {
+    'landscape':'Explain the research layout and the distinct bottleneck each direction addresses. State the scope once; do not enumerate every experiment.',
+    'evolution':'Compare changes in technical choices and their tradeoffs. Distinguish dated events, similarity and evidenced inheritance; do not repeat the landscape or experimental cards.',
+    'relationships':'Identify named researchers/teams, their roles and evidenced public resource entry points. Explain what each offers the reader; do not repeat all mechanisms or author lists elsewhere.',
+    'deep_dive':'Main text compares mechanisms and when to choose them. Appendix owns one integrated technical account per representative work: problem, mechanism, innovation, hardware/model/load, baseline, metric/result and boundary. Other chapters reference this account rather than duplicate it.',
+    'validation':'Explain only material evidence conflicts, incomparable settings and limitations that change a decision. Do not repeat the work summaries or turn missing extracted fields into claims of missing research.',
+    'actions':'Rank concrete conditional research projects using relevant teams/resources, a tractable first artifact and evaluation. Appendix owns detailed project protocols. Do not repeat the institutional overview or technical cards.',
+}
+
+
 def module_report_instructions(configuration: dict) -> str:
     return ('You are a source-grounded research writer. Return JSON, not a generic company report. '
         'The exact JSON shape is {"title":"short research title","summary":[{"text":"key judgement and implications","kind":"interpretation","citations":[1]}],"modules":[{"module_id":"selected ID",'
@@ -145,6 +155,9 @@ def module_report_instructions(configuration: dict) -> str:
         'Use citations as integer arrays even for one reference, e.g. [4], never a scalar 4. '
         'Put technical appendix paragraphs only inside their selected module appendix array, not a top-level appendix. '
         'The server assembles only requested module IDs; an extra or missing module is recorded separately.'
+        + '\nChapter responsibilities: '+json.dumps(CHAPTER_RESPONSIBILITIES,ensure_ascii=False)
+        + '\nA chapter must add a distinct judgment. Consolidate global scope and acquisition notes once. '
+          'Repeated paraphrases of the same limitation are still repetition; retain a local condition only if it changes the specific choice.'
         + REPORT_WRITING_GUIDANCE
         + analysis_instructions(configuration))
 
@@ -155,7 +168,7 @@ def _sample_counting_text(text: str, publication_titles=()) -> str:
     Another/the same paper and an ordinal paper identify a work; they do not
     state the size of the corpus. Literal cardinal counts still need binding.
     """
-    reference=(r'(?:另一|同一|第(?:\d+|[零〇一二两三四五六七八九十百千万]+))\s*(?:篇(?!全文|完整正文|文档)|份(?=简历))'
+    reference=(r'(?:另一|同一|前一|后一|第(?:\d+|[零〇一二两三四五六七八九十百千万]+))\s*(?:篇(?!全文|完整正文|文档)|份(?=简历))'
         r'|(?<![0-9零〇一二两三四五六七八九十百千万])(?:一|1)\s*篇(?:中文|英文)?(?:解读|评论|报道)(?:材料|文章|资料)')
     result=re.sub(reference,'[work reference]',text)
     # A source claim about one specifically described work is not the size of
@@ -180,7 +193,7 @@ def _sample_counting_text(text: str, publication_titles=()) -> str:
     if named and not re.search(aggregate,text):
         def reference_count(match):
             count=int(match['number']) if match['number'].isdigit() else numbers.get(match['number'])
-            return '[named work reference]' if count==len(named) else match[0]
+            return '[named work reference]' if 0<count<=len(named) else match[0]
         result=re.sub(r'(?:这|那|上述|前述|所述)(?P<number>\d{1,4}|[一二两三四五六七八九十]+)\s*篇(?:论文|工作)',
             reference_count,result)
     return result
@@ -346,7 +359,7 @@ def assemble_module_report(raw: str, configuration: dict, citation_count: int, *
         # earlier experimental percentage (e.g. SLO target, then overhead share).
         # Keep numeric commas together; source measurements still face audit.
         for clause in re.split(r'[，。；;\n]|,(?!\d)',remainder):
-            aggregate=re.search(r'样本|采纳|发表|家族|分类|标签|占(?:全部|总|当前)?(?:论文|成果|来源)|sample|publication|families',clause,re.I)
+            aggregate=re.search(r'样本|采纳|发表|家族|分类|标签|占(?:全部|总|当前)?(?:论文|成果|来源)|\bsamples?\b(?!\s*/)|\bpublications?\b|\bfamilies\b',clause,re.I)
             if aggregate and re.search(number+r'\s*(?:[%％]|/\s*'+number+r')',clause):
                 raise ValueError('unbound_sample_ratio')
         bindings=[{'metric_id':key,'snapshot_id':statistics['snapshot_id'],'display':registry[key]['display'],
@@ -408,6 +421,8 @@ def assemble_module_report(raw: str, configuration: dict, citation_count: int, *
     main_markdown = '\n'.join(lines)
     appendix_markdown = '## 技术附录\n\n'+'\n'.join(appendix_lines) if appendix_lines else ''
     return main_markdown+('\n\n'+appendix_markdown if appendix_markdown else ''), {'rule_version': POLICY_VERSION, 'purpose': configuration['purpose'],
+        **({'reader_quality_policy':configuration['reader_quality_policy']} if configuration.get('reader_quality_policy') else {}),
+        **({'surface_review_policy':configuration['surface_review_policy']} if configuration.get('surface_review_policy') else {}),
         'summary':summary_paragraphs,
         'reading_structure': {'main_markdown': main_markdown, 'appendix_markdown': appendix_markdown},
         'raw_model_response': raw, 'validation_errors': validation_errors,

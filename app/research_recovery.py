@@ -68,6 +68,15 @@ async def automatic_recovery_node(state):
                 or allowance.deadline is None or time.monotonic()+plan['delay_seconds']+5>=allowance.deadline
                 or int(budget.get('inflight_model_requests') or 0)):
             return blocked('原分析份额、执行期限或在途用量尚不允许自动恢复')
+        if plan['kind'] == 'discovery':
+            from app.discovery_handoff import prepare_discovery_gap
+            from app.graph.compiler import _channel_budget, _effective_tool_allowlist
+            calls, seconds = _channel_budget(restored, [])
+            try:
+                restored = prepare_discovery_gap(restored, remaining_calls=calls, remaining_seconds=seconds,
+                    allowed_tools=_effective_tool_allowlist(restored, restored.get('guardrail_decision') or {}))
+            except ValueError as error:
+                return blocked(str(error))
         workflow=deepcopy(workflow)
         phase=workflow['active_phase']
         counts=workflow.setdefault('recovery_counts',{}).setdefault(phase,{})
@@ -77,7 +86,8 @@ async def automatic_recovery_node(state):
         record={key:plan[key] for key in ('kind','action','delay_seconds','limit')}
         record.update(attempt=counts[plan['kind']],phase=phase,changes=directive)
         workflow.setdefault('recovery_history',[]).append(record)
-        root={**restored['session'],'status':'running','automatic_recovery_attempts':plan['total_attempts']+1}
+        root={**restored['session'],'status':'running','automatic_recovery_attempts':plan['total_attempts']+1,
+              'automatic_recovery_target':'dag_executor' if plan['kind']=='discovery' else 'analyst'}
         review.update(runtime_status='running',reason=None,
             automatic_recovery={'status':'running','attempts':root['automatic_recovery_attempts'],
                 'limit':plan['total_limit'],'policy':plan['kind'],'policy_attempts':counts[plan['kind']],
@@ -104,4 +114,5 @@ async def automatic_recovery_node(state):
         await asyncio.sleep(min(.25,max(0,until-time.monotonic())))
     check_execution()
     return {'session':root,'budget_state':budget,'status':'running','runtime_status':'running','review_status':review,
-        'analysis_workflow':workflow,'agent_trace':[event]}
+        'analysis_workflow':workflow,'agent_trace':[event],
+        **({key:restored[key] for key in ('dag','plan_manifest','plan_history')} if plan['kind']=='discovery' else {})}

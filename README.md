@@ -4,6 +4,8 @@ ADRS 面向企业、高校和科研实验室的研究发展分析：从公开论
 
 ## 当前进度
 
+2026-11-01：当前版本为 **v1.3**（应用版本 `1.3.0`）。同根研究已通过获准范围的事实、最终读者和实际PDF图文审核，主文6页、附录14页（含8页原图）已认证导出并实际阅读排版；正文必核250/250、图文必核66/66，累计6,092,491/6,100,000 Token。[版本说明](CHANGELOG.md) · [实际验收](docs/acceptance/research-quality-e2e-20261030.md) · [重复与恢复问题归因](docs/reader-cross-validation.md)。单主研究Agent改造仍为规划，其他模块保留各自的实现及验收状态。
+
 2026-10-30：取证与长任务可靠性模块已部署，并在同一真实DeepSeek任务中完成取证、分阶段分析、正文核对和图文交付：12份原始PDF、7页报告、4张数据图及8页论文原图；HTML与约18 MB资料包已实际下载。累计762,250 Token、54次工具请求，收尾复用已核对结果，未增加模型用量。报告仍偏重少数成果，团队／合作资源和图文统一事实审核需要完善；完整内容质量及离线重开尚未通过，不将技术交付等同于研究质量验收。[实际结果与不足](docs/acceptance/reliability-full-20261030.md) · [架构与ACI](docs/research-reliability.md) · [失败归因](docs/RESEARCH_FAILURE_DIAGNOSIS_20261030.md)
 
 2026-10-29：原始PDF保留、原文图注页、报告原图与离线HTML、本人资料包下载已接入源码，效果待整个模块后的真实研究／图文／导出／重开旅程。[原图与资料包](docs/source-media-delivery.md)
@@ -82,7 +84,9 @@ ADRS 面向企业、高校和科研实验室的研究发展分析：从公开论
 
 资料库可以按分组、声明日期和词项查看来源的年度分布，并展开对应资料；日期口径及适用范围见[时间分布说明](docs/versioned-retrieval-features.md#资料时间分布2026-10-27源码已接入)。
 
-[主TODO](docs/OPTIMIZATION_TODO.md) · [实施账本与选型](docs/IMPLEMENTATION_LEDGER.md) · [统一真实旅程及失败记录](docs/acceptance/unified-research-20261023.md) · [当前使用说明](docs/organization-research-guide.md)
+[完整实施计划](docs/IMPLEMENTATION_PLAN.md) · [原功能TODO](docs/OPTIMIZATION_TODO.md) · [实施账本与选型](docs/IMPLEMENTATION_LEDGER.md) · [统一真实旅程及失败记录](docs/acceptance/unified-research-20261023.md) · [当前使用说明](docs/organization-research-guide.md)
+
+2026-11-01：原ORG、18个OPT、M1／M2／M3与单主研究Agent改造已形成统一实施计划，区分已实现待验收、待实现、冻结及外部条件。架构改造仍为规划；较新的显式同步／CDC、视觉／语义处理、稀疏／多向量／图文／BSR等代码不因早期账本描述而重新开发。
 
 原云端执行点已停写，当前按用户授权回到本机继续，并逐模块推送同一任务分支。U2e完成7阶段、四个论文／出版页来源归并为两发表；111项全部审核、79支持，230460／240000 Token时因修订余量不足保留草稿，未正常图文交付。恢复顺序、统计分句、写作／建议审核、参数／章节定位与阶段分工修复已提交；同原范围和额度的U2f已实际创建继续完整旅程，效果待观察。完整图文、导出和读者质量尚未通过。[本机实际记录](docs/acceptance/local-continuation-20261024.md)保留原结果；[云端交接](docs/CLOUD_CONTINUATION_20261024.md)为历史，本机数据库、密钥、会话和依赖不随Git迁移。
 
@@ -312,6 +316,7 @@ deepintel/
 
 #### `docs/`
 
+- `IMPLEMENTATION_PLAN.md`：全功能与架构改造的统一状态、优先级、唯一工作包、共用验收及原任务映射
 - `RESEARCH_WORKFLOW_DESIGN.md`：完整调研流程图、阶段分工、交接边界及已有／改造／新增状态
 - `OPTIMIZATION_TODO.md`：18 个能力模块及跨模块规划
 - `RESEARCH_DEVELOPMENT_PLAN.md`：跨对象、跨学科组织研究实施路线

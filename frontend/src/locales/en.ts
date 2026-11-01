@@ -1317,6 +1317,7 @@ export const english:Record<string,string> = {
   "研究报告": "research report",
   "研究记录": "Research records",
   "内容核对": "Content verification",
+  "按核验范围免核 {0} 项，未计作事实支持": "{0} items excluded from verification scope; not counted as supported facts",
   " 项支持": " item support",
   "原文支持 ": "Original text support ",
   " · 方法依据 ": " · Method basis ",

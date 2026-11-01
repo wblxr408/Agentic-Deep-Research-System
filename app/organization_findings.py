@@ -417,8 +417,10 @@ def build_organization_findings(configuration: dict | None, evidence: list[dict]
 
     outputs, publications, canonical = [], {}, {}
     publication_meta = {}
+    work_identity_policy=configuration.get('work_identity_policy')=='adrs-primary-work-versions-v1'
     for publication in records('outputs', PublicationClaim, 1000):
         reason_code = None
+        stamp = None
         try:
             if opening_policy:
                 from app.publication_opening import printed_title,current_arxiv_date,auxiliary_identity_source
@@ -434,7 +436,8 @@ def build_organization_findings(configuration: dict | None, evidence: list[dict]
                         if original!={'title':publication.title,'title_proof':publication.title_proof.model_dump()}:
                             normalized({'kind':'literal_complete_printed_title','output_id':publication.output_id,
                                 'original':original,'title':literal_title,'evidence_id':primary['evidence_id']})
-                    stamp=current_arxiv_date(primary,_publication_opening(primary)) if literal_title else None
+                    stamp=current_arxiv_date(primary,_publication_opening(primary),
+                        include_mirrors=work_identity_policy) if literal_title else None
                     if stamp and not (primary.get('acquisition') or {}).get('publisher_metadata'):
                         normalized({'kind':'current_primary_preprint_version_date','output_id':publication.output_id,
                             'original_date':publication.publication_date,
@@ -619,6 +622,7 @@ def build_organization_findings(configuration: dict | None, evidence: list[dict]
                 'model_category_with_checked_primary_venue' if venue else 'model_category_not_independent_semantic_review')
             source_key = _publication_url(source['source_url'])
             key = source_key
+            version_identity = stamp if work_identity_policy and stamp else None
             alias_enabled = (configuration.get('corpus') or {}).get('rule_version') in PUBLICATION_ALIAS_VERSIONS
             identity_links = []
             if alias_enabled:
@@ -656,6 +660,8 @@ def build_organization_findings(configuration: dict | None, evidence: list[dict]
                         evidence_ids.update((document['evidence_id'], candidate['evidence_id']))
                         identity_links.append({'source_evidence_id': document['evidence_id'],
                             'publisher_evidence_id': candidate['evidence_id'], 'publisher_url': candidate['source_url']})
+            if version_identity and not identity_links:
+                key=f"arxiv:{version_identity['arxiv_id']}{version_identity['version']}"
             source_urls = tuple(dict.fromkeys([source['source_url'], *(link['publisher_url'] for link in identity_links)]))
             previous = canonical.get(key)
             if previous:
@@ -697,6 +703,9 @@ def build_organization_findings(configuration: dict | None, evidence: list[dict]
                 if identity_links:
                     meta['identity_basis'] = 'explicit_primary_cover_link'
                     meta.setdefault('identity_links', []).extend(identity_links)
+                if version_identity:
+                    meta.setdefault('version_sources', []).append({**version_identity,
+                        'evidence_id':source['evidence_id'],'source_url':source['source_url']})
                 continue
             if publication.output_id in publications:
                 raise ValueError('conflicting publication IDs')
@@ -714,6 +723,14 @@ def build_organization_findings(configuration: dict | None, evidence: list[dict]
                 'identity_basis': 'explicit_primary_cover_link' if identity_links else 'primary_source_url',
                 'canonical_primary_url': key, 'identity_links': identity_links,
                 'date_basis': date_basis, 'proposed_publication_date': publication.publication_date}
+            if version_identity:
+                publication_meta[output.output_id].update(
+                    work_id=f"arxiv:{version_identity['arxiv_id']}",
+                    version=version_identity['version'],
+                    identity_basis='primary_pdf_version_stamp_and_locator',
+                    canonical_primary_url=source_key,
+                    version_sources=[{**version_identity,'evidence_id':source['evidence_id'],
+                        'source_url':source['source_url']}])
         except ValueError as error:
             pending.append({'kind': 'publication', 'id': publication.output_id, 'title': publication.title,
                 'reason': str(error), 'reason_code': reason_code, 'proposed_record': publication.model_dump(mode='json')})
@@ -818,6 +835,18 @@ def build_organization_findings(configuration: dict | None, evidence: list[dict]
         'relationship_coverage': {kind: 'source_supported_sample' if scoped.relation_counts[kind] else 'not_established'
                                   for kind in ('coauthorship', 'funding', 'citation')},
         'coverage': 'retrieved_sample_not_real_world_census'})
+    if work_identity_policy:
+        work_groups = defaultdict(list)
+        for output in scoped.outputs:
+            meta = publication_meta[output.output_id]
+            work_groups[meta.get('work_id', 'output:' + output.output_id)].append(output.output_id)
+        result['work_identity'] = {'policy':configuration['work_identity_policy'],
+            'groups':[{'work_id':key,'output_ids':members,
+                'basis':'primary_arxiv_identifier' if key.startswith('arxiv:') else 'unlinked_output',
+                'versions':[{'output_id':identity,'version':publication_meta[identity].get('version'),
+                    'evidence_ids':publication_meta[identity]['evidence_ids']} for identity in members]}
+                for key,members in work_groups.items()],
+            'semantics':'same_version_mirrors_merged_other_versions_retained_no_inferred_first_release'}
     result['candidate_discovery_status'] = ('named_entities' if scope.entities
         else 'source_backed_candidates_pending_disambiguation' if candidates else 'no_candidates_established')
     result['attribution_status'] = 'source_supported_sample' if scoped.summary.publication_count else 'no_attributed_sample_established'
@@ -873,16 +902,16 @@ def findings_context(result: dict | None) -> str:
                         'field':'experiment_context_bundle','fields':measurements,
                         'missing_fields':[field for field in experimental if field not in measurements],
                         'interpretation':'retain_result_and_conditions_together_not_cross_paper_ranking'})
-                for field,statement in card.get('fields',{}).items():
+                for field,statement in sorted(card.get('fields',{}).items()):
                     if field not in experimental and statement.get('text'):
                         records.append({'output_id':card['output_id'],'title':card['title'],'field':field,**statement})
         elif isinstance(value,list):records=value
         elif isinstance(value,dict):
-            for field,items in value.items():
+            for field,items in sorted(value.items()):
                 if isinstance(items,list):records.extend({'field':field,'record':item} for item in items)
                 else:records.append({'field':field,'value':items})
         else:records=[value]
-        sections.extend(json.dumps({'record_type':key,'record':record},ensure_ascii=False) for record in records)
+        sections.extend(json.dumps({'record_type':key,'record':record},ensure_ascii=False,sort_keys=True) for record in records)
     # Separate complete records let the existing paragraph/section packer
     # preserve different questions instead of dropping one giant JSON blob.
     return '\n\n'.join(sections)

@@ -73,7 +73,7 @@ logger = structlog.get_logger(__name__)
 async def lifespan(app: FastAPI):
     """Application lifespan: startup and shutdown handlers."""
     settings = get_settings()
-    logger.info("Starting DeepIntel API", version="1.0.0")
+    logger.info("Starting DeepIntel API", version="1.3.0")
     try:
         settings.validate_startup_security()
     except ValueError as exc:
@@ -133,7 +133,7 @@ def create_app() -> FastAPI:
             "Supports multi-agent workflows, browser automation, RAG, "
             "and citation-grounded report generation."
         ),
-        version="1.0.0",
+        version="1.3.0",
         lifespan=lifespan,
         docs_url="/docs",
         redoc_url="/redoc",
@@ -174,7 +174,7 @@ def create_app() -> FastAPI:
     async def root():
         return {
             "name": "Agentic Deep Research System",
-            "version": "1.0.0",
+            "version": "1.3.0",
             "docs": "/docs",
             "health": "/api/v1/health",
             "ready": "/api/v1/ready",

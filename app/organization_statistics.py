@@ -45,6 +45,13 @@ def build_statistics(config,findings,evidence,*,source_id):
             'rounding':'decimal_half_up_2','basis':basis,'status':'computed' if bottom else 'undefined_empty_denominator'}
         return metrics[key]
     count('sample:publications','采纳发表记录',ids,'publication')
+    if config.get('work_identity_policy')=='adrs-primary-work-versions-v1':
+        work_members={identity:(findings.get('publication_metadata',{}).get(identity) or {}).get(
+            'work_id','output:'+identity) for identity in ids}
+        metric=count('sample:works','已归一研究工作',work_members.values(),'work',
+            basis='primary_identifier_or_unlinked_output_not_title_similarity')
+        metric['output_to_work']=work_members
+        metrics['sample:publications']['label']='采纳成果与版本记录'
     count('sample:families','研究家族及未链接发表单元',families,'research_family_or_unlinked_publication')
     object_rows=[];seen_objects=set()
     for view in scoped.get('views',[]):

@@ -150,7 +150,35 @@ Return JSON with analysis_text and any additional fields explicitly required bel
             if on_progress:on_progress(deepcopy(workflow))
 
         def phase(key, phase_config, kind, seed=None):
-            if key in workflow['completed']:return workflow['completed'][key]
+            from app.query_understanding import identity
+            seed_binding=identity({'configuration':phase_config,'kind':kind,'seed':seed})
+            action_contract_binding=None
+            if (kind=='question' and phase_config.get('modules')==['actions']
+                    and phase_config.get('topic_action_policy')=='adrs-topic-actions-v2'):
+                from app.organization_actions import action_instructions
+                action_contract_binding=identity(action_instructions(phase_config))
+            selection_required=(kind=='question' and phase_config.get('modules')==['landscape']
+                and phase_config.get('research_handoff_policy')=='adrs-complete-evidence-handoff-v2'
+                and not phase_config.get('_post_reading_synthesis'))
+            def validate_selection(record):
+                from app.analysis_phase_contract import validate_reading_plan
+                validate_reading_plan((seed or {}).get('outputs',[]),record['organization_data'].get('reading_plan'))
+            if key in workflow['completed']:
+                cached=workflow['completed'][key]
+                try:
+                    if action_contract_binding and cached.get('action_contract_binding')!=action_contract_binding:
+                        raise ValueError('action_contract_changed')
+                    if cached.get('phase_input_binding'):
+                        if cached['phase_input_binding']!=seed_binding:raise ValueError('phase_inputs_changed')
+                    elif kind=='question':
+                        supplied=set(((cached.get('context') or {}).get('publication_seed') or {}).get('selected_output_ids') or [])
+                        expected={row['output_id'] for row in (seed or {}).get('outputs',[])}
+                        if supplied!=expected:raise ValueError('phase_assigned_works_changed')
+                    if selection_required:validate_selection(cached)
+                except ValueError:
+                    workflow.setdefault('invalidated_completed',{})[key]=deepcopy(cached)
+                    del workflow['completed'][key]
+                else:return cached
             attempts=workflow['attempts'].get(key,0)
             from app.recovery_policy import PHASE_ATTEMPT_LIMIT
             if attempts>=PHASE_ATTEMPT_LIMIT:raise TokenBudgetExceeded('analysis_phase_attempt_limit')
@@ -176,13 +204,24 @@ Return JSON with analysis_text and any additional fields explicitly required bel
                 text=self.analyze(user_query,evidence_list,skill_prompt,analyst_hints,phase_config,
                     _phase=kind,_seed=seed,_output_tokens=output_tokens)
                 record={'analysis_text':text,'organization_data':deepcopy(self.last_organization_data or {}),
-                    'context':deepcopy(self.last_context_manifest),'extraction':deepcopy(self.last_extraction_status)}
+                    'context':deepcopy(self.last_context_manifest),'extraction':deepcopy(self.last_extraction_status),
+                    'phase_input_binding':seed_binding}
+                if action_contract_binding:record['action_contract_binding']=action_contract_binding
                 if strategy_version and kind!='extraction':
                     record['judgments']=build_judgments(self.last_judgments,
                         [item.model_dump(mode='json') for item in evidence_list],self.last_context_manifest,
                         configuration=configuration,findings=accepted,phase=key)
                 workflow.setdefault('attempt_records',{}).setdefault(key,[]).append({
                     'attempt':workflow['attempts'][key],**record})
+                if selection_required:
+                    try:validate_selection(record)
+                    except ValueError as error:
+                        self.last_context_manifest=deepcopy(record['context'])
+                        self.last_context_manifest['reading_plan_issue']=str(error)
+                        self.last_extraction_status={**self.last_extraction_status,
+                            'status':'reading_plan_incomplete','reason':str(error)}
+                        self.last_partial_response=self.last_extraction_status.get('raw_response_before_proof_resolution')
+                        raise TokenBudgetExceeded('analysis_output_incomplete') from error
                 if (configuration.get('publication_metadata_policy')=='adrs-publication-fields-v4'
                         and kind=='question' and 'deep_dive' in phase_config.get('modules',[])
                         and not (seed or {}).get('reading_focus')):
@@ -234,6 +273,7 @@ Return JSON with analysis_text and any additional fields explicitly required bel
                     'provider_error_type':self.last_extraction_status.get('reason') if error.reason=='analysis_provider_unavailable' else None,
                     'retry_after_seconds':self.last_extraction_status.get('retry_after_seconds'),
                     'provider_error_code':self.last_extraction_status.get('provider_error_code'),
+                    'provider_error_details':deepcopy(self.last_extraction_status.get('provider_error_details')),
                     'admission':deepcopy(getattr(error,'admission',None)),
                     'context':deepcopy(self.last_context_manifest)}
                 failures=workflow.setdefault('failed_attempts',{}).setdefault(key,[])
@@ -345,7 +385,7 @@ Return JSON with analysis_text and any additional fields explicitly required bel
         allowed={'landscape':('interpretations',),'relationships':('relationship_entities','research_relationships','geographies'),
             'deep_dive':('technical_cards',),'evolution':('trend_observations',),'validation':('trend_observations',),
             'actions':('action_cards',)}
-        texts={};contexts=[];judgments=[];judgment_gaps=[];prior_records=[]
+        texts={};contexts=[];judgments=[];judgment_gaps=[];prior_records=[];retired_judgments=[]
         technical_by_output={}
         retained_evidence=[item.model_dump(mode='json') for item in evidence_list]
         def retain_technical(record, batch):
@@ -360,7 +400,7 @@ Return JSON with analysis_text and any additional fields explicitly required bel
                 if card['output_id'] not in permitted:continue
                 target=technical_by_output.setdefault(card['output_id'],{'output_id':card['output_id'],'fields':{},'figure_references':[]})
                 for key,field in card['fields'].items():
-                    if field.get('text') and field.get('proofs') and key not in target['fields']:
+                    if field.get('text') and field.get('proofs'):
                         target['fields'][key]={'text':field['text'],'proofs':[
                             {'evidence_id':proof['evidence_id'],'quote':proof['quote']} for proof in field['proofs']]}
                 for figure in card['figure_references']:
@@ -368,13 +408,46 @@ Return JSON with analysis_text and any additional fields explicitly required bel
                         'evidence_id':figure['proof']['evidence_id'],'quote':figure['proof']['quote']}}
                     if normalized not in target['figure_references']:target['figure_references'].append(normalized)
         analysis_modules=[key for key in ORDER if key in modules] if strategy_version else modules
+        reading_plan=None
+        complete_handoff=configuration.get('research_handoff_policy')=='adrs-complete-evidence-handoff-v2'
+        synthesized=False
+        def synthesize():
+            nonlocal judgments,synthesized
+            if synthesized or not complete_handoff or not strategy_version:return
+            synthesized=True
+            if not technical_by_output and not prior_records:return
+            synthesis_seed={**seed,'_analysis_handoff':{'technical':technical_by_output,
+                'judgments':judgments,'prior_records':prior_records}}
+            result=phase('question:post_reading_synthesis',
+                {**configuration,'modules':['landscape'],'_post_reading_synthesis':True,
+                    '_synthesis_modules':[key for key in analysis_modules if key!='actions']},'question',synthesis_seed)
+            from app.research_judgments import reconcile_judgments
+            judgments,retired,rejected=reconcile_judgments(judgments,
+                result.get('judgments',{}).get('records',[]),allow_supersession=True)
+            retired_judgments.extend(retired)
+            judgment_gaps.extend([*rejected,*result.get('judgments',{}).get('pending_records',[])])
+            data['interpretations']=result['organization_data'].get('interpretations',[])
+            for summary in result['organization_data'].get('module_summaries',[]):
+                key=summary['module_id']
+                texts[key]='## '+MODULES[key][0]+'\n\n'+summary['analysis_text']
+            contexts.append({'module':'synthesis','phase_id':'question:post_reading_synthesis',**result['context']})
+            workflow['research_synthesis']={'phase_id':'question:post_reading_synthesis',
+                'active_judgment_ids':[row['judgment_id'] for row in judgments],
+                'superseded_judgment_ids':[row['judgment_id'] for row in retired_judgments],
+                'semantics':'post_reading_candidates_require_final_source_and_reader_review'}
         workflow['analysis_module_order']=analysis_modules
         for module in analysis_modules:
+            if module=='actions':synthesize()
             batches=[seed]
             if module=='deep_dive':
                 from app.analysis_phase_contract import reading_representatives
+                if complete_handoff and reading_plan is None:
+                    selection=phase('question:reading_selection',{**configuration,'modules':['landscape']},'question',seed)
+                    reading_plan=selection['organization_data'].get('reading_plan',[])
+                    workflow['reading_plan']=reading_plan
+                    contexts.append({'module':'selection','phase_id':'question:reading_selection',**selection['context']})
                 representatives,reading_selection=reading_representatives(seed['outputs'],seed['publication_metadata'],
-                    evidence_list,configuration,user_query)
+                    evidence_list,configuration,user_query,reading_plan=reading_plan)
                 if reading_selection:workflow['representative_reading']=reading_selection
                 batches=[{**seed,'outputs':representatives[index:index+2]} for index in range(0,len(representatives),2)] or [seed]
             module_texts=[]
@@ -384,12 +457,20 @@ Return JSON with analysis_text and any additional fields explicitly required bel
                 batch['publication_identity']=publication_identity_handoff(accepted,evidence_list,max_bytes=12000,
                     output_ids={item['output_id'] for item in batch['outputs']})
                 phase_id='question:'+module+(f':{index+1}' if len(batches)>1 else '')
-                if strategy_version and module in {'evolution','validation','actions'}:
+                if strategy_version and (module in {'evolution','validation','actions'} or
+                        module=='relationships' and configuration.get('research_handoff_policy')=='adrs-complete-evidence-handoff-v2'):
                     batch={**batch,'_analysis_handoff':{'technical':technical_by_output,
                         'judgments':judgments,'prior_records':prior_records}}
                 record=phase(phase_id,{**configuration,'modules':[module]},'question',batch)
+                if module=='landscape' and configuration.get('research_handoff_policy')=='adrs-complete-evidence-handoff-v2':
+                    reading_plan=record['organization_data'].get('reading_plan',[])
+                    workflow['reading_plan']=reading_plan
                 if strategy_version:
-                    judgments.extend(record.get('judgments',{}).get('records',[]))
+                    if complete_handoff:
+                        from app.research_judgments import reconcile_judgments
+                        judgments,retired,rejected=reconcile_judgments(judgments,record.get('judgments',{}).get('records',[]))
+                        retired_judgments.extend(retired);judgment_gaps.extend(rejected)
+                    else:judgments.extend(record.get('judgments',{}).get('records',[]))
                     judgment_gaps.extend(record.get('judgments',{}).get('pending_records',[]))
                     for key in ('research_relationships','trend_observations'):
                         candidates=record['organization_data'].get(key,[])
@@ -422,11 +503,13 @@ Return JSON with analysis_text and any additional fields explicitly required bel
                         if not isinstance(data.get(key),list):data[key]=[]
                         data.setdefault(key,[]).extend(record['organization_data'][key])
             texts[module]='## '+MODULES[module][0]+'\n\n'+'\n\n'.join(module_texts)
+        synthesize()
         if 'deep_dive' in modules:data['technical_cards']=list(technical_by_output.values())
         workflow.update(status='completed',active_phase=None)
         self.last_workflow=workflow
         self.last_organization_data=data
         self.last_judgment_view={'version':JUDGMENT_VERSION,'records':list(reversed(judgments)),'pending_records':judgment_gaps,
+            'superseded_records':retired_judgments,
             'semantics':'source_locations_checked_analysis_candidates_not_final_verdicts'} if strategy_version else {}
         self.last_context_manifest={'schema_version':'adrs-analysis-questions-v2','phases':contexts,
             'publication_contexts':[record['context'] for record in extractions],
@@ -527,7 +610,8 @@ Return JSON with analysis_text and any additional fields explicitly required bel
                     'conference/journal type from a filename, URL, memory or earlier draft. A literal arXiv version '
                     'date is not evidence of conference acceptance or first release.')
                 from app.research_context import question_seed, encoded
-                seed,seed_manifest=question_seed(context_seed,deep='deep_dive' in organization_research.get('modules',[]))
+                seed,seed_manifest=question_seed(context_seed,deep='deep_dive' in organization_research.get('modules',[]),
+                    complete=organization_research.get('research_handoff_policy')=='adrs-complete-evidence-handoff-v2')
                 seed_text=encoded(seed)
                 context_seed=seed
                 system_prompt += '\n'+untrusted_context('retained_publication_records',seed_text,limit=len(seed_text))
@@ -597,7 +681,10 @@ Return JSON with analysis_text and any additional fields explicitly required bel
             'attribute claims to evidence items (e.g., [citation:1] for the first evidence item). Also provide the structured JSON output.')
         def build_messages(allowance):
             handoff=stage_handoff(handoff_seed.get('technical',{}),handoff_seed.get('judgments',[]),
-                min(4000,int(allowance*.12)),prior_records=handoff_seed.get('prior_records',[])) if handoff_seed else None
+                min(24000,int(allowance*.6)) if (organization_research or {}).get('research_handoff_policy')=='adrs-complete-evidence-handoff-v2'
+                else min(4000,int(allowance*.12)),prior_records=handoff_seed.get('prior_records',[]),
+                complete_records=(organization_research or {}).get('research_handoff_policy')=='adrs-complete-evidence-handoff-v2',
+                evidence=evidence_list) if handoff_seed else None
             handoff_text=encoded(handoff) if handoff else ''
             spans=handoff_spans(handoff,evidence_list) if handoff else None
             preferred=[]
@@ -785,6 +872,18 @@ Collected Evidence:
                         'available_tokens':self.request_budget.available() if self.request_budget else None}
                     raise error from e
                 self.last_extraction_status={'status':'failed','reason':type(e).__name__}
+                from app.disclosure import redact_text
+                body=getattr(e,'body',None)
+                provider_error=body.get('error',body) if isinstance(body,dict) else {}
+                details={'http_status':getattr(e,'status_code',None)}
+                if isinstance(provider_error,dict):
+                    for field in ('code','type','message'):
+                        value=provider_error.get(field)
+                        if isinstance(value,(str,int)):
+                            details[field]=redact_text(str(value))[:1200 if field=='message' else 160]
+                # Keep the service's bounded error fields in the owned research
+                # record, never headers, credentials or a response-body dump.
+                self.last_extraction_status['provider_error_details']=details
                 code=getattr(e,'code',None)
                 if code in {'insufficient_quota','billing_hard_limit_reached','account_deactivated'}:
                     self.last_extraction_status['provider_error_code']=code

@@ -44,6 +44,7 @@ interface ResearchResult {
   execution_id?:string|null
   checkpoint_seq?:number
   report_audit?: {needs_review?:boolean;audit_incomplete?:boolean;total_claims?:number;supported_claims?:number;
+    required_claims?:number;required_supported_claims?:number;excluded_claims?:number;
     revision_requests?:Array<{claim_id:string;text:string;reason:string;requested_action:string}>}|null
   analysis_recovery_available?: boolean
   interruption_recovery_available?: boolean
@@ -563,7 +564,7 @@ function ResearchDashboard({ onBack,ownerId }: ResearchDashboardProps) {
       </div>
     </section>
     <section hidden={activePanel!=='report'} className="reader-workspace" aria-label={t("图文报告视图")}>
-      <div className="reader-heading"><h2>{t("研究报告")}</h2><div>{normalizedCitations.length>0&&<span>{normalizedCitations.length} {t(" 条引用")}</span>}{result?.status==='completed'&&<ReportDownloads result={result} reportElement={reportElement}/>}</div></div>
+      <div className="reader-heading"><h2>{t("研究报告")}</h2><div>{normalizedCitations.length>0&&<span>{normalizedCitations.length} {t(" 条引用")}</span>}{result&&['completed','paused'].includes(result.status)&&result.report&&<ReportDownloads result={result} reportElement={reportElement}/>}</div></div>
       {activeSessionId&&<ReportHistory key={activeSessionId} sessionId={activeSessionId}/>}
       <div ref={setReportElement}><ReportPreview key={activeSessionId} report={displayReport??''} citations={normalizedCitations} sessionId={activeSessionId}
         streaming={isStreaming} emptyTitle={isStreaming?t("正在{0}", currentStage):emptyReportTitle}

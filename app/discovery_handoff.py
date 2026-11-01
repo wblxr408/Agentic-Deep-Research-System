@@ -70,6 +70,65 @@ def topic_terms(query, entities):
         'university', 'company', 'laboratory', 'study', 'studies', 'analysis', 'papers', 'paper', 'team'}][:40]
 
 
+def _source_query_focus(source, searches, entities):
+    """Use the executed query's vocabulary only as an acquisition hint.
+
+    Search observations must identify a completed plan query. Neither a title
+    nor arbitrary page text may supply a new query or an affiliation assertion.
+    Provider query rewrites may append scope qualifiers to that same query.
+    """
+    observations = ((source.get('acquisition') or {}).get('candidate_fusion') or {}).get('observations') or []
+    matched = []
+    for node in searches:
+        query = node.query.strip()
+        if not query or not any(isinstance(row, dict) and isinstance(row.get('query'), str)
+                and (row['query'].strip() == query or row['query'].strip().startswith(query + ' '))
+                for row in observations):
+            continue
+        matched.extend(topic_terms(query, entities))
+    # Discovery boilerplate is not a technical qualifier. In particular, the
+    # word arXiv in a query cannot make every arXiv page relevant.
+    excluded = {'arxiv', 'publisher', 'publication', 'publications', 'preprint',
+                'research', 'faculty', 'author', 'authors', 'and', 'or', 'the',
+                'of', 'for', 'in', 'on', 'to', 'with', 'from'}
+    return sorted({term for term in matched if term not in excluded})[:80]
+
+
+def discovery_gap_recoverable(state):
+    workflow = state.get('analysis_workflow') or {}
+    return bool((state.get('organization_research') or {}).get('research_handoff_policy')
+                == 'adrs-complete-evidence-handoff-v2'
+        and state.get('status') == 'paused' and workflow.get('status') == 'paused'
+        and workflow.get('stop_reason') == 'research_discovery_incomplete'
+        and workflow.get('active_phase') == 'discovery'
+        and not (state.get('session') or {}).get('discovery_gap_repair')
+        and not state.get('pending_approvals') and state.get('dag') and state.get('plan_manifest'))
+
+
+def prepare_discovery_gap(state, *, remaining_calls, remaining_seconds, allowed_tools):
+    """One targeted read pass; keep every old node, receipt and source record."""
+    if not discovery_gap_recoverable(state):
+        raise ValueError('discovery_gap_recovery_unavailable')
+    from app.graph.state import deserialize_dag, serialize_dag
+    restored = deepcopy(state)
+    prior = (restored.get('plan_manifest') or {}).get('source_reads') or []
+    restored['session'] = {**restored.get('session', {}), 'discovery_gap_repair': {
+        'reason': 'retained_work_leads_not_acquired', 'max_sources': 12,
+        'prior_read_nodes': [row['node_id'] for row in prior],
+        'root_budget_changed': False}}
+    dag, manifest, rows = extend_reads(restored, deserialize_dag(restored['dag']),
+        remaining_calls=remaining_calls, remaining_seconds=remaining_seconds, allowed_tools=allowed_tools)
+    if not rows:
+        raise ValueError('discovery_gap_has_no_admissible_work_leads')
+    restored.update(dag=serialize_dag(dag), plan_manifest=manifest,
+        plan_history=[*(restored.get('plan_history') or []), deepcopy(manifest)])
+    # The old extraction remains available as provenance. New evidence changes
+    # the analysis binding; it must not silently reuse an old identity decision.
+    restored['session']['discovery_gap_repair']['analysis_binding_before'] = (
+        restored.get('analysis_workflow') or {}).get('binding')
+    return restored
+
+
 def anchor_plan(dag, query, strategy, configuration, *, adjustments=None):
     """Keep the original topic in open organization discovery; never reset nodes."""
     followup = (strategy or {}).get('source_followup') or {}
@@ -199,6 +258,10 @@ def extend_reads(state, dag, *, remaining_calls, remaining_seconds, allowed_tool
     plan_policy = PlanningPolicy.model_validate(state.get('planning_policy') or {})
     consumed_nodes=past_read_nodes | {row['node_id'] for row in previous}
     available_sources = max(0, min(24 if expanded else 12, int(policy.get('max_sources', 12))) - len(consumed_nodes))
+    repair = (state.get('session') or {}).get('discovery_gap_repair') or {}
+    if repair and config.get('research_handoff_policy') == 'adrs-complete-evidence-handoff-v2':
+        available_sources = max(0, min(12, int(repair.get('max_sources', 0))) -
+                                len(consumed_nodes - set(repair.get('prior_read_nodes') or [])))
     capacity = min(3, available_sources, plan_policy.max_plan_nodes - len(dag.nodes), remaining_calls)
     if capacity <= 0:
         return dag, manifest, []
@@ -209,7 +272,9 @@ def extend_reads(state, dag, *, remaining_calls, remaining_seconds, allowed_tool
                      if node.node_type == 'browser' and node.status == StepStatus.DONE}
     searches = [node.node_id for node in dag.nodes if node.node_type == 'search' and node.status == StepStatus.DONE]
     terms = set(_terms(state['user_query']))
-    focus = set(policy.get('topic_terms') or []) if focused else set()
+    base_focus = set(policy.get('topic_terms') or []) if focused else set()
+    query_handoff = config.get('research_handoff_policy') == 'adrs-complete-evidence-handoff-v2'
+    completed_searches = [node for node in dag.nodes if node.node_type == 'search' and node.status == StepStatus.DONE]
     official_hosts = {urlsplit(url).hostname.removeprefix('www.') for entity in (config.get('scope') or {}).get('entities', [])
                       for url in entity.get('source_urls', []) if urlsplit(url).hostname}
     context = network_context(state)
@@ -232,6 +297,7 @@ def extend_reads(state, dag, *, remaining_calls, remaining_seconds, allowed_tool
         target_names=list(dict.fromkeys(target_names))[:80]
     candidates = {}
     for source in state.get('collected_evidence') or []:
+        focus = set(base_focus)
         if source_observation(source)['data_class'] != 'public':
             continue
         meta = source.get('acquisition') or {}
@@ -246,6 +312,14 @@ def extend_reads(state, dag, *, remaining_calls, remaining_seconds, allowed_tool
                     origin=origin or browser_nodes.get(request_url_identity(meta.get('requested_url','')))
             except (ValueError,TypeError):pass
             if origin:requested.add(request_url_identity(source_url))
+        if query_handoff:
+            if discovery:
+                entities = [*((config.get('scope') or {}).get('entities') or []),
+                            {'name': '', 'aliases': target_names}]
+                focus.update(_source_query_focus(source, completed_searches, entities))
+            elif origin:
+                parent = next((row for row in previous if row['node_id'] == origin.node_id), {})
+                focus.update(parent.get('selection_topic_terms') or [])
         if discovery:
             if not searches:
                 continue
@@ -303,7 +377,7 @@ def extend_reads(state, dag, *, remaining_calls, remaining_seconds, allowed_tool
             except (ChannelError, ValueError):
                 continue
             description = (url + ' ' + label + (' ' + source_text if discovery else '')).casefold()
-            hits = terms & set(_terms(description))
+            hits = (terms | focus if query_handoff else terms) & set(_terms(description))
             host = urlsplit(url).hostname or ''
             official = any(host == item or host.endswith('.' + item) for item in official_hosts)
             academic = bool(re.search(r'research|publication|faculty|people|laborator|\.pdf(?:$|\?)|科研|学术|师资|论文|团队', description))
@@ -316,7 +390,7 @@ def extend_reads(state, dag, *, remaining_calls, remaining_seconds, allowed_tool
                 re.match(r'^/10\.\d{4,9}/\S+',target_path,re.I))
             explicit_document = (link.get('pdf') or focused and link.get('kind') == 'full_text' or
                                  primary and (pdf_url or primary_landing))
-            if not hits and not identity_language and not (official and academic) and not (explicit_document and terms & set(_terms(source_text))):
+            if not hits and not identity_language and not (official and academic) and not (explicit_document and (terms | focus if query_handoff else terms) & set(_terms(source_text))):
                 continue
             score = len(hits) + 2 * official + 2 * academic + 3 * bool(link.get('pdf'))
             signals = {}
@@ -358,6 +432,8 @@ def extend_reads(state, dag, *, remaining_calls, remaining_seconds, allowed_tool
                            'direct_topic_terms': sorted(direct_hits), 'explicit_full_text_link': pdf,
                            'parent_topic_used': inherited,
                            'selection_basis': 'question_topic_and_source_role_not_affiliation_or_support'}
+                if query_handoff:
+                    signals['selection_topic_terms'] = sorted(focus)
                 if primary:
                     signals.update(source_priority=4 if identity_language else 3 if role=='work' and pdf else
                         2 if role=='work' and primary_landing else
@@ -393,6 +469,8 @@ def extend_reads(state, dag, *, remaining_calls, remaining_seconds, allowed_tool
         # Discovery rows can precede their acquired redirected version in the
         # ledger. Remove any candidate now known to be already read this task.
         candidates={key:row for key,row in candidates.items() if key not in requested}
+    if repair:
+        candidates = {key: row for key, row in candidates.items() if row.get('source_role') == 'work'}
     chosen, hosts, chosen_work_hints = [], {}, set()
     identity_count = sum(row.get('source_role') == 'identity' for row in previous)
     while candidates and len(chosen) < capacity:
@@ -434,7 +512,7 @@ def extend_reads(state, dag, *, remaining_calls, remaining_seconds, allowed_tool
                          'parent_topic_used', 'selection_basis','source_priority','primary_link_inherited',
                          'identity_language_entrance','source_link_url','transport_upgrade',
                          'parent_requested_url','parent_final_url','work_hint_id','target_name_hints',
-                         'work_selection') if key in row}})
+                         'work_selection','selection_topic_terms') if key in row}})
     if not rows:
         return dag, manifest, []
     for node in dag.nodes:

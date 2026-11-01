@@ -24,6 +24,7 @@ import SourcePageGallery from './SourcePageGallery'
 
 interface ReportPreviewProps {
   reportAudit?: {needs_review?:boolean;audit_incomplete?:boolean;total_claims?:number;supported_claims?:number;
+    required_claims?:number;required_supported_claims?:number;excluded_claims?:number;
     source_supported_claims?:number;method_supported_claims?:number;
     reused_supported_claims?:number;newly_checked_claims?:number;
     revision_requests?:Array<{claim_id:string;text:string;reason:string;requested_action:string}>}|null
@@ -60,12 +61,12 @@ function ReportPreview({
   }).join('\n'),[citations,prefix])
   const headings = useMemo(()=>{
     let fence=''
-    return readerReport.split('\n').flatMap(line=>{
+    return readerReport.split('\n').flatMap((line,index)=>{
       const marker=/^\s*(```+|~~~+)/.exec(line)
       if(marker){if(!fence)fence=marker[1][0];else if(fence===marker[1][0])fence='';return []}
       if(fence)return []
       const match=/^(#{1,3})\s+(.+?)(?:\s+#+)?$/.exec(line)
-      return match?[{level:match[1].length,title:match[2].replace(/[*_`]/g,'').replace(/\\([\\#~.>+!(){}\[\]-])/g,'$1')}]:[]
+      return match?[{line:index+1,level:match[1].length,title:match[2].replace(/[*_`]/g,'').replace(/\\([\\#~.>+!(){}\[\]-])/g,'$1')}]:[]
     })
   },[readerReport])
   const structured=Boolean(deliveryView&&deliveryView.template!=='markdown-v1')
@@ -76,10 +77,9 @@ function ReportPreview({
   }
 
   function renderMarkdown(text:string,withIds=false,interactions:string[]=[]) {
-    let headingIndex=0
-    const heading=(level:number,children:ReactNode)=>createElement('h'+level,{id:withIds?`reader-${prefix}-${headingIndex++}`:undefined,tabIndex:withIds?-1:undefined},children)
+    const heading=(level:number,children:ReactNode,line?:number)=>createElement('h'+level,{id:withIds&&line?`reader-${prefix}-${line}`:undefined,tabIndex:withIds?-1:undefined},children)
     return <ReactMarkdown remarkPlugins={[remarkGfm]} components={{
-      h1:({children})=>heading(1,children),h2:({children})=>heading(2,children),h3:({children})=>heading(3,children),
+      h1:({children,node})=>heading(1,children,node?.position?.start.line),h2:({children,node})=>heading(2,children,node?.position?.start.line),h3:({children,node})=>heading(3,children,node?.position?.start.line),
       a:({href,children})=>{
         const number=/^\[?(?:citation:)?(\d+)\]?$/.exec(String(children).trim())
         const numbered=number?citations.find(item=>item.citation_id==='citation:'+number[1]):undefined
@@ -99,7 +99,7 @@ function ReportPreview({
 
   if(!readerReport&&!deliveryView?.pages.length)return <div className="reader-empty">{streaming?<TraceLoader/>:<Icon name="book" size={36}/>}<h3>{emptyTitle||t("研究报告")}</h3>{emptyDescription&&<p>{emptyDescription}</p>}</div>
   return <div className="report-reader">
-    {!structured&&headings.length>1&&<nav className="reader-toc" aria-label={t("报告目录")}>{headings.map((item,index)=><a key={index} href={`#reader-${prefix}-${index}`} data-level={item.level}>{item.title}</a>)}</nav>}
+    {!structured&&headings.length>1&&<nav className="reader-toc" aria-label={t("报告目录")}>{headings.map(item=><a key={item.line} href={`#reader-${prefix}-${item.line}`} data-level={item.level}>{item.title}</a>)}</nav>}
     <div className="report-content">
       {structured&&deliveryView&&(deliveryView.layout_binding?.schema_version==='adrs-report-layout-binding-v1'
         ?<ReportLayoutView key={deliveryView.artifact_id} view={deliveryView} renderMarkdown={text=>renderMarkdown(text,false,deliveryView.layout_binding?.layout.interactions||[])} renderCitation={renderCitation}/>
@@ -115,7 +115,8 @@ function ReportPreview({
       <div className="report-records">
         <ResearchJudgmentsView value={contextEvidence?.judgments} strategy={contextEvidence?.strategy} sessionId={sessionId}/>
         <ContextEvidenceSummary analyst={contextEvidence?.analyst} report={contextEvidence?.report} sessionId={sessionId}/>
-        {reportAudit&&<section><h3>{t("内容核对")}</h3><p>{reportAudit.supported_claims??0} / {reportAudit.total_claims??0} {t(" 项支持")}</p>
+        {reportAudit&&<section><h3>{t("内容核对")}</h3><p>{reportAudit.required_supported_claims??reportAudit.supported_claims??0} / {reportAudit.required_claims??reportAudit.total_claims??0} {t(" 项支持")}</p>
+          {!!reportAudit.excluded_claims&&<p>{t('按核验范围免核 {0} 项，未计作事实支持',reportAudit.excluded_claims)}</p>}
           {typeof reportAudit.source_supported_claims==='number'&&<p>{t("原文支持 ")}{reportAudit.source_supported_claims} {t(" · 方法依据 ")}{reportAudit.method_supported_claims??0}</p>}
           {!!reportAudit.revision_requests?.length&&<details><summary>{t("待处理陈述")}</summary><ol>{reportAudit.revision_requests.map(item=><li key={item.claim_id}><p>{item.text}</p><p>{item.reason}</p></li>)}</ol></details>}
         </section>}

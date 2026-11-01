@@ -28,7 +28,7 @@ def printed_title(opening, proposed):
     return candidates[0] if len(candidates)==1 else None
 
 
-def current_arxiv_date(source, opening):
+def current_arxiv_date(source, opening, *, include_mirrors=False):
     """A PDF's explicit current version stamp, never its first release date."""
     acquisition=source.get('acquisition') or {}
     if acquisition.get('format')!='pdf' or acquisition.get('coverage')!='full_text':return None
@@ -36,9 +36,18 @@ def current_arxiv_date(source, opening):
     # a requested URL, a bibliography link or another retained representation.
     path=urlsplit(source.get('source_url','')).path
     locator=re.fullmatch(r'/(?:pdf|abs|html)/(\d{4}\.\d{4,5})(v\d+)?(?:\.pdf)?/?',path,re.I)
-    if not locator or (urlsplit(source['source_url']).hostname or '').lower() not in {'arxiv.org','export.arxiv.org'}:return None
+    hosts={'arxiv.org','export.arxiv.org'}
+    if include_mirrors:hosts.update({'alphaxiv.org','www.alphaxiv.org'})
+    if not locator or (urlsplit(source['source_url']).hostname or '').lower() not in hosts:return None
+    if include_mirrors:
+        # PDF extraction can place the margin stamp after the abstract. Only the
+        # first acquired page is eligible, never a cited paper in later pages.
+        pages=acquisition.get('pages') or []
+        end=pages[0].get('end') if pages else None
+        if type(end) is int and 0<end<=len(source.get('content','')):
+            opening=source['content'][:min(end,16000)]
     stamps=list(re.finditer(r'(?im)^\s*arxiv:\s*(\d{4}\.\d{4,5})(v\d+)\s*\[[^\]\r\n]{1,40}\]\s*'
-        r'(\d{1,2})[ \t]+([A-Za-z]{3,9})[ \t]+(\d{4})\s*$',opening[:6000]))
+        r'(\d{1,2})[ \t]+([A-Za-z]{3,9})[ \t]+(\d{4})\s*$',opening[:16000 if include_mirrors else 6000]))
     if len(stamps)!=1:return None
     stamp=stamps[0]
     if stamp[1]!=locator[1] or locator[2] and stamp[2].lower()!=locator[2].lower():return None

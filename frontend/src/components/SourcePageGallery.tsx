@@ -5,6 +5,7 @@ import {Modal,safeExternalUrl} from './Interface'
 export interface SourcePage {
   asset_id:string;page:number;width:number;height:number;png:string;source_url:string
   titles:string[];captions:string[];output_ids:string[];evidence_ids:string[]
+  explanation?:string;report_anchor?:{paragraph_id:string;quote:string}
 }
 
 export default function SourcePageGallery({pages,taskId}:{pages:SourcePage[];taskId:string}) {
@@ -20,6 +21,8 @@ export default function SourcePageGallery({pages,taskId}:{pages:SourcePage[];tas
         <a data-app-only href={`#original-${page.asset_id}-${page.page}`} onClick={event=>{event.preventDefault();setSelected(page)}} aria-label={t('放大原文页')}><img src={page.png} alt={t('{0}，原文第 {1} 页',title,page.page)} width={page.width} height={page.height}/></a>
         <img className="source-page-offline" src={page.png} alt={t('{0}，原文第 {1} 页',title,page.page)} width={page.width} height={page.height}/>
       </>}
+      {page.explanation&&<p className="source-page-explanation">{page.explanation}</p>}
+      {page.report_anchor&&<blockquote>{page.report_anchor.quote}</blockquote>}
       <details><summary>{t('图注与来源')}</summary>{page.captions.map((caption,index)=><p key={index}>{caption}</p>)}</details>
       <div className="source-page-links">{url&&<a href={url} target="_blank" rel="noopener noreferrer">{t('查看来源')}</a>}
         <a data-app-only href={`/api/v1/research/${encodeURIComponent(taskId)}/source-assets/${page.asset_id}`} download>{t('下载原始 PDF')}</a>

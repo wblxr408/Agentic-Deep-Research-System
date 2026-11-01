@@ -20,7 +20,7 @@ FieldName=Literal['problem','prior_limitations','method_overview','mechanism','i
 
 class TechnicalStatement(ScopeRecord):
     text:str=Field(min_length=3,max_length=2400)
-    proofs:tuple[RelationProof,...]=Field(min_length=1,max_length=5)
+    proofs:tuple[RelationProof,...]=Field(min_length=1,max_length=12)
 
 
 class FigureReference(ScopeRecord):
@@ -43,7 +43,7 @@ def technical_instructions(configuration):
     if 'deep_dive' not in (configuration or {}).get('modules',[]):return ''
     return '''\nRepresentative technical reading: add "technical_cards" INSIDE organization_data.
 Shape: [{"output_id":"accepted proposed publication ID","fields":{"problem":{"text":"source-grounded summary","proofs":[{"evidence_id":"ev-ID","quote":"literal original excerpt"}]},"method_overview":{"text":"brief method overview","proofs":[{"evidence_id":"ev-ID","quote":"literal excerpt"}]}},"figure_references":[{"label":"literal Figure/Table/Equation label","page":null,"proof":{"evidence_id":"ev-ID","quote":"literal source caption/reference"}}]}].
-Keep analysis_text to a lead of at most four sentences; put the scientific detail and its proofs in technical_cards. A hardware-only quote does not cover model sizes, ranks, workloads or SLOs: supply their additional literal passages (up to five proofs per field), or restrict that field text to what its quotes cover. Preserve source word wrapping and hyphens in quotations. The server retains earlier accepted fields in a targeted follow-up.
+Keep analysis_text to a lead of at most four sentences; put the scientific detail and its proofs in technical_cards. A hardware-only quote does not cover model sizes, ranks, workloads or SLOs: supply their additional literal passages (up to twelve necessary proofs per field), or restrict that field text to what its quotes cover. Preserve source word wrapping and hyphens in quotations. A targeted follow-up replaces a supplied field only after its own source proofs validate; omitted fields are retained.
 Allowed fields: problem, prior_limitations, method_overview, mechanism, innovation, experimental_design, baselines, conditions, results, limitations. Return 1–3 representative cards, not all publications. Use a few compact fields per card and COMPLETE JSON. Every supplied field needs literal proofs, not only citation numbers. Missing fields stay unknown. Abstract/metadata-only sources can support problem and method_overview; do not invent detailed mechanisms, novelty comparisons, baselines, settings, numerical results or conditions without acquired full text. Full text may be provided as bounded windows; do not claim to have read omitted passages. Preserve reported results as source claims, never independent reproduction. Figure references locate actual labels/pages; no source image is acquired merely by citing a figure. Omit unverifiable fields and page numbers.'''
 
 
@@ -68,7 +68,26 @@ def build_technical_cards(configuration,findings,evidence,proposals=None):
     if len(values)>20:pending.append({'reason':'technical_card_limit_20'})
     for value in values[:20]:
         try:
-            card=TechnicalCardProposal.model_validate(value)
+            if not isinstance(value,dict):raise ValueError('technical_card_expected_object')
+            # Validate fields independently: a malformed optional field must
+            # not erase other source-located knowledge in this work's card.
+            card=TechnicalCardProposal.model_validate({**value,'fields':{},'figure_references':[]})
+            valid_fields={};valid_figures=[]
+            raw_fields=value.get('fields') or {}
+            if not isinstance(raw_fields,dict):
+                pending.append({'output_id':card.output_id,'reason':'technical_fields_expected_object'})
+                raw_fields={}
+            for key,statement in raw_fields.items():
+                try:
+                    if key not in FIELDS:raise ValueError('unknown technical field')
+                    valid_fields[key]=TechnicalStatement.model_validate(statement)
+                except ValueError as error:
+                    pending.append({'output_id':card.output_id,'field':key,'reason':str(error)[:400]})
+            for figure in value.get('figure_references') or []:
+                try:valid_figures.append(FigureReference.model_validate(figure))
+                except ValueError as error:
+                    pending.append({'output_id':card.output_id,'kind':'figure_reference','reason':str(error)[:400]})
+            card=card.model_copy(update={'fields':valid_fields,'figure_references':tuple(valid_figures[:20])})
             card=card.model_copy(update={'output_id':findings.get('publication_id_aliases',{}).get(card.output_id,card.output_id)})
             if card.output_id not in outputs or card.output_id in proposed:raise ValueError('unknown or duplicate representative output')
             proposed[card.output_id]=card
@@ -108,9 +127,13 @@ def build_technical_cards(configuration,findings,evidence,proposals=None):
                 try:
                     anchors=[locate(proof,output,key not in {'problem','method_overview'}) for proof in statement.proofs]
                     source_text=' '.join(anchor['quote'] for anchor in anchors)
-                    for value in re.findall(r'(?<!\w)\d+(?:\.\d+)?%?',statement.text):
-                        if not re.search(r'(?<![\d.])'+re.escape(value)+r'(?![\d.])',source_text):
-                            raise ValueError('numeric_summary_value_missing_from_literal_proofs')
+                    # Lexical numbers cannot establish entailment: 12,288 vs
+                    # 12288, eight vs 8 and version identifiers caused real
+                    # field loss. Keep exact source proofs for the mandatory
+                    # semantic claim audit, and retain mismatches as diagnostics.
+                    unmatched=[value for value in re.findall(r'(?<!\w)\d+(?:\.\d+)?%?',statement.text)
+                        if not re.search(r'(?<![\d.])'+re.escape(value)+r'(?![\d.])',source_text)]
+                    if unmatched:record['numeric_review_required']=unmatched
                     record.update(text=statement.text,status='source_summary_requires_semantic_review',proofs=anchors,reason=None)
                 except ValueError as error:record['reason']=str(error)
             elif key not in {'problem','method_overview'} and not full:record['reason']='full_text_unavailable_not_inferred_from_abstract'
@@ -132,6 +155,46 @@ def build_technical_cards(configuration,findings,evidence,proposals=None):
         'selection_basis':'analyst_proposed_representatives' if proposed else 'bounded_sample_fallback_not_quality_rank',
         'coverage':'representative_accepted_publications_only','effects':{'network_requests':0,'model_calls':0},
         'gaps':['原文图号／页码定位不代表已取得图片、表格结构或公式图像；未取得的资产明确留空。']}
+
+
+def reconcile_retained_technical(configuration,findings,evidence,workflow):
+    """Rebuild the consumed projection from saved reading, without model calls.
+
+    Follow-up fields supersede earlier candidates only after their own primary
+    source quotations validate. Replaced candidates remain in field history.
+    """
+    from copy import deepcopy
+    previous=findings.get('technical_reading') or {}
+    cards={row['output_id']:deepcopy(row) for row in previous.get('cards',[])}
+    pending=[];phases=[]
+    completed=(workflow or {}).get('completed') or {}
+    # Targeted condition reading has precedence even if checkpoint JSON key
+    # order was changed by a database serializer.
+    keys=sorted(key for key in completed if key.startswith('question:deep_dive:'))
+    for phase in keys:
+        proposals=(completed[phase] or {}).get('organization_data') or {}
+        if not proposals.get('technical_cards'):continue
+        view=build_technical_cards(configuration,findings,evidence,proposals)
+        phases.append(phase)
+        pending.extend({'phase':phase,**row} for row in view['pending_records'])
+        for candidate in view['cards']:
+            target=cards.setdefault(candidate['output_id'],deepcopy(candidate))
+            for name,field in candidate['fields'].items():
+                if not field.get('text') or not field.get('proofs'):continue
+                old=target['fields'].get(name) or {}
+                if old.get('text') and old.get('text')!=field['text']:
+                    history=target.setdefault('field_history',{}).setdefault(name,[])
+                    if not any(row.get('text')==old['text'] for row in history):history.append(deepcopy(old))
+                target['fields'][name]={**field,'retained_phase':phase}
+            for figure in candidate['figure_references']:
+                if figure not in target['figure_references']:target['figure_references'].append(figure)
+            target['unknown_fields']=[name for name,field in target['fields'].items() if field['status']=='unknown']
+    if not phases:return previous
+    return {**previous,'schema_version':VERSION,'cards':list(cards.values()),
+        'pending_records':pending,'selected_output_ids':list(cards),'gaps':previous.get('gaps',[]),
+        'reconciliation':{'policy':'adrs-retained-technical-fields-v2','phases':phases,
+            'semantics':'source_located_candidates_require_final_semantic_audit'},
+        'effects':{'network_requests':0,'model_calls':0}}
 
 
 def technical_context(view):

@@ -1,0 +1,71 @@
+# Spec Delta
+
+## Purpose
+
+使研究审核以用户问题和错误的实际后果为依据，分别表达事实支持状态与交付影响。既阻止核心结论、归属和决定性比较中的错误，也避免边缘细节、合理复现或格式问题造成无止境修改，同时保留可追溯的判定和范围变化。
+
+## ADDED Requirements
+
+### Requirement: Essential claims include their decisive premises
+
+系统 SHALL 将必答问题、核心结论、成果归属、决定性比较及建议所依赖的事实前提纳入必要核验，连同其数字、单位、条件、时间及外推范围。模型自报的低重要性标签不能免除这些依赖；重要性不明确时按必要项处理。
+
+#### Scenario: A secondary number justifies the recommendation
+- **WHEN** 写作把原先标为次要的实验数字用于支撑主要建议
+- **THEN** 系统将该数字及所需条件提升到必要范围，在取得有效来源判定前不批准依赖它的结论
+
+### Requirement: Factual status and delivery impact remain distinct
+
+系统 SHALL 分别保存主张事实状态、审核范围及理由、问题实质影响和修复建议。免核项 MUST NOT 计为 supported；低影响项可以不阻塞交付，发现明确反证则须处理。核心错误不能由其他高分抵消，缺少足够证据时允许保持 unknown 或未核。
+
+#### Scenario: An incidental detail is outside the essential scope
+- **WHEN** 该细节不影响答案、选择或必要解释，并有当前范围下的明确免核理由
+- **THEN** 系统保留其原判定或未核状态，单列免核，不因它未获来源判断而阻塞报告
+
+#### Scenario: A central attribution contradicts the source
+- **WHEN** 报告将决定性成果归属到错误机构，其他章节均已通过
+- **THEN** 系统仍阻塞合格交付，给出定位及修复范围，不以总体评分放行
+
+### Requirement: Proposed research is assessed against its factual premises
+
+系统 SHALL 区分来源报告的事实、基于前提的推断、本报告提出的建议及任务方法。新课题和复现协议不要求来源预先提出同一建议，但其事实前提、实际资源和收益保证仍受必要范围核验，不能通过“建议”标签免除核心错误。
+
+#### Scenario: The report proposes an unperformed combination experiment
+- **WHEN** 报告明确提出检验两种有据方法的组合效果，未宣告成功
+- **THEN** 审核核对方法和资源前提及建议身份，不要求论文已经证明该新实验有效
+
+### Requirement: Repetition blocks only for material reading harm
+
+系统 SHALL 结合命题、读者功能和实际后果判断重复。摘要预告、导航、不同对象的边界及结果旁必要条件不能仅因相同术语被判阻塞。阻塞判断须定位相关内容并解释其导致的误解、矛盾、论证缺失或实质阅读负担。
+
+#### Scenario: Similar wording serves distinct reader purposes
+- **WHEN** 摘要概述资源可用性而行动章说明具体资源入口，或两段分别限定硬件迁移与负载迁移
+- **THEN** 审核按各自命题和用途判断，不将相似措辞直接认定为必须删除的重复
+
+#### Scenario: A chapter only restates an earlier conclusion
+- **WHEN** 后一章重复同一命题及论证，没有自身回答并挤占所需解释
+- **THEN** 系统提出有具体位置和保留去向的实质问题，定向合并或修改而非仅搬入附录
+
+### Requirement: Review scope changes by purpose rather than exhaustion
+
+系统 SHALL 对实际问题、用途及重要依赖变化进行版本化范围调整，保存依据、差异和影响。预算不足、反复失败及模型自评分 MUST NOT 自动降低核心标准。正文、附录、图表和解说应使用同一当前核心范围；用户明确调整范围不重写历史判定。
+
+#### Scenario: The remaining budget becomes insufficient
+- **WHEN** 当前必要审核无法在原余额内完成
+- **THEN** 系统保留稿件和未核清单，报告实际不足，不把必要项降为建议或标为支持
+
+#### Scenario: A figure explanation uses an excluded incidental inventory
+- **WHEN** 图文复核仍基于同一问题和主张范围且该枚举未成为决定性前提
+- **THEN** 系统保留相同免核范围，不因进入图注或解释阶段重新要求逐项核验
+
+### Requirement: Reader review remains current and bounded
+
+系统 SHALL 对初稿完成当前整稿的读者审核，修订后根据实际影响使相关维度失效并复核；核心结论或结构变化触发相应全局复核。有效未变维度可以组合复用，最终结果须绑定当前稿。争议重复组最多进行一次有界实质影响复核，不以不断更换合同取得新尝试。
+
+#### Scenario: A local deletion preserves all claims and coverage
+- **WHEN** 删除仅去除无新用途的复述，必要主张、前提和其他章节职责均未变化
+- **THEN** 系统复核受影响阅读范围并组合有效旧维度，不强制重做全部事实审核，也不原样沿用旧整稿通过标记
+
+#### Scenario: A reader edit removes a required answer
+- **WHEN** 编辑移除了唯一回答必答问题的内容
+- **THEN** 覆盖及依赖的读者维度失效，问题补足前不批准合格交付
