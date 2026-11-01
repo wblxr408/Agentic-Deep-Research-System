@@ -4,6 +4,8 @@ ADRS 面向企业、高校和科研实验室的研究发展分析：从公开论
 
 ## 当前进度
 
+2026-11-01用户报告反馈：最新稿缺所需模块图、事件时间轴与数据图，论文原图仍为整页预览；历史图文审核不代表这些需求已交付。已将[可视化与原论文图块修复](docs/REPORT_VISUALIZATION_PLAN.md)纳入原R8／12.9，当前P0待实施／验收。
+
 2026-11-01路线确认：当前在 [codex/simplify-existing-architecture](https://github.com/wblxr408/Agentic-Deep-Research-System/tree/codex/simplify-existing-architecture) 推进原架构精简，先更新[TODO](docs/OPTIMIZATION_TODO.md)并按[降本方案](docs/RESEARCH_TOKEN_COST_PLAN.md)实施；[三角色方案分支](https://github.com/wblxr408/Agentic-Deep-Research-System/tree/codex/three-role-agents)独立保留。当前新增内容是规划与任务排序，运行改动和效果尚未实现／验收。
 
 2026-11-01：当前版本为 **v1.3**（应用版本 `1.3.0`）。同根研究已通过获准范围的事实、最终读者和实际PDF图文审核，主文6页、附录14页（含8页原图）已认证导出并实际阅读排版；正文必核250/250、图文必核66/66，累计6,092,491/6,100,000 Token。[版本说明](CHANGELOG.md) · [实际验收](docs/acceptance/research-quality-e2e-20261030.md) · [重复与恢复问题归因](docs/reader-cross-validation.md)。本次架构复评保留现有动态DAG与专家／工具，先补质量和成本；统一主循环条件后置，其他模块保留各自状态。

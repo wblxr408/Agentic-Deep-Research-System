@@ -69,3 +69,31 @@
 #### Scenario: A reader edit removes a required answer
 - **WHEN** 编辑移除了唯一回答必答问题的内容
 - **THEN** 覆盖及依赖的读者维度失效，问题补足前不批准合格交付
+
+### Requirement: Visual delivery covers the declared research needs
+
+系统 SHALL 按用户要求、所选模块和当前判断明确适用的模块／机制图、事件时间轴及数据图需求，分别记录覆盖与事实审核状态。仅已有图通过、图数量或文字表格 MUST NOT 证明所需可视化完成；无适用证据或数据时保留具体缺口，不静默省略或编造。
+
+#### Scenario: Required visuals were never generated
+- **WHEN** 当前稿的已生成图均通过审核，但用户所需机制图或时间轴尚未生成
+- **THEN** 系统保留可视化覆盖缺口，不将该稿标记为满足全部图文需求
+
+#### Scenario: A publication count is offered as an event timeline
+- **WHEN** 演进任务需要有来源日期的成果／机制事件，但当前只生成年度发表数量折线
+- **THEN** 系统不以该折线抵充事件时间轴，按原证据补足或说明日期／事件缺口，时间先后不标成已证实继承
+
+### Requirement: Source figures are complete identifiable regions of the actual source
+
+系统 SHALL 在要求论文原图时交付绑定实际原件、版本、页码和区域的目标架构／实验图块，并保留必要图号、图注、坐标、图例及子图关系。整页预览 SHALL 作为追溯材料与独立图块分记，定位不确定或仅取得整页时不得宣称图块已提取。
+
+#### Scenario: Only a full paper page is available
+- **WHEN** 实际资产只有包含目标图的整页缩略图
+- **THEN** 系统保留原页入口并将独立图块记为未完成，不将整页计为满足目标架构／实验图要求
+
+### Requirement: Requested visuals survive each actual report export
+
+系统 SHALL 让界面及请求的导出格式消费同版有效图资产，明确记录未装配、渲染失败和缺失。图事实支持与最终图块、图说、标签和阅读效果分开判断；所需图被导出筛选丢弃时不能沿用网页已有图的结果宣称交付完整。
+
+#### Scenario: PDF export omits a required chart
+- **WHEN** 已有有效数据图或事件时间轴未被当前PDF装配
+- **THEN** 系统将该格式记为可视化未完成，复用有效正文和图资产仅修复对应装配，不自动重写整稿或重采论文
