@@ -4,6 +4,8 @@ ADRS 面向企业、高校和科研实验室的研究发展分析：从公开论
 
 ## 当前进度
 
+2026-11-01百篇机制接合：已将旧调研的目录缓存、筛选、分级导读和分批补证纳入[现有RAG复用／适配计划](docs/CORPUS_RAG_INTEGRATION_PLAN.md)与原TODO。目录和证据沿现有资料库，处理状态沿原根／产物；已有解析检索不重建，深度综合与图文交付只补明确接口。当前仅规划，尚未实际导入历史资料或接通百篇路径。
+
 2026-11-01用户报告反馈：最新稿缺所需模块图、事件时间轴与数据图，论文原图仍为整页预览；历史图文审核不代表这些需求已交付。已将[可视化与原论文图块修复](docs/REPORT_VISUALIZATION_PLAN.md)纳入原R8／12.9，当前P0待实施／验收。
 
 2026-11-01路线确认：当前在 [codex/simplify-existing-architecture](https://github.com/wblxr408/Agentic-Deep-Research-System/tree/codex/simplify-existing-architecture) 推进原架构精简，先更新[TODO](docs/OPTIMIZATION_TODO.md)并按[降本方案](docs/RESEARCH_TOKEN_COST_PLAN.md)实施；[三角色方案分支](https://github.com/wblxr408/Agentic-Deep-Research-System/tree/codex/three-role-agents)独立保留。当前新增内容是规划与任务排序，运行改动和效果尚未实现／验收。

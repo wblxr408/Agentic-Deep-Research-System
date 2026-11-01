@@ -93,3 +93,11 @@
 #### Scenario: A large corpus is interrupted after partial completion
 - **WHEN** 100篇任务中部分论文与主题已经完成，当前一项派发结果未知
 - **THEN** 系统保留已完成项与原消费，对未知项先对账，并按实际剩余状态继续或结束，不整包重放或将未知消费记零
+
+#### Scenario: A screening status changes without changing the paper text
+- **WHEN** 目录筛选／阅读状态更新而原文、解析与索引策略均未变化
+- **THEN** 系统只更新对应控制／派生记录及必要投影，不重新解析或嵌入整篇，也不把状态回写当作新的事实支持
+
+#### Scenario: A cached collection page belongs to another query scope
+- **WHEN** 获取缓存来自不同机构、时间、查询、分页快照或已失效来源
+- **THEN** 系统按当前范围获取必要部分或保留缺页原因，不因旧文件存在而复用为完整目录，新消费沿原根记录

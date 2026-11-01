@@ -93,3 +93,23 @@
 #### Scenario: The runtime is rolled back for new tasks
 - **WHEN** 后续新任务的默认运行版本被回退
 - **THEN** 已创建根保持冻结合同或明确暂停，不把检查点交给不兼容执行逻辑；回退粒度与实际政策差量一致
+
+### Requirement: The existing library provides an enumerable research corpus
+
+系统 SHALL 在用户选择以现有资料库承接目录时保存版本化论文成员、来源及处理状态，并能按当前授权范围逐项枚举。目录、摘要、原文和派生产物须可区分；检索排名或top-k只选择证据，不能缩小指定成员或代表全部筛选／阅读完成。
+
+#### Scenario: Only a few papers are returned by retrieval
+- **WHEN** 指定100篇的目录中只有10篇进入当前检索top-k
+- **THEN** 系统仍保留100篇的成员及逐项状态，继续合法待办或明确缺口，不将10条命中报告为100篇已处理
+
+#### Scenario: A catalog item has no searchable full text
+- **WHEN** 目录成员只有书目信息或摘要，尚无全文索引
+- **THEN** 该成员仍可在目录中枚举并显示实际层级与补证状态，不静默消失或标为全文已读
+
+### Requirement: Library adoption preserves current scope and authority
+
+系统 MUST 将所选语料目录／材料接入原资料权限、版本和保留范围，处理状态由可信运行记录维护。导入文件或模型卡不能自报当前审核通过或扩大复用范围；跨任务共享须满足原显式范围和当前许可。普通公开研究仍按既有联网与可选内部检索合同运行。
+
+#### Scenario: Imported notes claim to be fully verified
+- **WHEN** 旧目录JSON或派生导读卡包含自报通过或全文已读字段
+- **THEN** 系统保留其历史来源／政策和实际证据，按当前合同接纳可复用部分，不直接赋予当前支持判定、控制状态或跨任务访问权限

@@ -81,3 +81,19 @@
 #### Scenario: A topic claim depends on a paper outside the current excerpt window
 - **WHEN** 主题结论需要当前材料包未包含的实验条件或反例
 - **THEN** 系统按来源位置补足必要窗口或保留缺口，不以主题摘要替代原文支持，也不默认重新装入全部100篇
+
+### Requirement: Screening decisions and reading depth have traceable independent states
+
+系统 SHALL 为论文保存问题／筛选政策版本、纳入／排除／待定理由及依据，并分列材料可用层级、实际阅读层级、所需字段及支持判定。会刊等级、关键词、原件可用或已索引不能直接证明相关性、全文精读或事实支持；历史规则按本次对象与问题适配。
+
+#### Scenario: A paper has an abstract reading and an available PDF
+- **WHEN** 原稿已经入库，但当前任务只完成摘要导读
+- **THEN** 系统保留原稿可用与摘要已读两个状态，按当前必读字段调度必要补读，不将其直接标为全文精读完成
+
+### Requirement: Evidence supplementation follows the missing fields into later delivery
+
+系统 SHALL 沿当前论文／来源版本记录缺全文、缺条件、缺来源位置、缺数据或图块等具体缺口，并把必要补证结果接回分析、主题、内容及图需求依赖。已有材料和字段仅在失效时重做；补证不能以卡片摘要或不同论文代替所需原文。
+
+#### Scenario: Two chapters require the same missing experiment condition
+- **WHEN** 两个章节或图表依赖同一论文的同一未取得条件
+- **THEN** 系统合并对应补证操作，取得有效原文后更新相关依赖，不为每章重新读取整篇，也不自动重写无关内容
