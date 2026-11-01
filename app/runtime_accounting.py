@@ -16,6 +16,40 @@ def observed_latency(rows):
         'method':'nearest_rank_on_observed_receipts_not_population_SLA'}
 
 
+def application_reuse(state):
+    """Project saved reuse observations, without inventing skipped provider usage."""
+    result=state.get('organization_result') or {}
+    audit=(state.get('review_status') or {}).get('final_report_audit') or {}
+    context=result.get('report_context') or {}
+    units=[dict(item) for item in context.get('application_response_reuse') or []]
+    for claim in audit.get('claims') or []:
+        if claim.get('verification_reused'):
+            units.append({'operation':'claim_judgment','content_unit_id':claim.get('claim_id'),
+                'reused_from_unit_id':claim.get('reused_from_claim_id'),
+                'basis':'saved_claim_dependency_checks','status':claim.get('status'),
+                'effect':'judgment_reused_for_this_unit_not_one_avoided_request_per_claim'})
+    reader=audit.get('reader_quality') or result.get('reader_quality') or {}
+    parts=[('reader_review',reader),('reader_repetition_impact',reader.get('reading_impact_review') or {}),
+        *[('reader_material:'+name,item) for name,item in (reader.get('material_reviews') or {}).items()]]
+    observations=[]
+    for operation,part in parts:
+        if part.get('response_reuse'):observations.append({'operation':operation,**part['response_reuse']})
+        if part.get('reused_response'):
+            units.append({'operation':operation,'input_binding':part.get('binding'),
+                'basis':'saved_response_current_input_model_and_contract',
+                'effect':'response_reused_not_independent_quality_approval'})
+    drawing=result.get('chart_rendering') or {}
+    if drawing.get('cache_status')=='hit':
+        units.append({'operation':'figure_rendering','content_unit_id':drawing.get('descriptor_id'),
+            'basis':drawing.get('reuse_semantics'),'reused_from':drawing.get('reused_from'),
+            'effect':'retained_frozen_asset_reused_original_cost_not_refunded'})
+    return {'scope':'current_saved_artifact_observations_not_root_event_history',
+        'reused_units':units,'reuse_observations':observations,
+        'unit_counts':dict(Counter(item['operation'] for item in units)),
+        'saved_tokens':None,'saved_cost_usd':None,
+        'meaning':'application_reuse_is_separate_from_provider_prefix_cache_no_counterfactual_savings_inferred'}
+
+
 def runtime_ledger(state):
     budget=state.get('budget_state') or (state.get('review_status') or {}).get('budget_state') or {}
     model=[];seen=set()
@@ -35,6 +69,7 @@ def runtime_ledger(state):
         model[-1].update(admission_expires_at=row.get('admission_expires_at'),reserved_tokens=row.get('reserved_tokens'),
             dispatch_status=row.get('dispatch_status'))
         model[-1].update(provider_usage=row.get('provider_usage'),
+            provider_cache_request=row.get('provider_cache_request'),
             token_cost_components=row.get('token_cost_components'),
             known_token_cost_subtotal_usd=row.get('known_token_cost_subtotal_usd',row.get('cost_usd') if known else None),
             cost_scope=row.get('cost_scope'))
@@ -85,6 +120,7 @@ def runtime_ledger(state):
     unknown_tools=sum(item['cost_usd'] is None for item in tools)
     observed_model=[item for item in model if item['status'] in {'settled','unknown'}]
     return {'schema_version':VERSION,'model_requests':model,'tool_requests':tools,'tool_operations':operations,'local_resources':resources,
+        'application_reuse':application_reuse(state),
         'known_model_cost_subtotal_usd':round(known_model,6),'known_tool_cost_subtotal_usd':round(known_tools,6),
         'unknown_model_cost_requests':unknown_model,'unknown_tool_cost_requests':unknown_tools,
         'monetary_total_usd':None if unknown_model or unknown_tools or resources else round(known_model+known_tools,6) if model or tools else None,

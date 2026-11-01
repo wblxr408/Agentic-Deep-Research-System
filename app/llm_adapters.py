@@ -19,7 +19,7 @@ class _AnthropicCompletions:
         self._headers = headers
         self._timeout = timeout if timeout is not None else httpx.USE_CLIENT_DEFAULT
 
-    def create(self, *, model: str, messages: list[dict[str, Any]], stream: bool = False, max_tokens: int = 1024, temperature: float | None = None, **_: Any) -> Any:
+    def create(self, *, model: str, messages: list[dict[str, Any]], stream: bool = False, max_tokens: int = 1024, temperature: float | None = None, cache_control: dict | None = None, **_: Any) -> Any:
         system = "\n\n".join(str(item.get("content", "")) for item in messages if item.get("role") == "system")
         body: dict[str, Any] = {
             "model": model,
@@ -31,6 +31,8 @@ class _AnthropicCompletions:
             body["system"] = system
         if temperature is not None:
             body["temperature"] = temperature
+        if cache_control is not None:
+            body['cache_control'] = cache_control
         if stream:
             return self._stream(body)
         response = self._client.post(f"{self._base_url}/v1/messages", headers=self._headers, json=body,timeout=self._timeout)

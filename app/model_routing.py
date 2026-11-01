@@ -12,6 +12,20 @@ VERSION='adrs-model-routing-v1'
 STAGES=('planner','analyst','reflection','report','render')
 
 
+class PromptCacheProfile(BaseModel):
+    """An operator declaration for this exact frozen endpoint/model, not detection."""
+    model_config=ConfigDict(extra='forbid')
+    protocol:Literal['anthropic_messages','openai_chat_retention']
+    retention:Literal['5m','1h','in_memory','24h']
+    support_reference:str=Field(min_length=10,max_length=400)
+
+    @model_validator(mode='after')
+    def compatible_retention(self):
+        allowed={'5m','1h'} if self.protocol=='anthropic_messages' else {'in_memory','24h'}
+        if self.retention not in allowed:raise ValueError('prompt_cache_retention_protocol_mismatch')
+        return self
+
+
 class RouteCandidate(BaseModel):
     model_config=ConfigDict(extra='forbid')
     route_id:str=Field(min_length=1,max_length=80)
@@ -30,6 +44,13 @@ class RouteCandidate(BaseModel):
         Literal['5m','1h','30m','12h','in_memory','24h'],
         Annotated[float,Field(ge=0,allow_inf_nan=False)]]=Field(default_factory=dict)
     price_source:str|None=Field(default=None,max_length=400)
+    prompt_cache:PromptCacheProfile|None=None
+
+    @model_validator(mode='after')
+    def cache_wire_protocol(self):
+        if self.prompt_cache and ((self.provider=='anthropic')!=(self.prompt_cache.protocol=='anthropic_messages')):
+            raise ValueError('prompt_cache_provider_protocol_mismatch')
+        return self
 
 
 def candidate_price(candidate):
@@ -41,6 +62,34 @@ def candidate_price(candidate):
         'cache_write_per_million':candidate.cache_write_usd_per_million,
         'cache_write_per_million_by_ttl':candidate.cache_write_usd_per_million_by_ttl,
         'source':candidate.price_source}
+
+
+def prepare_prompt_cache(request,route,binding):
+    """Add only declared parameters; root namespace never contains credentials."""
+    from app.query_understanding import identity
+    cache_fields={'prompt_cache_key','prompt_cache_retention','prompt_cache_options','cache_control'}
+    if cache_fields.intersection(request) or cache_fields.intersection(request.get('extra_body') or {}):
+        raise TokenBudgetExceeded('prompt_cache_parameters_require_frozen_route_profile')
+    profile=(route or {}).get('prompt_cache')
+    if not profile:return request,{'status':'not_requested','reason':'no_declared_endpoint_model_support'}
+    if request.get('model')!=route.get('model'):
+        raise TokenBudgetExceeded('prompt_cache_route_model_mismatch')
+    profile=PromptCacheProfile.model_validate(profile)
+    if not binding or not binding.get('owner_id') or not binding.get('session_id'):
+        return request,{'status':'not_requested','reason':'root_identity_unavailable'}
+    namespace=identity({'version':'adrs-prompt-cache-v1','owner_id':binding['owner_id'],
+        'session_id':binding['session_id'],'provider':route.get('provider'),'model':route.get('model')})
+    if profile.protocol=='anthropic_messages':
+        request={**request,'cache_control':{'type':'ephemeral','ttl':profile.retention}}
+    else:
+        # extra_body is supported by existing SDK versions; it adds no new endpoint.
+        request={**request,'extra_body':{**(request.get('extra_body') or {}),
+            'prompt_cache_key':namespace,'prompt_cache_retention':profile.retention}}
+    return request,{'status':'requested_not_hit_confirmed','profile_version':'adrs-prompt-cache-v1',
+        'protocol':profile.protocol,'requested_retention':profile.retention,
+        'support_basis':'operator_declared_for_frozen_endpoint_model',
+        'support_reference':profile.support_reference,'root_namespace_id':namespace,
+        'namespace_sent_to_provider':profile.protocol=='openai_chat_retention'}
 
 
 class RoutingPolicy(BaseModel):
@@ -171,7 +220,8 @@ def routed_binding(stage,snapshot,*,minimum_tier=0,minimum_context=0,exclude_mod
             'reason':'lowest_configured_price_among_eligible' if priced else 'eligible_price_unknown',
             'quality_basis':'configured_tier_not_task_quality_certification','data_class':snapshot['data_class'],
             'context_tokens':chosen.context_tokens,'excluded':excluded,
-            'price':candidate_price(chosen)}
+            'price':candidate_price(chosen),
+            'prompt_cache':chosen.prompt_cache.model_dump(mode='json') if chosen.prompt_cache else None}
     else:
         model=snapshot['primary_model']
         info={'route_id':'configured-primary','stage':stage,'provider':snapshot['provider'],'model':model,
@@ -197,6 +247,7 @@ def routed_binding(stage,snapshot,*,minimum_tier=0,minimum_context=0,exclude_mod
             candidate=fallback_candidates[0]
             fallback_info['context_tokens']=candidate.context_tokens
             fallback_info['price']=candidate_price(candidate)
+            fallback_info['prompt_cache']=candidate.prompt_cache.model_dump(mode='json') if candidate.prompt_cache else None
         fallback=(BoundModelClient(_create_client_for_config(fallback_config),fallback_info,lambda:validate_current(snapshot)),config['fallback_model'])
     return client,model,fallback
 

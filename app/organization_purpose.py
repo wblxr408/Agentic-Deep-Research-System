@@ -12,6 +12,7 @@ from app.research_scope import ScopeRecord
 ResearchPurpose = Literal['research_development', 'cooperation_discovery', 'comprehensive']
 ResearchModule = Literal['landscape', 'evolution', 'relationships', 'deep_dive', 'validation', 'actions']
 POLICY_VERSION = 'adrs-analysis-modules-v1'
+REPORT_MATERIAL_POLICY = 'adrs-owned-chapter-input-v1'
 REPORT_WRITING_GUIDANCE = '''
 面向报告读者的写作要求：
 用自然、连贯的研究报告语言直接陈述发现、解释和建议，技术术语按读者理解需要说明。
@@ -421,6 +422,7 @@ def assemble_module_report(raw: str, configuration: dict, citation_count: int, *
     main_markdown = '\n'.join(lines)
     appendix_markdown = '## 技术附录\n\n'+'\n'.join(appendix_lines) if appendix_lines else ''
     return main_markdown+('\n\n'+appendix_markdown if appendix_markdown else ''), {'rule_version': POLICY_VERSION, 'purpose': configuration['purpose'],
+        **({'report_material_policy':configuration['report_material_policy']} if configuration.get('report_material_policy') else {}),
         **({'reader_quality_policy':configuration['reader_quality_policy']} if configuration.get('reader_quality_policy') else {}),
         **({'surface_review_policy':configuration['surface_review_policy']} if configuration.get('surface_review_policy') else {}),
         'summary':summary_paragraphs,

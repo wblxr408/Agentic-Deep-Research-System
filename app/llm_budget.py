@@ -254,6 +254,8 @@ class BudgetedClient:
                 request['extra_body'].setdefault('thinking',{'type':'disabled'})
         from app.data_governance import provider_request
         try:
+            from app.model_routing import prepare_prompt_cache
+            request,cache_request=prepare_prompt_cache(request,self.route_info,control.binding if control else None)
             request,admission=provider_request(request,self.budget.data_governance,self.route_info)
         except TokenBudgetExceeded as error:
             self.budget.data_events.append({'stage':(self.route_info or {}).get('stage',self.purpose),
@@ -261,6 +263,7 @@ class BudgetedClient:
             raise
         self.budget.data_events.append({**admission,'stage':(self.route_info or {}).get('stage',self.purpose),'status':'admitted'})
         request, record = self.budget.reserve(request,self.purpose,self.route_info)
+        record['provider_cache_request']=cache_request
         stage=(self.route_info or {}).get('stage') or self.budget.stage
         record['operation']=self.operation or {'planner':'planning','analyst':'analysis',
             'reflection':'research_gap_review','report':'writing','render':'figure_plan'}.get(stage,self.purpose)

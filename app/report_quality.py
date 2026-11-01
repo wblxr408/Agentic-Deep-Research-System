@@ -20,6 +20,16 @@ PACKET_CONTRACT = 'adrs-reader-packets-v1'
 READING_IMPACT_CONTRACT = 'adrs-reader-repetition-impact-v1'
 
 
+def response_reuse_observation(previous,binding,*,model=None):
+    reasons=[]
+    if not previous:return {'status':'cold','reason':'no_saved_response','current_binding':binding}
+    if previous.get('binding')!=binding:reasons.append('input_or_contract_binding_changed')
+    if model is not None and previous.get('model')!=model:reasons.append('model_changed')
+    if not previous.get('raw_response'):reasons.append('saved_response_unavailable')
+    return {'status':'not_reused','reasons':reasons or ['saved_response_not_eligible'],
+        'current_binding':binding,'retained_binding':previous.get('binding')}
+
+
 def reader_quality_satisfied(record,audit):
     required=(record or {}).get('reader_quality_policy')
     if not required:return True
@@ -163,6 +173,7 @@ def review_reader_quality(*, question, configuration, record, findings, client, 
         {'role':'user','content':untrusted_context('reader_quality_inputs',raw,limit=len(raw))}]
     try:
         previous=(findings or {}).get('reader_quality') or {}
+        base['response_reuse']=response_reuse_observation(previous,binding,model=model)
         if (previous.get('binding')==binding and previous.get('model')==model
                 and (previous.get('status') in {'satisfied','needs_revision'}
                      or previous.get('global_review_valid') is True
@@ -171,6 +182,7 @@ def review_reader_quality(*, question, configuration, record, findings, client, 
                          "'work_coverage'",'reading_repetition_owner_invalid'}) and previous.get('raw_response')):
             base['raw_response']=previous['raw_response']
             base['reused_response']=True
+            base['response_reuse'].update(status='hit',reasons=[])
         else:
             output_cap=min(6144,max(1024,budget.available('audit')-
                 request_token_bound(messages,response_format={'type':'json_object'})-512))
@@ -285,9 +297,11 @@ def review_reader_quality(*, question, configuration, record, findings, client, 
                 'input':impact_input,'model':model})
             saved=previous.get('reading_impact_review') or {}
             impact={'contract':READING_IMPACT_CONTRACT,'binding':impact_binding}
+            impact['response_reuse']=response_reuse_observation(saved,impact_binding)
             base['reading_impact_review']=impact
             if saved.get('binding')==impact_binding and saved.get('raw_response'):
                 impact['raw_response']=saved['raw_response'];impact['reused_response']=True
+                impact['response_reuse'].update(status='hit',reasons=[])
             else:
                 packed=json.dumps(impact_input,ensure_ascii=False,separators=(',',':'))
                 impact_messages=[{'role':'system','content':
@@ -355,9 +369,11 @@ def review_reader_quality(*, question, configuration, record, findings, client, 
                 packet_binding=identity({'contract':PACKET_CONTRACT,'part':name,'model':model,'packet':packet})
                 saved=(previous.get('material_reviews') or {}).get(name) or {}
                 part={'binding':packet_binding}
+                part['response_reuse']=response_reuse_observation(saved,packet_binding)
                 base['material_reviews'][name]=part
                 if saved.get('binding')==packet_binding and saved.get('raw_response'):
                     part['raw_response']=saved['raw_response'];part['reused_response']=True
+                    part['response_reuse'].update(status='hit',reasons=[])
                 else:
                     packed=json.dumps(packet,ensure_ascii=False,separators=(',',':'))
                     part_messages=[{'role':'system','content':

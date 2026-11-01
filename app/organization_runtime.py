@@ -12,7 +12,7 @@ from app.research_matching import WeightConfigurationRequest, preview_weights
 from app.research_evaluation import public_sources, scheme_catalogue
 from app.db.presets import PresetReference
 from app.research_scope import OrganizationResearchScope, ScopeRecord
-from app.organization_purpose import ResearchPurpose, ResearchModule, POLICY_VERSION, resolve_modules, analysis_instructions
+from app.organization_purpose import ResearchPurpose, ResearchModule, POLICY_VERSION, REPORT_MATERIAL_POLICY, resolve_modules, analysis_instructions
 from app.organization_corpus import CorpusDeclaration, freeze_corpus, corpus_instructions
 from app.channels.models import ChannelError
 from app.organization_taxonomy import TaxonomyRequest, freeze_taxonomy
@@ -69,6 +69,7 @@ def freeze_organization_request(request: OrganizationResearchRequest | None, sel
         'action_policy_version': ACTION_POLICY_VERSION,
         'topic_action_policy':'adrs-topic-actions-v2',
         'research_handoff_policy':'adrs-complete-evidence-handoff-v2',
+        'report_material_policy':REPORT_MATERIAL_POLICY,
         'work_identity_policy':'adrs-primary-work-versions-v1',
         'reader_quality_policy':'adrs-reader-quality-v1',
         'claim_review_scope':{'policy':'adrs-reader-essential-facts-v1','mode':'essential',
