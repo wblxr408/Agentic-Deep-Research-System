@@ -1,7 +1,7 @@
 """Server-configured model routing; never grants endpoints, keys or tools."""
 from __future__ import annotations
 
-from typing import Literal
+from typing import Annotated, Literal
 from urllib.parse import urlsplit
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -24,7 +24,23 @@ class RouteCandidate(BaseModel):
     context_tokens:int=Field(default=128000,ge=2048,le=2000000)
     input_usd_per_million:float|None=Field(default=None,ge=0,allow_inf_nan=False)
     output_usd_per_million:float|None=Field(default=None,ge=0,allow_inf_nan=False)
+    cache_read_usd_per_million:float|None=Field(default=None,ge=0,allow_inf_nan=False)
+    cache_write_usd_per_million:float|None=Field(default=None,ge=0,allow_inf_nan=False)
+    cache_write_usd_per_million_by_ttl:dict[
+        Literal['5m','1h','30m','12h','in_memory','24h'],
+        Annotated[float,Field(ge=0,allow_inf_nan=False)]]=Field(default_factory=dict)
     price_source:str|None=Field(default=None,max_length=400)
+
+
+def candidate_price(candidate):
+    if not candidate.price_source:
+        return None
+    return {'input_per_million':candidate.input_usd_per_million,
+        'output_per_million':candidate.output_usd_per_million,
+        'cache_read_per_million':candidate.cache_read_usd_per_million,
+        'cache_write_per_million':candidate.cache_write_usd_per_million,
+        'cache_write_per_million_by_ttl':candidate.cache_write_usd_per_million_by_ttl,
+        'source':candidate.price_source}
 
 
 class RoutingPolicy(BaseModel):
@@ -155,8 +171,7 @@ def routed_binding(stage,snapshot,*,minimum_tier=0,minimum_context=0,exclude_mod
             'reason':'lowest_configured_price_among_eligible' if priced else 'eligible_price_unknown',
             'quality_basis':'configured_tier_not_task_quality_certification','data_class':snapshot['data_class'],
             'context_tokens':chosen.context_tokens,'excluded':excluded,
-            'price':{'input_per_million':chosen.input_usd_per_million,'output_per_million':chosen.output_usd_per_million,
-                'source':chosen.price_source} if chosen in priced else None}
+            'price':candidate_price(chosen)}
     else:
         model=snapshot['primary_model']
         info={'route_id':'configured-primary','stage':stage,'provider':snapshot['provider'],'model':model,
@@ -181,9 +196,7 @@ def routed_binding(stage,snapshot,*,minimum_tier=0,minimum_context=0,exclude_mod
         if fallback_candidates:
             candidate=fallback_candidates[0]
             fallback_info['context_tokens']=candidate.context_tokens
-            if candidate.price_source and candidate.input_usd_per_million is not None and candidate.output_usd_per_million is not None:
-                fallback_info['price']={'input_per_million':candidate.input_usd_per_million,
-                    'output_per_million':candidate.output_usd_per_million,'source':candidate.price_source}
+            fallback_info['price']=candidate_price(candidate)
         fallback=(BoundModelClient(_create_client_for_config(fallback_config),fallback_info,lambda:validate_current(snapshot)),config['fallback_model'])
     return client,model,fallback
 

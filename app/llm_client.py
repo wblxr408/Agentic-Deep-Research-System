@@ -15,6 +15,7 @@ from openai import OpenAI
 from app.config import get_settings
 from app.endpoint_resolver import resolve_endpoint
 from app.llm_adapters import AnthropicCompatibleClient
+from app.llm_usage import price_usage, usage_from_response
 
 logger = logging.getLogger(__name__)
 
@@ -240,24 +241,11 @@ def collect_usage_metrics(
 
     If the provider does not return usage, fall back to a simple token estimate.
     """
-    usage_obj = getattr(response, "usage", None) if response is not None else None
-    if usage_obj is None and isinstance(response, dict):
-        usage_obj = response.get("usage")
-
-    prompt_tokens = None
-    completion_tokens = None
-    total_tokens = None
+    native_usage = usage_from_response(response)
+    prompt_tokens = native_usage['prompt_tokens']
+    completion_tokens = native_usage['completion_tokens']
+    total_tokens = native_usage['total_tokens']
     estimated = False
-
-    if usage_obj is not None:
-        if isinstance(usage_obj, dict):
-            prompt_tokens = usage_obj.get("prompt_tokens")
-            completion_tokens = usage_obj.get("completion_tokens")
-            total_tokens = usage_obj.get("total_tokens")
-        else:
-            prompt_tokens = getattr(usage_obj, "prompt_tokens", None)
-            completion_tokens = getattr(usage_obj, "completion_tokens", None)
-            total_tokens = getattr(usage_obj, "total_tokens", None)
 
     if prompt_tokens is None:
         prompt_tokens = estimate_messages_tokens(messages)
@@ -269,19 +257,17 @@ def collect_usage_metrics(
         total_tokens = int(prompt_tokens or 0) + int(completion_tokens or 0)
         estimated = True
 
-    cost_usd = estimate_cost_usd(
-        model,
-        prompt_tokens=int(prompt_tokens or 0),
-        completion_tokens=int(completion_tokens or 0),
-    )
-    if cost_usd == 0.0 and total_tokens:
-        estimated = True
+    rates = MODEL_PRICING_USD_PER_1K.get(model)
+    price = {'input_per_million': rates[0]*1000, 'output_per_million': rates[1]*1000,
+             'source': 'legacy_model_reference_not_endpoint_quote', 'basis': 'static_reference'} if rates else None
+    cost = price_usage(native_usage, price)
 
     return {
         "prompt_tokens": int(prompt_tokens or 0),
         "completion_tokens": int(completion_tokens or 0),
         "total_tokens": int(total_tokens or 0),
-        "cost_usd": float(cost_usd),
+        **cost,
+        "provider_usage": native_usage,
         "estimated": estimated,
         "model": model,
     }

@@ -8,6 +8,8 @@ from uuid import uuid4
 from types import SimpleNamespace
 from typing import Any
 
+from app.llm_usage import price_usage, usage_from_response
+
 
 class TokenBudgetExceeded(RuntimeError):
     def __init__(self, reason: str = 'token_budget_exhausted'):
@@ -137,7 +139,10 @@ class ModelTokenBudget:
             if self.skill_tracking:record['skill_tracking_version']='adrs-method-use-v1'
             if route:record['routing']=dict(route)
             price=(route or {}).get('price') or {}
-            record['reserved_known_cost_usd']=(prompt_bound*price['input_per_million']+completion_cap*price['output_per_million'])/1000000 if (
+            input_rates=[price.get(key) for key in ('input_per_million','cache_read_per_million','cache_write_per_million')]
+            input_rates.extend((price.get('cache_write_per_million_by_ttl') or {}).values())
+            input_bound_rate=max((value for value in input_rates if isinstance(value,(int,float))),default=0)
+            record['reserved_known_cost_usd']=(prompt_bound*input_bound_rate+completion_cap*price['output_per_million'])/1000000 if (
                 price.get('source') and price.get('input_per_million') is not None and price.get('output_per_million') is not None) else None
             self.calls.append(record)
         return request, record
@@ -154,17 +159,10 @@ class ModelTokenBudget:
         if self.execution_control:self.execution_control.model_receipt(record)
 
     def settle(self, record: dict, response: Any = None, *, interrupted: bool = False):
-        usage = getattr(response, 'usage', None)
-        if isinstance(response, dict):
-            usage = response.get('usage')
-        getter = usage.get if isinstance(usage, dict) else lambda key: getattr(usage, key, None)
-        prompt, completion, total = (getter(key) for key in ('prompt_tokens','completion_tokens','total_tokens'))
-        valid = all(isinstance(value, int) and not isinstance(value, bool) and value >= 0 for value in (prompt,completion))
-        if valid:
-            total = max(prompt + completion, total if isinstance(total, int) and total >= 0 else 0)
-        else:
-            total = None
-        from app.llm_client import estimate_cost_usd, MODEL_PRICING_USD_PER_1K
+        usage = usage_from_response(response)
+        prompt, completion, total = (usage[key] for key in ('prompt_tokens','completion_tokens','total_tokens'))
+        valid = usage['usage_valid']
+        from app.llm_client import MODEL_PRICING_USD_PER_1K
         with self._lock:
             if record['status'] != 'inflight':
                 return
@@ -177,17 +175,16 @@ class ModelTokenBudget:
             self.inflight -= record['reserved_tokens']
             self.spent += charge
             price=(record.get('routing') or {}).get('price')
-            configured_price=bool(price and price.get('source') and price.get('input_per_million') is not None
-                and price.get('output_per_million') is not None)
-            known_price = (configured_price or record['model'] in MODEL_PRICING_USD_PER_1K) and valid and not interrupted
-            cost=(prompt*price['input_per_million']+completion*price['output_per_million'])/1000000 if configured_price and valid else (
-                estimate_cost_usd(record['model'],prompt_tokens=prompt,completion_tokens=completion) if known_price else 0.0)
+            if not price and record['model'] in MODEL_PRICING_USD_PER_1K:
+                input_rate,output_rate=MODEL_PRICING_USD_PER_1K[record['model']]
+                price={'input_per_million':input_rate*1000,'output_per_million':output_rate*1000,
+                    'source':'legacy_model_reference_not_endpoint_quote','basis':'static_reference'}
+            cost=price_usage(usage,price,interrupted=interrupted)
             record.update(status='unknown' if interrupted or not valid else 'settled',
                 response_received=not interrupted,
                 total_tokens=charge, reported_tokens=total, prompt_tokens=prompt if valid else record['prompt_bound'],
                 completion_tokens=completion if valid else record['output_cap'], estimated=interrupted or not valid,
-                cost_known=known_price, cost_usd=round(cost,6) if known_price else 0.0,
-                cost_basis='configured_price_estimate_not_invoice' if configured_price else 'static_reference' if known_price else 'unknown')
+                provider_usage=usage,**cost)
             exceeded=self.spent > self.limit or (total is not None and total > record['reserved_tokens'])
             if exceeded:
                 self.stop_reason = 'provider_usage_exceeded_reservation'
@@ -213,11 +210,15 @@ class ModelTokenBudget:
 
 
 class BudgetedClient:
-    def __init__(self, client: Any, budget: ModelTokenBudget, purpose: str, *, skill_packet:dict|None=None):
+    def __init__(self, client: Any, budget: ModelTokenBudget, purpose: str, *, skill_packet:dict|None=None,
+                 operation:str|None=None,content_unit_id:str|None=None):
         self.route_info=getattr(client,'route_info',None)
         self._client = client._client if isinstance(client, BudgetedClient) else client
         self.budget, self.purpose = budget, purpose
         self.skill_packet=skill_packet
+        self.operation=operation or (client.operation if isinstance(client,BudgetedClient) else None)
+        self.content_unit_id=content_unit_id if content_unit_id is not None else (
+            client.content_unit_id if isinstance(client,BudgetedClient) else None)
         self.chat = SimpleNamespace(completions=SimpleNamespace(create=self.create))
 
     def __getattr__(self, name):
@@ -225,8 +226,16 @@ class BudgetedClient:
 
     def with_options(self, **options):
         client = self._client.with_options(**options) if hasattr(self._client,'with_options') else self._client
-        result=BudgetedClient(client,self.budget,self.purpose,skill_packet=self.skill_packet)
+        result=BudgetedClient(client,self.budget,self.purpose,skill_packet=self.skill_packet,
+            operation=self.operation,content_unit_id=self.content_unit_id)
         result.route_info=self.route_info
+        return result
+
+    def with_operation(self,operation,*,content_unit_id=None):
+        result=BudgetedClient(self,self.budget,self.purpose,skill_packet=self.skill_packet,
+            operation=operation,content_unit_id=content_unit_id)
+        # An enclosing operation may have a unit, but a new unscoped operation does not.
+        result.content_unit_id=content_unit_id
         return result
 
     def create(self, **request):
@@ -252,6 +261,10 @@ class BudgetedClient:
             raise
         self.budget.data_events.append({**admission,'stage':(self.route_info or {}).get('stage',self.purpose),'status':'admitted'})
         request, record = self.budget.reserve(request,self.purpose,self.route_info)
+        stage=(self.route_info or {}).get('stage') or self.budget.stage
+        record['operation']=self.operation or {'planner':'planning','analyst':'analysis',
+            'reflection':'research_gap_review','report':'writing','render':'figure_plan'}.get(stage,self.purpose)
+        if self.content_unit_id is not None:record['content_unit_id']=self.content_unit_id
         if request.get('model')=='deepseek-flash' and isinstance(request.get('extra_body'),dict):
             record['model_options']={'thinking':(request['extra_body'].get('thinking') or {}).get('type')}
         record['data_governance']=admission
@@ -326,8 +339,8 @@ class BudgetedClient:
         return stream()
 
 
-def budgeted_client(client, budget: ModelTokenBudget | None, purpose: str):
-    return BudgetedClient(client,budget,purpose) if budget is not None else client
+def budgeted_client(client, budget: ModelTokenBudget | None, purpose: str, *, operation:str|None=None):
+    return BudgetedClient(client,budget,purpose,operation=operation) if budget is not None else client
 
 
 def skill_context_client(client,packet=None):
@@ -335,6 +348,7 @@ def skill_context_client(client,packet=None):
     if not isinstance(client,BudgetedClient):return client
     selected=packet if packet is not None else client.budget.skill_packet
     if not selected:return client
-    marked=BudgetedClient(client._client,client.budget,client.purpose,skill_packet=selected)
+    marked=BudgetedClient(client._client,client.budget,client.purpose,skill_packet=selected,
+        operation=client.operation,content_unit_id=client.content_unit_id)
     marked.route_info=client.route_info
     return marked

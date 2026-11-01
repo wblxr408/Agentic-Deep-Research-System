@@ -203,4 +203,4 @@ RAG继续负责从已授权资料中查找所需证据，现有缓存负责复�
 | [A2AB-10 委派环路检测与全链预算](<C:/Users/wblxr/basic-memory/engineering/security/a2abreak/solutions/A2AB-10 委派环路检测与全链预算.md>)／v1.0／工程1—4、验收T1—T3 | `llm_budget.py`与原根计量所有模型和修订；缓存计费不能绕过逻辑额度，阶段切换不重置上限 |
 | [A2AB-11 中断任务租约与有界资源回收](<C:/Users/wblxr/basic-memory/engineering/security/a2abreak/solutions/A2AB-11 中断任务租约与有界资源回收.md>)／v1.0／工程1—4、验收T1—T3 | 原执行控制保留未知消费和deadline；先对账再决定继续，不能以未收到响应为由盲目补发 |
 
-其余01技能、04事件出口、05产物完整性、07既有入站沿原机制；02远端Card和09跨组织多跳因本期没有这些功能而保持具体机制不适用，完整说明见[原设计D11](../openspec/changes/refactor-single-research-agent/design.md#d11-安全基线与本次适用性)。没有执行攻击或安全回归。本轮只做官方资料与源码核对、规划内容及一致性审阅；运行实现和效果仍待后续工作。
+其余01技能、04事件出口、05产物完整性、07既有入站沿原机制；02远端Card和09跨组织多跳因本期没有这些功能而保持具体机制不适用，完整说明见[原设计D11](../openspec/changes/refactor-single-research-agent/design.md#d11-安全基线与本次适用性)。没有执行攻击或安全回归。规划后已开始5.1／5.5原生用量和分项报价的部分源码实施，当前只有源码与调用链审阅，完整差量和实际效果仍待完成，详见[实施记录](acceptance/architecture-simplification-20261101.md)。

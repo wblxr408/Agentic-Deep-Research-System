@@ -175,7 +175,7 @@ def review_reader_quality(*, question, configuration, record, findings, client, 
             output_cap=min(6144,max(1024,budget.available('audit')-
                 request_token_bound(messages,response_format={'type':'json_object'})-512))
             base['global_output_cap']=output_cap
-            response=budgeted_client(client,budget,'audit').chat.completions.create(
+            response=budgeted_client(client,budget,'audit',operation='reader_review').chat.completions.create(
                 model=model,messages=messages,temperature=0,max_tokens=output_cap,response_format={'type':'json_object'})
             choice=response.choices[0]
             base['raw_response']=choice.message.content or ''
@@ -311,7 +311,7 @@ def review_reader_quality(*, question, configuration, record, findings, client, 
                     'Overall satisfied requires all groups nonblocking. Every decision and the overall '
                     'result need actual literal anchors. No rewritten report text.'},
                     {'role':'user','content':untrusted_context('repetition_impact',packed,limit=len(packed))}]
-                response=budgeted_client(client,budget,'audit').chat.completions.create(
+                response=budgeted_client(client,budget,'audit',operation='reader_repetition_impact').chat.completions.create(
                     model=model,messages=impact_messages,temperature=0,max_tokens=2048,
                     response_format={'type':'json_object'})
                 choice=response.choices[0];impact['raw_response']=choice.message.content or ''
@@ -376,7 +376,7 @@ def review_reader_quality(*, question, configuration, record, findings, client, 
                         '"repair":"specific missing knowledge if gap"}. A pass needs actual report anchors; '
                         'every supplied record must be considered. Do not infer a pass from counts.'},
                         {'role':'user','content':untrusted_context('reader_material_packet',packed,limit=len(packed))}]
-                    response=budgeted_client(client,budget,'audit').chat.completions.create(
+                    response=budgeted_client(client,budget,'audit',operation='reader_material_review').chat.completions.create(
                         model=model,messages=part_messages,temperature=0,max_tokens=2048,
                         response_format={'type':'json_object'})
                     choice=response.choices[0];part['raw_response']=choice.message.content or ''

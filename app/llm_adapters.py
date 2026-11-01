@@ -9,6 +9,8 @@ from typing import Any
 
 import httpx
 
+from app.llm_usage import normalize_usage
+
 
 class _AnthropicCompletions:
     def __init__(self, client: httpx.Client, base_url: str, headers: dict[str, str], timeout=None) -> None:
@@ -37,14 +39,12 @@ class _AnthropicCompletions:
         content = "".join(item.get("text", "") for item in payload.get("content", []) if item.get("type") == "text")
         return SimpleNamespace(
             choices=[SimpleNamespace(message=SimpleNamespace(content=content))],
-            usage=SimpleNamespace(
-                prompt_tokens=payload.get("usage", {}).get("input_tokens"),
-                completion_tokens=payload.get("usage", {}).get("output_tokens"),
-            ),
+            usage=SimpleNamespace(**normalize_usage(payload.get('usage'), protocol='anthropic_messages')),
         )
 
     def _stream(self, body: dict[str, Any]) -> Iterator[Any]:
-        input_tokens,output_tokens = None,None
+        native_usage = {}
+        completed = False
         with self._client.stream("POST", f"{self._base_url}/v1/messages", headers=self._headers, json=body,timeout=self._timeout) as response:
             response.raise_for_status()
             for line in response.iter_lines():
@@ -52,15 +52,18 @@ class _AnthropicCompletions:
                     continue
                 payload = json.loads(line[6:])
                 if payload.get('type') == 'message_start':
-                    input_tokens = payload.get('message',{}).get('usage',{}).get('input_tokens')
+                    native_usage.update(payload.get('message',{}).get('usage') or {})
                 if payload.get('type') == 'message_delta':
-                    output_tokens = payload.get('usage',{}).get('output_tokens')
+                    # Message usage is cumulative, not a per-event token delta.
+                    native_usage.update(payload.get('usage') or {})
+                if payload.get('type') == 'message_stop':
+                    completed = True
                 delta = payload.get("delta", {}).get("text", "") if payload.get("type") == "content_block_delta" else ""
                 if delta:
                     yield SimpleNamespace(choices=[SimpleNamespace(delta=SimpleNamespace(content=delta))])
-            if input_tokens is not None and output_tokens is not None:
-                yield SimpleNamespace(choices=[],usage=SimpleNamespace(prompt_tokens=input_tokens,
-                    completion_tokens=output_tokens,total_tokens=input_tokens+output_tokens))
+            if completed:
+                yield SimpleNamespace(choices=[],usage=SimpleNamespace(
+                    **normalize_usage(native_usage, protocol='anthropic_messages')))
 
 
 class AnthropicCompatibleClient:

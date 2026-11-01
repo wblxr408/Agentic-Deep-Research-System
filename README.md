@@ -4,11 +4,13 @@ ADRS 面向企业、高校和科研实验室的研究发展分析：从公开论
 
 ## 当前进度
 
+2026-11-01精简实施：原生usage、供应商缓存读写／有效期报价及部分调用／章节用途已接入原根收据与成本投影。当前仅部分源码完成；实际端点缓存参数、应用复用归因、RAG目录／分级补证、内容审核与图文差量继续按原TODO推进，尚无本次运行降本或百篇效果证据。[实施记录](docs/acceptance/architecture-simplification-20261101.md)
+
 2026-11-01百篇机制接合：已将旧调研的目录缓存、筛选、分级导读和分批补证纳入[现有RAG复用／适配计划](docs/CORPUS_RAG_INTEGRATION_PLAN.md)与原TODO。目录和证据沿现有资料库，处理状态沿原根／产物；已有解析检索不重建，深度综合与图文交付只补明确接口。当前仅规划，尚未实际导入历史资料或接通百篇路径。
 
 2026-11-01用户报告反馈：最新稿缺所需模块图、事件时间轴与数据图，论文原图仍为整页预览；历史图文审核不代表这些需求已交付。已将[可视化与原论文图块修复](docs/REPORT_VISUALIZATION_PLAN.md)纳入原R8／12.9，当前P0待实施／验收。
 
-2026-11-01路线确认：当前在 [codex/simplify-existing-architecture](https://github.com/wblxr408/Agentic-Deep-Research-System/tree/codex/simplify-existing-architecture) 推进原架构精简，先更新[TODO](docs/OPTIMIZATION_TODO.md)并按[降本方案](docs/RESEARCH_TOKEN_COST_PLAN.md)实施；[三角色方案分支](https://github.com/wblxr408/Agentic-Deep-Research-System/tree/codex/three-role-agents)独立保留。当前新增内容是规划与任务排序，运行改动和效果尚未实现／验收。
+2026-11-01路线确认：当前在 [codex/simplify-existing-architecture](https://github.com/wblxr408/Agentic-Deep-Research-System/tree/codex/simplify-existing-architecture) 推进原架构精简，先更新[TODO](docs/OPTIMIZATION_TODO.md)并按[降本方案](docs/RESEARCH_TOKEN_COST_PLAN.md)实施；[三角色方案分支](https://github.com/wblxr408/Agentic-Deep-Research-System/tree/codex/three-role-agents)独立保留。规划与任务排序已形成，部分计量源码进度见上，实际效果尚待接受。
 
 2026-11-01：当前版本为 **v1.3**（应用版本 `1.3.0`）。同根研究已通过获准范围的事实、最终读者和实际PDF图文审核，主文6页、附录14页（含8页原图）已认证导出并实际阅读排版；正文必核250/250、图文必核66/66，累计6,092,491/6,100,000 Token。[版本说明](CHANGELOG.md) · [实际验收](docs/acceptance/research-quality-e2e-20261030.md) · [重复与恢复问题归因](docs/reader-cross-validation.md)。本次架构复评保留现有动态DAG与专家／工具，先补质量和成本；统一主循环条件后置，其他模块保留各自状态。
 

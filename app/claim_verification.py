@@ -616,11 +616,13 @@ def audit_report(report: str, evidence: list[Evidence], *, client: Any, model: s
     if client is not None and not isinstance(client,BudgetedClient):
         client = BudgetedClient(client,ModelTokenBudget(token_budget if token_budget is not None else 12000,
             deadline=deadline),'audit')
+    if isinstance(client,BudgetedClient):client=client.with_operation('fact_review')
     claims = extract_claims(report)
     review_scope=deepcopy(review_scope or (previous_audit or {}).get('review_scope'))
     if review_scope and not review_scope.get('question'):
         review_scope['question']=((task_context or {}).get('task-input:request') or {}).get('query')
-    scope_decisions=_review_scope_decisions(claims,review_scope,previous_audit,client,model)
+    scope_client=client.with_operation('fact_scope_selection') if isinstance(client,BudgetedClient) else client
+    scope_decisions=_review_scope_decisions(claims,review_scope,previous_audit,scope_client,model)
     claim_limit = len(claims) if max_claims is None else max(0, max_claims)
     # Semantic judgement reads multilingual claims and retained passages
     # directly. Optional retrieval planning has a small, separate allowance.

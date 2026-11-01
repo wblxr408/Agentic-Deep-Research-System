@@ -1,6 +1,6 @@
 # Proposal
 
-**当前路线（2026-11-01用户确认）：** 本变更在 `codex/simplify-existing-architecture` 实施原架构精简；原目录名保留历史引用。先做原账本／缓存计量、内容归属和有界输入、分级与依赖复用，再按覆盖删重复调用。三角色方案保存在独立 `codex/three-role-agents` 分支，不成为本变更前提；此轮更新规划与TODO，尚未实现运行差量。
+**当前路线（2026-11-01用户确认）：** 本变更在 `codex/simplify-existing-architecture` 实施原架构精简；原目录名保留历史引用。先做原账本／缓存计量、内容归属和有界输入、分级与依赖复用，再按覆盖删重复调用。三角色方案保存在独立 `codex/three-role-agents` 分支，不成为本变更前提；已进入5.1／5.5部分源码实施，完整差量与运行接受仍待完成，见[实施记录](../../../docs/acceptance/architecture-simplification-20261101.md)。
 
 ## Why
 
@@ -45,4 +45,4 @@ ADRS 已有动态DAG、专家模型调用、条件重规划和受控交付，按
 - 内容／质量：`report_composition.py`、`report_editorial.py`、`report_revision.py`、`claim_verification.py`、`report_quality.py`、`report_surface_review.py`。
 - 计量／交付：复用 `llm_budget.py`、`adaptive_budget.py`、`runtime_accounting.py`、现有执行控制及报告持久化；API／工作台只补当前质量、步骤理由及成本的必要投影。
 - 沿用 Python、LangGraph、PostgreSQL／JSONB、现有前端及工具供应方；本期不引入新 Agent 框架、数据库、常驻服务或子 Agent 系统。
-- 当前只生成规划文档；实施节奏沿原大模块完成后的真实端到端要求，子项只审阅源码和文档，不恢复局部／TDD／回归或构建等门禁。本变更不自行启动新旅程或发布。
+- 原规划已经形成，当前5.1／5.5开始部分源码实施；实施节奏沿原大模块完成后的真实端到端要求，子项只审阅源码和文档，不恢复局部／TDD／回归或构建等门禁。本变更不自行启动新旅程或发布。

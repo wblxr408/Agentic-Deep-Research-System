@@ -116,7 +116,7 @@ def revise_reader_report(content,record,audit,*,question,findings,configuration,
                 'occurrences. Remove all diagnosed internal-state notes. Do not remove distinct scientific '
                 'limitations or research substance. No text additions or edits.'},
                 {'role':'user','content':untrusted_context('task_note_edit',payload,limit=len(payload))}]
-            response=budgeted_client(client,budget,'report').chat.completions.create(model=model,messages=messages,
+            response=budgeted_client(client,budget,'report',operation='reader_note_revision').chat.completions.create(model=model,messages=messages,
                 temperature=0,max_tokens=1024,response_format={'type':'json_object'})
             choice=response.choices[0]
             if on_candidate:on_candidate(choice.message.content or '',stage='reader_note_revision_response'
@@ -291,7 +291,7 @@ def revise_reader_report(content,record,audit,*,question,findings,configuration,
     output_cap=2048 if unit_mode else 8192
     required=request_token_bound(messages,response_format={'type':'json_object'})+output_cap
     if budget.available(purpose)<required:raise TokenBudgetExceeded('reader_revision_context_budget')
-    response=budgeted_client(client,budget,purpose).chat.completions.create(model=model,messages=messages,temperature=.1,max_tokens=output_cap,
+    response=budgeted_client(client,budget,purpose,operation='reader_revision').chat.completions.create(model=model,messages=messages,temperature=.1,max_tokens=output_cap,
         response_format={'type':'json_object'})
     reply=response.choices[0].message.content
     if on_candidate:on_candidate(reply or '',stage='reader_revision_response'

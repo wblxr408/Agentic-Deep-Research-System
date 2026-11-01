@@ -115,7 +115,8 @@ def compose_sections(*,question,analysis,configuration,findings,evidence,statist
         else:
             required=request_token_bound(messages,response_format={'type':'json_object'})+output_tokens
             if required>budget.available('report'):raise TokenBudgetExceeded('section_writing_original_allowance_insufficient')
-            response=client.chat.completions.create(model=model,messages=messages,temperature=.2,
+            active=client.with_operation('section_writing',content_unit_id=section_id) if hasattr(client,'with_operation') else client
+            response=active.chat.completions.create(model=model,messages=messages,temperature=.2,
                 max_tokens=output_tokens,response_format={'type':'json_object'})
             choice=response.choices[0] if response.choices else None
             reply=choice.message.content or '' if choice else ''
@@ -147,7 +148,8 @@ def compose_sections(*,question,analysis,configuration,findings,evidence,statist
             if required>budget.available('report'):
                 on_section(reply,section_id,{**repair_context,'repair_admission_denied':True})
                 raise TokenBudgetExceeded('section_repair_original_allowance_insufficient')
-            response=client.chat.completions.create(model=model,messages=repair_messages,temperature=.1,
+            active=client.with_operation('section_format_repair',content_unit_id=section_id) if hasattr(client,'with_operation') else client
+            response=active.chat.completions.create(model=model,messages=repair_messages,temperature=.1,
                 max_tokens=output_tokens,response_format={'type':'json_object'})
             choice=response.choices[0] if response.choices else None
             repaired=choice.message.content or '' if choice else ''
