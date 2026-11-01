@@ -261,8 +261,9 @@ Return a JSON object with dag_name, nodes, and edges."""
         declared_plan = seed_only_dag(organization_research)
         if declared_plan is not None:
             self.last_usage = None
-            self.last_plan_reason = 'declared_seed_only_fixed_workflow'
-            return apply_source_policy(declared_plan, query, use_internal_docs=use_internal_docs)
+            rag_corpus=((organization_research or {}).get('corpus') or {}).get('collection_mode')=='rag_corpus'
+            self.last_plan_reason = 'declared_rag_members_fixed_reads' if rag_corpus else 'declared_seed_only_fixed_workflow'
+            return apply_source_policy(declared_plan, query, use_internal_docs=use_internal_docs,ensure_sources=not rag_corpus)
 
         if planning_strategy == 'fixed':
             self.last_plan_reason = 'explicit_fixed_workflow'

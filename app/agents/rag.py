@@ -49,6 +49,7 @@ class RAGAgent:
         self._embedder = None
         self._reranker = None
         self.last_channel_status=[]
+        self.last_source_gaps=[]
 
     async def _get_db_pool(self):
         """Get or create the database connection pool."""
@@ -98,17 +99,42 @@ class RAGAgent:
         await self.close()
 
     async def execute_async(self,plan_steps,user_query,group=None,owner_id=None,
-                            context_mode='source_preference',session_id=None,filters=None,timeout_seconds=None,mode='hybrid',fusion=None,query_type=None,channels=None,channel_settings=None):
+                            context_mode='source_preference',session_id=None,filters=None,timeout_seconds=None,mode='hybrid',fusion=None,query_type=None,channels=None,channel_settings=None,
+                            source_ids=None,corpus_membership=None):
+        self.last_source_gaps=[]
         selected=tuple(channels or ())
         if any(item not in {'stem','sparse','paired','late','image','beam'} for item in selected) or len(set(selected))!=len(selected):raise ValueError('unsupported_internal_retrieval_channels')
         deadline=time.monotonic()+timeout_seconds if timeout_seconds is not None else None
         try:
             async with asyncio.timeout(timeout_seconds):
+                if source_ids:
+                    if (filters or {}).get('any_of'):raise ValueError('source_reads_cannot_bypass_chunk_filters')
+                    return await self._read_sources(source_ids,corpus_membership,owner_id=owner_id,session_id=session_id,group=group)
+                if corpus_membership:raise ValueError('declared_rag_corpus_requires_source_selector')
                 return await self._execute_async(plan_steps,user_query,group=group,owner_id=owner_id,
                     context_mode=context_mode,session_id=session_id,filters=filters,mode=mode,fusion=fusion,query_type=query_type,channels=selected,channel_settings=channel_settings or {},deadline=deadline)
         except TimeoutError as error:
             self.last_channel_status.append({'status':'timeout','reason':'retrieval_original_deadline_exhausted'})
             raise RuntimeError('retrieval_original_deadline_exhausted') from error
+
+    async def _read_sources(self,source_ids,manifest,*,owner_id,session_id,group):
+        from app.rag_corpus import read_frozen_sources
+        started=time.monotonic();pool=await self._get_db_pool()
+        async with pool.acquire() as conn:
+            rows,gaps=await read_frozen_sources(conn,source_ids,manifest,
+                owner_id=owner_id,task_id=session_id,group=group)
+        self.last_source_gaps=gaps
+        self.last_channel_status=[{'channel':'explicit_source_read','status':'completed_with_gaps' if gaps else 'completed',
+            'source_ids':list(source_ids),'source_gaps':gaps,'result_count':len(rows),
+            'resource_usage':[{'kind':'owned_source_read','execution':'existing_postgresql',
+                'source_count':len(rows),'content_characters':sum(len(row['content']) for row in rows),
+                'duration_ms':round((time.monotonic()-started)*1000),'embedding_model_calls':0,
+                'reranking_model_calls':0,'network_calls':0,'provider_charge_usd':None,'cost_basis':'local_io_not_priced'}]}]
+        return [RAGResult(chunk_id='source:'+row['source_id'],content=row['content'],metadata=row['metadata'],
+            score=1,rerank_score=1,citation=Citation(source_url=row['metadata']['url'],source_title=row['metadata']['title'],
+                source_type='knowledge_base',extracted_evidence=row['content'][:300],
+                locator={'source_id':row['source_id'],'parse_version_id':row['metadata']['parse_version_id'],
+                    'start':0,'end':len(row['content']),'kind':'retained_source_text'})) for row in rows]
 
     async def _execute_async(
         self,
@@ -764,12 +790,15 @@ class RAGAgent:
         query_type:str|None=None,
         channels:list[str]|tuple[str,...]|None=None,
         channel_settings:dict|None=None,
+        source_ids:list[str]|None=None,
+        corpus_membership:dict|None=None,
     ) -> list[RAGResult]:
         """Synchronous wrapper."""
         import asyncio
         async def invoke():
             try:return await self.execute_async(plan_steps,user_query,group=group,owner_id=owner_id,
-                context_mode=context_mode,session_id=session_id,filters=filters,timeout_seconds=timeout_seconds,mode=mode,fusion=fusion,query_type=query_type,channels=channels,channel_settings=channel_settings)
+                context_mode=context_mode,session_id=session_id,filters=filters,timeout_seconds=timeout_seconds,mode=mode,fusion=fusion,query_type=query_type,channels=channels,channel_settings=channel_settings,
+                source_ids=source_ids,corpus_membership=corpus_membership)
             finally:await self.close()
         try:
             asyncio.get_running_loop()
@@ -791,6 +820,8 @@ class RAGAgent:
         query_type:str|None=None,
         channels:list[str]|tuple[str,...]|None=None,
         channel_settings:dict|None=None,
+        source_ids:list[str]|None=None,
+        corpus_membership:dict|None=None,
     ) -> list[RAGResult]:
         """
         Execute RAG retrieval for a single query (主题 3 工具接口).
@@ -799,7 +830,8 @@ class RAGAgent:
         """
         from app.graph.state import PlanStep
         step = PlanStep(target_query=query, node_type="rag")
-        return self.execute([step], context or query, group=group, owner_id=owner_id,session_id=session_id,filters=filters,timeout_seconds=timeout_seconds,mode=mode,fusion=fusion,query_type=query_type,channels=channels,channel_settings=channel_settings)
+        return self.execute([step], context or query, group=group, owner_id=owner_id,session_id=session_id,filters=filters,timeout_seconds=timeout_seconds,mode=mode,fusion=fusion,query_type=query_type,channels=channels,channel_settings=channel_settings,
+            source_ids=source_ids,corpus_membership=corpus_membership)
 
     def execute_for_node(
         self,

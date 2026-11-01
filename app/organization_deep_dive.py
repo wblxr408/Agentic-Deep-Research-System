@@ -53,6 +53,13 @@ def _pattern(value):return r'\s+'.join(re.escape(token) for token in value.split
 def _full_text(source):
     meta=source.get('acquisition') or {}
     if meta.get('coverage')!='full_text' or meta.get('truncated'):return False
+    if meta.get('format')=='internal_source':
+        snapshot=meta.get('source_access_snapshot') or {}
+        return bool(source.get('source_type')=='knowledge_base' and source.get('collected_by')=='rag'
+            and meta.get('complete_retained_artifact') and meta.get('parse_version_id')
+            and meta.get('source_document_id')==snapshot.get('source_id')
+            and (meta.get('research_record') or {}).get('kind')=='fulltext'
+            and meta.get('retained_characters')==len(source.get('content') or ''))
     if meta.get('format')=='pdf':
         return bool(meta.get('total_pages') and meta.get('retained_pages')==meta['total_pages'] and meta.get('pages'))
     return bool(meta.get('scientific_sections') and meta.get('full_text_basis'))

@@ -121,6 +121,7 @@ def compile_plan(dag: DAGDefinition, *, task_id: str, execution_id: str | None,
             raise PlanningError('plan_invalid_node_input', node.node_id)
         if node.node_type not in TOOLS | ROOT_STAGES:
             raise PlanningError('plan_unknown_node_type', node.node_id)
+        if node.source_ids and node.node_type!='rag':raise PlanningError('source_selector_requires_rag',node.node_id)
         if node.node_type in TOOLS and any(nodes[key].node_type in ROOT_STAGES for key in node.depends_on):
             raise PlanningError('plan_backward_stage_dependency', node.node_id)
         condition = getattr(node, 'condition', 'always')
@@ -167,6 +168,7 @@ def compile_plan(dag: DAGDefinition, *, task_id: str, execution_id: str | None,
     dag.edges = [PlanEdge(from_node=dep, to_node=node.node_id) for node in dag.nodes for dep in node.depends_on]
     batches = dependency_batches(dag.nodes)
     rows = [{'node_id': node.node_id, 'node_type': node.node_type, 'query': node.query,
+        **({'source_ids':node.source_ids} if node.source_ids else {}),
         'depends_on': list(node.depends_on), 'parallel': node.parallel,
         'condition': getattr(node, 'condition', 'always'), 'status': node.status.value,
         'purpose': {'search': '发现可核查线索', 'browser': '读取明确来源', 'rag': '补充当前授权资料',
@@ -208,6 +210,9 @@ def tool_query_context(state:dict,node_type:str) -> dict:
         if 'query_rewriting' in original:view['query_rewriting']=deepcopy(original['query_rewriting'])
     if node_type=='rag':
         view.update({key:deepcopy(original[key]) for key in ('internal_filter','internal_retrieval') if key in original})
+        corpus=(state.get('organization_research') or {}).get('corpus') or {}
+        if corpus.get('collection_mode')=='rag_corpus':
+            view['rag_corpus_scope_id']=(corpus.get('rag_membership') or {}).get('scope_id')
     if node_type in {'search','rag'}:
         view.update({key:deepcopy(original[key]) for key in ('candidate_fusion','query_type') if key in original})
     if node_type in {'search','browser'} and 'temporal' in original:
@@ -233,7 +238,8 @@ def make_handoff(state: dict, node: PlanNode, *, call_allowance: int, seconds: f
         'plan_revision': manifest['revision'], 'node_id': node.node_id, 'node_type': node.node_type,
         'query_context_identity':identity(tool_query_context(state,node.node_type)),
         'request_identity': identity({'query': node.query, 'depends_on': node.depends_on,
-            'condition': getattr(node, 'condition', 'always')}), 'attempt': node.retry_count}
+            'condition': getattr(node, 'condition', 'always'),
+            **({'source_ids':node.source_ids} if node.source_ids else {})}), 'attempt': node.retry_count}
     binding['authorization_identity'] = identity([{key: item.get(key) for key in
         ('approval_id','status','node_id','bound_query','revision_count')} for item in state.get('approval_decisions', [])
         if item.get('node_id') == node.node_id])

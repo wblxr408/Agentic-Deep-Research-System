@@ -16,6 +16,7 @@ from langchain_core.tools import tool
 logger = logging.getLogger(__name__)
 _retrieval_owner_id: ContextVar[str | None] = ContextVar("retrieval_owner_id", default=None)
 _retrieval_session_id: ContextVar[str | None] = ContextVar('retrieval_session_id',default=None)
+_retrieval_corpus: ContextVar[dict | None] = ContextVar('retrieval_corpus',default=None)
 
 
 @tool
@@ -24,6 +25,7 @@ def knowledge_base_search(
     top_k: int = 5,
     group: str | None = None,
     context_mode:Literal['source_preference','matched','parent']='source_preference',
+    source_ids:list[str]|None=None,
 ) -> str:
     """
     Search the internal knowledge base for relevant documents and context.
@@ -40,6 +42,7 @@ def knowledge_base_search(
         group: Optional current source group. Legacy rows without a source can
             match metadata.group/source_group/knowledge_group.
         context_mode: Use saved preference, matched span, or bounded parent.
+        source_ids: At most two explicitly frozen task sources, not arbitrary library IDs.
 
     Returns:
         JSON string of retrieved document chunks with metadata
@@ -60,14 +63,21 @@ def knowledge_base_search(
             target_query=query,
         )
         agent = RAGAgent()
-        results = agent.execute([step], query, group=group, owner_id=owner_id,context_mode=context_mode,session_id=_retrieval_session_id.get())
+        if source_ids and top_k<len(source_ids):
+            raise ValueError('source_read_result_limit_smaller_than_explicit_batch')
+        results = agent.execute([step], query, group=group, owner_id=owner_id,context_mode=context_mode,session_id=_retrieval_session_id.get(),
+            source_ids=source_ids,corpus_membership=_retrieval_corpus.get())
 
         output = []
         for r in results[:top_k]:
+            metadata=dict(r.metadata)
+            if source_ids and len(r.content)>4000:
+                metadata['retained_source']={**metadata.get('retained_source',{}),
+                    'coverage':'retained_source_excerpt','truncated':True,'complete_retained_artifact':False}
             output.append({
                 "chunk_id": r.chunk_id,
                 "content": r.content[:4000],
-                "metadata": r.metadata,
+                "metadata": metadata,
                 "rerank_score": r.rerank_score,
                 "source": (r.metadata.get("title") or r.metadata.get('source_name') or 'Unknown') if r.metadata else "Unknown",
                 'content_truncated':len(r.content)>4000,
@@ -80,17 +90,19 @@ def knowledge_base_search(
         return json.dumps({"error": str(e)})
 
 
-def get_retrieval_tools(owner_id: str,session_id:str|None=None):
+def get_retrieval_tools(owner_id: str,session_id:str|None=None,corpus_membership:dict|None=None):
     """Return tools bound to a server-derived owner, never an LLM argument."""
     @tool
     def scoped_knowledge_base_search(query: str, top_k: int = 5, group: str | None = None,
-            context_mode:Literal['source_preference','matched','parent']='source_preference') -> str:
+            context_mode:Literal['source_preference','matched','parent']='source_preference',source_ids:list[str]|None=None) -> str:
         token = _retrieval_owner_id.set(owner_id)
         session_token=_retrieval_session_id.set(session_id)
+        corpus_token=_retrieval_corpus.set(corpus_membership)
         try:
-            return knowledge_base_search.invoke({"query": query, "top_k": top_k, "group": group,'context_mode':context_mode})
+            return knowledge_base_search.invoke({"query": query, "top_k": top_k, "group": group,'context_mode':context_mode,'source_ids':source_ids})
         finally:
             _retrieval_owner_id.reset(token)
             _retrieval_session_id.reset(session_token)
+            _retrieval_corpus.reset(corpus_token)
 
     return [scoped_knowledge_base_search]

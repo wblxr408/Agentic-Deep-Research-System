@@ -62,6 +62,14 @@
 - **WHEN** 已取消或被替代的执行返回工具或模型结果
 - **THEN** 结果不写入当前研究状态，已发生的实际或未知消费仍按原根记录
 
+#### Scenario: A selected RAG collection is read without ranking away members
+- **WHEN** 用户明确选择当前权限允许的RAG来源集合，且输入符合已有计划和读取上限
+- **THEN** 系统冻结来源／作品／解析与访问版本，将集合及具体来源绑定预览、计划和交接，沿原DAG分批读取；单条失败留缺口并保留成功材料，不能以top-k、截断或提高根额度替代所需成员
+
+#### Scenario: An explicit source result is delivered more than once
+- **WHEN** 同根稳定证据ID再次返回完全相同的正文、来源、可信度和acquisition绑定
+- **THEN** 根接纳器保留首次材料和时间，记录重复接纳而不再次追加正文；工具消费仍记录，同ID语义改变则拒绝，复用本身不授予事实支持
+
 ### Requirement: Skills load from frozen authorized selections
 
 系统 SHALL 基于本任务冻结目录按当前动作加载必要 Skill 指令及注册参考，保留版本、加载原因、遗漏和冲突。用户显式选择及其必要约束 MUST 保持生效；网页、模型自报路径和未授权外链不能成为加载来源，技能内容不能执行脚本或扩大工具权限。

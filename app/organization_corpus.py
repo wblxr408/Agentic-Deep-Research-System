@@ -10,8 +10,9 @@ from typing import Literal
 from urllib.parse import urlsplit
 from calendar import monthrange, month_abbr, month_name
 from datetime import date
+from uuid import UUID
 
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 from app.channels.execution import HttpReader, public_url
 from app.channels.models import ChannelError
 from app.research_evaluation import OutputType
@@ -103,11 +104,20 @@ def _publisher_meta_text(raw_html):
 
 class CorpusDeclaration(ScopeRecord):
     source_scope: ResearchSourceScope | None = None
-    collection_mode: Literal['search_and_seeds', 'seeds_only'] = 'search_and_seeds'
+    collection_mode: Literal['search_and_seeds', 'seeds_only', 'rag_corpus'] = 'search_and_seeds'
+    rag_source_ids: tuple[UUID, ...] = Field(default=(), max_length=256)
     seed_urls: tuple[str, ...] = Field(default=(), max_length=16)
     search_terms: tuple[str, ...] = Field(default=(), max_length=16)
     output_types: tuple[OutputType, ...] = Field(default=(), max_length=16)
     allow_ocr: bool = False
+
+    @model_validator(mode='after')
+    def explicit_rag_members(self):
+        if len(set(self.rag_source_ids))!=len(self.rag_source_ids):raise ValueError('rag_corpus_duplicate_source_id')
+        if self.collection_mode=='rag_corpus' and not self.rag_source_ids:raise ValueError('rag_corpus_requires_explicit_sources')
+        if self.collection_mode=='rag_corpus' and (self.seed_urls or self.search_terms):raise ValueError('rag_corpus_cannot_silently_ignore_seed_or_search_inputs')
+        if self.collection_mode!='rag_corpus' and self.rag_source_ids:raise ValueError('rag_sources_require_rag_corpus_mode')
+        return self
 
     @field_validator('seed_urls')
     @classmethod
@@ -133,7 +143,8 @@ def freeze_corpus(declaration: CorpusDeclaration, scope: dict) -> dict:
     from app.config import get_settings
     from app.document_structure import VERSION as DOCUMENT_PARSER_VERSION
     parsing=get_settings().document_parsing
-    seeds = list(declaration.seed_urls) or [url for entity in scope['entities'] for url in entity['source_urls'][:1]]
+    seeds = [] if declaration.collection_mode=='rag_corpus' else (
+        list(declaration.seed_urls) or [url for entity in scope['entities'] for url in entity['source_urls'][:1]])
     from app.external_evidence import request_url_identity
     unique = list(dict.fromkeys(request_url_identity(url) for url in seeds))
     if declaration.collection_mode == 'seeds_only' and not unique:
@@ -145,7 +156,7 @@ def freeze_corpus(declaration: CorpusDeclaration, scope: dict) -> dict:
         'document_parser_policy':{'schema_version':DOCUMENT_PARSER_VERSION,**{key:getattr(parsing,key) for key in ('ocr_enabled','ocr_language','max_ocr_pages','max_chars','timeout_seconds')}},
         'effective_seed_urls': unique, 'duplicate_seed_urls': len(seeds)-len(unique),
         'seed_request_identity':'version_and_query_preserving_v1',
-        'effective_search_terms': list(declaration.search_terms) or [scope['topic']],
+        'effective_search_terms': [] if declaration.collection_mode=='rag_corpus' else (list(declaration.search_terms) or [scope['topic']]),
         'source_policy': declaration.source_scope.snapshot() if declaration.source_scope else None,
         'inclusion': {'organization_types': scope['organization_types'], 'entities': scope['entities'],
             'disciplines': scope['disciplines'], 'topic': scope['topic'],
@@ -166,6 +177,15 @@ def corpus_instructions(configuration: dict | None) -> str:
     corpus = (configuration or {}).get('corpus')
     if not corpus:
         return ''
+    if corpus.get('collection_mode')=='rag_corpus':
+        manifest=corpus.get('rag_membership') or {}
+        return ('\n\n声明的RAG语料范围：'+json.dumps({
+            'version':manifest.get('version'),'scope_id':manifest.get('scope_id'),
+            'declared_source_count':len(manifest.get('members') or []),
+            'declared_work_count':manifest.get('declared_work_count')},ensure_ascii=False)+
+            '\n所需成员由原任务快照固定；检索排名和top-k不能缩小该集合。仅分析实际取得的成员材料，'
+            '保留排除、待定、缺全文及缺字段的理由。资料分类不等于已读或已核，原件可用不等于模型读过全文。'
+            '其他论文只能作所需成员的补证或反例，不能替换、扩充或冒充声明成员；不要把声明篇数写成已完成篇数。')
     return ('\n\n样本基线（原始请求，非现实全集）：' + json.dumps(corpus, ensure_ascii=False)
         + '\n提取每个已读出版页的主要成果，包括明确不符合日期或类型的记录，由程序记录排除。'
         '不要因不满足范围而直接遗漏候选；不得把页面导航／参考文献当主要成果。'
@@ -176,6 +196,19 @@ def corpus_instructions(configuration: dict | None) -> str:
 
 def seed_only_dag(configuration):
     corpus = (configuration or {}).get('corpus') or {}
+    if corpus.get('collection_mode')=='rag_corpus':
+        from app.graph.state import DAGDefinition, PlanNode
+        manifest=corpus.get('rag_membership') or {}
+        members=manifest.get('members') or []
+        if not members:raise ValueError('rag_corpus_membership_not_frozen')
+        nodes=[PlanNode(node_id=f'corpus-rag-{index//2+1}',node_type='rag',
+            query='读取声明的RAG成员 '+str(index//2+1),
+            source_ids=[item['source_id'] for item in members[index:index+2]],
+            description='按冻结来源逐项读取，保留版本和资料层级，不以top-k代替目录覆盖')
+            for index in range(0,len(members),2)]
+        nodes.append(PlanNode(node_id='analyst',node_type='analyst',query='按冻结语料逐项筛选并分级分析',
+            depends_on=[node.node_id for node in nodes],parallel=False))
+        return DAGDefinition(dag_name='声明RAG语料研究',nodes=nodes,edges=[])
     if corpus.get('collection_mode') != 'seeds_only':
         return None
     from app.graph.state import DAGDefinition, PlanNode

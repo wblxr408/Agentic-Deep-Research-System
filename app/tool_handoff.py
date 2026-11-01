@@ -62,6 +62,12 @@ def tool_payload(state, dag, node):
         collected_evidence=[deepcopy(item) for item in state.get('collected_evidence', []) if node.node_type == 'browser' and matches_request(item,node.query)],
         channel_call_allowance=handoff['call_allowance'], executing_nodes=[node.node_id], current_executing_nodes=[node.node_id],
         approval_decisions=[deepcopy(item) for item in state.get('approval_decisions', []) if item.get('node_id') == node.node_id])
+    if node.node_type=='rag' and node.source_ids and payload.get('organization_research'):
+        corpus=payload['organization_research'].get('corpus') or {}
+        manifest=corpus.get('rag_membership') or {}
+        payload['organization_research']['corpus']={'collection_mode':corpus.get('collection_mode'),
+            'rag_membership':{**manifest,'members':[item for item in manifest.get('members',[])
+                if item['source_id'] in node.source_ids]}}
     return payload
 
 
@@ -130,6 +136,10 @@ def accept_results(state):
     accepted = dict(state.get('accepted_tool_operations') or {})
     updates: dict[str, Any] = {key: [] for key in ('collected_evidence','tool_histories','node_outcomes','agent_trace','pending_approvals')}
     acknowledgements, decisions = {}, []
+    current_evidence={item['evidence_id']:item for item in state.get('collected_evidence') or [] if item.get('evidence_id')}
+    def same_evidence(left,right):
+        fields=('content','source_url','source_title','source_type','source_channel','source_backend','collected_by','reliability','acquisition')
+        return identity({key:left.get(key) for key in fields})==identity({key:right.get(key) for key in fields})
     for operation, envelope in (state.get('tool_result_envelopes') or {}).items():
         if 'payload' not in envelope:
             continue
@@ -147,6 +157,27 @@ def accept_results(state):
             for history in histories for call in history.get('tool_calls',[]))
         if expected and call_count > expected['call_allowance']:
             error = error or 'tool_call_allowance_exceeded'
+        if not error:
+            unique=[];reused=[];pending={}
+            for item in payload.get('collected_evidence') or []:
+                evidence_id=item.get('evidence_id')
+                if not isinstance(evidence_id,str) or not evidence_id:
+                    error='tool_evidence_identity_missing';break
+                old=current_evidence.get(evidence_id) or pending.get(evidence_id)
+                if old is not None:
+                    if not same_evidence(old,item):
+                        error='evidence_identity_changed_content_or_source';break
+                    reused.append(evidence_id)
+                else:
+                    unique.append(item)
+                    if evidence_id:pending[evidence_id]=item
+            if not error:
+                payload={**payload,'collected_evidence':unique}
+                current_evidence.update(pending)
+                if reused:
+                    decisions.append({'operation_id':operation,'status':'retained_evidence_reused',
+                        'evidence_ids':list(dict.fromkeys(reused)),
+                        'meaning':'same_retained_artifact_no_duplicate_model_input_not_a_new_fact_approval'})
         if error:
             # No evidence from stale/unknown work; only an accounting tombstone.
             reserved = binding.get('call_allowance', 0) if envelope.get('started') else 0

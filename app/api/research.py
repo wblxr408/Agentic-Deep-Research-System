@@ -694,6 +694,24 @@ async def _prepare_query_understanding(conn, request: ResearchRequest, principal
         raise HTTPException(status_code=422, detail='stage_skill_configuration_unavailable') from None
     skill_context['stage_compilation'] = compilation
     skill_context['effective_tool_allowlist'] = list(compilation['dispatch_tools'])
+    if organization and (organization.get('corpus') or {}).get('collection_mode')=='rag_corpus':
+        if not request.use_internal_docs or 'rag' not in compilation['dispatch_tools']:
+            raise HTTPException(422,'rag_corpus_requires_selected_internal_documents_and_rag_permission')
+        if request.query_options.internal_filter.any_of:
+            raise HTTPException(422,'rag_corpus_source_reads_cannot_bypass_chunk_filters')
+        from app.rag_corpus import freeze_members
+        from app.organization_corpus import source_scope
+        from app.channels.models import ChannelError
+        try:
+            manifest=await freeze_members(conn,principal.id,organization['corpus']['rag_source_ids'],
+                group=request.rag_group,task_id=request.session_id,max_nodes=request.planning_policy.max_plan_nodes,
+                read_max_chars=get_settings().document_parsing.max_chars)
+            selected_scope=source_scope(organization)
+            if selected_scope:
+                for member in manifest['members']:selected_scope.admit(member['source_url'],for_read=False)
+        except ChannelError as error:raise HTTPException(422,error.category) from None
+        except ValueError as error:raise HTTPException(422,str(error)) from None
+        organization={**organization,'corpus':{**organization['corpus'],'rag_membership':manifest}}
     from app.document_structure import VERSION as DOCUMENT_PARSER_VERSION
     parsing=get_settings().document_parsing
     rag_settings=get_settings().rag
@@ -777,6 +795,8 @@ async def _prepare_query_understanding(conn, request: ResearchRequest, principal
     snapshot['interpretation_id'] = identity({'query_contract': snapshot['interpretation_id'],
         'skill_compilation_id': compilation['compilation_id'],
         'budget_limits':snapshot['budget_advice']['selected'],
+        **({'rag_corpus_scope_id':organization['corpus']['rag_membership']['scope_id']}
+           if organization and (organization.get('corpus') or {}).get('collection_mode')=='rag_corpus' else {}),
         **({'template_revision':snapshot['delivery']['template_revision']} if selected_template else {})})
     return organization, snapshot
 

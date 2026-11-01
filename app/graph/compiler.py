@@ -2065,7 +2065,8 @@ def rag_node(state: ResearchState) -> dict:
             task_id=state.get("task_id"),
             query=node.query,
         )
-        valid, reason = validate_tool_invocation("knowledge_base_search", {"query": node.query, "top_k": 10})
+        rag_args={"query":node.query,"top_k":10,**({'source_ids':node.source_ids} if node.source_ids else {})}
+        valid, reason = validate_tool_invocation("knowledge_base_search", rag_args)
         if not valid:
             node.status = StepStatus.FAILED
             node.terminal_failure = True
@@ -2099,12 +2100,12 @@ def rag_node(state: ResearchState) -> dict:
             ),
             readonly=True,
         )
-        if require_approval and not approved_action(state, node, "knowledge_base_search", {"query": node.query, "top_k": 10}):
+        if require_approval and not approved_action(state, node, "knowledge_base_search", rag_args):
             approval = _make_approval_request(
                 node_id=node.node_id,
                 tool_name="knowledge_base_search",
                 reason=approval_reason or "action_requires_approval",
-                request_payload={"query": node.query, "top_k": 10},
+                request_payload=rag_args,
             )
             node.waiting_approval = True
             _update_tool_safety(
@@ -2142,6 +2143,8 @@ def rag_node(state: ResearchState) -> dict:
             if retrieval_policy and retrieval_policy.get('version')!=CANDIDATE_VERSION:
                 raise ValueError('frozen_internal_retrieval_contract_invalid')
             from app.candidate_fusion import frozen_policy
+            if node.source_ids and len(node.source_ids)>max_results:
+                raise ValueError('source_read_result_limit_smaller_than_explicit_batch')
             results = agent.execute_retrieval(
                 node.query,
                 state["user_query"],
@@ -2155,28 +2158,42 @@ def rag_node(state: ResearchState) -> dict:
                 channel_settings=retrieval_policy.get('model_settings',{}),
                 fusion=frozen_policy((state.get('query_understanding') or {}).get('candidate_fusion')),
                 query_type=(state.get('query_understanding') or {}).get('query_type'),
+                source_ids=node.source_ids,
+                corpus_membership=((state.get('organization_research') or {}).get('corpus') or {}).get('rag_membership'),
             )[:max_results]
-            node.result = {"results": [r.model_dump() for r in results],"retrieval_channels":agent.last_channel_status}
+            node.result = {"results": [r.model_dump() for r in results],"retrieval_channels":agent.last_channel_status,
+                **({'source_read_gaps':agent.last_source_gaps} if node.source_ids else {})}
             node.confidence = 0.88 if results else 0.0
             _finish_tool_history(
                 tool_history,
                 status="success",
                 result_summary=f"{len(results)} rag chunks",
             )
-            _update_tool_safety(tool_history, schema_validated=True,retrieval_channels=agent.last_channel_status)
+            _update_tool_safety(tool_history, schema_validated=True,retrieval_channels=agent.last_channel_status,
+                **({'source_ids':node.source_ids,'source_read_gaps':agent.last_source_gaps} if node.source_ids else {}))
             node.status = StepStatus.DONE
             node.last_error = None
             node.last_error_category = None
             node.terminal_failure = False
 
             for r in results:
+                source_identity={}
+                if node.source_ids:
+                    from uuid import uuid5,NAMESPACE_URL
+                    source_identity['evidence_id']=str(uuid5(NAMESPACE_URL,str(state['task_id'])+':'+
+                        r.metadata['source_id']+':'+r.metadata['parse_version_id']+':'+str(r.metadata['source_access_revision'])))
                 evidence = Evidence(
+                    **source_identity,
                     content=r.content,
                     source_url=r.metadata.get("url") if r.metadata else None,
                     source_title=(r.metadata.get("title") or r.metadata.get('source_name') or r.metadata.get('file_name')) if r.metadata else None,
                     source_type="knowledge_base",
                     collected_by=AgentType.RAG,
-                    acquisition={'format':'internal_chunk','coverage':'retrieved_internal_chunk','chunk_id':r.chunk_id,
+                    acquisition={'format':'internal_chunk','coverage':'retrieved_internal_chunk',
+                        **({'source_reference':{'source_id':r.metadata['source_id'],'start':0,'end':len(r.content)}}
+                           if node.source_ids else {'chunk_id':r.chunk_id}),
+                        **(r.metadata.get('retained_source') or {}),
+                        **({'corpus_scope_id':r.metadata['corpus_scope_id']} if node.source_ids else {}),
                         **({'research_record':r.metadata['research_record'],
                             'available_material_kind':r.metadata['research_record'].get('kind')}
                            if isinstance(r.metadata.get('research_record'),dict) else {}),

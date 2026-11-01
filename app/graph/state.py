@@ -42,7 +42,7 @@ from datetime import UTC,datetime
 from enum import Enum
 from typing import Annotated, Any, Literal, TypedDict
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from app.core.time import utc_now_naive
 
@@ -143,6 +143,14 @@ class PlanNode(BaseModel):
     node_type: Literal["search", "browser", "rag", "mcp", "analyst", "reflection", "report"] | None = None
     # 该节点要执行的具体查询
     query: str = ""
+    source_ids: list[str] = Field(default_factory=list,max_length=2)
+
+    @field_validator('source_ids')
+    @classmethod
+    def source_identifiers(cls,values):
+        normalized=[str(uuid.UUID(value)) for value in values]
+        if len(set(normalized))!=len(normalized):raise ValueError('duplicate_plan_source_id')
+        return normalized
     # 依赖的前置节点（只有在这些节点完成后才能执行）
     depends_on: list[str] = Field(default_factory=list)
     # 是否可以并行执行（与 depends_on 互斥）

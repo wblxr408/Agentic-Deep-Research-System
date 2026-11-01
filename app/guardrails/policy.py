@@ -199,6 +199,8 @@ TOOL_SPECS: dict[str, ToolInvocationSpec] = {
                 "query": {"type": "string", "minLength": 2},
                 "top_k": {"type": "integer", "minimum": 1, "maximum": 20},
                 "group": {"type": "string", "minLength": 1},
+                "source_ids": {"type":"array","minItems":1,"maxItems":2,
+                    "items":{"type":"string","format":"uuid"}},
             },
             "required": ["query"],
             "additionalProperties": False,
