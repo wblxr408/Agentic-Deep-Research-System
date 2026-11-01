@@ -1,8 +1,12 @@
 # 系统精细化设计与实现 TODO
 
+## 本分支候选说明
+
+本分支为 `codex/three-role-agents`，仅保存[三角色方案](THREE_ROLE_ARCHITECTURE.md)和[角色迁移特有任务](../openspec/changes/refactor-three-role-research/tasks.md)。下方“当前执行路线”指用户选定的精简分支，不表示本分支开始运行实现。共用功能、质量、缓存与成本由原任务维护一次，角色适配另记，不勾选成已实现。
+
 ## 当前执行路线（2026-11-01用户确认）
 
-当前工作分支为 `codex/simplify-existing-architecture`，先实施原架构精简与质量／成本差量。三角色方案独立保存在[三角色分支](https://github.com/wblxr408/Agentic-Deep-Research-System/tree/codex/three-role-agents)，当前不作为本分支的实施依赖。统一主循环W07仍条件后置；原功能、已实现待验收项和冻结范围按总计划保留。
+当前选定的实际实施分支为 `codex/simplify-existing-architecture`，先实施原架构精简与质量／成本差量。三角色方案独立保存在[三角色分支](https://github.com/wblxr408/Agentic-Deep-Research-System/tree/codex/three-role-agents)，不作为精简分支的实施依赖。统一主循环W07仍条件后置；原功能、已实现待验收项和冻结范围按总计划保留。
 
 | 顺序 | 当前优先项 | 唯一执行归属与状态 |
 |---|---|---|
