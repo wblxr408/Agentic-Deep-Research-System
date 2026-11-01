@@ -2,6 +2,8 @@
 
 > 目标：说明当前系统是如何分层组织的，每一层负责什么，以及这些职责落在哪些文件上。
 
+**2026-11-01职责复评：** 当前是集中编排的研究工作流，含规划／分析／评审／写作专家和搜索／浏览／检索工具；按OpenAI SDK可称含专家Agent，不能据七个类推断七个独立自治循环。Planner动态DAG和Reflection反馈重规划已有，代码控制外层阶段不等于完全固定。当前保留这些入口，只补已观察的质量、内容和成本差量；统一主循环为后置候选。当前取舍和顺序以[完整实施计划第0节](IMPLEMENTATION_PLAN.md#0-架构必要性复评与本轮取舍)为准，下列带日期内容保留原证据范围。
+
 本文描述当前代码分层。2026-10-19 的目标流程、阶段分工、证据准备和执行控制图，以及已有／需改造／需新增清单，统一见 [完整调研流程设计](RESEARCH_WORKFLOW_DESIGN.md)；目标保留四类逻辑研究角色，不表示当前 SearchAgent／BrowserAgent 等兼容模块已经移除。
 
 同日新增领域预览：`app/api/research.py` → `app/research_scope.py`、`app/research_evaluation.py`、`app/research_matching.py` 普通函数，负责[范围／家族](organization-research-scope.md)、[评价适配／归一化与权重配置](research-evaluation-and-weights.md)，尚未连入工作流图。该路径无模型或外部工具调用，读取的公开快照覆盖有限，不增加 Agent 或编排层。
@@ -10,7 +12,7 @@
 
 ## 结论
 
-当前架构属于 **集中式编排的 multi-agent 系统**。
+当前架构可描述为 **集中编排、包含专家Agent与工具的研究工作流**；是否采用multi-agent称呼取决于口径，职责和实际控制路径比数量更有意义。
 
 它不是多个 Agent 自由协商的去中心化结构，而是：
 
@@ -139,7 +141,7 @@ flowchart TD
 
 ### 说明
 
-这些 Agent 不是彼此独立运行的进程，而是由编排层按需调用的功能模块。
+这些模块由同一编排层调用。独立进程不是Agent定义条件：Planner、Analyst、Reflection、Report按SDK宽口径可称专家Agent；Search、Browser、RAG当前主消费路径主要是工具。类名保留，不因此新增或取消调用。
 
 ---
 

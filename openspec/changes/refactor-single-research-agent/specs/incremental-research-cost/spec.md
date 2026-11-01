@@ -52,7 +52,7 @@
 
 ### Requirement: Iteration opportunities persist at root scope
 
-系统 SHALL 冻结主决策、内容修订、格式再生成和无进展上限，语义修订机会由事实、阅读及图文共享。恢复、合同重审及新执行不能重置已消费机会；预算消耗、文字变化或模型自评分不等于进展。达到上限须保留稿件和未决项并停止自动循环。
+系统 SHALL 沿原根持久化实际发生的重规划、共享内容修订、格式再生成和无进展机会，复用已有上限并仅补未覆盖差量。恢复或合同重审不能重置机会；预算消耗、文字变化或模型自评分不等于进展。新控制器未采用时不新增其决策次数或武断使用24／2等草案数值；达到生效上限须停止自动循环并保留成果。
 
 #### Scenario: The same reading gap returns after repeated edits
 - **WHEN** 连续轮次没有补足关键问题，或同一缺口在不同审核阶段往返达到原根上限
@@ -64,7 +64,7 @@
 
 ### Requirement: Cost reporting explains improvement without hiding quality loss
 
-系统 SHALL 按操作用途展示原生输入／输出、未知消费、在途预占、请求数、审核复用和缺口，并区分应用复用与供应商提示缓存。成本改进应与相同当前任务内容及质量目标一起解释，不能用历史故障累计、配置报价或字符估算冒充实测节省。
+系统 SHALL 按操作用途展示原生输入／输出、未知消费、在途预占、请求数、审核复用和缺口，并区分应用复用与供应商提示缓存。沿原收据保存供应商原始usage，在支持的实际端点与模型下归一缓存读、按有效期区分的写及普通输入，兼容供应商包含或单列缓存输入的差异，不漏计、不重复相加。费用区分普通输入、缓存读写、输出及适用存储，缺失分项不推断为零；缓存折扣不能擅自减少原根逻辑Token额度。成本改进应与相同当前任务内容及质量目标一起解释，不能用历史故障累计、配置报价或字符估算冒充实测节省。
 
 #### Scenario: An optimization reduces tokens by omitting a required answer
 - **WHEN** 请求用量下降但内容计划中的必答问题或必要证据丢失
@@ -73,3 +73,11 @@
 #### Scenario: Provider prices are incomplete
 - **WHEN** 部分请求缺少可核的价格或缓存计费信息
 - **THEN** 显示已知用量与已知费用小计，完整费用保持未知，不推断免费、缓存折扣或确定的节省金额
+
+#### Scenario: A provider serves a cached prefix and generates a new response
+- **WHEN** 实际支持的端点返回缓存读取分项及本次新增输出
+- **THEN** 系统保留本次请求和输出消费，按该供应商语义计算不重叠的输入类别；记录供应商命中，不将其冒充应用结果复用、零Token调用或根额度退款
+
+#### Scenario: A compatible endpoint does not declare cache support
+- **WHEN** 当前供应方仅提供兼容协议，未确认支持所选模型的缓存参数及usage
+- **THEN** 沿普通请求与已有应用结果复用继续研究，不发送不支持的专有参数、不默默更换供应方、不虚构缓存折扣

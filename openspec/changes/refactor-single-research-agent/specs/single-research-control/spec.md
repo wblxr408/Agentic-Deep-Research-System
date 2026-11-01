@@ -2,16 +2,16 @@
 
 ## Purpose
 
-为开放研究提供一个依据当前证据和缺口选择下一步的主决策主体，同时保持可信执行流程对权限、预算、状态、恢复与最终交付的控制。让用户能够理解研究行动及计划调整，既有任务继续遵循原冻结合同。
+在现有动态DAG及专家／工具组件内明确研究根的状态、预算和交付所有权，保留依据当前证据调整计划的能力。通过清晰的职责与可信执行边界减少重复判断，允许按实际需求演进控制方式，不将统一主Agent循环或角色数量作为完成条件。路径名沿用初稿标识。
 
 ## ADDED Requirements
 
 ### Requirement: Architecture changes preserve the existing capability roadmap
 
-系统 SHALL 保留已确认功能及其实现／验收状态，将主Agent改造映射到原能力清单。角色合并不能删除跨对象、跨学科、评价与权重、深读关系、图文模板、导出、复用及反馈目标。明确暂缓或仅列候选的能力 MUST NOT 因按需工具机制自动启用；架构完成不能代替原功能验收。
+系统 SHALL 保留已确认功能及其实现／验收状态，将职责与质量成本差量映射到原能力清单。角色名称或组织方式不能删除跨对象、跨学科、评价、深读、图文模板、导出、复用及反馈目标。明确暂缓或仅列候选的能力 MUST NOT 因工具可发现或架构复评自动启用；架构说明不能代替功能验收。
 
 #### Scenario: An unfinished feature is transferred to a skill or tool
-- **WHEN** 原已确认功能改由主Agent调用的Skill／工具承接，但实际业务或验收尚未完成
+- **WHEN** 原已确认功能由既有专家／Skill／工具承接，但实际业务或验收尚未完成
 - **THEN** 原任务继续保留未完成状态及明确消费者，不因角色或类名变化视为已交付或被取消
 
 #### Scenario: Several task lists describe the same missing capability
@@ -28,15 +28,27 @@
 
 ### Requirement: Research actions follow current observations
 
-系统 SHALL 由一个主研究 Agent 根据当前目标、证据、已完成判断及未解决问题提出下一动作，记录理由和预期结果。不同观察能够产生不同后续动作；不能仅将固定七阶段顺序重命名为主 Agent。独立取证动作可在当前并发限制内成批执行。
+系统 SHALL 保留根据当前目标、证据和缺口生成或调整研究计划的能力，记录变化理由及预期结果。现有Planner、Reflection和DAG可以共同实现该能力；组件数量、固定的外层阶段或类名不能单独证明缺少Agent能力，也不能作为新增主循环的充分理由。
 
 #### Scenario: Acquired evidence changes the research direction
 - **WHEN** 原文揭示决定性条件与初始假设不同
-- **THEN** 主 Agent 能选择核清该条件、调查反例或修订比较方向，并向用户说明调整理由，保留此前有效成果
+- **THEN** 规划／重规划可选择核清条件、调查反例或修订比较方向，并说明调整理由，保留有效成果；若当前接口存在具体缺口，先评估原路径的最小扩展
 
 #### Scenario: Known independent reads can share a batch
 - **WHEN** 多个已授权来源读取互不依赖且当前份额允许并行
-- **THEN** 系统可执行一个有界批次，分别记录结果，不为每条读取强制增加一次主 Agent 决策
+- **THEN** 系统沿现有DAG执行有界批次并分别记录结果，不为每条读取强制新增模型决策
+
+### Requirement: Specialist boundaries follow observable responsibilities
+
+系统 SHALL 为规划、取证、分析、评审、写作和交付明确输入、产出、触发、状态写入者和停止责任。已有工具无需因类名含Agent再次包装；专家保留独有职责。删除评审调用须说明其与保留检查在问题、材料、判据和依赖上的重复，以及独有覆盖的承接位置。
+
+#### Scenario: Reflection and final review address different questions
+- **WHEN** Reflection检查研究缺口，而最终审核检查当前报告的来源支持
+- **THEN** 系统保留两种独有职责，不因都叫审核而合并或取消；仅消除已确认的相同重复判断
+
+#### Scenario: A proposed controller adds a decision before every known tool call
+- **WHEN** 现有计划已给出合法独立工具批次且没有新的研究判断需要
+- **THEN** 系统使用原执行路径，不为满足单Agent命名目标增加控制模型请求
 
 ### Requirement: Trusted execution owns authority and state
 
@@ -64,7 +76,7 @@
 
 ### Requirement: Model completion is a request for delivery assessment
 
-主 Agent SHALL 可以提出研究完成或暂停，但系统 MUST 根据当前问题覆盖、必要主张审核、读者判断及图文／交付状态裁决实际完成。模型自评分、工具成功或章节非空不能代替这些条件。用户应能查看当前计划、实际动作、变化及停止原因。
+规划或写作模型 SHALL 可以提出研究完成或暂停，但系统 MUST 依据问题覆盖、必要主张审核、读者判断及实际图文／交付状态裁决完成。沿既有交付路径实施，不要求新增finish动作协议；模型自评分、工具成功或章节非空不能代替条件。用户可查看计划、行动、变化及停止原因。
 
 #### Scenario: The agent finishes with an unresolved decisive claim
 - **WHEN** 模型提出完成但当前结论仍依赖未审核或矛盾的关键前提
@@ -72,12 +84,12 @@
 
 ### Requirement: Runtime contracts remain stable across recovery
 
-系统 SHALL 为新任务冻结主控制、Skill、模型、质量及循环政策版本，恢复时保留原根身份、来源、消费、截止时间及已消费机会。历史任务继续原运行合同；新默认设置或部署重启 MUST NOT 静默迁移历史根或同时派发新旧两套研究。
+系统 SHALL 沿既有任务快照冻结实际变化的内容、Skill、模型、质量及循环政策版本，恢复时保留原根身份、来源、消费、截止时间及机会。历史任务继续原合同；新默认或重启 MUST NOT 静默迁移历史根或派发两套研究。仅有质量政策变化不要求新建运行器。
 
 #### Scenario: A legacy task resumes after the new runtime is enabled
 - **WHEN** 用户恢复旧运行版本的已保存任务
-- **THEN** 系统沿原版本及授权入口恢复，不因新架构重新规划、重新取证、重置预算或改写旧质量判定
+- **THEN** 系统沿原版本及授权入口恢复，不因新政策重新取证、重置预算或改写旧判定；已完成根保持完成，不为方案复评再次续接
 
 #### Scenario: The runtime is rolled back for new tasks
 - **WHEN** 后续新任务的默认运行版本被回退
-- **THEN** 已创建的新版本根保持其冻结合同或明确暂停，不把其检查点交给不兼容的旧执行器
+- **THEN** 已创建根保持冻结合同或明确暂停，不把检查点交给不兼容执行逻辑；回退粒度与实际政策差量一致
