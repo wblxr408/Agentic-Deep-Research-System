@@ -61,3 +61,23 @@
 #### Scenario: An unchanged claim moves to its owning chapter
 - **WHEN** 主张文字、必要上下文、来源及全部审核依赖未变化，仅章节位置改变
 - **THEN** 系统保留主张身份及有效事实判定，更新出现位置并检查受影响阅读职责
+
+### Requirement: Corpus coverage preserves the requested reading depth
+
+系统 SHALL 保存所需论文及其阅读层级、来源版本、全文可用性、字段完成状态、报告去向和缺口，区分全语料覆盖与全部精读。用户明确要求逐篇或全部精读时，系统 MUST NOT 静默以默认代表集、检索top-k或篇目清单代替；容量不足应分批或报告未完成范围。
+
+#### Scenario: Every paper in a hundred-paper corpus requires close reading
+- **WHEN** 用户要求指定100篇全部精读
+- **THEN** 系统逐篇记录约定字段及证据覆盖，未完成论文继续保留缺口，不以已完成20篇代表分析宣称100篇已完成
+
+#### Scenario: A selected paper has no accessible full text
+- **WHEN** 其中一篇只有摘要，其他论文已完成全文处理
+- **THEN** 系统明确该篇实际层级和缺口，保留其他有效产物，不把摘要标为全文精读或重做其余论文
+
+### Requirement: Synthesis uses bounded topic evidence and retains original provenance
+
+系统 SHALL 复用逐篇证据产物按当前问题形成主题比较、条件及反例，再向章节提供必要输入和原文引用。综合摘要只能作为导航／候选，关键事实仍须回到来源；章节不默认接收全部论文全文或此前章节，必要条件和未覆盖范围不得静默丢失。
+
+#### Scenario: A topic claim depends on a paper outside the current excerpt window
+- **WHEN** 主题结论需要当前材料包未包含的实验条件或反例
+- **THEN** 系统按来源位置补足必要窗口或保留缺口，不以主题摘要替代原文支持，也不默认重新装入全部100篇

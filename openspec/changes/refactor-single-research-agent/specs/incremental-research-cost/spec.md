@@ -81,3 +81,15 @@
 #### Scenario: A compatible endpoint does not declare cache support
 - **WHEN** 当前供应方仅提供兼容协议，未确认支持所选模型的缓存参数及usage
 - **THEN** 沿普通请求与已有应用结果复用继续研究，不发送不支持的专有参数、不默默更换供应方、不虚构缓存折扣
+
+### Requirement: Corpus growth preserves valid completed work and attributable cost
+
+系统 SHALL 沿原根按未完成论文／字段、主题、内容和审核项预测剩余工作，逐批保存有效产物，失败只作用于对应操作；新增或变更论文按依赖传播失效。首次语料处理、有效复用、开发修复及异常返工分别计量，不以缓存折扣推断已减少逻辑用量，不重置原限额。
+
+#### Scenario: One paper is added to a retained corpus
+- **WHEN** 同一获准任务内原99篇的输入、版本、权限和字段合同仍有效，又增加一篇相关论文
+- **THEN** 系统处理新增材料及受影响主题／结论／图与审核，保留其余有效产物，不默认重读99篇或重写全部章节；原总预算不足时保留明确缺口
+
+#### Scenario: A large corpus is interrupted after partial completion
+- **WHEN** 100篇任务中部分论文与主题已经完成，当前一项派发结果未知
+- **THEN** 系统保留已完成项与原消费，对未知项先对账，并按实际剩余状态继续或结束，不整包重放或将未知消费记零
