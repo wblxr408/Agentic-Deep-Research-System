@@ -204,6 +204,22 @@ def technical_context(view):
         **({'reading_selection':view['reading_selection']} if view.get('reading_selection') else {})}
 
 
+def task_reading_progress(workflow):
+    """Read the existing Analyst checkpoint; this is not another corpus ledger."""
+    from collections import Counter
+    progress=(workflow or {}).get('corpus_progress')
+    if not progress or progress.get('version')!='adrs-task-corpus-progress-v1':
+        return {'status':'not_recorded','items':[],'semantics':'legacy_or_unstarted_not_zero_completed_papers'}
+    items=list((progress.get('items') or {}).values())
+    return {**{key:value for key,value in progress.items() if key!='items'},
+        'status':'recorded','items':items,'member_count':len(items),
+        'reading_status_counts':dict(Counter(item['reading_status'] for item in items)),
+        'works_with_field_gaps':sum(bool(item.get('missing_fields')) for item in items),
+        'pending_supplementation_works':sum((item.get('supplementation') or {}).get('status')=='pending' for item in items),
+        'unresolved_supplementation_works':sum((item.get('supplementation') or {}).get('status')=='completed_with_gaps' for item in items),
+        'effects':{'model_calls':0,'network_requests':0,'index_writes':0}}
+
+
 def technical_evidence_windows(source,limit):
     """Select source windows, keeping offsets instead of manufacturing a summary."""
     text=source.content;meta=source.acquisition or {};ranges=[(0,min(len(text),2000))]

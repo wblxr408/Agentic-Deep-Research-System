@@ -172,6 +172,7 @@ def validate_feedback(state,request):
 
 def quality_view(state,feedback):
     from app.question_quality import question_quality
+    from app.organization_deep_dive import task_reading_progress
     evidence=state.get('collected_evidence') or [];review=state.get('review_status') or {}
     result=state.get('organization_result') or {};audit=review.get('final_report_audit') or {}
     runs=ranking_runs(state);binding=quality_binding(state,runs)
@@ -212,6 +213,7 @@ def quality_view(state,feedback):
         'data':{'retained_evidence':len(evidence),'coverage':dict(coverage),'freshness_observations':dict(freshness_counts),
             'parsing_accuracy':None,'reason':'no_independently_labeled_parse_reference'},
         'retrieval_runs':runs,'ranking_judgments':judgments,'question_coverage':question_quality(state),
+        'corpus_progress':task_reading_progress(state.get('analysis_workflow')),
         'answer':{'model_audit_supported_claims':supported,'model_audit_total_claims':total,
             'required_claims':audit.get('required_claims'),'required_supported_claims':audit.get('required_supported_claims'),
             'excluded_claims':audit.get('excluded_claims'),'required_support_rate':audit.get('required_support_rate'),

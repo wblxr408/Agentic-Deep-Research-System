@@ -688,6 +688,7 @@ class RAGAgent:
                             snapshot=await current_access(conn,actual_source_id,owner_id,session_id,group,row['source_access_revision'],with_snapshot=True)
                             if not snapshot:continue
                             meta['source_access_snapshot']=snapshot
+                            if snapshot.get('research_record'):meta['research_record']=snapshot['research_record']
                     citation = Citation(
                         source_url=meta.get("url", ""),
                         source_title=meta.get("title", "Document"),

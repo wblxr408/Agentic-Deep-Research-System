@@ -15,7 +15,7 @@ import asyncpg
 from pathlib import Path
 from typing import Annotated, Any, Literal
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, Response
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, Response, Query
 from pydantic import BaseModel, Field, model_validator
 
 from app.core.time import utc_now_naive
@@ -27,6 +27,7 @@ from app.retrieval_features import FeaturePolicy,build_feature_plan,dense_config
 from app.retrieval_entity_link import EntityLinkAction
 from app.retrieval_temporal import TemporalTrendRequest
 from app.image_search import ImageSearchRequest
+from app.rag_corpus import RecordKind, catalog_page, normalize_metadata, validate_primary_sources
 from app.db.retrieval_indexes import IndexPolicy,IndexAction,initialize_source_index,apply_index_action,adjacency_view,index_choices,source_chunk_metadata,VERSION as INDEX_VERSION
 from app.source_lifecycle import (RetentionPolicy,LifecycleAction,SourceRevision,BatchPublication,lock_owner,
     initialize_lifecycle,apply_lifecycle_action,publish_batch,revise_source,lifecycle_view,bump_epoch)
@@ -215,6 +216,8 @@ async def _ingest_source(
 
     if not owner_id or not group_name.strip() or not 100<=chunk_size<=4000 or not 0<=chunk_overlap<=1000 or chunk_overlap>=chunk_size:
         raise HTTPException(422,'invalid_owner_group_or_chunk_overlap')
+    try:metadata=normalize_metadata(metadata)
+    except ValueError:raise HTTPException(422,'invalid_research_source_record') from None
     digest=content_hash or hashlib.sha256(text.encode('utf-8')).hexdigest()
     profile=(parsed_document or {}).get('parse_profile') or {'schema_version':'legacy_plain_text'}
     profile_key=hashlib.sha256(json.dumps(profile,sort_keys=True,ensure_ascii=False).encode('utf-8')).hexdigest()
@@ -273,8 +276,10 @@ async def _ingest_source(
         from app.source_lifecycle import validate_policy
         try:await validate_policy(conn,owner_id,retention_policy)
         except ValueError as error:raise HTTPException(422,str(error)) from None
+        try:await validate_primary_sources(conn,owner_id,source_metadata)
+        except ValueError as error:raise HTTPException(422,str(error)) from None
         index_policy_key=hashlib.sha256(json.dumps(source_metadata['index_policy'],sort_keys=True).encode()).hexdigest()
-        key=json.dumps([str(owner_id),group_name,digest,chunk_size,chunk_overlap,profile_key,plan['profile_id'],features['profile_id'],index_policy_key,source_metadata['retention_policy'],revision_intake_key],ensure_ascii=False)
+        key=json.dumps([str(owner_id),group_name,digest,chunk_size,chunk_overlap,profile_key,plan['profile_id'],features['profile_id'],index_policy_key,source_metadata['retention_policy'],revision_intake_key,source_metadata.get('research_record')],ensure_ascii=False)
         await conn.execute('SELECT pg_advisory_xact_lock(hashtextextended($1,0))',key)
         existing=await conn.fetchrow('''SELECT s.id FROM document_sources s
             JOIN source_index_heads h ON h.source_id=s.id AND h.owner_id=s.owner_id AND h.mode=$10
@@ -285,9 +290,11 @@ async def _ingest_source(
             AND s.metadata->'retention_policy'=$11::jsonb AND s.metadata->>'revision_intake_key' IS NOT DISTINCT FROM $12::text
             AND lc.reuse_scope=$13 AND lc.task_id IS NOT DISTINCT FROM $14::uuid
             AND lc.valid_from IS NOT DISTINCT FROM $15::timestamptz AND lc.valid_until IS NOT DISTINCT FROM $16::timestamptz
-            AND lc.purge_after IS NOT DISTINCT FROM $17::timestamptz''',
+            AND lc.purge_after IS NOT DISTINCT FROM $17::timestamptz
+            AND s.metadata->'research_record' IS NOT DISTINCT FROM $18::jsonb''',
             owner_id,group_name,digest,chunk_size,chunk_overlap,source_metadata['parse_version_id'],plan['profile_id'],features['profile_id'],json.dumps(source_metadata['index_policy']),index_policy.mode,json.dumps(source_metadata['retention_policy']),revision_intake_key,
-            retention_policy.reuse_scope,str(retention_policy.task_id) if retention_policy.task_id else None,retention_policy.valid_from,retention_policy.valid_until,retention_policy.purge_after)
+            retention_policy.reuse_scope,str(retention_policy.task_id) if retention_policy.task_id else None,retention_policy.valid_from,retention_policy.valid_until,retention_policy.purge_after,
+            json.dumps(source_metadata['research_record'],sort_keys=True) if 'research_record' in source_metadata else None)
         if existing:
             return {'source_id':str(existing['id']),'deduplicated':True,'chunk_count':0,'document_ids':[],
                 'representation':{'status':'reused_compatible_effective_index_mode','new_embedding_api_calls':0,
@@ -431,6 +438,29 @@ async def list_sources(group_name: str | None = None,summary:bool=False, princip
             """,principal.id,summary,group_name or None,
         )
     return {"items": [{**dict(row),'metadata':_metadata(row['metadata'])} for row in rows]}
+
+
+@router.get('/sources/catalog')
+async def list_research_source_catalog(
+    group_name:str|None=Query(default=None,min_length=1,max_length=100),
+    record_kind:RecordKind|None=None,
+    work_id:str|None=Query(default=None,min_length=1,max_length=260),
+    status:Literal['active','archived']|None=None,
+    lifecycle_state:Literal['retained','tombstone','legacy']|None=None,
+    is_current:bool|None=None,
+    page_size:int=Query(default=100,ge=1,le=200),
+    cursor:str|None=Query(default=None,min_length=1,max_length=2048),
+    principal:PrincipalDep=None,
+):
+    pool=await get_db_pool()
+    async with pool.acquire() as conn,conn.transaction(isolation='repeatable_read',readonly=True):
+        try:
+            return await catalog_page(conn,principal.id,group_name=group_name,record_kind=record_kind,
+                work_id=work_id,status=status,lifecycle_state=lifecycle_state,is_current=is_current,
+                page_size=page_size,cursor=cursor)
+        except ValueError as error:
+            reason=str(error)
+            raise HTTPException(409 if reason=='catalog_snapshot_changed_restart_enumeration' else 422,reason) from None
 
 
 @router.post('/temporal-trends')
@@ -830,7 +860,7 @@ async def update_source(source_id: str, payload: DocumentSourceUpdateRequest, pr
         next_group = payload.group_name or row["group_name"]
         old_metadata=json.loads(row['metadata']) if isinstance(row['metadata'],str) else row['metadata'] or {}
         next_metadata = dict(payload.metadata) if payload.metadata is not None else dict(old_metadata)
-        for field in ('content_hash','source_version','owner_scope','chunking_version','document_parse','parse_profile','parse_version_id','parsing_reviews','chunk_plan','chunking_profile','feature_plan','feature_profile','dense_profile','index_policy','retention_policy','revision_intake_key','source_sync','source_cdc'):
+        for field in ('content_hash','source_version','owner_scope','chunking_version','document_parse','parse_profile','parse_version_id','parsing_reviews','chunk_plan','chunking_profile','feature_plan','feature_profile','dense_profile','index_policy','retention_policy','revision_intake_key','source_sync','source_cdc','research_record'):
             if field in next_metadata and next_metadata[field]!=old_metadata.get(field):
                 raise HTTPException(422,'server_managed_intake_metadata:'+field)
             if field in old_metadata:next_metadata[field]=old_metadata[field]

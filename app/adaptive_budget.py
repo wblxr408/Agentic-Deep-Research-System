@@ -19,9 +19,23 @@ def remaining_work(state, root, stage):
     findings=state.get('organization_result') or {}
     works=(findings.get('scope_result') or {}).get('outputs') or []
     work_count=len(selected) or len(works)
+    corpus=workflow.get('corpus_progress') or {}
+    progress_items=list((corpus.get('items') or {}).values()) if (
+        corpus.get('version')=='adrs-task-corpus-progress-v1'
+        and corpus.get('analysis_binding')==workflow.get('binding')) else None
+    if progress_items is not None and not work_count:work_count=len(progress_items)
     analysis_units=0
     for module in modules:
         if module=='report':continue
+        if module=='deep_dive' and progress_items is not None and workflow.get('representative_reading'):
+            pending=sum(item.get('reading_status')=='pending' for item in progress_items)
+            supplements={item['supplementation']['phase_id'] for item in progress_items
+                if (item.get('supplementation') or {}).get('status')=='pending'
+                and item.get('missing_fields')}
+            # One shared follow-up phase may serve two works. It is not a
+            # second completed initial batch, nor a new opportunity on resume.
+            analysis_units+=ceil(pending/2)+len(supplements)
+            continue
         expected=max(1,ceil(work_count/2)) if module=='deep_dive' else 1
         done=sum(key=='question:'+module or key.startswith('question:'+module+':') for key in completed)
         analysis_units+=max(0,expected-done)
@@ -87,6 +101,10 @@ def remaining_work(state, root, stage):
         'tokens':{key:units[key]*costs[key] for key in units},
         'sample_counts':{key:len(value) for key,value in samples.items()},
         'basis':'remaining_phases_and_bound_candidate_with_observed_usage',
+        'reading_work':{'members':len(progress_items),
+            'works_with_unresolved_fields':sum(bool(item.get('missing_fields')) for item in progress_items),
+            'fulltext_gap_works':sum(any(gap.get('kind')=='fulltext_unavailable' for gap in item.get('gaps',[])) for item in progress_items),
+            'basis':'current_phase_checkpoint_not_indexed_count_or_completed_call_count'} if progress_items is not None else None,
         'estimated':True,'quality_approval':False}
 
 

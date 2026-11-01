@@ -157,6 +157,8 @@ async def current_access(conn,source_id,owner_id,task_id,group,expected_revision
             'reuse_scope',COALESCE(lc.reuse_scope,'legacy_explicit_group'),'bound_task_id',lc.task_id,
             'actual_task_id',$3::uuid,'group_name',s.group_name,'valid_from',lc.valid_from,'valid_until',lc.valid_until,
             'checked_at',CURRENT_TIMESTAMP,
+            'research_record',CASE WHEN jsonb_typeof(s.metadata->'research_record')='object'
+                THEN (s.metadata->'research_record')-'primary_sources' ELSE NULL END,
             'public_archive_origin',(SELECT jsonb_build_object('version','{PUBLIC_ARCHIVE_VERSION}',
                 'source_id',s.id,'source_content_version',s.metadata->>'content_hash',
                 'origin_version_id',event.result->>'source_version_id')
@@ -171,7 +173,11 @@ async def current_access(conn,source_id,owner_id,task_id,group,expected_revision
         AND ($4::text IS NULL OR s.group_name=$4::text) AND {access_clause('s','$3','$4')}''',
         str(source_id),str(owner_id),str(task_id) if task_id else None,group)
     allowed=bool(row and (expected_revision is None or row['revision']==expected_revision))
-    return object_value(row['access_snapshot']) if allowed and with_snapshot else allowed
+    if allowed and with_snapshot:
+        snapshot=object_value(row['access_snapshot'])
+        if snapshot.get('research_record') is None:snapshot.pop('research_record',None)
+        return snapshot
+    return allowed
 
 
 async def owned_source(conn,source_id,owner_id):

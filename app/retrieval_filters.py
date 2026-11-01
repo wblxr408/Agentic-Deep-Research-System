@@ -20,6 +20,8 @@ FIELDS={
     'chunk_kind':("d.metadata->'chunk_reference'->>'kind'",'text'),
     'chunk_index':('d.chunk_index','integer'),
     'created_at':('COALESCE(s.created_at,d.created_at)','timestamptz'),
+    'work_id':("s.metadata->'research_record'->>'work_id'",'text'),
+    'record_kind':("s.metadata->'research_record'->>'kind'",'text'),
 }
 
 
@@ -27,6 +29,8 @@ def typed_value(field,value):
     if not isinstance(value,str) or not value.strip() or len(value)>300 or any(ord(c)<32 for c in value):
         raise ValueError('filter_values_must_be_bounded_nonblank_strings')
     if field=='source_id':return str(UUID(value))
+    if field=='record_kind' and value not in {'bibliography','abstract','fulltext','derived_card'}:
+        raise ValueError('filter_research_record_kind_invalid')
     if field=='chunk_index':
         number=int(value)
         if not 0<=number<=10000000:raise ValueError('filter_chunk_index_out_of_range')
@@ -39,7 +43,7 @@ def typed_value(field,value):
 
 
 class FilterAtom(ScopeRecord):
-    field:Literal['source_id','group_name','source_name','source_type','format','chunk_kind','chunk_index','created_at']
+    field:Literal['source_id','group_name','source_name','source_type','format','chunk_kind','chunk_index','created_at','work_id','record_kind']
     op:Literal['eq','ne','in','not_in','gte','lte','exists','missing']='eq'
     value:str|tuple[str,...]|None=None
 
@@ -120,7 +124,8 @@ def compile_filter(value,*,start_parameter=7):
 
 
 def current_document_clause():
-    return """(d.source_id IS NULL OR ((h.source_id IS NULL AND s.metadata->'index_policy' IS NULL)
+    return """(COALESCE(s.metadata->'research_record'->>'kind','legacy_unclassified')<>'derived_card'
+      AND (d.source_id IS NULL OR ((h.source_id IS NULL AND s.metadata->'index_policy' IS NULL)
       OR (h.mode='lexical' AND EXISTS(SELECT 1 FROM retrieval_index_generations generation
         WHERE generation.id=h.generation_id AND generation.owner_id=d.owner_id AND generation.source_id=d.source_id
           AND generation.status='ready' AND generation.source_version=s.metadata->>'parse_version_id'
@@ -132,7 +137,7 @@ def current_document_clause():
               AND vectors.source_version=generation.source_version AND vectors.feature_profile_id=generation.feature_profile_id
               AND generation.manifest->'multivector'->>'status'='published' AND generation.manifest->'multivector'->>'pair_id'=vectors.pair_id)
             OR EXISTS(SELECT 1 FROM retrieval_multimodal_generations images WHERE images.generation_id=generation.id AND images.owner_id=d.owner_id AND images.source_id=d.source_id)
-          )))))"""
+          ))))))"""
 
 
 async def current_filtered_ids(conn,ids,owner_id,group,session_id,filters):

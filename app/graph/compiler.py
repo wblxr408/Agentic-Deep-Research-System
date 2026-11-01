@@ -2177,6 +2177,9 @@ def rag_node(state: ResearchState) -> dict:
                     source_type="knowledge_base",
                     collected_by=AgentType.RAG,
                     acquisition={'format':'internal_chunk','coverage':'retrieved_internal_chunk','chunk_id':r.chunk_id,
+                        **({'research_record':r.metadata['research_record'],
+                            'available_material_kind':r.metadata['research_record'].get('kind')}
+                           if isinstance(r.metadata.get('research_record'),dict) else {}),
                         'source_document_id':r.metadata.get('source_id'),'source_content_version':r.metadata.get('content_hash'),
                         'parse_version_id':r.metadata.get('parse_version_id'),'document_structure_reference':r.metadata.get('document_structure_reference'),
                         'chunk_reference':r.metadata.get('chunk_reference'),'chunk_profile_id':r.metadata.get('chunk_profile_id'),

@@ -16,6 +16,7 @@ interface Quality {
   statistics_review:{available:boolean;issues:Array<{reason:string;metric_id?:string}>;input_conflicts?:unknown[]}
   feedback:Event[];historical_feedback_count:number;improvement_candidates:Array<{kind:string;basis:string;action:string}>
   runtime_ledger?:unknown
+  corpus_progress?:unknown
 }
 type Kind='adopted'|'corrected'|'task_complete'|'opened'|'ranking_assessment'|'answer_assessment'
 const labels:Record<Kind,string>=uiDefinition({adopted:'已采纳',corrected:'纠错',task_complete:'已满足研究目标',opened:'已阅读',ranking_assessment:'标注检索相关性',answer_assessment:'评价报告内容'})
@@ -82,7 +83,7 @@ export default function ResearchQuality({sessionId}:{sessionId:string}) {
       <p className="my-2">{t("保留证据 ")}{value.data.retained_evidence} {t(" 条；工具调用 ")}{value.agent.tool_calls} {t(" 次，其中失败或停止 ")}{value.agent.failed_or_stopped_calls} {t("次。 陈述核对")}{value.answer.model_audit_supported_claims??t("未知")} / {value.answer.model_audit_total_claims??t("未知")} {t(" 项，")}{value.answer.audit_complete?t("已完成记录"):t("尚不完整")}。
         {typeof value.answer.model_audit_source_supported_claims==='number' && <>{t("其中原文支持 ")}{value.answer.model_audit_source_supported_claims} {t(" 项，任务方法依据支持 ")}{value.answer.model_audit_method_supported_claims ?? 0} {t(" 项。")}</>}</p>
       <p className="text-xs">{t("统计快照：")}{!value.statistics_review.available?t("本任务无统计快照"):value.statistics_review.issues.length?t("{0}处算术或集合差异", value.statistics_review.issues.length):t("未记录算术或集合差异")}{t("。解析准确率和真实全集召回率需要独立标注。")}</p>
-      <details className="my-2"><summary>{t("资料覆盖与统计依据")}</summary><pre className="overflow-auto whitespace-pre-wrap text-xs">{JSON.stringify({data:value.data,statistics:value.statistics_review},null,2)}</pre></details>
+      <details className="my-2"><summary>{t("资料覆盖与统计依据")}</summary><pre className="overflow-auto whitespace-pre-wrap text-xs">{JSON.stringify({data:value.data,statistics:value.statistics_review,corpus_progress:value.corpus_progress},null,2)}</pre></details>
       <details className="my-2"><summary>{t("模型、工具与本地计算用量")}</summary><p className="text-xs">{t("已知价格的小计与未定价项目分开；本地计算时间不折算为虚构账单，也不重复计入绘图模型费用。")}</p><pre className="max-h-96 overflow-auto whitespace-pre-wrap text-xs">{JSON.stringify(value.runtime_ledger,null,2)}</pre></details>
       {!!value.improvement_candidates.length&&<ul className="my-2 list-disc pl-5">{value.improvement_candidates.map(item=><li key={item.kind}>{item.action}</li>)}</ul>}
       <div className="my-3 space-y-2 border-t pt-3">

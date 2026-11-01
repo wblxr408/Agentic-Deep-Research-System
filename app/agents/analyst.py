@@ -119,7 +119,7 @@ Return JSON with analysis_text and any additional fields explicitly required bel
         """Sequential questions share one analyst, root allowance and checkpoint."""
         from app.research_context import (analysis_binding, identity_batches, QUESTION_SEED_VERSION,
             CONTEXT_PACKING_VERSION, LEGACY_CONTEXT_PACKING_VERSION, workflow_packing_version)
-        from app.organization_purpose import MODULES
+        from app.organization_purpose import MODULES, REPORT_MATERIAL_POLICY
         from app.organization_findings import build_organization_findings
         modules=list(configuration.get('modules') or [])
         from app.research_judgments import VERSION as JUDGMENT_VERSION, ORDER, build_judgments
@@ -363,6 +363,30 @@ Return JSON with analysis_text and any additional fields explicitly required bel
             for item in (accepted.get('scope_result') or {}).get('outputs',[])],
             'publication_metadata':accepted.get('publication_metadata',{}),
             'pending_records':accepted.get('pending_records',[])[:10]}
+        # Task-specific progress stays in the existing phase checkpoint. The
+        # RAG source catalog remains the library authority, not this projection.
+        corpus_progress=None
+        if configuration.get('report_material_policy')==REPORT_MATERIAL_POLICY:
+            from app.organization_deep_dive import _full_text
+            current_evidence={item.evidence_id:item.model_dump(mode='json') for item in evidence_list}
+            items={}
+            for output in seed['outputs']:
+                output_id=output['output_id']
+                refs=[current_evidence[key] for key in seed['publication_metadata'].get(output_id,{}).get('evidence_ids',[])
+                    if key in current_evidence]
+                items[output_id]={'work_id':output_id,'scope_status':'accepted_in_current_scope',
+                    'reading_status':'not_scheduled','reading_role':None,'required_fields':[],
+                    'material_availability':'full_text' if any(_full_text(source) for source in refs)
+                        else 'partial_or_abstract' if refs else 'not_established',
+                    'availability_basis':'retained_publication_metadata_links_not_reading',
+                    'located_fields':{},'missing_fields':[],'source_bindings':{},
+                    'full_document_read':False,'support_status':'not_granted_by_reading_progress'}
+            corpus_progress={'version':'adrs-task-corpus-progress-v1','analysis_binding':binding,
+                'scope_rule_version':configuration.get('scope_rule_version'),
+                'required_field_policy':'existing_condition_followup_not_full_document_certificate',
+                'membership_basis':'accepted_scope_outputs_not_complete_directory_screening',
+                'items':items,'semantics':'located_required_fields_not_whole_document_reading_or_factual_approval'}
+            workflow['corpus_progress']=corpus_progress
         from app.research_context import publication_identity_handoff
         seed['publication_identity']=publication_identity_handoff(accepted,evidence_list,max_bytes=12000)
         followup=(getattr(self,'research_strategy',None) or {}).get('source_followup') or {}
@@ -388,9 +412,15 @@ Return JSON with analysis_text and any additional fields explicitly required bel
         texts={};contexts=[];judgments=[];judgment_gaps=[];prior_records=[];retired_judgments=[]
         technical_by_output={}
         retained_evidence=[item.model_dump(mode='json') for item in evidence_list]
-        def retain_technical(record, batch):
+        def retain_technical(record, batch, phase_id):
             from app.organization_deep_dive import build_technical_cards
             permitted={item['output_id'] for item in batch['outputs']}
+            if corpus_progress is not None:
+                for output_id in permitted:
+                    item=corpus_progress['items'][output_id]
+                    item.update(reading_status='needs_evidence',last_phase_id=phase_id,
+                        gaps=[{'field':name,'kind':'field_not_returned',
+                            'reason':'no_current_located_field_from_this_phase'} for name in item['missing_fields']])
             view=build_technical_cards(configuration,accepted,retained_evidence,record['organization_data'])
             record['context']['technical_field_checks']=[{'output_id':card['output_id'],'field':key,
                 'status':field['status'],'reason':field.get('reason')}
@@ -403,6 +433,29 @@ Return JSON with analysis_text and any additional fields explicitly required bel
                     if field.get('text') and field.get('proofs'):
                         target['fields'][key]={'text':field['text'],'proofs':[
                             {'evidence_id':proof['evidence_id'],'quote':proof['quote']} for proof in field['proofs']]}
+                if corpus_progress is not None:
+                    item=corpus_progress['items'][card['output_id']]
+                    item['material_availability']='full_text' if card['full_text_available'] else 'full_text_not_established'
+                    item['availability_basis']='current_primary_source_link_and_coverage'
+                    for name,field in card['fields'].items():
+                        if not field.get('text') or not field.get('proofs'):continue
+                        item['located_fields'][name]={'phase_id':phase_id,'status':field['status'],
+                            'proof_count':len(field['proofs']),
+                            'evidence_ids':list(dict.fromkeys(proof['evidence_id'] for proof in field['proofs']))}
+                        for proof in field['proofs']:
+                            source=current_evidence.get(proof['evidence_id']) or {}
+                            acquisition=source.get('acquisition') or {}
+                            item['source_bindings'][proof['evidence_id']]={'evidence_id':proof['evidence_id'],
+                                'source_id':acquisition.get('source_document_id'),
+                                'parse_version_id':acquisition.get('parse_version_id'),
+                                'source_content_version':acquisition.get('source_content_version'),
+                                'coverage':acquisition.get('coverage')}
+                    item['missing_fields']=[name for name in item['required_fields'] if name not in target['fields']]
+                    item['gaps']=[{'field':name,
+                        'kind':'fulltext_unavailable' if not card['full_text_available'] else 'field_not_established',
+                        'reason':(card['fields'].get(name) or {}).get('reason')}
+                        for name in item['missing_fields']]
+                    item['reading_status']='needs_evidence' if item['missing_fields'] else 'required_fields_located'
                 for figure in card['figure_references']:
                     normalized={'label':figure['label'],'page':figure['page'],'proof':{
                         'evidence_id':figure['proof']['evidence_id'],'quote':figure['proof']['quote']}}
@@ -449,6 +502,19 @@ Return JSON with analysis_text and any additional fields explicitly required bel
                 representatives,reading_selection=reading_representatives(seed['outputs'],seed['publication_metadata'],
                     evidence_list,configuration,user_query,reading_plan=reading_plan)
                 if reading_selection:workflow['representative_reading']=reading_selection
+                if corpus_progress is not None:
+                    from app.analysis_phase_contract import enabled as phase_contract_enabled
+                    required=['experimental_design','baselines','conditions','results']
+                    if phase_contract_enabled(configuration):required.insert(0,'mechanism')
+                    plan={row['output_id']:row for row in (reading_selection or {}).get('plan',[])}
+                    selected={row['output_id'] for row in representatives}
+                    for output_id,item in corpus_progress['items'].items():
+                        selection=plan.get(output_id) or {}
+                        item.update(reading_role=selection.get('role') or ('selected' if output_id in selected else 'not_selected'),
+                            selection_reason=selection.get('reason'),
+                            reading_status='pending' if output_id in selected else 'not_selected',
+                            required_fields=list(required) if output_id in selected else [],
+                            missing_fields=list(required) if output_id in selected else [])
                 batches=[{**seed,'outputs':representatives[index:index+2]} for index in range(0,len(representatives),2)] or [seed]
             module_texts=[]
             for index,batch in enumerate(batches):
@@ -480,7 +546,7 @@ Return JSON with analysis_text and any additional fields explicitly required bel
                 module_texts.append(record['analysis_text'])
                 contexts.append({'module':module,'phase_id':phase_id,**record['context']})
                 if module=='deep_dive':
-                    retain_technical(record,batch)
+                    retain_technical(record,batch,phase_id)
                     contexts[-1]['technical_field_checks']=record['context']['technical_field_checks']
                     contexts[-1]['technical_card_pending_records']=record['context']['technical_card_pending_records']
                     from app.analysis_phase_contract import enabled as phase_contract_enabled
@@ -493,8 +559,17 @@ Return JSON with analysis_text and any additional fields explicitly required bel
                         followup={**batch,'reading_focus':list(dict.fromkeys(field for values in missing.values() for field in values)),
                             'missing_fields_by_output':missing,'outputs':[item for item in batch['outputs'] if item['output_id'] in missing]}
                         follow_id='question:deep_dive:conditions:'+str(index+1)
+                        if corpus_progress is not None:
+                            for output_id in missing:
+                                corpus_progress['items'][output_id]['supplementation']={
+                                    'phase_id':follow_id,'status':'pending','shared_root':True,
+                                    'fields':missing[output_id]}
                         conditions=phase(follow_id,{**configuration,'modules':[module]},'question',followup)
-                        retain_technical(conditions,followup)
+                        retain_technical(conditions,followup,follow_id)
+                        if corpus_progress is not None:
+                            for output_id in missing:
+                                item=corpus_progress['items'][output_id]
+                                item['supplementation']['status']='completed_with_gaps' if item['missing_fields'] else 'completed'
                         module_texts.append(conditions['analysis_text'])
                         contexts.append({'module':module,'phase_id':follow_id,**conditions['context']})
                 for key in allowed[module]:
