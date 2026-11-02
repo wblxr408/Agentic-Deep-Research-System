@@ -9,9 +9,11 @@ import re
 from uuid import UUID
 
 
-def select_source_pages(reading, evidence, *, max_pages=8, per_output=2,locate_captions=False):
-    max_pages=min(8,max(1,max_pages)) if type(max_pages) is int else 8
-    per_output=min(2,max(1,per_output)) if type(per_output) is int else 2
+def select_source_pages(reading, evidence, *, max_pages=8, per_output=2,locate_captions=False,figure_mode=False):
+    limit=2000 if figure_mode else 8
+    max_pages=min(limit,max(1,max_pages)) if type(max_pages) is int else limit
+    output_limit=20 if figure_mode else 2
+    per_output=min(output_limit,max(1,per_output)) if type(per_output) is int else output_limit
     result={'pages':[],'pending':[]}
     if not isinstance(reading,dict) or not isinstance(reading.get('cards'),list):return result
     if not isinstance(evidence,list):return result
@@ -21,8 +23,9 @@ def select_source_pages(reading, evidence, *, max_pages=8, per_output=2,locate_c
     def pending(output_id,reason):
         if len(result['pending'])<512:result['pending'].append({'output_id':output_id,'reason':reason})
 
-    if len(reading['cards'])>20:pending(None,'card_limit')
-    for card in reading['cards'][:20]:
+    card_limit=1000 if figure_mode else 20
+    if len(reading['cards'])>card_limit:pending(None,'card_limit')
+    for card in reading['cards'][:card_limit]:
         if not isinstance(card,dict):pending(None,'invalid_card');continue
         output_id=card.get('output_id');title=card.get('title');refs=card.get('figure_references')
         if not isinstance(output_id,str) or not 1<=len(output_id)<=160 or not isinstance(title,str):
@@ -49,7 +52,8 @@ def select_source_pages(reading, evidence, *, max_pages=8, per_output=2,locate_c
                     or type(start) is not int or type(end) is not int or not 0<=start<end<=len(content)
                     or content[start:end]!=quote):
                 pending(output_id,'source_proof_changed');continue
-            label_match=re.fullmatch(r'(Figure|Fig\.?|Table|图|表)\s*(\d+(?:\.\d+)?)(\([a-z]\))?',label.strip(),re.I)
+            label_name=r'(?:\d+(?:\.\d+)?|[A-Za-z]\d+(?:\.\d+)?|[IVXLCDM]+)' if figure_mode else r'\d+(?:\.\d+)?'
+            label_match=re.fullmatch(r'(Figure|Fig\.?|Table|图|表)\s*('+label_name+r')(\([a-z]\))?',label.strip(),re.I)
             if not label_match:pending(output_id,'unsupported_label');continue
             kind,number,panel=label_match.groups()
             kind_pattern=r'(?:Figure|Fig\.?)' if kind.casefold().startswith('fig') else re.escape(kind)
@@ -85,10 +89,19 @@ def select_source_pages(reading, evidence, *, max_pages=8, per_output=2,locate_c
                     'evidence_ids':[],'output_ids':[],'titles':[],'captions':[],'proofs':[],
                     'presentation':'original_pdf_page_not_segmented_figure'}
                 selected[key]=row;result['pages'].append(row)
+                if figure_mode:row.update(targets=[],presentation='original_pdf_figure_groups')
             used.add(key);row=selected[key]
             for field,value in (('evidence_ids',proof['evidence_id']),('output_ids',output_id),('titles',title[:300])):
                 if value not in row[field]:row[field].append(value)
             if len(row['captions'])<12 and quote not in row['captions']:row['captions'].append(quote)
             located={'evidence_id':proof['evidence_id'],'start':start,'end':end,'quote':quote}
             if len(row['proofs'])<12 and located not in row['proofs']:row['proofs'].append(located)
+            if figure_mode:
+                canonical=('Figure' if kind.casefold().startswith('fig') or kind=='图' else 'Table')+' '+number.upper()
+                target=next((item for item in row['targets'] if item['label']==canonical),None)
+                if target is None:
+                    target={'label':canonical,'proofs':[],'output_ids':[]}
+                    row['targets'].append(target)
+                if located not in target['proofs']:target['proofs'].append(located)
+                if output_id not in target['output_ids']:target['output_ids'].append(output_id)
     return result

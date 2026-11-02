@@ -12,16 +12,18 @@ MAX_TEXT_BYTES=24*1024*1024
 
 
 def build_source_package(export_view,state,originals):
+    from app.source_figure_extraction import MEDIA_POLICY
     view=export_view.get('delivery_view') or {}
     if export_view.get('status')!='completed' or not view.get('delivery_complete'):
         raise ValueError('source_package_report_not_deliverable')
     evidence=state.get('collected_evidence') or []
     if len(evidence)>256:raise ValueError('source_package_evidence_limit')
     output=io.BytesIO();total=0;text_size=0;files=[];sources=[]
-    manifest={'schema_version':'adrs-source-package-v1','session_id':str(state['task_id']),
+    manifest={'schema_version':('adrs-source-package-v2' if (view.get('source_media') or {}).get('policy')==MEDIA_POLICY
+        else 'adrs-source-package-v1'),'session_id':str(state['task_id']),
         'report_artifact_id':view.get('artifact_id'),'sources':sources,'pages':[],'files':files,
         'effects':{'network_calls':0,'model_calls':0},
-        'original_page_presentation':'whole_original_pdf_page_not_segmented_figure'}
+        'original_page_presentation':(view.get('source_media') or {}).get('presentation') or 'whole_original_pdf_page_not_segmented_figure'}
     with zipfile.ZipFile(output,'w',compression=zipfile.ZIP_DEFLATED,compresslevel=4) as archive:
         def write(path,data):
             nonlocal total
@@ -57,6 +59,28 @@ def build_source_package(export_view,state,originals):
             asset_id=str(UUID(page['asset_id']));number=page['page']
             if type(number) is not int or not 1<=number<=80:raise ValueError('source_package_page_invalid')
             prefix='data:image/png;base64,'
+            if page.get('presentation')=='original_pdf_figure_groups':
+                import re
+                def safe_markdown(value):
+                    for marker in ('\\','[',']','<','>','`','*','_','#'):value=value.replace(marker,'\\'+marker)
+                    return value
+                if not page.get('figures'):raise ValueError('source_package_figure_missing')
+                figure_manifest=[]
+                for figure in page['figures']:
+                    figure_id=figure['figure_id']
+                    if not re.fullmatch(r'source-figure-[0-9a-f]{32}',figure_id) or not figure.get('png','').startswith(prefix):
+                        raise ValueError('source_package_figure_invalid')
+                    path=f'images/{asset_id}-page-{number}-{figure_id}.png'
+                    write(path,base64.b64decode(figure['png'][len(prefix):],validate=True))
+                    figure_manifest.append({**{key:value for key,value in figure.items() if key!='png'},'path':path})
+                    label=safe_markdown(' · '.join(page.get('titles') or [])+' · '+figure['label']).replace('\n',' ')
+                    gallery.append(f'![{label} · 原文第 {number} 页]({path})')
+                    gallery.append(safe_markdown(figure['layout']['caption']))
+                manifest['pages'].append({**{key:page.get(key) for key in (
+                    'asset_id','page','source_url','evidence_ids','output_ids','titles','captions','proofs','targets','presentation')},
+                    'figures':figure_manifest})
+                if page.get('explanation'):gallery.append(page['explanation'])
+                continue
             if not page.get('png','').startswith(prefix):raise ValueError('source_package_page_invalid')
             path=f'images/{asset_id}-page-{number}.png'
             write(path,base64.b64decode(page['png'][len(prefix):],validate=True))

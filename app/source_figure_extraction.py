@@ -16,6 +16,7 @@ import unicodedata
 EXTRACTOR_REVISION='3d7ad46753d4a315cccd1c2bcab398380e88c534'
 EXTRACTOR='adrs-pdffigures2-3d7ad46-pdfbox2037-bc186-v1'
 FIGURE_RENDERER='adrs-original-pdf-figure-v1'
+MEDIA_POLICY='adrs-source-figure-media-v1'
 COORDINATES='PDF_cropbox_points_top_left_72dpi'
 MAX_LAYOUT_BYTES=2_000_000
 
@@ -84,14 +85,14 @@ def renderer_key(figure):
 
 def match_figure(layout,*,page,label,caption_quote=''):
     if layout.get('extractor')!=EXTRACTOR:raise ValueError('source_figure_layout_version_changed')
-    match=re.fullmatch(r'(Figure|Fig\.?|Table|图|表)\s*(\d+(?:\.\d+)?)(?:\([a-z]\))?',label.strip(),re.I)
+    match=re.fullmatch(r'(Figure|Fig\.?|Table|图|表)\s*(\d+(?:\.\d+)?|[A-Za-z]\d+(?:\.\d+)?|[IVXLCDM]+)(?:\([a-z]\))?',label.strip(),re.I)
     if not match:raise ValueError('source_figure_label_not_supported')
     kind='Table' if match[1].casefold() in {'table','表'} else 'Figure'
     candidates=[row for row in layout['figures'] if row['page']==page
-        and row['figure_type']==kind and row['figure_name'].strip()==match[2]]
+        and row['figure_type']==kind and row['figure_name'].strip().casefold()==match[2].casefold()]
     if not candidates:
         failed=next((row for row in layout.get('pending') or [] if row['page']==page
-            and row['figure_type']==kind and row['figure_name'].strip()==match[2]),None)
+            and row['figure_type']==kind and row['figure_name'].strip().casefold()==match[2].casefold()),None)
         raise ValueError(failed['reason'] if failed else 'source_figure_region_not_located')
     if len(candidates)>1 and caption_quote:
         def compact(value):return re.sub(r'\s+','',unicodedata.normalize('NFKC',value)).casefold()

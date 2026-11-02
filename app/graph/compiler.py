@@ -3159,7 +3159,8 @@ async def report_node(state: ResearchState) -> dict:
             f"{'复用有效图表' if drawing.get('cache_status')=='hit' else '绘图Skill已生成'}{len(drawing['assets'])}组SVG/PNG/PDF；图像人工复核尚未进行。"))
     if delivery_snapshot.get('source_media_policy')=='adrs-source-media-v2':
         from app.source_media import prepare_source_media
-        media=await prepare_source_media(state,organization_result,deadline=agent.request_budget.deadline)
+        media=await prepare_source_media(state,organization_result,deadline=agent.request_budget.deadline,
+            report=report,citations=citations)
         organization_result={**(organization_result or {}),'source_media':media}
         if media['status']=='blocked':
             paused=_model_budget_pause(state,agent,'report',TokenBudgetExceeded('source_media_incomplete'),report=report,citations=citations)
@@ -3167,8 +3168,9 @@ async def report_node(state: ResearchState) -> dict:
             paused['review_status']['source_media_reason']=media.get('reason')
             return paused
         if media['pages']:
+            figures=sum(len(page.get('figures') or []) for page in media['pages'])
             rendering_trace.append(_append_trace_event(state,EventType.AGENT_COMPLETE,'report',
-                f"已保留{len(media['pages'])}页原文图示及对应PDF。"))
+                f"已保留{figures}组论文图块及对应原PDF。" if figures else f"已保留{len(media['pages'])}页原文图示及对应PDF。"))
     if org_config.get('surface_review_policy')=='adrs-report-surfaces-v1':
         if (state.get('session') or {}).get('source_page_context_finalization'):
             organization_result={**(organization_result or {}),'delivery_target':'main_and_appendix_pdf'}

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import time
 
 from app.claim_verification import _terms
 from app.llm_budget import TokenBudgetExceeded, budgeted_client, request_token_bound
@@ -15,6 +16,15 @@ REPORT_CONTEXT_CONTRACT = 'adrs-source-page-audited-context-v1'
 def explain_source_pages(media,record,evidence,*,question,client,model,budget,on_candidate,retained=None,
                          report_audit=None,reuse_report_context=False):
     if not media.get('pages'):return media
+    from app.source_figure_extraction import MEDIA_POLICY
+    direct_context=media.get('policy')==MEDIA_POLICY
+    if direct_context:reuse_report_context=True
+    def check_direct_context():
+        if not direct_context:return
+        from app.execution_control import check_execution
+        check_execution()
+        if budget.deadline is not None and time.monotonic()>=budget.deadline:
+            raise TokenBudgetExceeded('source_page_original_deadline_exhausted')
     paragraphs={};citations={};ordered_citations={}
     for module in record.get('modules',[]):
         for area in ('paragraphs','appendix'):
@@ -27,6 +37,7 @@ def explain_source_pages(media,record,evidence,*,question,client,model,budget,on
     positions={row.evidence_id:index for index,row in enumerate(evidence,1)}
     packets=[]
     for row in media['pages']:
+        check_direct_context()
         originals=[]
         for evidence_id in row['evidence_ids']:
             source=by_id.get(evidence_id)
@@ -48,6 +59,9 @@ def explain_source_pages(media,record,evidence,*,question,client,model,budget,on
             key.startswith(('deep_dive:','validation:'))))
         page_input={'page_id':row['asset_id']+':'+str(row['page']),'titles':row['titles'],
             'captions':row['captions'],'original_page_text':originals}
+        if row.get('figures'):
+            page_input['figure_captions']=[{'figure_id':figure['figure_id'],'label':figure['label'],
+                'caption':figure['layout']['caption']} for figure in row['figures']]
         payload={'question':question,'report_paragraphs':{owner:paragraphs[owner]},'pages':[page_input]}
         packet_binding=identity({'contract':PAGE_EXPLANATION_CONTRACT,'model':model,'input':payload})
         packets.append((row,payload,packet_binding))
@@ -66,7 +80,11 @@ def explain_source_pages(media,record,evidence,*,question,client,model,budget,on
         if not reader_quality_satisfied(record,report_audit):
             raise TokenBudgetExceeded('source_page_audited_context_unavailable')
     for page,payload,packet_binding in packets:
+        check_direct_context()
         page_id=payload['pages'][0]['page_id'];saved=cached.get(page_id) or {}
+        if direct_context:
+            owner,paragraph=next(iter(payload['report_paragraphs'].items()))
+            saved={'binding':packet_binding,'result':{'paragraph_id':owner,'report_quote':paragraph,'explanation':paragraph}}
         if (reuse_report_context and media.get('explanation_binding')==binding
                 and media.get('explanation_contract')==REPORT_CONTEXT_CONTRACT
                 and page.get('explanation_basis')==REPORT_CONTEXT_CONTRACT):
@@ -115,7 +133,7 @@ def explain_source_pages(media,record,evidence,*,question,client,model,budget,on
             paragraph=payload['report_paragraphs'].get(value['paragraph_id'])
             quote=value['report_quote'];explanation=value['explanation']
             if (not paragraph or not isinstance(quote,str) or not quote.strip() or quote not in paragraph
-                    or not isinstance(explanation,str) or not 30<=len(explanation.strip())<=1600):
+                    or not isinstance(explanation,str) or (not direct_context and not 30<=len(explanation.strip())<=1600)):
                 raise ValueError('explanation_anchor')
         except (ValueError,TypeError,KeyError):
             raise TokenBudgetExceeded('source_page_explanation_contract_invalid') from None
@@ -138,9 +156,10 @@ def explain_source_pages(media,record,evidence,*,question,client,model,budget,on
                 explanation_binding=identity({'contract':REPORT_CONTEXT_CONTRACT,'packet':packet_binding,
                     'context':context,'reader_binding':report_audit['reader_quality']['binding']}))
         pages.append(selected)
-        if on_candidate:on_candidate(json.dumps({'contract':PAGE_EXPLANATION_CONTRACT,'parts':parts,
+        if on_candidate and not direct_context:on_candidate(json.dumps({'contract':PAGE_EXPLANATION_CONTRACT,'parts':parts,
             'calls':old_calls+calls},ensure_ascii=False),stage='source_page_explanations_partial')
-    return {**media,'pages':pages,'explanation_binding':binding,'explanation_model':model,
+    return {**media,'pages':pages,'explanation_binding':binding,'explanation_model':None if direct_context else model,
+        **({'explanation_origin':'audited_report_paragraph_no_new_model_call'} if direct_context else {}),
         'explanation_contract':REPORT_CONTEXT_CONTRACT if reuse_report_context else PAGE_EXPLANATION_CONTRACT,
         'explanation_status':'requires_surface_claim_review',
         'model_calls':int(media.get('model_calls') or 0)+old_calls+calls}

@@ -14,14 +14,20 @@ POLICY='adrs-report-surfaces-v1'
 
 
 def surface_binding(charts,media):
+    def without_pixels(value):
+        if isinstance(value,dict):return {key:without_pixels(item) for key,item in value.items() if key!='png'}
+        if isinstance(value,list):return [without_pixels(item) for item in value]
+        return value
     return identity({'charts':[{key:value for key,value in chart.items() if key!='rendered_assets'} for chart in charts],
-        'pages':[{key:value for key,value in page.items() if key not in {'png','width','height','renderer'}}
+        'pages':[{key:without_pixels(value) if key=='figures' else value for key,value in page.items() if key not in {'png','width','height','renderer'}}
             for page in (media or {}).get('pages',[])]})
 
 
 def review_surfaces(view,media,evidence,*,statistics,client,model,budget,source_spans=None,previous=None,
                     review_scope=None,report_audit=None,findings=None):
     charts=view.get('charts') or [];issues=[];paragraphs=[];locations={};page_spans={}
+    from app.source_figure_extraction import MEDIA_POLICY
+    deduplicate=bool(view.get('event_timeline_policy')) or (media or {}).get('policy')==MEDIA_POLICY
     issues.extend(view.get('pdf_projection_issues') or [])
     issues.extend(view.get('visualization_issues') or [])
     retained_contexts={};retained_claims=[]
@@ -30,9 +36,9 @@ def review_surfaces(view,media,evidence,*,statistics,client,model,budget,source_
         valid=[key for key in citations if key in refs]
         if not valid and not review_scope:
             issues.append({'location':location,'reason':'surface_fact_has_no_source'});return
-        if view.get('event_timeline_policy'):valid=sorted(set(valid),key=lambda key:int(key.split(':')[1]))
+        if deduplicate and exact_context is None:valid=sorted(set(valid),key=lambda key:int(key.split(':')[1]))
         paragraph=exact_context or (' '.join(text.split())+' '+' '.join('['+key+']' for key in dict.fromkeys(valid)))
-        if paragraph not in locations or not view.get('event_timeline_policy'):paragraphs.append(paragraph)
+        if paragraph not in locations or not deduplicate:paragraphs.append(paragraph)
         locations[paragraph]=location
         return paragraph
     registry=(statistics or {}).get('metric_registry') or {}
@@ -94,6 +100,27 @@ def review_surfaces(view,media,evidence,*,statistics,client,model,budget,source_
         else:issues.append({'location':key,'reason':'unsupported_surface_requires_review_contract'})
     by_id={row.evidence_id:row for row in evidence}
     for page in (media or {}).get('pages',[]):
+        if page.get('presentation')=='original_pdf_figure_groups':
+            from app.source_figure_extraction import EXTRACTOR,renderer_key,match_figure
+            targets=page.get('targets') or [];figures=page.get('figures') or []
+            if not targets or len(figures)!=len(targets) or {row['label'] for row in figures}!={row['label'] for row in targets}:
+                issues.append({'location':page['asset_id']+':'+str(page['page']),'reason':'source_figure_coverage_incomplete'})
+            for figure in figures:
+                try:
+                    layout=figure['layout']
+                    match_figure({'extractor':EXTRACTOR,'figures':[layout]},page=page['page'],label=figure['label'])
+                    if (figure['figure_id']!=layout['figure_id'] or figure['renderer']!=renderer_key(layout)
+                            or any(type(figure.get(field)) is not int or not 1<=figure[field]<=2000 for field in ('width','height'))
+                            or figure['width']*figure['height']>2_000_000):
+                        raise ValueError('source_figure_render_binding_changed')
+                except (KeyError,ValueError,TypeError) as error:
+                    issues.append({'location':page['asset_id']+':'+str(page['page']),'reason':str(error)[:200]})
+            for target in targets:
+                for proof in target['proofs']:
+                    source=by_id.get(proof['evidence_id']);start,end=proof.get('start'),proof.get('end')
+                    if (not source or type(start) is not int or type(end) is not int
+                            or not 0<=start<end<=len(source.content) or source.content[start:end]!=proof['quote']):
+                        issues.append({'location':target['label'],'reason':'source_figure_caption_proof_changed'})
         for caption in page.get('captions',[]):
             located=False
             for proof in page.get('proofs',[]):
@@ -124,7 +151,7 @@ def review_surfaces(view,media,evidence,*,statistics,client,model,budget,source_
                     issues.append({'location':str(page['page']),'reason':'reviewed_report_context_binding_changed'})
                     continue
                 exact_context=context
-                retained_claims.extend(rows)
+                if context not in retained_contexts:retained_claims.extend(rows)
                 retained_contexts[context]=rows[0].get('declared_kind')
             paragraph=statement(page['explanation'],numbers,'original_page:'+page['asset_id']+':'+str(page['page']),
                 exact_context=exact_context)

@@ -29,7 +29,13 @@ def _rasterize(original,pages,timeout):
     return result['pages']
 
 
-async def prepare_source_media(state,organization_result,*,deadline):
+async def prepare_source_media(state,organization_result,*,deadline,report=None,citations=None):
+    from app.source_figure_extraction import MEDIA_POLICY
+    figure_policy=((state.get('query_understanding') or {}).get('delivery') or {}).get('source_figure_policy')
+    if figure_policy==MEDIA_POLICY:
+        from app.source_figure_media import prepare_source_figures
+        return await prepare_source_figures(state,organization_result,deadline=deadline,report=report,citations=citations)
+    if figure_policy is not None:return {'status':'blocked','pages':[],'reason':'source_figure_policy_unsupported'}
     from app.db.connection import get_db_pool
     from app.execution_control import current_control
     from app.llm_budget import TokenBudgetExceeded
@@ -106,6 +112,12 @@ async def hydrate_source_media(conn,state,organization_result,owner_id):
     from app.planning_control import retained_evidence_version
     media=(organization_result or {}).get('source_media')
     if not media:return {'status':'legacy_no_original_pages','pages':[]}
+    from app.source_figure_extraction import MEDIA_POLICY
+    figure_policy=((state.get('query_understanding') or {}).get('delivery') or {}).get('source_figure_policy')
+    if figure_policy==MEDIA_POLICY:
+        from app.source_figure_media import hydrate_source_figures
+        return await hydrate_source_figures(conn,state,organization_result,owner_id)
+    if figure_policy is not None:raise ValueError('source_figure_policy_unsupported')
     if media.get('policy') not in {POLICY,'adrs-source-media-v2'} or media.get('evidence_version')!=retained_evidence_version(state):
         raise ValueError('source_media_current_version_changed')
     if media.get('status') not in {'rendered','no_located_pages'}:raise ValueError('source_media_not_complete')

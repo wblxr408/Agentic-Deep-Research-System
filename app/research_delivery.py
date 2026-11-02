@@ -119,6 +119,13 @@ def build_delivery_view(*, task_id: str, execution_id: str | None, query: str, r
     frozen = (understanding or {}).get('delivery') or {}
     template, theme = frozen.get('template', 'markdown-v1'), frozen.get('theme', 'plain-v1')
     result = organization_result or {}
+    from app.source_figure_extraction import MEDIA_POLICY as FIGURE_MEDIA_POLICY
+    figure_media_required=frozen.get('source_figure_policy') is not None
+    actual_media=source_media if source_media is not None else result.get('source_media') or {}
+    figure_media_ok=(not figure_media_required or frozen.get('source_figure_policy')==FIGURE_MEDIA_POLICY
+        and actual_media.get('policy')==FIGURE_MEDIA_POLICY
+        and actual_media.get('status') in {'rendered','no_located_pages'}
+        and all(page.get('figures') for page in actual_media.get('pages') or []))
     pdf_projection=bool(frozen.get('pdf_chart_policy') and frozen.get('drawing_mode','builtin')=='builtin'
         and frozen.get('layout') is None and ('pdf' in (frozen.get('formats') or [])
             or result.get('delivery_target')=='main_and_appendix_pdf'))
@@ -131,6 +138,9 @@ def build_delivery_view(*, task_id: str, execution_id: str | None, query: str, r
     stats_id = statistics.get('snapshot_id')
     all_sources = deepcopy(summary.get('sources') or [])
     used={'citation:'+number for number in re.findall(r'\[citation:(\d+)\]',report)}
+    if figure_media_required:
+        illustrated={key for page in actual_media.get('pages') or [] for key in page.get('evidence_ids') or []}
+        used.update(row['citation_id'] for row in citations if (row.get('locator') or {}).get('evidence_id') in illustrated)
     timeline=None;visual_issues=[]
     from app.report_timeline import POLICY as EVENT_POLICY,build_timeline
     timeline_enabled=(frozen.get('event_timeline_policy')==EVENT_POLICY
@@ -406,7 +416,7 @@ def build_delivery_view(*, task_id: str, execution_id: str | None, query: str, r
             surface_binding(charts,source_media if source_media is not None else result.get('source_media')))
     view = {'schema_version': VERSION, 'task_id': task_id, 'execution_id': execution_id,
         'delivery_complete': surface_ok and reader_quality_ok and not bool((result.get('module_report') or {}).get('issues'))
-            and not pdf_issues and not visual_issues
+            and not pdf_issues and not visual_issues and figure_media_ok
             and drawing['status'] in {'ready','rendered','not_needed'}
             and not (layout_binding and layout_binding['required_missing'])
             and bool(audit) and not audit.get('needs_review',True) and not audit.get('audit_incomplete',False),
@@ -417,11 +427,11 @@ def build_delivery_view(*, task_id: str, execution_id: str | None, query: str, r
             if re.search(r'^#\s+(.+)$', report, re.M) else query[:180]),
         'question':query, 'report_markdown': reader_report,
         'main_report_markdown': main_report, 'appendix_markdown': appendix_report,
-        'review_status':'draft_needs_review' if pdf_issues or visual_issues or not surface_ok or not reader_quality_ok or not audit or audit.get('needs_review',True) else 'automatic_review_completed_human_review_pending',
+        'review_status':'draft_needs_review' if pdf_issues or visual_issues or not figure_media_ok or not surface_ok or not reader_quality_ok or not audit or audit.get('needs_review',True) else 'automatic_review_completed_human_review_pending',
         'pages': pages, 'charts': charts, 'drawing': drawing,
         **({'pdf_chart_policy':frozen['pdf_chart_policy'],'pdf_projection_issues':pdf_issues} if pdf_projection else {}),
         **({'event_timeline_policy':EVENT_POLICY,'visualization_issues':visual_issues} if timeline_enabled else {}),
-        'source_media':deepcopy(source_media or {'status':'not_loaded','pages':[]}),
+        'source_media':deepcopy(actual_media if figure_media_required else source_media or {'status':'not_loaded','pages':[]}),
         **({'layout_binding':layout_binding} if layout_binding is not None else {}),
         'sources': all_sources, 'citations': citations, 'audit': deepcopy(audit),
         'statistics': deepcopy(statistics), 'module_results': {key: deepcopy(result.get(field)) for key, field in
@@ -429,7 +439,8 @@ def build_delivery_view(*, task_id: str, execution_id: str | None, query: str, r
         'gaps': list(dict.fromkeys(str(gap) for gap in [*(summary.get('gaps') or []), *(result.get('gaps') or []),
             *(['未保存正文来源支持审核，不能把已生成报告标为已核实。'] if not audit else []),
             *(['所需图表尚无可用的PDF表示，报告图文交付未完成。'] if pdf_issues else []),
-            *(['部分已引用成果缺少可用的时间轴日期依据，图文交付尚未完成。'] if visual_issues else [])])),
+            *(['部分已引用成果缺少可用的时间轴日期依据，图文交付尚未完成。'] if visual_issues else []),
+            *(['所需论文图块未完成，不能用整页预览替代。'] if not figure_media_ok else [])])),
         'formats': [{'format': name, 'status': 'ready' if name in {'markdown', 'html', 'json','pdf'} else
             'adapter_unavailable',
             'alternative': 'browser_print_to_pdf' if name == 'pdf' else None,

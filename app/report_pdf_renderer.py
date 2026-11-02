@@ -187,12 +187,6 @@ def render(payload):
     explanation_anchors={}
     for index,page in enumerate(payload.get('original_pages',[])):
         body+='<pagebreak/>'
-        data=page.get('png','')
-        if not data.startswith('data:image/png;base64,'):raise ValueError('pdf_original_image_missing')
-        raw=base64.b64decode(data.split(',',1)[1],validate=True)
-        if len(raw)>1_500_000:raise ValueError('pdf_image_limit')
-        name=f'original-{index}.png';images[name]=raw
-        width=min(470,490*page['width']/page['height']);height=width*page['height']/page['width']
         body+='<h2>'+inline(' / '.join(page.get('titles',[])))+' · 原文第 '+str(page['page'])+' 页</h2>'
         explanation=page.get('explanation') or ''
         explanation_key=((page.get('report_anchor') or {}).get('paragraph_id'),explanation)
@@ -202,7 +196,27 @@ def render(payload):
             anchor=f'original-explanation-{index}'
             explanation_anchors[explanation_key]=anchor
             body+='<p id="'+anchor+'">'+inline(explanation)+'</p>'
-        body+=f'<img src="{name}" width="{width}" height="{height}"/>'
+        if page.get('presentation')=='original_pdf_figure_groups':
+            if not page.get('figures'):raise ValueError('pdf_original_figure_missing')
+            for figure_index,figure in enumerate(page['figures']):
+                data=figure.get('png','')
+                if not data.startswith('data:image/png;base64,'):raise ValueError('pdf_original_figure_missing')
+                raw=base64.b64decode(data.split(',',1)[1],validate=True)
+                if len(raw)>1_500_000:raise ValueError('pdf_image_limit')
+                name=f'original-{index}-figure-{figure_index}.png';images[name]=raw
+                width=min(470,490*figure['width']/figure['height']);height=width*figure['height']/figure['width']
+                body+='<h3>'+escape(figure['label'])+'</h3>'
+                body+=f'<img src="{name}" width="{width}" height="{height}"/>'
+                # A paper's own [n] references are not report citation IDs.
+                body+='<p>'+escape(figure['layout']['caption'])+'</p>'
+        else:
+            data=page.get('png','')
+            if not data.startswith('data:image/png;base64,'):raise ValueError('pdf_original_image_missing')
+            raw=base64.b64decode(data.split(',',1)[1],validate=True)
+            if len(raw)>1_500_000:raise ValueError('pdf_image_limit')
+            name=f'original-{index}.png';images[name]=raw
+            width=min(470,490*page['width']/page['height']);height=width*page['height']/page['width']
+            body+=f'<img src="{name}" width="{width}" height="{height}"/>'
         # The retained whole page already contains its literal caption. Do
         # not duplicate long extraction windows as another caption paragraph.
         source_url=page.get('source_url') or ''
