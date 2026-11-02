@@ -13,12 +13,13 @@ from app.security.prompt_security import untrusted_context
 POLICY='adrs-report-surfaces-v1'
 
 
-def surface_binding(charts,media):
+def surface_binding(charts,media,visual_requirements=None):
     def without_pixels(value):
         if isinstance(value,dict):return {key:without_pixels(item) for key,item in value.items() if key!='png'}
         if isinstance(value,list):return [without_pixels(item) for item in value]
         return value
     return identity({'charts':[{key:value for key,value in chart.items() if key!='rendered_assets'} for chart in charts],
+        **({'visual_requirements':visual_requirements} if visual_requirements is not None else {}),
         'pages':[{key:without_pixels(value) if key=='figures' else value for key,value in page.items() if key not in {'png','width','height','renderer'}}
             for page in (media or {}).get('pages',[])]})
 
@@ -42,9 +43,40 @@ def review_surfaces(view,media,evidence,*,statistics,client,model,budget,source_
         locations[paragraph]=location
         return paragraph
     registry=(statistics or {}).get('metric_registry') or {}
+    evidence_by_id={row.evidence_id:row for row in evidence}
+    citation_sources={row['citation_id']:(row.get('locator') or {}).get('evidence_id') for row in view.get('citations',[])}
+    def mechanism_statement(text,citations,proofs,location):
+        from app.report_mechanisms import checked_proofs
+        try:spans=checked_proofs(proofs,evidence_by_id,citation_sources,citations)
+        except (KeyError,ValueError,TypeError) as error:
+            issues.append({'location':location,'reason':str(error)[:200]});return
+        paragraph=statement(text,citations,location)
+        if paragraph:page_spans[paragraph]=spans
+    for requirement in view.get('visual_requirements') or []:
+        if not requirement.get('source_figure_id'):continue
+        card=next((row for row in ((findings or {}).get('technical_reading') or {}).get('cards',[])
+            if row['output_id']==requirement['output_id']),{})
+        original=(card.get('mechanism_graph') or {}).get('original_reference')
+        if original!=requirement.get('original_reference'):
+            issues.append({'location':requirement['requirement_id'],'reason':'mechanism_original_binding_changed'});continue
+        mechanism_statement(requirement['source_claim'],requirement['citation_ids'],[original['proof']],requirement['requirement_id'])
     for chart in charts:
         key=chart['chart_id']
-        if chart.get('event_policy')=='adrs-source-publication-events-v1':
+        if chart.get('mechanism_policy')=='adrs-source-mechanism-graph-v1':
+            from app.report_mechanisms import RELATIONS
+            card=next((row for row in ((findings or {}).get('technical_reading') or {}).get('cards',[])
+                if row['output_id']==chart['output_id']),{})
+            graph=card.get('mechanism_graph') or {};nodes={row['id']:row for row in chart['nodes']}
+            if (graph.get('status')!='source_located_requires_semantic_review'
+                    or [{key:row[key] for key in ('id','label','proofs')} for row in chart['nodes']]!=graph.get('nodes')
+                    or [{key:row[key] for key in ('source','target','relation','label','proofs')} for row in chart['edges']]!=graph.get('edges')):
+                issues.append({'location':key,'reason':'mechanism_graph_binding_changed'});continue
+            for node in chart['nodes']:
+                mechanism_statement(card['title']+'的机制包含组件“'+node['label']+'”。',node['citation_ids'],node['proofs'],key+':node:'+node['id'])
+            for index,edge in enumerate(chart['edges']):
+                mechanism_statement(card['title']+'中，“'+nodes[edge['source']]['label']+'”'+RELATIONS[edge['relation']]
+                    +'“'+nodes[edge['target']]['label']+'”：'+edge['label']+'。',edge['citation_ids'],edge['proofs'],key+':edge:'+str(index))
+        elif chart.get('event_policy')=='adrs-source-publication-events-v1':
             from app.report_timeline import validate_event
             events=chart.get('events') or []
             event_ids=[event['event_id'] for event in events]
@@ -176,7 +208,7 @@ def review_surfaces(view,media,evidence,*,statistics,client,model,budget,source_
         previous_audit=prior,review_scope=review_scope,paragraph_kinds=retained_contexts) if paragraphs else None
     passed=not issues and (audit is None or not audit.get('needs_review',True)
         and not audit.get('audit_incomplete') and not audit.get('budget_incomplete'))
-    return {'policy':POLICY,'binding':surface_binding(charts,media),'passed':passed,
+    return {'policy':POLICY,'binding':surface_binding(charts,media,view.get('visual_requirements')),'passed':passed,
         'status':'satisfied' if passed else 'needs_revision','issues':issues,'claim_audit':audit,
         'paragraph_locations':locations,
         'semantics':'descriptor_facts_and_numeric_bindings_reviewed_visual_legibility_separate'}

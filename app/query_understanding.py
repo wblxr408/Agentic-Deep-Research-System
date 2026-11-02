@@ -97,7 +97,7 @@ class DeliveryPage(ScopeRecord):
     title: Label
     module: ResearchModule | None = None
     question: str = Field(default='', max_length=500)
-    chart_kind: Literal['auto', 'none', 'line', 'bar', 'scatter', 'network', 'timeline', 'heatmap', 'table'] = 'auto'
+    chart_kind: Literal['auto', 'none', 'line', 'bar', 'scatter', 'network', 'timeline', 'heatmap', 'table','flow'] = 'auto'
 
 
 class TemplateOrigin(ScopeRecord):
@@ -376,9 +376,14 @@ def interpret_query(query: str, options: QueryOptions, delivery: DeliveryRequest
     delivery_snapshot['event_timeline_policy']=EVENT_TIMELINE_POLICY
     from app.source_figure_extraction import MEDIA_POLICY as SOURCE_FIGURE_POLICY
     delivery_snapshot['source_figure_policy']=SOURCE_FIGURE_POLICY
+    from app.report_mechanisms import POLICY as MECHANISM_POLICY
+    if (delivery.drawing_mode=='builtin' and delivery.layout is None and (delivery.template!='custom'
+            or any(page.module=='deep_dive' and page.chart_kind in {'auto','flow'} for page in delivery.pages))):
+        delivery_snapshot['mechanism_graph_policy']=MECHANISM_POLICY
     delivery_snapshot['descriptor_id']=identity({'configuration':delivery.model_dump(mode='json'),
         'pdf_chart_policy':PDF_CHART_POLICY,'event_timeline_policy':EVENT_TIMELINE_POLICY,
-        'source_figure_policy':SOURCE_FIGURE_POLICY})
+        'source_figure_policy':SOURCE_FIGURE_POLICY,
+        **({'mechanism_graph_policy':MECHANISM_POLICY} if delivery_snapshot.get('mechanism_graph_policy') else {})})
     if delivery.drawing_mode!='builtin':
         delivery_snapshot['renderer_status']='trusted_matplotlib_pending' if drawing_policy['status']=='ready' else 'drawing_configuration_blocked'
         if drawing_policy['status']!='ready':

@@ -152,6 +152,21 @@ def build_delivery_view(*, task_id: str, execution_id: str | None, query: str, r
         timeline,missing=build_timeline(result,citations,used)
         visual_issues=[{'location':row['output_id'],'reason':row['reason']} for row in missing]
         if timeline:used.update(timeline['citation_ids'])
+    from app.report_mechanisms import POLICY as MECHANISM_POLICY,build_mechanism_charts
+    mechanism_requested=frozen.get('mechanism_graph_policy') is not None
+    mechanism_enabled=(frozen.get('mechanism_graph_policy')==MECHANISM_POLICY
+        and frozen.get('drawing_mode','builtin')=='builtin' and frozen.get('layout') is None
+        and 'deep_dive' in (((understanding or {}).get('slots') or {}).get('modules') or []))
+    mechanisms=[];visual_requirements=[]
+    if mechanism_requested and frozen['mechanism_graph_policy']!=MECHANISM_POLICY:
+        visual_issues.append({'location':'mechanisms','reason':'mechanism_policy_unsupported'})
+    if mechanism_enabled:
+        quality=(audit or {}).get('reader_quality') or {}
+        mechanisms,visual_requirements=build_mechanism_charts(result,citations,used,quality,actual_media)
+        for chart in mechanisms:used.update(chart['citation_ids'])
+        for requirement in visual_requirements:used.update(requirement.get('citation_ids') or [])
+        if quality.get('coverage_complete') is not True:
+            visual_issues.append({'location':'mechanisms','reason':'mechanism_reader_scope_unavailable'})
     citations = deepcopy([row for row in citations if row.get('citation_id') in used]) if used else deepcopy(citations)
     reader_report = report_for_reading(report, citations)
     sections = _sections(reader_report)
@@ -186,6 +201,7 @@ def build_delivery_view(*, task_id: str, execution_id: str | None, query: str, r
     # independently supports every bar. Metric member IDs remain authoritative.
     charts = []
     if timeline:charts.append(timeline)
+    charts.extend(mechanisms)
     technical_rows = []
     fields = [('problem', '问题'), ('mechanism', '机制'), ('conditions', '实验条件'), ('results', '来源结果')]
     for card in (result.get('technical_reading') or {}).get('cards', [])[:20]:
@@ -280,13 +296,13 @@ def build_delivery_view(*, task_id: str, execution_id: str | None, query: str, r
     elif template == 'markdown-v1':
         specs = [{'page_id': f'section-{index+1}', 'title': section['title'],
             '_section': index, 'chart_kind': 'none'} for index, section in enumerate(sections)]
-        if pdf_projection or timeline_enabled:
+        if pdf_projection or timeline_enabled or mechanism_enabled:
             from app.organization_purpose import MODULES
             owned={_heading_key(MODULES[row['module_id']][0]):row['module_id']
                 for row in (result.get('module_report') or {}).get('modules',[]) if row['module_id'] in MODULES}
             for spec in specs:
                 module=owned.get(_heading_key(spec['title']))
-                if module and (pdf_projection or module=='evolution'):
+                if module and (pdf_projection or module=='evolution' and timeline_enabled or module=='deep_dive' and mechanism_enabled):
                     spec.update(module=module,chart_kind='auto')
     else:
         ordering = PRESET_MODULES.get(template, tuple(MODULE_LABELS))
@@ -326,7 +342,7 @@ def build_delivery_view(*, task_id: str, execution_id: str | None, query: str, r
                 if row.get('module_id')==module),{})
             used_metrics={binding['metric_id'] for paragraph in [*report_module.get('paragraphs',[]),
                 *report_module.get('appendix',[])] for binding in paragraph.get('statistic_bindings',[])}
-            applicable=[chart for chart in applicable if chart['kind'] in {'table','matrix','network'}
+            applicable=[chart for chart in applicable if chart['kind'] in {'table','matrix','network','flow'}
                 or chart.get('kind')=='timeline' or used_metrics.intersection(chart.get('metric_ids',[]))]
         chosen = []
         if requested_kind != 'none':
@@ -334,9 +350,11 @@ def build_delivery_view(*, task_id: str, execution_id: str | None, query: str, r
                 chosen = applicable
             elif requested_kind=='timeline' and timeline_enabled:
                 chosen=[chart for chart in applicable if chart['kind']=='timeline']
+            elif requested_kind=='flow' and mechanism_enabled:
+                chosen=[chart for chart in applicable if chart['kind']=='flow']
             elif requested_kind in ('bar', 'line', 'timeline'):
                 chosen = [chart for chart in applicable if chart['kind'] != 'network'
-                    and chart['kind']!='timeline'
+                    and chart['kind'] not in {'timeline','flow'}
                     and (requested_kind == 'bar' or chart['chart_id'] == 'annual_publications')]
             elif requested_kind == 'network':
                 chosen = [chart for chart in applicable if chart['kind'] == 'network']
@@ -375,6 +393,15 @@ def build_delivery_view(*, task_id: str, execution_id: str | None, query: str, r
         from app.report_pdf import project_pdf_view
         charts,pages,pdf_issues=project_pdf_view(charts,pages,frozen['pdf_chart_policy'])
         _apply_surface_corrections(charts,corrections)
+    for requirement in visual_requirements:
+        if requirement.get('source_figure_id'):continue
+        actual=next((row for row in charts if row.get('source_chart_id',row['chart_id'])==requirement.get('chart_id')),None)
+        placed=bool(actual and any(ref['chart_id']==actual['chart_id'] and ref['kind']=='flow'
+            for page in pages for ref in page.get('charts') or []))
+        if placed:requirement.update(status='source_descriptor_referenced_pending_semantic_and_visual_review',chart_id=actual['chart_id'])
+        elif requirement['required']:
+            visual_issues.append({'location':requirement['requirement_id'],
+                'reason':requirement.get('reason') or 'required_mechanism_not_referenced'})
     drawing_mode = frozen.get('drawing_mode', 'builtin')
     formats = frozen.get('formats') or ['markdown']
     drawing = {'requested_mode': drawing_mode, 'requested_skill_ids': frozen.get('drawing_skill_ids') or [],
@@ -413,7 +440,8 @@ def build_delivery_view(*, task_id: str, execution_id: str | None, query: str, r
         from app.report_surface_review import surface_binding
         surface_review=(audit or {}).get('surface_review') or {}
         surface_ok=(surface_review.get('passed') is True and surface_review.get('binding')==
-            surface_binding(charts,source_media if source_media is not None else result.get('source_media')))
+            surface_binding(charts,source_media if source_media is not None else result.get('source_media'),
+                visual_requirements if mechanism_requested else None))
     view = {'schema_version': VERSION, 'task_id': task_id, 'execution_id': execution_id,
         'delivery_complete': surface_ok and reader_quality_ok and not bool((result.get('module_report') or {}).get('issues'))
             and not pdf_issues and not visual_issues and figure_media_ok
@@ -431,6 +459,8 @@ def build_delivery_view(*, task_id: str, execution_id: str | None, query: str, r
         'pages': pages, 'charts': charts, 'drawing': drawing,
         **({'pdf_chart_policy':frozen['pdf_chart_policy'],'pdf_projection_issues':pdf_issues} if pdf_projection else {}),
         **({'event_timeline_policy':EVENT_POLICY,'visualization_issues':visual_issues} if timeline_enabled else {}),
+        **({'mechanism_graph_policy':frozen['mechanism_graph_policy'],'visual_requirements':visual_requirements,
+            'visualization_issues':visual_issues} if mechanism_requested else {}),
         'source_media':deepcopy(actual_media if figure_media_required else source_media or {'status':'not_loaded','pages':[]}),
         **({'layout_binding':layout_binding} if layout_binding is not None else {}),
         'sources': all_sources, 'citations': citations, 'audit': deepcopy(audit),
@@ -439,7 +469,7 @@ def build_delivery_view(*, task_id: str, execution_id: str | None, query: str, r
         'gaps': list(dict.fromkeys(str(gap) for gap in [*(summary.get('gaps') or []), *(result.get('gaps') or []),
             *(['未保存正文来源支持审核，不能把已生成报告标为已核实。'] if not audit else []),
             *(['所需图表尚无可用的PDF表示，报告图文交付未完成。'] if pdf_issues else []),
-            *(['部分已引用成果缺少可用的时间轴日期依据，图文交付尚未完成。'] if visual_issues else []),
+            *(['所需可视化仍有来源或呈现缺口。'] if visual_issues else []),
             *(['所需论文图块未完成，不能用整页预览替代。'] if not figure_media_ok else [])])),
         'formats': [{'format': name, 'status': 'ready' if name in {'markdown', 'html', 'json','pdf'} else
             'adapter_unavailable',

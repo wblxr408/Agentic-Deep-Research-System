@@ -38,6 +38,8 @@ def compose_sections(*,question,analysis,configuration,findings,evidence,statist
     def material(module,assigned,*,focused=False):
         work_ids={row['output_id'] for row in assigned}
         technical=[row for row in cards if row.get('output_id') in work_ids]
+        if configuration.get('mechanism_graph_policy'):
+            technical=[{key:value for key,value in row.items() if key!='mechanism_graph'} for row in technical]
         if focused and module not in {'deep_dive','validation'}:
             fields={'problem','method_overview','innovation'} if module in {'landscape','relationships'} else {
                 'problem','method_overview','mechanism','innovation','conditions','limitations'}

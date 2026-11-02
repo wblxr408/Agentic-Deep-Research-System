@@ -77,6 +77,31 @@ def instructions(configuration, phase, seed=None):
             'proofs':[{'passage_id':'CURRENT ID'}]} for field in seed['reading_focus'] if field in FIELDS}
     from app.organization_deep_dive import READING_FIELD_POLICY,READING_PROFILES,required_reading_fields
     reading_contract=''
+    mechanism_instruction=''
+    from app.report_mechanisms import POLICY as MECHANISM_POLICY
+    if (policy['phase']=='deep_dive' and configuration.get('mechanism_graph_policy')==MECHANISM_POLICY
+            and (not (seed or {}).get('reading_focus') or 'mechanism' in seed['reading_focus'])):
+        organization['technical_cards'][0]['mechanism_graph']={'status':'available|original_figure|insufficient_evidence',
+            'reason':'source gap when unavailable','figure_label':None,'nodes':[{'node_id':'component-1','label':'source component name',
+                'proofs':[{'passage_id':'CURRENT ID'}]},{'node_id':'component-2','label':'another source component',
+                'proofs':[{'passage_id':'CURRENT ID'}]}],
+            'edges':[{'source':'component-1','target':'component-2','relation':'data_flow|control_flow|dependency|feedback',
+                'label':'what actually flows or is controlled','proofs':[{'passage_id':'CURRENT ID'}]}]}
+        mechanism_instruction=('\nIn this SAME technical reading response, retain a compact mechanism_graph only '
+            'when the supplied original passages establish components and their interactions. Maximum eight nodes, '
+            'twelve edges, three existing proofs per item. Data_flow means source sends data to target; '
+            'control_flow means source controls/triggers target; dependency means source depends on target; '
+            'feedback means source sends feedback to target. Preserve actual cycles and direction. Do not '
+            'redraw an existing source-located mechanism/architecture figure serving the same reader purpose: prefer status=original_figure, '
+            'figure_label=its exact label, nodes=[], edges=[], and include that caption with its proof '
+            'in figure_references. This requests original-asset reuse, not a claim the image is acquired. '
+            'A table is not a mechanism diagram. Preserve decimal/supplementary figure identities. '
+            'A different, source-supported simplification needed for this question may use available; '
+            'state that added reader purpose in reason. Resource maxima are not target diagram sizes. '
+            'Do not turn a list of sections, authors, stages inferred from names, or generic agent workflow into the '
+            'paper\'s architecture. No invented components, connections, temporal succession or performance. '
+            'When unsupported return status=insufficient_evidence, a specific reason, nodes=[] and edges=[]. '
+            'Do not duplicate this graph as prose or start another extraction.\n')
     if policy['phase']=='deep_dive' and configuration.get('reading_field_policy')==READING_FIELD_POLICY:
         card=organization['technical_cards'][0]
         card['reading_contract']={'profile':'empirical|theoretical|synthesis|unknown',
@@ -98,6 +123,7 @@ def instructions(configuration, phase, seed=None):
             'follow-up serves only missing_fields_by_output for each assigned ID; its reading_focus is a '
             'batch union, not permission to require every field from every paper. A located contract is '
             'retained across follow-ups; do not drop its required fields by changing profile or scope.\n')
+    reading_contract+=mechanism_instruction
     shape={'analysis_text':'one concise lead, at most four sentences','organization_data':organization}
     if policy['judgments']:shape['research_judgments']=[]
     synthesis=('\nThis is the final research synthesis AFTER technical reading and relationship analysis. '

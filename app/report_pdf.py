@@ -22,6 +22,8 @@ def project_pdf_view(charts,pages,policy):
         source=request['source_chart_id'];kind=request['presentation']
         rows=request.get('rows') or [];points=request.get('points') or []
         valid=(kind=='table' and bool(rows or points or request.get('edges') or request.get('events'))
+            or kind=='flow' and request.get('mechanism_policy')=='adrs-source-mechanism-graph-v1'
+                and 2<=len(request.get('nodes') or [])<=8 and 1<=len(request.get('edges') or [])<=12
             or kind=='timeline' and bool(request.get('events'))
                 and request.get('event_policy')=='adrs-source-publication-events-v1'
             or kind=='bar' and bool(points) and not rows
@@ -58,8 +60,10 @@ def project_pdf_view(charts,pages,policy):
                 if not any(issue['location']==ref['chart_id'] for issue in issues):
                     issues.append({'location':ref['chart_id'],'reason':'pdf_chart_reference_unresolved','presentation':kind})
         page['charts']=refs
-    if sum(row['pdf_presentation']!='table' for row in projected)>12:
+    if sum(row['pdf_presentation'] not in {'table','flow'} for row in projected)>12:
         issues.append({'location':'pdf','reason':'pdf_plot_count_exceeds_12'})
+    if sum(row['pdf_presentation']=='flow' for row in projected)>1000:
+        issues.append({'location':'pdf','reason':'pdf_mechanism_count_exceeds_1000'})
     return projected,result,issues
 
 

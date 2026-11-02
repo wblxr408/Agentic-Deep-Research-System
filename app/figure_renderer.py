@@ -80,6 +80,50 @@ def render(payload):
                     ax.set_ylabel(label(chart['unit_label']));ax.set_xlabel('发表年份')
                     ax.set_ylim(bottom=0);ax.grid(alpha=.2)
                     if any(value is None for value in values):notes.append('缺失年份保留断点，不插值。')
+            elif kind=='flow':
+                from matplotlib.patches import FancyArrowPatch,FancyBboxPatch
+                nodes=chart.get('nodes') or [];edges=chart.get('edges') or []
+                if not 2<=len(nodes)<=8 or not 1<=len(edges)<=12:raise ValueError('mechanism_graph_size_invalid')
+                positions={node['id']:(node['x'],node['y']) for node in nodes}
+                if len(positions)!=len(nodes) or any(not math.isfinite(value) or not 0<=value<=1 for xy in positions.values() for value in xy):
+                    raise ValueError('mechanism_graph_positions_invalid')
+                colors={'data_flow':'#0072B2','control_flow':'#009E73','dependency':'#8c564b','feedback':'#CC79A7'}
+                names={'data_flow':'数据流','control_flow':'控制流','dependency':'依赖','feedback':'反馈'}
+                styles={'data_flow':'-','control_flow':'--','dependency':':','feedback':'-.'}
+                for edge in edges:
+                    if edge['source'] not in positions or edge['target'] not in positions or edge['relation'] not in colors:
+                        raise ValueError('mechanism_graph_edge_invalid')
+                    start,end=positions[edge['source']],positions[edge['target']]
+                    dx,dy=end[0]-start[0],end[1]-start[1]
+                    if start==end:
+                        from matplotlib.path import Path as DrawingPath
+                        side=-1 if start[0]>.6 else 1
+                        a=(start[0]+side*.11,start[1]-.025);b=(start[0]+side*.11,start[1]+.025)
+                        path=DrawingPath([a,(start[0]+side*.22,start[1]-.13),(start[0]+side*.22,start[1]+.13),b],
+                            [DrawingPath.MOVETO,DrawingPath.CURVE4,DrawingPath.CURVE4,DrawingPath.CURVE4])
+                        arrow={'path':path};text_xy=(start[0]+side*.17,start[1])
+                    else:
+                        fraction=min(.105/abs(dx) if dx else float('inf'),.045/abs(dy) if dy else float('inf'))
+                        a=(start[0]+fraction*dx,start[1]+fraction*dy);b=(end[0]-fraction*dx,end[1]-fraction*dy)
+                        curve='arc3,rad='+str(.2 if edge['relation'] in {'dependency','feedback'} else 0)
+                        arrow={'posA':a,'posB':b,'connectionstyle':curve};text_xy=((a[0]+b[0])/2,(a[1]+b[1])/2-.02)
+                    ax.add_patch(FancyArrowPatch(**arrow,arrowstyle='-|>',mutation_scale=13,color=colors[edge['relation']],
+                        linewidth=1.3,linestyle=styles[edge['relation']],zorder=1))
+                    ax.text(*text_xy,label(edge['label'],12),fontsize=7,
+                        ha='center',va='center',bbox={'facecolor':'white','edgecolor':'none','alpha':.85},zorder=2)
+                for node in nodes:
+                    x,y=positions[node['id']]
+                    ax.add_patch(FancyBboxPatch((x-.105,y-.045),.21,.09,boxstyle='round,pad=.005',
+                        facecolor='#edf3f6',edgecolor=color,linewidth=1,zorder=3))
+                    wrap=8 if re.search(r'[\u2e80-\u9fff]',node['label']) else 16
+                    short=label(node['label'],wrap*2)+('…' if len(node['label'])>wrap*2 else '')
+                    ax.text(x,y,'\n'.join(textwrap.wrap(short,width=wrap+1)),ha='center',va='center',fontsize=9,zorder=4)
+                ax.set_xlim(0,1);ax.set_ylim(1,0);ax.axis('off')
+                from matplotlib.lines import Line2D
+                ax.legend(handles=[Line2D([0],[0],color=colors[key],linestyle=styles[key],label=names[key]) for key in colors],
+                    loc='lower center',ncol=4,fontsize=7,frameon=False)
+                notes.append('箭头注明数据、控制、依赖或反馈，组件位置用于排版。图中文字缩略，组件全称和关系见配套数据。')
+                subset={'shown_nodes':len(nodes),'shown_edges':len(edges)}
             elif kind=='timeline':
                 from matplotlib import dates as mdates
                 events=chart.get('events') or []

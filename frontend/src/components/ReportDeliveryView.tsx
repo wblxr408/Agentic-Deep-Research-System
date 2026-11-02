@@ -1,5 +1,5 @@
 import {useLocale,t,uiMessage} from '../i18n'
-import { useRef, useState } from 'react'
+import { useRef, useState,useId } from 'react'
 import type { ReactNode } from 'react'
 import { Icon, Modal } from './Interface'
 import type {LayoutBinding} from './ReportLayoutView'
@@ -15,6 +15,7 @@ interface PublicationEvent {
 interface RelationEdge {
   source: string; target: string; label: string; kind?: string; status?: string
   citation_ids?:string[]
+  relation?:string
   proofs?: Array<{ evidence_id: string; source_url: string; start?: number; end?: number; quote?: string }>
 }
 export interface DeliveryChart {
@@ -23,7 +24,7 @@ export interface DeliveryChart {
   >
   chart_id: string; title: string; kind: string; module?: string; unit_label: string
   snapshot_id?: string | null; points?: Point[]; total_points?: number; total_edges?: number; truncated?: boolean
-  nodes?: Array<{ id: string; label: string }>; edges?: RelationEdge[]; note: string
+  nodes?: Array<{ id: string; label: string;x?:number;y?:number;citation_ids?:string[] }>; edges?: RelationEdge[]; note: string
   citation_ids?: string[]
   events?:PublicationEvent[];total_events?:number
   columns?: string[]; rows?: Array<{ values: string[]; citation_ids: string[] }>
@@ -70,6 +71,41 @@ export const deliveryStyles = `
 .adrs-delivery [data-app-only]{display:none!important}.adrs-delivery [data-report-page]{display:block!important;break-before:page}
 .adrs-delivery pre{max-height:none;overflow:visible}.adrs-delivery figure{break-inside:avoid}}
 `
+
+const flowRelations:Record<string,string>={data_flow:'数据流',control_flow:'控制流',dependency:'依赖',feedback:'反馈'}
+function MechanismDiagram({chart}:{chart:DeliveryChart}) {
+  const marker='mechanism-'+useId().replace(/:/g,'')
+  const nodes=chart.nodes||[],edges=chart.edges||[]
+  const positions=new Map(nodes.map(node=>[node.id,{x:(node.x??.5)*760,y:20+(node.y??.5)*420}]))
+  const colors:Record<string,string>={data_flow:'#0072B2',control_flow:'#009E73',dependency:'#8c564b',feedback:'#CC79A7'}
+  return <svg viewBox="0 0 760 480" role="img" aria-label={chart.title}>
+    <defs>{Object.entries(colors).map(([kind,color])=><marker key={kind} id={marker+kind} viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill={color}/></marker>)}</defs>
+    {edges.map((edge,index)=>{
+      const a=positions.get(edge.source),b=positions.get(edge.target)
+      if(!a||!b)return null
+      const dx=b.x-a.x,dy=b.y-a.y,self=edge.source===edge.target,side=a.x>456?-1:1
+      const fraction=Math.min(dx?78/Math.abs(dx):Infinity,dy?22/Math.abs(dy):Infinity)
+      const x1=self?a.x+side*78:a.x+dx*fraction,y1=self?a.y-10:a.y+dy*fraction
+      const x2=self?x1:b.x-dx*fraction,y2=self?a.y+10:b.y-dy*fraction
+      const path=self?`M${x1} ${y1} C${a.x+side*150} ${a.y-55},${a.x+side*150} ${a.y+55},${x2} ${y2}`:`M${x1} ${y1} L${x2} ${y2}`
+      return <g key={index}><path d={path} stroke={colors[edge.relation||'data_flow']} fill="none" strokeWidth="2" strokeDasharray={edge.relation==='feedback'?'8 4 2 4':edge.relation==='dependency'?'2 4':edge.relation==='control_flow'?'7 4':undefined} markerEnd={`url(#${marker+edge.relation})`}/>
+        <text x={self?a.x+side*122:(x1+x2)/2} y={self?a.y:(y1+y2)/2-6} textAnchor="middle" stroke="var(--paper)" strokeWidth="3" paintOrder="stroke">{edge.label.slice(0,12)}{edge.label.length>12?'…':''}</text><title>{flowRelations[edge.relation||'']}: {edge.label}</title></g>
+    })}
+    {nodes.map(node=>{
+      const point=positions.get(node.id)!,label=node.label.length>24?node.label.slice(0,23)+'…':node.label
+      return <g key={node.id}><rect x={point.x-78} y={point.y-22} width="156" height="44" rx="7" fill="var(--paper)" stroke="var(--accent)"/>
+        <text x={point.x} y={point.y+(label.length>12?-4:4)} textAnchor="middle">{label.slice(0,12)}{label.length>12&&<tspan x={point.x} dy="16">{label.slice(12)}</tspan>}</text><title>{node.label}</title></g>
+    })}
+    {Object.entries(colors).map(([kind,color],index)=><g key={kind}><line x1={95+index*165} x2={120+index*165} y1="451" y2="451" stroke={color} strokeWidth="2"/><text x={126+index*165} y="455">{t(flowRelations[kind])}</text></g>)}
+  </svg>
+}
+
+function MechanismTable({chart}:{chart:DeliveryChart}) {
+  const nodes=chart.nodes||[],names=new Map(nodes.map(node=>[node.id,node.label]))
+  const refs=(ids?:string[])=>ids?.map(id=>`[${id.replace('citation:','')}]`).join(' ')
+  return <><table><thead><tr><th>{t('组件')}</th><th>{t('来源')}</th></tr></thead><tbody>{nodes.map(node=><tr key={node.id}><td>{node.label}</td><td>{refs(node.citation_ids)}</td></tr>)}</tbody></table>
+    <table><thead><tr><th>{t('起点')}</th><th>{t('关系')}</th><th>{t('终点')}</th><th>{t('说明')}</th><th>{t('来源')}</th></tr></thead><tbody>{chart.edges?.map((edge,index)=><tr key={index}><td>{names.get(edge.source)}</td><td>{t(flowRelations[edge.relation||'']||'关系')}</td><td>{names.get(edge.target)}</td><td>{edge.label}</td><td>{refs(edge.citation_ids)}</td></tr>)}</tbody></table></>
+}
 
 function EventTimeline({events,selected,choose}:{events:PublicationEvent[];selected:string;choose:(id:string)=>void}) {
   const lower=Math.min(...events.map(event=>Date.parse(event.lower))),upper=Math.max(...events.map(event=>Date.parse(event.upper)))
@@ -128,6 +164,10 @@ export function Chart({ chart, kind,skillId,expanded=false,renderTable }: { char
     const rows:unknown[][]=chart.events?.length
       ? [[t('成果'),t('日期下界'),t('日期上界'),t('日期精度'),t('日期类型'),t('机制'),t('来源')],
           ...chart.events.map(event=>[event.label,event.lower,event.upper,event.precision,event.date_kind,event.detail,event.citation_ids.join(' ')])]
+      : chart.kind==='flow' ? [[t('类型'),t('起点'),t('关系'),t('终点'),t('说明'),t('来源')],
+          ...nodes.map(node=>[t('组件'),node.label,'','','',(node.citation_ids||[]).join(' ')]),
+          ...edges.map(edge=>[t('连线'),nodes.find(node=>node.id===edge.source)?.label,edge.relation,
+            nodes.find(node=>node.id===edge.target)?.label,edge.label,(edge.citation_ids||[]).join(' ')])]
       : chart.rows
       ? [[...(chart.columns||[]),t("来源")],...chart.rows.map(row=>[...row.values,row.citation_ids.join(' ')])]
       : points.length ? [[t("条目"),chart.unit_label],...points.map(point=>[point.label,point.value])]
@@ -157,7 +197,7 @@ export function Chart({ chart, kind,skillId,expanded=false,renderTable }: { char
     </table></div>)}
     {chart.truncated && <p>{t("图中展示前")}{points.length || edges.length}{t("项，共")}{chart.total_points || chart.total_edges}{t("项。")}</p>}
     {!asset && kind !== 'table' && !chart.rows && <div className="chart-frame">
-      {kind==='timeline'&&chart.events?.length ? <EventTimeline events={chart.events} selected={selected} choose={choose}/>
+      {kind==='flow'?<MechanismDiagram chart={chart}/>:kind==='timeline'&&chart.events?.length ? <EventTimeline events={chart.events} selected={selected} choose={choose}/>
       : kind === 'network' ? <svg viewBox="0 0 760 450" role="img" aria-label={chart.title}>
         {edges.map((edge, index) => {
           const from = positions.get(edge.source), to = positions.get(edge.target)
@@ -202,7 +242,7 @@ export function Chart({ chart, kind,skillId,expanded=false,renderTable }: { char
     {selected && <p data-chart-selection role="status">{chart.events?.find(event=>event.event_id===selected)?.label||nodes.find(node => node.id === selected)?.label || selected}
       {selectedPoint && `：${selectedPoint.value === null ? t("未覆盖") : selectedPoint.value}`}</p>}
     {!chart.rows && <details data-chart-table={kind==='table'?'true':undefined} open={kind === 'table'}><summary>{t("查看图表数据")}</summary>
-      {chart.events?.length ? <EventTable events={chart.events}/>:renderTable?renderTable(chart):<>{points.length > 0 && <div style={{overflowX:'auto'}}><table><thead><tr><th>{t("条目")}</th><th>{chart.unit_label}</th></tr></thead><tbody>
+      {chart.kind==='flow'?<MechanismTable chart={chart}/>:chart.events?.length ? <EventTable events={chart.events}/>:renderTable?renderTable(chart):<>{points.length > 0 && <div style={{overflowX:'auto'}}><table><thead><tr><th>{t("条目")}</th><th>{chart.unit_label}</th></tr></thead><tbody>
         {points.map((point,index) => <tr key={index}><td>{point.label}</td><td>{point.value === null ? t("未覆盖") : point.value}</td></tr>)}
       </tbody></table></div>}
       {edges.length > 0 && <table><thead><tr><th>{t("关系观察")}</th><th>{t("参与方")}</th><th>{t("状态与依据")}</th></tr></thead><tbody>{edges.map((edge,index)=><tr key={index}>

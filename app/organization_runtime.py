@@ -22,6 +22,7 @@ from app.organization_deep_dive import VERSION as TECHNICAL_POLICY_VERSION,READI
 from app.report_material_packets import POLICY as READER_MATERIAL_POLICY,COVERAGE_POLICY as READER_COVERAGE_POLICY,DOCUMENT_POLICY as READER_DOCUMENT_POLICY
 from app.organization_trends import VERSION as TREND_POLICY_VERSION
 from app.report_timeline import POLICY as PUBLICATION_EVENT_POLICY
+from app.report_mechanisms import POLICY as MECHANISM_GRAPH_POLICY
 from app.organization_actions import ActionRequirements, VERSION as ACTION_POLICY_VERSION
 from app.organization_statistics import VERSION as STATISTICS_POLICY_VERSION
 
@@ -72,6 +73,7 @@ def freeze_organization_request(request: OrganizationResearchRequest | None, sel
         'schema_version': 'adrs-organization-run-v8',
         'publication_metadata_policy':'adrs-publication-fields-v4',
         'publication_event_policy':PUBLICATION_EVENT_POLICY,
+        'mechanism_graph_policy':MECHANISM_GRAPH_POLICY,
         'analysis_phase_policy':'adrs-analysis-phase-output-v1',
         'statistics_policy_version': STATISTICS_POLICY_VERSION,
         'action_policy_version': ACTION_POLICY_VERSION,

@@ -10,6 +10,7 @@ from urllib.parse import quote
 from pydantic import Field
 from app.research_scope import Identifier, ScopeRecord
 from app.organization_relationships import RelationProof
+from app.report_mechanisms import POLICY as MECHANISM_POLICY,MechanismProposal,locate_graph
 
 VERSION='adrs-technical-cards-v1'
 FIELDS={'problem':'研究问题','prior_limitations':'已有方法局限','method_overview':'方法概览','mechanism':'机制／架构',
@@ -85,6 +86,7 @@ class TechnicalCardProposal(ScopeRecord):
     fields:dict[FieldName,TechnicalStatement]=Field(default_factory=dict,max_length=10)
     figure_references:tuple[FigureReference,...]=Field(default=(),max_length=20)
     reading_contract:ReadingContractProposal|None=None
+    mechanism_graph:MechanismProposal|None=None
 
 
 class TechnicalPreviewRequest(ScopeRecord):
@@ -131,7 +133,10 @@ def build_technical_cards(configuration,findings,evidence,proposals=None):
             if not isinstance(value,dict):raise ValueError('technical_card_expected_object')
             # Validate fields independently: a malformed optional field must
             # not erase other source-located knowledge in this work's card.
-            card=TechnicalCardProposal.model_validate({**value,'fields':{},'figure_references':[],'reading_contract':None})
+            card=TechnicalCardProposal.model_validate({**value,'fields':{},'figure_references':[],'reading_contract':None,'mechanism_graph':None})
+            if configuration.get('mechanism_graph_policy')==MECHANISM_POLICY and value.get('mechanism_graph') is not None:
+                try:card=card.model_copy(update={'mechanism_graph':MechanismProposal.model_validate(value['mechanism_graph'])})
+                except ValueError as error:pending.append({'output_id':card.output_id,'kind':'mechanism_graph','reason':str(error)[:400]})
             if configuration.get('reading_field_policy')==READING_FIELD_POLICY and value.get('reading_contract') is not None:
                 try:card=card.model_copy(update={'reading_contract':ReadingContractProposal.model_validate(value['reading_contract'])})
                 except ValueError as error:pending.append({'output_id':card.output_id,'kind':'reading_contract','reason':str(error)[:400]})
@@ -219,11 +224,27 @@ def build_technical_cards(configuration,findings,evidence,proposals=None):
             try:
                 anchor=locate(item.proof,output,True)
                 if not re.search(source_pattern(item.label,configuration),anchor['quote'],re.I):raise ValueError('figure_label_absent_from_source_quote')
-                if item.page is not None and item.page not in anchor['pages']:raise ValueError('figure_page_not_supported_by_pdf_offsets')
-                figures.append({'label':item.label,'proof':anchor,'page':item.page,'asset_status':'source_reference_only_not_image_acquired',
-                    'source_url':anchor['source_url']+(f'#page={item.page}' if item.page else ''),'origin':'original_source_reference_not_system_generated_chart'})
+                page=item.page
+                if page is not None and page not in anchor['pages']:
+                    if configuration.get('mechanism_graph_policy')!=MECHANISM_POLICY:raise ValueError('figure_page_not_supported_by_pdf_offsets')
+                    page=anchor['pages'][0] if len(anchor['pages'])==1 else None
+                    pending.append({'output_id':output_id,'kind':'figure_reference_page_normalized','reason':'actual_source_page_used'})
+                figures.append({'label':item.label,'proof':anchor,'page':page,'asset_status':'source_reference_only_not_image_acquired',
+                    'source_url':anchor['source_url']+(f'#page={page}' if page else ''),'origin':'original_source_reference_not_system_generated_chart'})
             except ValueError as error:pending.append({'output_id':output_id,'kind':'figure_reference','reason':str(error)})
+        graph=None
+        if configuration.get('mechanism_graph_policy')==MECHANISM_POLICY:
+            graph={'policy':MECHANISM_POLICY,'status':'insufficient_evidence','reason':'structured_mechanism_not_acquired'}
+            if proposal and proposal.mechanism_graph:
+                try:graph=locate_graph(proposal.mechanism_graph,output,locate)
+                except ValueError as error:graph['reason']=str(error)
+            if graph.get('status')=='source_figure_requested':
+                from app.report_mechanisms import figure_label_key
+                original=next((item for item in figures if figure_label_key(item['label'])==figure_label_key(graph['figure_label'])),None)
+                if original:graph['original_reference']=original
+                else:graph.update(status='insufficient_evidence',reason='mechanism_original_caption_reference_missing')
         cards.append({'output_id':output_id,'title':output['title'],'source_urls':output['source_urls'],
+            **({'mechanism_graph':graph} if graph is not None else {}),
             **({'reading_contract':reading_contract} if reading_contract is not None else {}),
             'reading_depth':'full_text_source_with_bounded_context' if full else 'abstract_metadata_only',
             'full_text_available':full,'model_read_entire_document':False,'fields':fields,'figure_references':figures,
@@ -274,6 +295,9 @@ def reconcile_retained_technical(configuration,findings,evidence,workflow):
                 target['fields'][name]={**field,'retained_phase':phase}
             for figure in candidate['figure_references']:
                 if figure not in target['figure_references']:target['figure_references'].append(figure)
+            graph=candidate.get('mechanism_graph') or {}
+            if graph.get('status') in {'source_located_requires_semantic_review','source_figure_requested'}:target['mechanism_graph']=deepcopy(graph)
+            elif 'mechanism_graph' not in target and graph:target['mechanism_graph']=deepcopy(graph)
             target['unknown_fields']=[name for name,field in target['fields'].items() if field['status']=='unknown']
     if not phases:return previous
     for card in cards.values():
@@ -289,7 +313,7 @@ def reconcile_retained_technical(configuration,findings,evidence,workflow):
 
 def technical_context(view):
     if not view:return None
-    return {'schema_version':view['schema_version'],'cards':[{**row,
+    return {'schema_version':view['schema_version'],'cards':[{**{key:value for key,value in row.items() if key!='mechanism_graph'},
         **({'reading_contract':reading_contract_context(row['reading_contract'])} if row.get('reading_contract') else {})}
         for row in view['cards'][:20]],
         'retained_card_count':len(view['cards']),'pending_records':view['pending_records'][:10],'gaps':view['gaps'],

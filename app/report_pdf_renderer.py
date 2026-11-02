@@ -106,7 +106,7 @@ def referenced_charts(charts,images,figure_refs):
                 body+='</tr>'
             body+='</table>'
         else:
-            if kind not in {'bar','line','network'}:raise ValueError('pdf_plot_kind_unsupported')
+            if kind not in {'bar','line','network','flow'}:raise ValueError('pdf_plot_kind_unsupported')
             rendered=render_figures({'charts':[chart],'plan':{'figures':[{
                 'chart_id':chart['chart_id'],'kind':kind,'width':6.5,'height':5,
                 'dpi':180,'palette':'colorblind'}]}})
@@ -115,6 +115,14 @@ def referenced_charts(charts,images,figure_refs):
             size=asset['size_inches'];height=470*size['height']/size['width']
             body+=f'<img src="{name}" width="470" height="{height}"/>'
             body+='<p>'+inline(' '.join(asset['notes']))+'</p>'
+            if kind=='flow':
+                labels={node['id']:node['label'] for node in chart['nodes']}
+                relations={'data_flow':'数据流','control_flow':'控制流','dependency':'依赖','feedback':'反馈'}
+                for node in chart['nodes']:
+                    body+='<p>'+escape('组件：'+node['label'])+' '+inline(' '.join('['+ref.replace('citation:','')+']' for ref in node['citation_ids']))+'</p>'
+                for edge in chart['edges']:
+                    body+='<p>'+escape(labels[edge['source']]+' → '+labels[edge['target']]+'；'+relations[edge['relation']]
+                        +'：'+edge['label'])+' '+inline(' '.join('['+ref.replace('citation:','')+']' for ref in edge['citation_ids']))+'</p>'
         if chart.get('note'):body+='<p>'+inline(chart['note'])+'</p>'
         if chart.get('truncated'):
             shown=len(chart.get('points') or chart.get('edges') or [])
