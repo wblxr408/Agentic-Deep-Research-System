@@ -58,9 +58,32 @@ def referenced_charts(charts,images,figure_refs):
     for index,chart in enumerate(charts):
         kind=chart['pdf_presentation']
         body+='<h3>'+inline(chart['title'])+'</h3>'
-        if kind=='table':
+        if kind=='timeline':
+            from app.report_timeline import PANEL_SIZE
+            events=chart.get('events') or []
+            if not events or len(events)>1000:raise ValueError('pdf_timeline_event_count_invalid')
+            lower=min(event['lower'] for event in events);upper=max(event['upper'] for event in events)
+            for offset in range(0,len(events),PANEL_SIZE):
+                panel={**chart,'events':events[offset:offset+PANEL_SIZE],'axis_lower':lower,'axis_upper':upper}
+                rendered=render_figures({'charts':[panel],'plan':{'figures':[{
+                    'chart_id':chart['chart_id'],'kind':'timeline','width':8,'height':6,'dpi':180,'palette':'colorblind'}]}})
+                asset=rendered['assets'][0];name=f'chart-{index}-events-{offset}.png'
+                images[name]=base64.b64decode(asset['png'].split(',',1)[1],validate=True)
+                body+=f'<img src="{name}" width="470" height="352.5"/>'
+                body+='<p>'+inline(f'事件{offset+1}—{min(offset+PANEL_SIZE,len(events))}／{len(events)}；所有分面使用同一时间范围。')+'</p>'
+                for event in panel['events']:
+                    date_kind='预印本版本日期' if event['date_kind']=='preprint_version' else '发表日期'
+                    refs=' '.join('['+ref.replace('citation:','')+']' for ref in event['citation_ids'])
+                    body+='<p>'+inline(event['label']+'；'+date_kind+'：'+event['date_label']+'。 '+refs)+'</p>'
+                    if event.get('detail'):body+='<p>'+inline('机制：'+event['detail'])+'</p>'
+        elif kind=='table':
             columns=chart.get('columns') or [];rows=chart.get('rows') or []
-            if not rows and chart.get('points'):
+            if not rows and chart.get('events'):
+                columns=['成果','日期与口径','机制']
+                rows=[{'values':[event['label'],event['date_label']+'；'+
+                    ('预印本版本日期' if event['date_kind']=='preprint_version' else '发表日期'),event.get('detail') or '未取得机制说明'],
+                    'citation_ids':event['citation_ids']} for event in chart['events']]
+            elif not rows and chart.get('points'):
                 columns=['条目',chart['unit_label']]
                 rows=[{'values':[point['label'],'未覆盖' if point.get('value') is None else str(point['value'])],
                     'citation_ids':chart.get('citation_ids') or []} for point in chart['points']]

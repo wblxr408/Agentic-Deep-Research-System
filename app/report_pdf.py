@@ -21,7 +21,9 @@ def project_pdf_view(charts,pages,policy):
     for request in requests:
         source=request['source_chart_id'];kind=request['presentation']
         rows=request.get('rows') or [];points=request.get('points') or []
-        valid=(kind=='table' and bool(rows or points or request.get('edges'))
+        valid=(kind=='table' and bool(rows or points or request.get('edges') or request.get('events'))
+            or kind=='timeline' and bool(request.get('events'))
+                and request.get('event_policy')=='adrs-source-publication-events-v1'
             or kind=='bar' and bool(points) and not rows
             or kind=='line' and source=='annual_publications' and bool(points)
             or kind=='network' and bool(request.get('nodes')) and len(request['nodes'])<=24

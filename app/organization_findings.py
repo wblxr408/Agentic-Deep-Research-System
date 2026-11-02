@@ -328,7 +328,7 @@ def build_organization_findings(configuration: dict | None, evidence: list[dict]
     if not proposed:
         pending.append({'kind': 'extraction', 'reason': 'No structured extraction available; empty sample counts do not establish absence of real outputs.'})
 
-    def check(proof: Proof):
+    def check(proof: Proof, *, retain=False):
         source = sources.get(proof.evidence_id)
         if source is None:
             raise ValueError('unknown or unavailable evidence ID')
@@ -347,7 +347,7 @@ def build_organization_findings(configuration: dict | None, evidence: list[dict]
                    'start': match.start(), 'end': match.end(), 'quote': match.group()}
         if checked not in proofs:
             proofs.append(checked)
-        return source
+        return checked if retain else source
 
     def records(key, model, limit):
         values = proposed.get(key, [])
@@ -472,9 +472,10 @@ def build_organization_findings(configuration: dict | None, evidence: list[dict]
                 provider_fields = _publisher_date_fields(source, publication.title, publication.publication_date)
             date_evidence_id = publication.title_proof.evidence_id
             date_basis = 'publisher_fields'
+            date_anchors=[]
             if provider_fields:
                 for field in provider_fields:
-                    check(Proof(evidence_id=date_evidence_id, quote=field))
+                    date_anchors.append(check(Proof(evidence_id=date_evidence_id, quote=field),retain=True))
             else:
                 if publication.date_proof is None:
                     raise ValueError('publication date has no publisher fields or literal proof')
@@ -493,6 +494,13 @@ def build_organization_findings(configuration: dict | None, evidence: list[dict]
                         publication.date_proof.quote,re.I):
                     date_basis = 'literal_preprint_version_date_not_first_release'
                 date_evidence_id = publication.date_proof.evidence_id
+                date_anchors.append(check(publication.date_proof,retain=True))
+            event_binding=None
+            if configuration.get('publication_event_policy')=='adrs-source-publication-events-v1':
+                event_binding={'policy':configuration['publication_event_policy'],'title':publication.title,
+                    'lower':lower.isoformat(),'upper':upper.isoformat(),'precision':precision,'basis':date_basis,
+                    'title_proof':check(Proof(evidence_id=publication.title_proof.evidence_id,quote=publication.title),retain=True),
+                    'date_proofs':date_anchors}
             from app.organization_corpus import date_membership, PUBLICATION_ALIAS_VERSIONS
             membership = date_membership(lower, upper, scope.start_date, scope.end_date)
             if membership != 'within':
@@ -695,6 +703,7 @@ def build_organization_findings(configuration: dict | None, evidence: list[dict]
                 publications[publication.output_id] = updated
                 meta = publication_meta[previous.output_id]
                 meta['evidence_ids'] = sorted(set(meta['evidence_ids']) | evidence_ids)
+                if event_binding and not meta.get('publication_event'):meta['publication_event']=event_binding
                 if ((configuration.get('corpus') or {}).get('collection_mode')=='rag_corpus'):
                     meta['primary_evidence_ids']=sorted(set(meta.get('primary_evidence_ids',[])) | {publication.title_proof.evidence_id})
                 if field_policy and meta.get('output_type') is None and output_type is not None:
@@ -727,6 +736,7 @@ def build_organization_findings(configuration: dict | None, evidence: list[dict]
                 'identity_basis': 'explicit_primary_cover_link' if identity_links else 'primary_source_url',
                 'canonical_primary_url': key, 'identity_links': identity_links,
                 'date_basis': date_basis, 'proposed_publication_date': publication.publication_date}
+            if event_binding:publication_meta[output.output_id]['publication_event']=event_binding
             if version_identity:
                 publication_meta[output.output_id].update(
                     work_id=f"arxiv:{version_identity['arxiv_id']}",

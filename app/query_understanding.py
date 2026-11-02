@@ -372,8 +372,10 @@ def interpret_query(query: str, options: QueryOptions, delivery: DeliveryRequest
     delivery_snapshot['source_media_policy']='adrs-source-media-v2'
     from app.report_pdf import PDF_CHART_POLICY
     delivery_snapshot['pdf_chart_policy']=PDF_CHART_POLICY
+    from app.report_timeline import POLICY as EVENT_TIMELINE_POLICY
+    delivery_snapshot['event_timeline_policy']=EVENT_TIMELINE_POLICY
     delivery_snapshot['descriptor_id']=identity({'configuration':delivery.model_dump(mode='json'),
-        'pdf_chart_policy':PDF_CHART_POLICY})
+        'pdf_chart_policy':PDF_CHART_POLICY,'event_timeline_policy':EVENT_TIMELINE_POLICY})
     if delivery.drawing_mode!='builtin':
         delivery_snapshot['renderer_status']='trusted_matplotlib_pending' if drawing_policy['status']=='ready' else 'drawing_configuration_blocked'
         if drawing_policy['status']!='ready':

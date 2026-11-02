@@ -3199,7 +3199,8 @@ async def report_node(state: ResearchState) -> dict:
                 budget=agent.request_budget,source_spans=reading_source_spans(
                     (organization_result or {}).get('technical_reading'),evidence_list,state.get('analysis_workflow')),
                 previous=(organization_result or {}).get('surface_review'),
-                review_scope=(agent.last_audit or {}).get('review_scope'),report_audit=agent.last_audit)
+                review_scope=(agent.last_audit or {}).get('review_scope'),report_audit=agent.last_audit,
+                findings=organization_result)
         except TokenBudgetExceeded as error:
             surfaces={'policy':'adrs-report-surfaces-v1','passed':False,'status':'incomplete','reason':error.reason}
         finally:agent.last_usage=agent.request_budget.usage()
@@ -3233,7 +3234,7 @@ async def report_node(state: ResearchState) -> dict:
                         budget=agent.request_budget,source_spans=reading_source_spans(
                             (organization_result or {}).get('technical_reading'),evidence_list,state.get('analysis_workflow')),
                         previous=surfaces,review_scope=(agent.last_audit or {}).get('review_scope'),
-                        report_audit=agent.last_audit)
+                        report_audit=agent.last_audit,findings=organization_result)
             except TokenBudgetExceeded as error:
                 surfaces={**surfaces,'passed':False,'status':'incomplete','repair_reason':error.reason}
             finally:agent.last_usage=agent.request_budget.usage()

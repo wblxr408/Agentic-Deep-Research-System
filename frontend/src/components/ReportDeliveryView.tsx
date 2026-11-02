@@ -7,6 +7,11 @@ import SourcePageGallery from './SourcePageGallery'
 import type {SourcePage} from './SourcePageGallery'
 
 interface Point { label: string; value: number | null; metric_id?: string | null }
+interface PublicationEvent {
+  event_id:string;label:string;lower:string;upper:string;precision:string;date_label:string
+  date_kind:string;date_basis:string;detail:string;citation_ids:string[]
+  date_binding:{date_proofs:Array<{source_url:string;quote:string}>}
+}
 interface RelationEdge {
   source: string; target: string; label: string; kind?: string; status?: string
   citation_ids?:string[]
@@ -20,6 +25,7 @@ export interface DeliveryChart {
   snapshot_id?: string | null; points?: Point[]; total_points?: number; total_edges?: number; truncated?: boolean
   nodes?: Array<{ id: string; label: string }>; edges?: RelationEdge[]; note: string
   citation_ids?: string[]
+  events?:PublicationEvent[];total_events?:number
   columns?: string[]; rows?: Array<{ values: string[]; citation_ids: string[] }>
 }
 export interface DeliveryView {
@@ -65,6 +71,44 @@ export const deliveryStyles = `
 .adrs-delivery pre{max-height:none;overflow:visible}.adrs-delivery figure{break-inside:avoid}}
 `
 
+function EventTimeline({events,selected,choose}:{events:PublicationEvent[];selected:string;choose:(id:string)=>void}) {
+  const lower=Math.min(...events.map(event=>Date.parse(event.lower))),upper=Math.max(...events.map(event=>Date.parse(event.upper)))
+  if(!Number.isFinite(lower)||!Number.isFinite(upper))return <p className="gap">{t('时间轴日期不可用')}</p>
+  const span=Math.max(86400000,upper-lower),x=(date:string)=>250+(Date.parse(date)-lower)/span*450
+  return <>{Array.from({length:Math.ceil(events.length/8)},(_,panel)=>{
+    const rows=events.slice(panel*8,panel*8+8),height=rows.length*64+65
+    return <div key={panel}>
+      <svg viewBox={`0 0 760 ${height}`} role="img" aria-label={`${t('发表事件时间轴')} ${panel+1}`} style={{width:'100%',minWidth:650}}>
+        <line x1="250" x2="700" y1="27" y2="27" stroke="var(--accent)"/>
+        <text x="250" y="18">{events.find(event=>Date.parse(event.lower)===lower)?.lower}</text>
+        <text x="700" y="18" textAnchor="end">{events.find(event=>Date.parse(event.upper)===upper)?.upper}</text>
+        {rows.map((event,index)=>{
+          const y=70+index*64,start=x(event.lower),end=x(event.upper)
+          return <g key={event.event_id} role="button" tabIndex={0} aria-label={`${event.label} ${event.date_label}`}
+            aria-pressed={selected===event.event_id} onClick={()=>choose(event.event_id)}
+            onKeyDown={key=>{if(key.key==='Enter'||key.key===' '){key.preventDefault();choose(event.event_id)}}}>
+            <title>{event.label} · {event.date_label}{event.detail?' · '+event.detail:''}</title>
+            <text x="240" y={y+4} textAnchor="end">{event.label.slice(0,18)}{event.label.length>18?'…':''}</text>
+            <line x1={start} x2={end} y1={y} y2={y} stroke="var(--accent)" strokeWidth={selected===event.event_id?8:5}/>
+            <circle cx={start} cy={y} r="4" fill="var(--accent)"/>
+            <text x={start>570?700:start} y={y+23} textAnchor={start>570?'end':'start'}>{event.date_label}{event.date_kind==='preprint_version'?' · '+t('预印本版本'):''}</text>
+          </g>
+        })}
+      </svg>
+      <p>{panel*8+1}—{Math.min((panel+1)*8,events.length)}／{events.length} · {t('各分面使用同一时间范围；横线表示日期精度范围，不连接事件。')}</p>
+    </div>
+  })}</>
+}
+
+function EventTable({events}:{events:PublicationEvent[]}) {
+  return <table><thead><tr><th>{t('成果')}</th><th>{t('日期与口径')}</th><th>{t('机制')}</th><th>{t('来源')}</th></tr></thead>
+    <tbody>{events.map(event=><tr key={event.event_id}><td>{event.label}</td><td>{event.date_label}<br/>
+      {t(event.date_kind==='preprint_version'?'预印本版本日期':'发表日期')}</td><td>{event.detail||t('未取得机制说明')}</td>
+      <td>{event.citation_ids.map(id=>`[${id.replace('citation:','')}]`).join(' ')}
+        <details><summary>{t('日期依据')}</summary>{event.date_binding.date_proofs.map((proof,index)=><p key={index}>{proof.quote}<br/><SafeSource url={proof.source_url}/></p>)}</details>
+      </td></tr>)}</tbody></table>
+}
+
 export function Chart({ chart, kind,skillId,expanded=false,renderTable }: { chart: DeliveryChart; kind: string;skillId?:string;expanded?:boolean;renderTable?:(chart:DeliveryChart)=>ReactNode }) {
   useLocale()
 
@@ -81,7 +125,10 @@ export function Chart({ chart, kind,skillId,expanded=false,renderTable }: { char
   const selectedPoint = points.find(point => point.label === selected)
   const asset=chart.rendered_assets?.find(item=>item.presentation===kind&&item.drawing_skill_id===skillId)
   function downloadData() {
-    const rows:unknown[][]=chart.rows
+    const rows:unknown[][]=chart.events?.length
+      ? [[t('成果'),t('日期下界'),t('日期上界'),t('日期精度'),t('日期类型'),t('机制'),t('来源')],
+          ...chart.events.map(event=>[event.label,event.lower,event.upper,event.precision,event.date_kind,event.detail,event.citation_ids.join(' ')])]
+      : chart.rows
       ? [[...(chart.columns||[]),t("来源")],...chart.rows.map(row=>[...row.values,row.citation_ids.join(' ')])]
       : points.length ? [[t("条目"),chart.unit_label],...points.map(point=>[point.label,point.value])]
       : [[t("起点"),t("终点"),t("关系"),t("来源")],...edges.map(edge=>[nodes.find(node=>node.id===edge.source)?.label||edge.source,nodes.find(node=>node.id===edge.target)?.label||edge.target,edge.label,(edge.proofs||[]).map(proof=>proof.source_url).join(' ')])]
@@ -110,7 +157,8 @@ export function Chart({ chart, kind,skillId,expanded=false,renderTable }: { char
     </table></div>)}
     {chart.truncated && <p>{t("图中展示前")}{points.length || edges.length}{t("项，共")}{chart.total_points || chart.total_edges}{t("项。")}</p>}
     {!asset && kind !== 'table' && !chart.rows && <div className="chart-frame">
-      {kind === 'network' ? <svg viewBox="0 0 760 450" role="img" aria-label={chart.title}>
+      {kind==='timeline'&&chart.events?.length ? <EventTimeline events={chart.events} selected={selected} choose={choose}/>
+      : kind === 'network' ? <svg viewBox="0 0 760 450" role="img" aria-label={chart.title}>
         {edges.map((edge, index) => {
           const from = positions.get(edge.source), to = positions.get(edge.target)
           return from && to ? <line data-chart-edge key={index} x1={from.x} y1={from.y} x2={to.x} y2={to.y}
@@ -151,10 +199,10 @@ export function Chart({ chart, kind,skillId,expanded=false,renderTable }: { char
       </svg>}
     </div>}
     {points.length > 30 && kind === 'bar' && <p>{t("条形图展示前30项，数据表保留本视图全部条目。")}</p>}
-    {selected && <p data-chart-selection role="status">{nodes.find(node => node.id === selected)?.label || selected}
+    {selected && <p data-chart-selection role="status">{chart.events?.find(event=>event.event_id===selected)?.label||nodes.find(node => node.id === selected)?.label || selected}
       {selectedPoint && `：${selectedPoint.value === null ? t("未覆盖") : selectedPoint.value}`}</p>}
     {!chart.rows && <details data-chart-table={kind==='table'?'true':undefined} open={kind === 'table'}><summary>{t("查看图表数据")}</summary>
-      {renderTable?renderTable(chart):<>{points.length > 0 && <div style={{overflowX:'auto'}}><table><thead><tr><th>{t("条目")}</th><th>{chart.unit_label}</th></tr></thead><tbody>
+      {chart.events?.length ? <EventTable events={chart.events}/>:renderTable?renderTable(chart):<>{points.length > 0 && <div style={{overflowX:'auto'}}><table><thead><tr><th>{t("条目")}</th><th>{chart.unit_label}</th></tr></thead><tbody>
         {points.map((point,index) => <tr key={index}><td>{point.label}</td><td>{point.value === null ? t("未覆盖") : point.value}</td></tr>)}
       </tbody></table></div>}
       {edges.length > 0 && <table><thead><tr><th>{t("关系观察")}</th><th>{t("参与方")}</th><th>{t("状态与依据")}</th></tr></thead><tbody>{edges.map((edge,index)=><tr key={index}>

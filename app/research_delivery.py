@@ -131,6 +131,17 @@ def build_delivery_view(*, task_id: str, execution_id: str | None, query: str, r
     stats_id = statistics.get('snapshot_id')
     all_sources = deepcopy(summary.get('sources') or [])
     used={'citation:'+number for number in re.findall(r'\[citation:(\d+)\]',report)}
+    timeline=None;visual_issues=[]
+    from app.report_timeline import POLICY as EVENT_POLICY,build_timeline
+    timeline_enabled=(frozen.get('event_timeline_policy')==EVENT_POLICY
+        and frozen.get('drawing_mode','builtin')=='builtin' and frozen.get('layout') is None
+        and 'evolution' in (((understanding or {}).get('slots') or {}).get('modules') or [])
+        and (template!='custom' or any(page.get('module')=='evolution'
+            and page.get('chart_kind','auto') in {'auto','timeline','table'} for page in frozen.get('pages') or [])))
+    if timeline_enabled:
+        timeline,missing=build_timeline(result,citations,used)
+        visual_issues=[{'location':row['output_id'],'reason':row['reason']} for row in missing]
+        if timeline:used.update(timeline['citation_ids'])
     citations = deepcopy([row for row in citations if row.get('citation_id') in used]) if used else deepcopy(citations)
     reader_report = report_for_reading(report, citations)
     sections = _sections(reader_report)
@@ -164,6 +175,7 @@ def build_delivery_view(*, task_id: str, execution_id: str | None, query: str, r
     # Provenance of a chart dataset is not an assertion that every citation
     # independently supports every bar. Metric member IDs remain authoritative.
     charts = []
+    if timeline:charts.append(timeline)
     technical_rows = []
     fields = [('problem', '问题'), ('mechanism', '机制'), ('conditions', '实验条件'), ('results', '来源结果')]
     for card in (result.get('technical_reading') or {}).get('cards', [])[:20]:
@@ -258,13 +270,14 @@ def build_delivery_view(*, task_id: str, execution_id: str | None, query: str, r
     elif template == 'markdown-v1':
         specs = [{'page_id': f'section-{index+1}', 'title': section['title'],
             '_section': index, 'chart_kind': 'none'} for index, section in enumerate(sections)]
-        if pdf_projection:
+        if pdf_projection or timeline_enabled:
             from app.organization_purpose import MODULES
             owned={_heading_key(MODULES[row['module_id']][0]):row['module_id']
                 for row in (result.get('module_report') or {}).get('modules',[]) if row['module_id'] in MODULES}
             for spec in specs:
                 module=owned.get(_heading_key(spec['title']))
-                if module:spec.update(module=module,chart_kind='auto')
+                if module and (pdf_projection or module=='evolution'):
+                    spec.update(module=module,chart_kind='auto')
     else:
         ordering = PRESET_MODULES.get(template, tuple(MODULE_LABELS))
         ordered_modules = [module for module in ordering if module in selected_modules]
@@ -304,13 +317,16 @@ def build_delivery_view(*, task_id: str, execution_id: str | None, query: str, r
             used_metrics={binding['metric_id'] for paragraph in [*report_module.get('paragraphs',[]),
                 *report_module.get('appendix',[])] for binding in paragraph.get('statistic_bindings',[])}
             applicable=[chart for chart in applicable if chart['kind'] in {'table','matrix','network'}
-                or used_metrics.intersection(chart.get('metric_ids',[]))]
+                or chart.get('kind')=='timeline' or used_metrics.intersection(chart.get('metric_ids',[]))]
         chosen = []
         if requested_kind != 'none':
             if requested_kind in ('auto', 'table'):
                 chosen = applicable
+            elif requested_kind=='timeline' and timeline_enabled:
+                chosen=[chart for chart in applicable if chart['kind']=='timeline']
             elif requested_kind in ('bar', 'line', 'timeline'):
                 chosen = [chart for chart in applicable if chart['kind'] != 'network'
+                    and chart['kind']!='timeline'
                     and (requested_kind == 'bar' or chart['chart_id'] == 'annual_publications')]
             elif requested_kind == 'network':
                 chosen = [chart for chart in applicable if chart['kind'] == 'network']
@@ -390,7 +406,7 @@ def build_delivery_view(*, task_id: str, execution_id: str | None, query: str, r
             surface_binding(charts,source_media if source_media is not None else result.get('source_media')))
     view = {'schema_version': VERSION, 'task_id': task_id, 'execution_id': execution_id,
         'delivery_complete': surface_ok and reader_quality_ok and not bool((result.get('module_report') or {}).get('issues'))
-            and not pdf_issues
+            and not pdf_issues and not visual_issues
             and drawing['status'] in {'ready','rendered','not_needed'}
             and not (layout_binding and layout_binding['required_missing'])
             and bool(audit) and not audit.get('needs_review',True) and not audit.get('audit_incomplete',False),
@@ -401,9 +417,10 @@ def build_delivery_view(*, task_id: str, execution_id: str | None, query: str, r
             if re.search(r'^#\s+(.+)$', report, re.M) else query[:180]),
         'question':query, 'report_markdown': reader_report,
         'main_report_markdown': main_report, 'appendix_markdown': appendix_report,
-        'review_status':'draft_needs_review' if pdf_issues or not surface_ok or not reader_quality_ok or not audit or audit.get('needs_review',True) else 'automatic_review_completed_human_review_pending',
+        'review_status':'draft_needs_review' if pdf_issues or visual_issues or not surface_ok or not reader_quality_ok or not audit or audit.get('needs_review',True) else 'automatic_review_completed_human_review_pending',
         'pages': pages, 'charts': charts, 'drawing': drawing,
         **({'pdf_chart_policy':frozen['pdf_chart_policy'],'pdf_projection_issues':pdf_issues} if pdf_projection else {}),
+        **({'event_timeline_policy':EVENT_POLICY,'visualization_issues':visual_issues} if timeline_enabled else {}),
         'source_media':deepcopy(source_media or {'status':'not_loaded','pages':[]}),
         **({'layout_binding':layout_binding} if layout_binding is not None else {}),
         'sources': all_sources, 'citations': citations, 'audit': deepcopy(audit),
@@ -411,7 +428,8 @@ def build_delivery_view(*, task_id: str, execution_id: str | None, query: str, r
             [('relationships', 'relationship_view'), ('deep_dive', 'technical_reading'), ('evolution', 'trend_view'), ('actions', 'actions')]},
         'gaps': list(dict.fromkeys(str(gap) for gap in [*(summary.get('gaps') or []), *(result.get('gaps') or []),
             *(['未保存正文来源支持审核，不能把已生成报告标为已核实。'] if not audit else []),
-            *(['所需图表尚无可用的PDF表示，报告图文交付未完成。'] if pdf_issues else [])])),
+            *(['所需图表尚无可用的PDF表示，报告图文交付未完成。'] if pdf_issues else []),
+            *(['部分已引用成果缺少可用的时间轴日期依据，图文交付尚未完成。'] if visual_issues else [])])),
         'formats': [{'format': name, 'status': 'ready' if name in {'markdown', 'html', 'json','pdf'} else
             'adapter_unavailable',
             'alternative': 'browser_print_to_pdf' if name == 'pdf' else None,

@@ -20,22 +20,46 @@ def surface_binding(charts,media):
 
 
 def review_surfaces(view,media,evidence,*,statistics,client,model,budget,source_spans=None,previous=None,
-                    review_scope=None,report_audit=None):
+                    review_scope=None,report_audit=None,findings=None):
     charts=view.get('charts') or [];issues=[];paragraphs=[];locations={};page_spans={}
     issues.extend(view.get('pdf_projection_issues') or [])
+    issues.extend(view.get('visualization_issues') or [])
     retained_contexts={};retained_claims=[]
     refs={'citation:'+str(number) for number in range(1,len(evidence)+1)}
     def statement(text,citations,location,*,exact_context=None):
         valid=[key for key in citations if key in refs]
         if not valid and not review_scope:
             issues.append({'location':location,'reason':'surface_fact_has_no_source'});return
+        if view.get('event_timeline_policy'):valid=sorted(set(valid),key=lambda key:int(key.split(':')[1]))
         paragraph=exact_context or (' '.join(text.split())+' '+' '.join('['+key+']' for key in dict.fromkeys(valid)))
-        paragraphs.append(paragraph);locations[paragraph]=location
+        if paragraph not in locations or not view.get('event_timeline_policy'):paragraphs.append(paragraph)
+        locations[paragraph]=location
         return paragraph
     registry=(statistics or {}).get('metric_registry') or {}
     for chart in charts:
         key=chart['chart_id']
-        if chart.get('kind') in {'table','matrix'}:
+        if chart.get('event_policy')=='adrs-source-publication-events-v1':
+            from app.report_timeline import validate_event
+            events=chart.get('events') or []
+            event_ids=[event['event_id'] for event in events]
+            required=set(chart.get('required_event_ids') or [])
+            missing={row['output_id'] for row in chart.get('missing_events') or []}
+            if (not events or len(event_ids)!=len(set(event_ids)) or len(events)!=chart.get('total_events')
+                    or set(event_ids)!=required-missing):
+                issues.append({'location':key,'reason':'publication_event_coverage_changed'})
+            sources={row.evidence_id:row for row in evidence}
+            citation_sources={row['citation_id']:(row.get('locator') or {}).get('evidence_id')
+                for row in view.get('citations',[])}
+            for event in events:
+                location=key+':event:'+event['event_id']
+                try:validate_event(event,findings or {},sources,citation_sources)
+                except (ValueError,KeyError,TypeError) as error:
+                    issues.append({'location':location,'reason':str(error)[:200]});continue
+                if event.get('detail'):
+                    detail_sources={proof['evidence_id'] for proof in event['detail_proofs']}
+                    detail_refs=[ref for ref in event['citation_ids'] if citation_sources.get(ref) in detail_sources]
+                    statement(event['label']+'；机制：'+event['detail'],detail_refs,location)
+        elif chart.get('kind') in {'table','matrix'}:
             for index,row in enumerate(chart.get('rows',[])):
                 values=row.get('values') or []
                 for column,value in enumerate(values[1:],1):

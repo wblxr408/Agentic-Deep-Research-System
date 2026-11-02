@@ -8,6 +8,7 @@ import math
 import re
 import sys
 import textwrap
+from datetime import date
 
 import matplotlib
 matplotlib.use('Agg')
@@ -79,6 +80,31 @@ def render(payload):
                     ax.set_ylabel(label(chart['unit_label']));ax.set_xlabel('发表年份')
                     ax.set_ylim(bottom=0);ax.grid(alpha=.2)
                     if any(value is None for value in values):notes.append('缺失年份保留断点，不插值。')
+            elif kind=='timeline':
+                from matplotlib import dates as mdates
+                events=chart.get('events') or []
+                if not 1<=len(events)<=8:raise ValueError('timeline_panel_count_invalid')
+                lower=date.fromisoformat(chart['axis_lower']);upper=date.fromisoformat(chart['axis_upper'])
+                if lower>upper:raise ValueError('timeline_axis_bounds_invalid')
+                axis_start=mdates.date2num(lower);axis_end=mdates.date2num(upper)
+                padding=max(30,(axis_end-axis_start)*.04)
+                for index,event in enumerate(events):
+                    start=date.fromisoformat(event['lower']);end=date.fromisoformat(event['upper'])
+                    if not lower<=start<=end<=upper:raise ValueError('timeline_event_outside_axis')
+                    x1,x2=mdates.date2num(start),mdates.date2num(end)
+                    ax.hlines(index,x1,x2,color=color,linewidth=5,alpha=.75)
+                    ax.scatter([x1],[index],s=24,color=color,zorder=3)
+                    ax.annotate(label(event['date_label'],40),(x2,index),xytext=(4,0),textcoords='offset points',
+                        va='center',fontsize=8)
+                titles=[label(event['label'],54)+('…' if len(event['label'])>54 else '') for event in events]
+                ax.set_yticks(range(len(events)),labels=['\n'.join(textwrap.wrap(title,width=23)) for title in titles],fontsize=8)
+                ax.set_ylim(len(events)-.35,-.8);ax.set_xlim(axis_start-padding,axis_end+padding*4)
+                locator=mdates.AutoDateLocator(minticks=3,maxticks=6)
+                ax.xaxis.set_major_locator(locator);ax.xaxis.set_major_formatter(mdates.ConciseDateFormatter(locator))
+                ax.tick_params(axis='x',labelsize=8);ax.grid(axis='x',alpha=.2);ax.set_axisbelow(True)
+                ax.set_xlabel('发表日期区间；区间重叠不确定先后')
+                subset={'shown_events':len(events),'total_events':chart.get('total_events',len(events))}
+                notes.append('横线为原日期精度范围，圆点标记范围起点；不连接事件，不表示因果或继承。')
             elif kind=='network':
                 nodes=(chart.get('nodes') or [])[:24]
                 ids={item['id'] for item in nodes}
