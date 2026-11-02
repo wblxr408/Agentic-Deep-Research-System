@@ -13,6 +13,8 @@ ResearchPurpose = Literal['research_development', 'cooperation_discovery', 'comp
 ResearchModule = Literal['landscape', 'evolution', 'relationships', 'deep_dive', 'validation', 'actions']
 POLICY_VERSION = 'adrs-analysis-modules-v1'
 REPORT_MATERIAL_POLICY = 'adrs-owned-chapter-input-v1'
+REPORT_ASSEMBLY_POLICY = 'adrs-batched-report-assembly-v1'
+MAX_ASSEMBLED_PARAGRAPHS = 2048
 REPORT_WRITING_GUIDANCE = '''
 面向报告读者的写作要求：
 用自然、连贯的研究报告语言直接陈述发现、解释和建议，技术术语按读者理解需要说明。
@@ -96,6 +98,23 @@ class ModuleReportDraft(ScopeRecord):
     title: str = Field(min_length=1, max_length=300)
     summary: tuple[ModuleParagraph, ...] = Field(default=(), max_length=5)
     modules: tuple[ModuleDraft, ...] = Field(min_length=1, max_length=6)
+
+
+class AssembledModuleDraft(ModuleDraft):
+    """Bound the assembled artifact independently of each paid writing packet."""
+    paragraphs: tuple[ModuleParagraph, ...] = Field(min_length=1, max_length=MAX_ASSEMBLED_PARAGRAPHS)
+    appendix: tuple[ModuleParagraph, ...] = Field(default=(), max_length=MAX_ASSEMBLED_PARAGRAPHS)
+
+
+class AssembledModuleReportDraft(ModuleReportDraft):
+    modules: tuple[AssembledModuleDraft, ...] = Field(min_length=1, max_length=6)
+
+
+def report_draft_model(configuration=None):
+    policy=(configuration or {}).get('report_assembly_policy')
+    if policy is None:return ModuleReportDraft
+    if policy!=REPORT_ASSEMBLY_POLICY:raise ValueError('report_assembly_policy_unsupported')
+    return AssembledModuleReportDraft
 
 
 CHAPTER_RESPONSIBILITIES = {
@@ -229,7 +248,7 @@ def report_prose(text: str) -> str:
     return re.sub(r'([\\`*_{}\[\]()#+.!|>~-])', r'\\\1', escape(text, quote=False))
 
 
-def normalize_report_envelope(raw: str, selected: list[str], citation_count: int) -> tuple[str, list[dict]]:
+def normalize_report_envelope(raw: str, selected: list[str], citation_count: int, *, configuration=None) -> tuple[str, list[dict]]:
     """Preserve prose and reference identity for unambiguous format slips.
 
     No new paragraphs, sources, statistics or module IDs are generated. Unknown
@@ -259,7 +278,7 @@ def normalize_report_envelope(raw: str, selected: list[str], citation_count: int
         candidate={'title':value['title'],'summary':value['summary'],
             'modules':[{'module_id':key,**value[key]} for key in selected]}
         try:
-            draft=ModuleReportDraft.model_validate(candidate)
+            draft=report_draft_model(configuration).model_validate(candidate)
             proof_paragraphs=[*draft.summary,*[paragraph for module in draft.modules
                 for paragraph in (*module.paragraphs,*module.appendix)]]
             valid_references=all(number<=citation_count for paragraph in proof_paragraphs for number in paragraph.citations)
@@ -300,7 +319,7 @@ def assemble_module_report(raw: str, configuration: dict, citation_count: int, *
         value = raw.strip()
         if value.startswith('```json') and value.endswith('```'):
             value = value[7:-3].strip()
-        parsed = ModuleReportDraft.model_validate_json(value)
+        parsed = report_draft_model(configuration).model_validate_json(value)
         title = parsed.title
         summary = parsed.summary
         for module in parsed.modules:
@@ -422,6 +441,7 @@ def assemble_module_report(raw: str, configuration: dict, citation_count: int, *
     main_markdown = '\n'.join(lines)
     appendix_markdown = '## 技术附录\n\n'+'\n'.join(appendix_lines) if appendix_lines else ''
     return main_markdown+('\n\n'+appendix_markdown if appendix_markdown else ''), {'rule_version': POLICY_VERSION, 'purpose': configuration['purpose'],
+        **({'report_assembly_policy':configuration['report_assembly_policy']} if configuration.get('report_assembly_policy') else {}),
         **({'report_material_policy':configuration['report_material_policy']} if configuration.get('report_material_policy') else {}),
         **({'reading_field_policy':configuration['reading_field_policy']} if configuration.get('reading_field_policy') else {}),
         **({'reader_material_policy':configuration['reader_material_policy']} if configuration.get('reader_material_policy') else {}),

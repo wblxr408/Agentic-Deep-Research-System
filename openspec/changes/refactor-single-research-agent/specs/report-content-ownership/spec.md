@@ -74,6 +74,18 @@
 - **WHEN** 其中一篇只有摘要，其他论文已完成全文处理
 - **THEN** 系统明确该篇实际层级和缺口，保留其他有效产物，不把摘要标为全文精读或重做其余论文
 
+### Requirement: Assembly preserves complete bounded writing batches
+
+系统 SHALL 分开单次写作响应与整份报告的资源边界。版本化的新任务可汇总多批已写段落，归属选择及后续修订须使用同一装配合同，不得为单批段落数静默删减完整批次或独有技术内容。整份产物仍有明确资源上限；超出时保留未完成状态及付费候选，不能以裁剪取得通过。旧任务保持其冻结合同，最终来源／读者／图文审核仍须完成。
+
+#### Scenario: A technical appendix spans more than one writing packet
+- **WHEN** 同一模块的完整已写附录合计超过20段，且仍在新任务装配资源上限内
+- **THEN** 汇总、格式投影、编辑选择及修订读取完整段落；编辑可基于知识归属去重，不将单批20段误作完整附录的目标或删减依据
+
+#### Scenario: An assembled artifact exceeds its resource boundary
+- **WHEN** 完整汇总超出冻结版本支持的装配资源边界或当前下游上下文容量
+- **THEN** 保留真实容量缺口和已付费候选，不截断尾部、减少全部阅读成员或据此宣称百篇已交付
+
 ### Requirement: Synthesis uses bounded topic evidence and retains original provenance
 
 系统 SHALL 复用逐篇证据产物按当前问题形成主题比较、条件及反例，再向章节提供必要输入和原文引用。综合摘要只能作为导航／候选，关键事实仍须回到来源；章节不默认接收全部论文全文或此前章节，必要条件和未覆盖范围不得静默丢失。

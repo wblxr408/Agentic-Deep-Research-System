@@ -5,7 +5,7 @@ import json
 import re
 
 from app.llm_budget import TokenBudgetExceeded, request_token_bound
-from app.organization_purpose import ModuleReportDraft, MODULES, CHAPTER_RESPONSIBILITIES, REPORT_MATERIAL_POLICY
+from app.organization_purpose import ModuleReportDraft, MODULES, CHAPTER_RESPONSIBILITIES, REPORT_MATERIAL_POLICY, report_draft_model
 from app.research_context import _paragraph_window
 from app.security.prompt_security import untrusted_context
 from app.query_understanding import identity
@@ -14,6 +14,7 @@ from app.query_understanding import identity
 def compose_sections(*,question,analysis,configuration,findings,evidence,statistics,
                      system_prompt,client,model,budget,on_section,retained_sections=None):
     findings=findings or {}
+    assembled_model=report_draft_model(configuration)
     material_policy=configuration.get('report_material_policy')
     if material_policy not in (None,REPORT_MATERIAL_POLICY):
         raise TokenBudgetExceeded('report_material_policy_unsupported')
@@ -30,6 +31,8 @@ def compose_sections(*,question,analysis,configuration,findings,evidence,statist
         if (source.acquisition or {}).get('coverage')!='discovery_only'}
     sections=[];manifest={'version':'adrs-section-composition-v1','sections':[],'sources':[],
         'material_policy':material_policy,'application_response_reuse':[]}
+    if configuration.get('report_assembly_policy'):
+        manifest['assembly_policy']=configuration['report_assembly_policy']
     if owned_input:manifest['chapter_plan']=chapter_plan
 
     def material(module,assigned,*,focused=False):
@@ -288,13 +291,16 @@ def compose_sections(*,question,analysis,configuration,findings,evidence,statist
     def save_selection(value):
         on_section(json.dumps(value,ensure_ascii=False),'editorial-selection',{'section_input_id':value['binding']})
     sections,selection=select_paragraphs(sections,question=question,client=client,model=model,budget=budget,
-        retained=saved_selection,on_saved=save_selection)
+        retained=saved_selection,on_saved=save_selection,configuration=configuration)
     manifest['editorial_selection']=selection
+    if configuration.get('report_assembly_policy'):
+        # Assembly defects cannot be repaired by paying to rewrite the lead.
+        assembled_model.model_validate({'title':'assembled report','summary':[],'modules':sections})
     # The lead is written last from completed sections, never from an early
     # compressed evidence sample. Its new claims are still audited below.
     def validate_lead(raw):
         lead=json.loads(raw)
-        result=ModuleReportDraft.model_validate({'title':lead['title'],'summary':lead['summary'],'modules':sections})
+        result=assembled_model.model_validate({'title':lead['title'],'summary':lead['summary'],'modules':sections})
         used={ref for section in sections for row in [*section['paragraphs'],*section['appendix']] for ref in row['citations']}
         if any(not set(row.citations)<=used for row in result.summary):raise ValueError('lead_writing_new_citation')
         return result

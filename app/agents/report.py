@@ -473,7 +473,8 @@ Evidence Sources:
                 raise TokenBudgetExceeded('model_output_limit')
             if module_mode:
                 from app.organization_purpose import normalize_report_envelope
-                normalized_raw,normalizations=normalize_report_envelope(content,organization_research['modules'],len(citations))
+                normalized_raw,normalizations=normalize_report_envelope(content,organization_research['modules'],len(citations),
+                    configuration=organization_research)
                 content=normalized_raw
                 content, self.last_module_report = assemble_module_report(content, organization_research, len(citations),
                     statistics=organization_statistics,allowed_citations=allowed_citations,publication_titles=publication_titles)

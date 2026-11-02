@@ -9,7 +9,7 @@ from openai import APIError
 
 from app.claim_verification import audit_report, module_paragraph_kinds, shared_passage_payload, select_excerpts
 from app.llm_budget import TokenBudgetExceeded, budgeted_client, request_token_bound
-from app.organization_purpose import ModuleReportDraft, assemble_module_report, report_prose, module_report_instructions
+from app.organization_purpose import report_draft_model, assemble_module_report, report_prose, module_report_instructions
 from app.security.prompt_security import untrusted_context
 
 CLAIM_EDIT_CONTRACT = 'adrs-claim-clause-edit-v1'
@@ -93,7 +93,7 @@ def revise_reader_report(content,record,audit,*,question,findings,configuration,
             gaps=[row for row in quality.get('checks',[]) if row.get('status')=='gap']
     if not audit.get('needs_review') and gaps and all(row.get('id')=='reading' for row in gaps):
         from app.report_quality import reading_repair_targets
-        draft=ModuleReportDraft.model_validate_json(record['raw_model_response']).model_dump(mode='json')
+        draft=report_draft_model(configuration).model_validate_json(record['raw_model_response']).model_dump(mode='json')
         notes={}
         for module in draft['modules']:
             for section in ('paragraphs','appendix'):
@@ -166,7 +166,7 @@ def revise_reader_report(content,record,audit,*,question,findings,configuration,
     if configuration.get('research_handoff_policy')=='adrs-complete-evidence-handoff-v2' and not reading_only:
         attempt=audit.get('revision_attempt') or {}
         if attempt.get('status')=='correction_contract_invalid' and attempt.get('raw_responses'):
-            corrected=ModuleReportDraft.model_validate_json(record['raw_model_response']).model_dump(mode='json')
+            corrected=report_draft_model(configuration).model_validate_json(record['raw_model_response']).model_dump(mode='json')
             repairs=[row for raw in attempt['raw_responses'] for row in json.loads(raw).get('repairs',[])]
             ids=[row['paragraph_id'] for row in repairs]
             if len(ids)!=len(set(ids)) or set(ids)!=set(attempt.get('completed_paragraph_ids') or []):
@@ -183,7 +183,7 @@ def revise_reader_report(content,record,audit,*,question,findings,configuration,
             configuration=configuration,statistics=statistics,evidence=evidence,client=client,
             model=model,budget=budget,deadline=deadline,source_spans=source_spans,
             task_context=task_context,on_candidate=on_candidate)
-    draft=ModuleReportDraft.model_validate_json(record['raw_model_response']).model_dump(mode='json')
+    draft=report_draft_model(configuration).model_validate_json(record['raw_model_response']).model_dump(mode='json')
     targets={};rows=[]
     def add(section,items):
         for index,item in enumerate(items):
@@ -396,7 +396,7 @@ def _revise_reader_structure(record,audit,*,question,findings,configuration,stat
     from app.research_context import _paragraph_window
 
     findings=findings or {}
-    draft=ModuleReportDraft.model_validate_json(record['raw_model_response']).model_dump(mode='json')
+    draft=report_draft_model(configuration).model_validate_json(record['raw_model_response']).model_dump(mode='json')
     allowed=set();sources=[]
     metadata=findings.get('publication_metadata') or {}
     works=(findings.get('scope_result') or {}).get('outputs') or []
@@ -488,7 +488,7 @@ def _revise_reader_structure(record,audit,*,question,findings,configuration,stat
         if choice is None or choice.finish_reason!='stop':raise TokenBudgetExceeded('reader_revision_output_incomplete')
         reply=choice.message.content or ''
         if on_candidate:on_candidate(reply,stage='structural_revision_response')
-    replacement=ModuleReportDraft.model_validate_json(reply)
+    replacement=report_draft_model(configuration).model_validate_json(reply)
     raw=replacement.model_dump_json()
     revised,new_record=assemble_module_report(raw,configuration,len(evidence),statistics=statistics,
         allowed_citations=allowed,publication_titles=[work['title'] for work in works])
@@ -584,7 +584,7 @@ def _edit_sections(payload,record,audit,findings,configuration,client,model,budg
             if on_candidate:on_candidate(reply,stage='structural_revision_section_response:'+section_id)
         value=json.loads(reply)
         if section_id=='lead':value['modules']=[draft['modules'][0]]
-        parsed=ModuleReportDraft.model_validate(value).model_dump(mode='json')
+        parsed=report_draft_model(configuration).model_validate(value).model_dump(mode='json')
         if section_id not in {'lead','coherence'}:
             selected=[row for row in parsed['modules'] if row['module_id']==section_id]
             if len(selected)!=1:raise ValueError('editor_section_identity_changed')
@@ -652,7 +652,8 @@ def _edit_sections(payload,record,audit,findings,configuration,client,model,budg
     modules,selection=select_paragraphs(modules,question=payload['question'],
         client=budgeted_client(client,budget,'report'),model=model,budget=budget,
         retained=sections.get('editorial_selection'),on_saved=save_selection,
-        feedback={'owner_request':payload.get('editorial_request'),'reader_review':payload.get('reader_quality')})
+        feedback={'owner_request':payload.get('editorial_request'),'reader_review':payload.get('reader_quality')},
+        configuration=configuration)
     if previous_selection_binding!=selection['binding']:
         sections.pop('lead',None)
         save()
@@ -680,7 +681,7 @@ def finalize_supported_report(content,record,audit,*,configuration,statistics,ev
     may reuse only the normal source-checked judgments. Every selected module
     must still contain research prose, otherwise assembly blocks delivery.
     """
-    draft=ModuleReportDraft.model_validate_json(record['raw_model_response']).model_dump(mode='json')
+    draft=report_draft_model(configuration).model_validate_json(record['raw_model_response']).model_dump(mode='json')
     failed={row['paragraph_context'] for row in audit.get('claims',[]) if row.get('verification_required',True) and row.get('status')!='supported'}
     removed=[]
     def retain(items,section):
@@ -913,7 +914,7 @@ def _revise_report_once(content, record, audit, *, configuration, statistics, ev
                     for kind in item.get('format_adjustments',[]))
         original=record['raw_model_response'].strip()
         if original.startswith('```json') and original.endswith('```'):original=original[7:-3].strip()
-        draft=ModuleReportDraft.model_validate_json(original).model_dump(mode='json')
+        draft=report_draft_model(configuration).model_validate_json(original).model_dump(mode='json')
         for target in targets:
             text=replacements[target['paragraph_id']]
             if not isinstance(text,str) or not text.strip():return retain('empty_correction',True)
