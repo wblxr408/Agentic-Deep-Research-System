@@ -2858,10 +2858,17 @@ async def report_node(state: ResearchState) -> dict:
         if current.get('collected_evidence')!=state.get('collected_evidence'):
             raise RuntimeError('report_candidate_sources_changed')
         session,budget=_apply_llm_usage_to_state(state,'report',_agent_model_usage(agent))
-        from app.db.report_delivery import candidate_input_binding
-        candidate={**candidate,'binding':report_binding(state),'execution_id':session.get('execution_id'),
-            'input_binding':candidate_input_binding({**state,'organization_result':organization_result})}
-        record={**(organization_result or {}),'report_candidate':candidate}
+        if candidate.get('stage')=='reader_quality_checkpoint':
+            from app.query_understanding import identity
+            quality=candidate.get('reader_quality') or {}
+            if quality.get('report_content_id')!=identity((agent.last_module_report or {}).get('reading_structure')):
+                raise RuntimeError('reader_quality_checkpoint_report_changed')
+            record={**(organization_result or {}),'reader_quality':quality}
+        else:
+            from app.db.report_delivery import candidate_input_binding
+            candidate={**candidate,'binding':report_binding(state),'execution_id':session.get('execution_id'),
+                'input_binding':candidate_input_binding({**state,'organization_result':organization_result})}
+            record={**(organization_result or {}),'report_candidate':candidate}
         if candidate.get('stage')=='structural_revision_sections':
             record['report_editor_sections']=candidate
         if str(candidate.get('stage','')).startswith('writing_section:'):
@@ -3013,6 +3020,10 @@ async def report_node(state: ResearchState) -> dict:
         return paused
     if org_config.get('reader_quality_policy'):
         from app.report_quality import review_reader_quality
+        def on_reader_progress(value):
+            agent.last_usage=agent.request_budget.usage()
+            try:on_report_candidate({'stage':'reader_quality_checkpoint','reader_quality':value})
+            except RuntimeError as error:raise TokenBudgetExceeded('reader_review_checkpoint_unavailable') from error
         for editorial_round in range(2):
             try:
                 quality=await asyncio.to_thread(review_reader_quality,
@@ -3021,7 +3032,10 @@ async def report_node(state: ResearchState) -> dict:
                         'claim_review_scope':(agent.last_audit or {}).get('review_scope'),
                         'reader_quality':(agent.last_audit or {}).get('reader_quality')
                             or (organization_result or {}).get('reader_quality')},
-                    client=agent.client,model=agent.model,budget=agent.request_budget)
+                    client=agent.client,model=agent.model,budget=agent.request_budget,
+                    evidence=state.get('collected_evidence') or [],
+                    retained_requests=(state.get('budget_state') or {}).get('model_requests') or [],
+                    on_progress=on_reader_progress)
             except TokenBudgetExceeded as error:
                 quality={'policy':org_config['reader_quality_policy'],'status':'incomplete','passed':False,'reason':error.reason}
             finally:

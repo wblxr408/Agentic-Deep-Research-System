@@ -342,8 +342,9 @@ class BudgetedClient:
         return stream()
 
 
-def budgeted_client(client, budget: ModelTokenBudget | None, purpose: str, *, operation:str|None=None):
-    return BudgetedClient(client,budget,purpose,operation=operation) if budget is not None else client
+def budgeted_client(client, budget: ModelTokenBudget | None, purpose: str, *, operation:str|None=None,
+                    content_unit_id:str|None=None):
+    return BudgetedClient(client,budget,purpose,operation=operation,content_unit_id=content_unit_id) if budget is not None else client
 
 
 def skill_context_client(client,packet=None):

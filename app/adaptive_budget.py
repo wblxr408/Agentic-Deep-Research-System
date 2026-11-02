@@ -78,6 +78,22 @@ def remaining_work(state, root, stage):
             # This only reallocates the original allowance; it approves no surface.
             required_audit_units=1
     audit_units=max(1,required_audit_units-_nonnegative(root.get('current_stage_audit_calls')))
+    reader_work=None
+    from app.report_material_packets import POLICY as MATERIAL_POLICY
+    reader=findings.get('reader_quality') or saved_audit.get('reader_quality') or {}
+    plan=reader.get('material_packet_plan') or {}
+    module=(candidate or {}).get('module_report') or findings.get('module_report') or {}
+    from app.query_understanding import identity
+    if (config.get('reader_material_policy')==MATERIAL_POLICY and plan.get('policy')==MATERIAL_POLICY
+            and reader.get('report_content_id')==plan.get('report_content_id')==identity(module.get('reading_structure'))
+            and isinstance(plan.get('required_packet_bindings'),dict)):
+        parts=reader.get('material_reviews') or {}
+        pending=sum((parts.get(key) or {}).get('binding')!=binding or (parts.get(key) or {}).get('validated') is not True
+            for key,binding in plan['required_packet_bindings'].items())
+        reader_work={'required_packets':len(plan['required_packet_bindings']),'pending_packets':pending,
+            'blocked_packets':len(plan.get('blocked_packets') or []),'semantics':'remaining_work_floor_not_new_grant'}
+        # These are already remaining units: never subtract earlier audit calls again.
+        audit_units=max(audit_units,pending+1)
     samples={'analysis':[],'writing':[],'audit':[]}
     seen=set()
     for row in root.get('model_requests') or []:
@@ -98,6 +114,7 @@ def remaining_work(state, root, stage):
             if ordered else defaults[key])*1.25))
     units={'analysis':analysis_units,'writing':writing_units,'audit':audit_units}
     return {'units':units,'unit_tokens':costs,'assembled_claim_count':claim_count,
+        **({'reader_material_work':reader_work} if reader_work is not None else {}),
         'tokens':{key:units[key]*costs[key] for key in units},
         'sample_counts':{key:len(value) for key,value in samples.items()},
         'basis':'remaining_phases_and_bound_candidate_with_observed_usage',

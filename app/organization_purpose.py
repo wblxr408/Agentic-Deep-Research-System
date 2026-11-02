@@ -424,6 +424,7 @@ def assemble_module_report(raw: str, configuration: dict, citation_count: int, *
     return main_markdown+('\n\n'+appendix_markdown if appendix_markdown else ''), {'rule_version': POLICY_VERSION, 'purpose': configuration['purpose'],
         **({'report_material_policy':configuration['report_material_policy']} if configuration.get('report_material_policy') else {}),
         **({'reading_field_policy':configuration['reading_field_policy']} if configuration.get('reading_field_policy') else {}),
+        **({'reader_material_policy':configuration['reader_material_policy']} if configuration.get('reader_material_policy') else {}),
         **({'reader_quality_policy':configuration['reader_quality_policy']} if configuration.get('reader_quality_policy') else {}),
         **({'surface_review_policy':configuration['surface_review_policy']} if configuration.get('surface_review_policy') else {}),
         'summary':summary_paragraphs,

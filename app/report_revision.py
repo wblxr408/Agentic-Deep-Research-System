@@ -69,7 +69,7 @@ def revise_reader_report(content,record,audit,*,question,findings,configuration,
                 or quality.get('contract_error') in {'missing_repair',"'work_coverage'",'reading_repetition_owner_invalid'})):
         from app.report_quality import review_reader_quality
         quality=review_reader_quality(question=question,configuration=configuration,record=record,
-            findings={**(findings or {}),'reader_quality':quality},client=client,model=model,budget=budget)
+            findings={**(findings or {}),'reader_quality':quality},client=client,model=model,budget=budget,evidence=evidence)
         audit={**audit,'reader_quality':quality}
         findings={**(findings or {}),'reader_quality':quality}
         if quality.get('status')!='needs_revision':return content,record,audit
@@ -86,7 +86,7 @@ def revise_reader_report(content,record,audit,*,question,findings,configuration,
         # repair plan. Re-diagnose the retained text before spending an edit.
         if quality.get('review_contract')!=REVIEW_CONTRACT:
             quality=review_reader_quality(question=question,configuration=configuration,record=record,
-                findings={**(findings or {}),'reader_quality':quality},client=client,model=model,budget=budget)
+                findings={**(findings or {}),'reader_quality':quality},client=client,model=model,budget=budget,evidence=evidence)
             audit={**audit,'reader_quality':quality}
             findings={**(findings or {}),'reader_quality':quality}
             if quality.get('status')!='needs_revision':return content,record,audit

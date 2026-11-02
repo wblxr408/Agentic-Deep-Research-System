@@ -78,6 +78,18 @@
 - **WHEN** 编辑移除了唯一回答必答问题的内容
 - **THEN** 覆盖及依赖的读者维度失效，问题补足前不批准合格交付
 
+#### Scenario: A local material change preserves unrelated paid reader packets
+- **WHEN** 新政策研究的某条技术记录变化，当前报告及其他包的完整输入、来源、必要上下文、合同、模型和路由未变
+- **THEN** 全局审核按其实际输入决定复用，材料只重做绑定变化的包；复用响应的局部锚点须重新校验并映射当前段落，不能沿用旧整稿通过标记
+
+#### Scenario: Material packets need nonlocal conditions
+- **WHEN** 默认引用及邻段范围之外的定义、限制或跨章引用影响某作品／行动
+- **THEN** 完整报告的全局读者显式分配这些上下文，材料包绑定其当前内容与来源；缺完整分配、单条过大或任一必需包未完成时保留缺口，不截断材料取得通过
+
+#### Scenario: A reader response is retained before interruption
+- **WHEN** 原检查点已保存某个全局或材料请求的原响应但解析尚未结束
+- **THEN** 同一当前输入恢复时重验该原响应及完成状态；已派发却缺原响应时保持未完成，不盲目重复调用；只有当前完整计划和全部必要结果有效才通过读者门
+
 ### Requirement: Visual delivery covers the declared research needs
 
 系统 SHALL 按用户要求、所选模块和当前判断明确适用的模块／机制图、事件时间轴及数据图需求，分别记录覆盖与事实审核状态。仅已有图通过、图数量或文字表格 MUST NOT 证明所需可视化完成；无适用证据或数据时保留具体缺口，不静默省略或编造。
