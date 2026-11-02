@@ -30,6 +30,7 @@ def application_reuse(state):
                 'effect':'judgment_reused_for_this_unit_not_one_avoided_request_per_claim'})
     reader=audit.get('reader_quality') or result.get('reader_quality') or {}
     parts=[('reader_review',reader),('reader_repetition_impact',reader.get('reading_impact_review') or {}),
+        *[('reader_document:'+name,item) for name,item in ((reader.get('document_review') or {}).get('passes') or {}).items()],
         *[('reader_material:'+name,item) for name,item in (reader.get('material_reviews') or {}).items()]]
     observations=[]
     for operation,part in parts:

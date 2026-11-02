@@ -7,6 +7,7 @@ from app.query_understanding import identity
 
 POLICY='adrs-reader-owned-material-v1'
 COVERAGE_POLICY='adrs-packet-work-coverage-v1'
+DOCUMENT_POLICY='adrs-reader-document-passes-v1'
 MAX_BYTES=60000
 MAX_RECORDS=8
 

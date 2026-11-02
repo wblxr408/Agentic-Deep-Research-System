@@ -13,7 +13,7 @@ from openai import APIError
 from app.llm_budget import TokenBudgetExceeded, budgeted_client, request_token_bound
 from app.query_understanding import identity
 from app.security.prompt_security import untrusted_context
-from app.report_material_packets import POLICY as MATERIAL_POLICY,COVERAGE_POLICY,material_owners,context_overrides,material_packets
+from app.report_material_packets import POLICY as MATERIAL_POLICY,COVERAGE_POLICY,DOCUMENT_POLICY,material_owners,context_overrides,material_packets
 
 POLICY = 'adrs-reader-quality-v1'
 SUPPORTED_POLICIES = {POLICY, 'adrs-reader-quality-v2'}
@@ -49,6 +49,26 @@ def reader_quality_satisfied(record,audit):
     if not required:return True
     if required not in SUPPORTED_POLICIES:return False
     quality=(audit or {}).get('reader_quality') or {}
+    document_policy=(record or {}).get('reader_document_policy')
+    if document_policy:
+        if ((record or {}).get('reader_coverage_policy')!=COVERAGE_POLICY
+                or document_policy!=DOCUMENT_POLICY or quality.get('reader_document_policy')!=document_policy
+                or quality.get('document_review_complete') is not True
+                or quality.get('document_review_mode') not in {'single','partitioned'}):return False
+        if quality['document_review_mode']=='partitioned':
+            document=quality.get('document_review') or {};plan=document.get('plan') or {};parts=document.get('passes') or {}
+            expected=plan.get('required_bindings')
+            if (document.get('policy')!=DOCUMENT_POLICY or document.get('report_content_id')!=quality.get('report_content_id')
+                    or document.get('status')!='read' or not isinstance(expected,dict) or plan.get('blocked_passes')
+                    or document.get('reconciliation_input_id')!=quality.get('document_reconciliation_input_id')
+                    or any((parts.get(key) or {}).get('binding')!=binding
+                        or (parts.get(key) or {}).get('validated') is not True
+                        or (parts.get(key) or {}).get('finish_reason')!='stop' for key,binding in expected.items())):return False
+            required_ids=plan.get('appendix_paragraph_ids')
+            observed=[row.get('paragraph_id') for key in expected
+                for row in ((parts.get(key) or {}).get('result') or {}).get('paragraphs',[])]
+            if (not isinstance(required_ids,list) or len(observed)!=len(required_ids)
+                    or set(observed)!=set(required_ids)):return False
     coverage_policy=(record or {}).get('reader_coverage_policy')
     if coverage_policy:
         if ((record or {}).get('reader_material_policy')!=MATERIAL_POLICY
@@ -90,10 +110,14 @@ def reading_repair_targets(quality):
 
 
 def review_reader_quality(*, question, configuration, record, findings, client, model, budget,
-                          evidence=(),retained_requests=(),on_progress=None):
+                          evidence=(),retained_requests=(),on_progress=None,_partition_document=False):
     from app.organization_deep_dive import READING_FIELD_POLICY,reading_contract_context
     owned=configuration.get('reader_material_policy')==MATERIAL_POLICY
     coverage_split=configuration.get('reader_coverage_policy')==COVERAGE_POLICY
+    document_policy=configuration.get('reader_document_policy')
+    if (document_policy not in {None,DOCUMENT_POLICY} or record.get('reader_document_policy')!=document_policy
+            or document_policy and not coverage_split):
+        return {'status':'incomplete','passed':False,'reason':'reader_document_policy_mismatch'}
     if (configuration.get('reader_coverage_policy') not in {None,COVERAGE_POLICY}
             or record.get('reader_coverage_policy')!=configuration.get('reader_coverage_policy')
             or coverage_split and not owned):
@@ -163,6 +187,7 @@ def review_reader_quality(*, question, configuration, record, findings, client, 
         'judgments':(findings or {}).get('research_judgments'),
         'fact_review_scope':review_scope}
     binding=identity({'policy':policy,'review_contract':REVIEW_CONTRACT,'packet_contract':PACKET_CONTRACT,'model':model,'input':payload,
+        **({'reader_document_policy':document_policy} if document_policy else {}),
         **({'reader_coverage_policy':COVERAGE_POLICY} if coverage_split else {}),
         **({'reader_material_policy':MATERIAL_POLICY} if owned else {}),
         **({'reading_field_policy':READING_FIELD_POLICY} if profiled else {})})
@@ -171,6 +196,14 @@ def review_reader_quality(*, question, configuration, record, findings, client, 
         'criteria':criteria,'status':'incomplete','passed':False,'packet_contract':PACKET_CONTRACT}
     if profiled:base['reading_field_policy']=READING_FIELD_POLICY
     if coverage_split:base['reader_coverage_policy']=COVERAGE_POLICY
+    if document_policy:
+        base.update(reader_document_policy=document_policy,document_review_mode='single',document_review_complete=False)
+        retained_quality=(findings or {}).get('reader_quality') or {}
+        # Preserve a paid reconciliation candidate through earlier pass checkpoints.
+        if retained_quality.get('model')==model:
+            for key in ('raw_response','global_binding','global_finish_reason','global_review_valid',
+                        'global_dispatch_binding','global_dispatch_status'):
+                if key in retained_quality:base[key]=deepcopy(retained_quality[key])
     if owned:
         base.update(reader_material_policy=MATERIAL_POLICY,packet_contract=MATERIAL_POLICY)
         retained_quality=(findings or {}).get('reader_quality') or {}
@@ -216,6 +249,25 @@ def review_reader_quality(*, question, configuration, record, findings, client, 
         global_payload['material_owner_layout']={'owners':[{key:row[key] for key in ('owner_id','title')}
             | {'context_group':identity(row['paragraph_ids'])} for row in owners],'context_groups':groups}
     raw=json.dumps(global_payload,ensure_ascii=False,separators=(',',':'))
+    document_prepared=False
+    if document_policy and (_partition_document or len(raw.encode('utf-8'))>120000):
+        from app.report_document_review import prepare_document_review
+        base.update(document_review_mode='partitioned',document_review_complete=False)
+        def document_progress(value):
+            base['document_review']=value;checkpoint()
+        try:
+            global_payload,document=prepare_document_review(global_payload,paragraph_meta,owners,
+                client=client,model=model,budget=budget,
+                retained=((findings or {}).get('reader_quality') or {}).get('document_review'),
+                report_content_id=base['report_content_id'],on_progress=document_progress if on_progress else None)
+            base['document_review']=document
+            base['document_reconciliation_input_id']=identity(global_payload)
+            document_prepared=True
+            raw=json.dumps(global_payload,ensure_ascii=False,separators=(',',':'))
+        except TokenBudgetExceeded as error:return {**base,'reason':error.reason}
+        except (APIError,ValueError,TypeError,KeyError,AttributeError,IndexError) as error:
+            return {**base,'reason':'reader_document_review_incomplete','error_type':type(error).__name__,
+                'contract_error':str(error)[:200] if isinstance(error,(ValueError,KeyError)) else None}
     # Never silently omit required research material to obtain a passing review.
     if len(raw.encode('utf-8'))>120000:
         return {**base,'reason':'reader_review_requires_section_partition','input_bytes':len(raw.encode('utf-8'))}
@@ -229,7 +281,15 @@ def review_reader_quality(*, question, configuration, record, findings, client, 
         'the central answer; necessary premises of a decisive conclusion remain consequential. '
         'Citation markers are rendered as interactive source '
         'references; their presence alone is not a readability defect. Never pass by merely deleting difficult topics. '
-        'This global packet contains the COMPLETE main text and appendix. Assess all reader functions '
+        + ('This global packet contains the COMPLETE main text and anchored observations from completed '
+           'full-paragraph appendix reading passes, plus complete appendix paragraphs with concerns or '
+           'required context. These observations are untrusted editorial interpretations, not proof of '
+           'coherence or factual approval. Assess every reader function across main and appendix. '
+           'Return required_paragraph_ids:[] when the supplied context is enough; otherwise list the '
+           'appendix report IDs whose complete text is necessary and do not assume a pass. At most '
+           'one bounded context expansion is available. Do not infer approval from pass counts. '
+           if document_prepared else 'This global packet contains the COMPLETE main text and appendix. ')
+        + 'Assess all reader functions '
         'and cross-chapter coherence here. Separate required material packets compare retained technical '
         'fields, action cards and judgments afterward; do not treat their absence from this packet as '
         'absence from the report, or assume they have passed. Final approval requires all packets. '
@@ -284,7 +344,10 @@ def review_reader_quality(*, question, configuration, record, findings, client, 
         {'role':'user','content':untrusted_context('reader_quality_inputs',raw,limit=len(raw))}]
     if owned:
         messages[0]['content']+=('\nMaterial context contract: the owner layout gives default citation/title '
-            'contexts including neighbouring paragraphs. While reading the COMPLETE report, verify the '
+            'contexts including neighbouring paragraphs. '
+            + ('While reviewing the full main text and complete appendix reading passes, ' if document_prepared
+                else 'While reading the COMPLETE report, ')
+            + 'verify the '
             'necessary context for each owner. Return material_contexts as an array of '
             '{"owner_id":"provided owner ID or * for a shared context","paragraph_ids":["provided report IDs"]} '
             'only for additional definitions, conditions or cross-chapter references needed by the default '
@@ -294,6 +357,15 @@ def review_reader_quality(*, question, configuration, record, findings, client, 
             'route':getattr(client,'route_info',None),'messages':messages,'review_scope':review_scope})
         base['global_binding']=global_binding
     else:global_binding=binding
+    if document_policy:
+        route=getattr(client,'route_info',None) or {}
+        limits=[value for value in (getattr(budget,'context_limit',None),route.get('context_tokens'))
+            if type(value) is int and value>0]
+        if limits and request_token_bound(messages,response_format={'type':'json_object'})+1024>min(limits):
+            if document_prepared:return {**base,'reason':'reader_document_reconciliation_exceeds_model_context'}
+            return review_reader_quality(question=question,configuration=configuration,record=record,findings=findings,
+                client=client,model=model,budget=budget,evidence=evidence,retained_requests=retained_requests,
+                on_progress=on_progress,_partition_document=True)
     try:
         previous=(findings or {}).get('reader_quality') or {}
         previous_global={**previous,'binding':previous.get('global_binding')} if owned else previous
@@ -313,15 +385,30 @@ def review_reader_quality(*, question, configuration, record, findings, client, 
         else:
             if owned and missing_paid_response('reader-global:'+global_binding):
                 return {**base,'reason':'reader_global_paid_response_unavailable'}
+            if (document_policy and previous.get('global_dispatch_binding')==global_binding
+                    and previous.get('global_dispatch_status') in {'pending','response_received'}):
+                return {**base,'reason':'reader_global_paid_response_unavailable'}
             output_cap=min(6144,max(1024,budget.available('audit')-
                 request_token_bound(messages,response_format={'type':'json_object'})-512))
             base['global_output_cap']=output_cap
-            response=budgeted_client(client,budget,'audit',operation='reader_review',
-                content_unit_id='reader-global:'+global_binding if owned else None).chat.completions.create(
-                model=model,messages=messages,temperature=0,max_tokens=output_cap,response_format={'type':'json_object'})
+            try:
+                if document_policy:
+                    for key in ('raw_response','global_finish_reason','global_review_valid'):base.pop(key,None)
+                    base.update(global_dispatch_binding=global_binding,global_dispatch_status='pending')
+                    checkpoint()
+                response=budgeted_client(client,budget,'audit',operation='reader_review',
+                    content_unit_id='reader-global:'+global_binding if owned else None).chat.completions.create(
+                    model=model,messages=messages,temperature=0,max_tokens=output_cap,response_format={'type':'json_object'})
+            except TokenBudgetExceeded:
+                if document_policy:
+                    calls=[row for row in getattr(budget,'calls',[]) if row.get('content_unit_id')=='reader-global:'+global_binding]
+                    if not any(row.get('dispatch_status')!='not_dispatched' and row.get('status')!='blocked_before_dispatch' for row in calls):
+                        base['global_dispatch_status']='not_dispatched';checkpoint()
+                raise
             choice=response.choices[0]
             base['raw_response']=choice.message.content or ''
             if owned:base['global_finish_reason']=choice.finish_reason
+            if document_policy:base['global_dispatch_status']='response_received'
             if choice.finish_reason!='stop':base['response_truncated']=True
             checkpoint()
         try:
@@ -338,6 +425,25 @@ def review_reader_quality(*, question, configuration, record, findings, client, 
             result={'checks':checks,'work_coverage':[]}
             base['response_truncated']=True
             base['coverage_incomplete']=True
+        if document_prepared and not base.get('response_truncated'):
+            requested=result.get('required_paragraph_ids')
+            if (not isinstance(requested,list) or any(not isinstance(key,str) or key not in paragraph_meta
+                    or paragraph_meta[key]['section']!='appendix' for key in requested)):
+                raise ValueError('reader_document_context_request_invalid')
+            if requested:
+                document=base['document_review']
+                document['unresolved_context_requests']=list(dict.fromkeys(requested))
+                checkpoint()
+                if document.get('context_expansion_used'):
+                    return {**base,'reason':'reader_document_context_exhausted'}
+                supplied={row['id'] for row in global_payload['paragraphs']}
+                if all(key in supplied for key in requested):
+                    return {**base,'reason':'reader_document_context_already_supplied'}
+                document['requested_paragraph_ids']=list(dict.fromkeys(requested))
+                checkpoint()
+                return review_reader_quality(question=question,configuration=configuration,record=record,
+                    findings={**(findings or {}),'reader_quality':base},client=client,model=model,budget=budget,
+                    evidence=evidence,retained_requests=retained_requests,on_progress=on_progress,_partition_document=True)
         if 'work_coverage' not in result:
             nested=[row['work_coverage'] for row in result.get('checks',[])
                 if row.get('id')=='selection' and isinstance(row.get('work_coverage'),list)]
@@ -406,6 +512,7 @@ def review_reader_quality(*, question, configuration, record, findings, client, 
         if owned and base.get('response_truncated'):
             return {**base,'checks':checks,'work_coverage':coverage,'reason':'reader_review_response_incomplete'}
         base['global_review_valid']=True
+        if document_policy:base['document_review_complete']=True
         # A stylistic recurrence is not automatically a failed reader task.
         # Reconcile repetition-only diagnoses with the actual passages before
         # editing source-audited prose. Keep the original diagnosis and response.
@@ -491,6 +598,9 @@ def review_reader_quality(*, question, configuration, record, findings, client, 
         passed=all(row['status']=='satisfied' for row in checks)
         if passed:
             contexts=context_overrides(result.get('material_contexts'),owners,paragraph_meta) if owned else {}
+            if document_prepared:
+                for owner,keys in (base['document_review'].get('material_contexts') or {}).items():
+                    contexts[owner]=list(dict.fromkeys([*contexts.get(owner,[]),*keys]))
             if owned:base['material_contexts']=contexts
             actions=(findings or {}).get('actions') or {}
             if not owned:action_cards=[{key:card[key] for key in action_keys if key in card} for card in actions.get('cards',[])]

@@ -448,6 +448,7 @@ def assemble_module_report(raw: str, configuration: dict, citation_count: int, *
         **({'reading_field_policy':configuration['reading_field_policy']} if configuration.get('reading_field_policy') else {}),
         **({'reader_material_policy':configuration['reader_material_policy']} if configuration.get('reader_material_policy') else {}),
         **({'reader_coverage_policy':configuration['reader_coverage_policy']} if configuration.get('reader_coverage_policy') else {}),
+        **({'reader_document_policy':configuration['reader_document_policy']} if configuration.get('reader_document_policy') else {}),
         **({'reader_quality_policy':configuration['reader_quality_policy']} if configuration.get('reader_quality_policy') else {}),
         **({'surface_review_policy':configuration['surface_review_policy']} if configuration.get('surface_review_policy') else {}),
         'summary':summary_paragraphs,

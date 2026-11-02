@@ -80,7 +80,7 @@ def remaining_work(state, root, stage):
             # This only reallocates the original allowance; it approves no surface.
             required_audit_units=1
     audit_units=max(1,required_audit_units-_nonnegative(root.get('current_stage_audit_calls')))
-    reader_work=None
+    reader_work=None;document_work=None
     from app.report_material_packets import POLICY as MATERIAL_POLICY
     reader=findings.get('reader_quality') or saved_audit.get('reader_quality') or {}
     plan=reader.get('material_packet_plan') or {}
@@ -95,6 +95,17 @@ def remaining_work(state, root, stage):
         reader_work={'required_packets':len(plan['required_packet_bindings']),'pending_packets':pending,
             'blocked_packets':len(plan.get('blocked_packets') or []),'semantics':'remaining_work_floor_not_new_grant'}
         # These are already remaining units: never subtract earlier audit calls again.
+        audit_units=max(audit_units,pending+1)
+    from app.report_material_packets import DOCUMENT_POLICY
+    document=reader.get('document_review') or {};document_plan=document.get('plan') or {}
+    if (config.get('reader_document_policy')==DOCUMENT_POLICY and document.get('policy')==DOCUMENT_POLICY
+            and document.get('report_content_id')==identity(module.get('reading_structure'))
+            and isinstance(document_plan.get('required_bindings'),dict)):
+        parts=document.get('passes') or {}
+        pending=sum((parts.get(key) or {}).get('binding')!=binding or (parts.get(key) or {}).get('validated') is not True
+            for key,binding in document_plan['required_bindings'].items())
+        document_work={'required_passes':len(document_plan['required_bindings']),'pending_passes':pending,
+            'semantics':'remaining_work_floor_not_new_grant'}
         audit_units=max(audit_units,pending+1)
     samples={'analysis':[],'writing':[],'audit':[]}
     seen=set()
@@ -117,6 +128,7 @@ def remaining_work(state, root, stage):
     units={'analysis':analysis_units,'writing':writing_units,'audit':audit_units}
     return {'units':units,'unit_tokens':costs,'assembled_claim_count':claim_count,
         **({'reader_material_work':reader_work} if reader_work is not None else {}),
+        **({'reader_document_work':document_work} if document_work is not None else {}),
         'tokens':{key:units[key]*costs[key] for key in units},
         'sample_counts':{key:len(value) for key,value in samples.items()},
         'basis':'remaining_phases_and_bound_candidate_with_observed_usage',
