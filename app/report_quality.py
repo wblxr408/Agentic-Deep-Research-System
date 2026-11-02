@@ -40,6 +40,9 @@ def reader_quality_satisfied(record,audit):
     material_policy=(record or {}).get('reader_material_policy')
     if material_policy:
         if material_policy!=MATERIAL_POLICY or quality.get('reader_material_policy')!=material_policy:return False
+        impact=quality.get('reading_impact_review') or {}
+        if (quality.get('reading_impact_required') and
+                (impact.get('validated') is not True or impact.get('finish_reason')!='stop')):return False
         plan=quality.get('material_packet_plan') or {};parts=quality.get('material_reviews') or {}
         expected=plan.get('required_packet_bindings')
         if (plan.get('policy')!=MATERIAL_POLICY or quality.get('packet_contract')!=MATERIAL_POLICY or quality.get('material_review_complete') is not True
@@ -141,10 +144,18 @@ def review_reader_quality(*, question, configuration, record, findings, client, 
     if profiled:base['reading_field_policy']=READING_FIELD_POLICY
     if owned:
         base.update(reader_material_policy=MATERIAL_POLICY,packet_contract=MATERIAL_POLICY)
-        base['material_reviews']=deepcopy(((findings or {}).get('reader_quality') or {}).get('material_reviews') or {})
+        retained_quality=(findings or {}).get('reader_quality') or {}
+        base['material_reviews']=deepcopy(retained_quality.get('material_reviews') or {})
         for part in base['material_reviews'].values():
             part['validated']=False
+            part.pop('reused_response',None)
             part['response_reuse']={'status':'candidate','reason':'awaiting_current_packet_binding'}
+        if retained_quality.get('reading_impact_review'):
+            base['reading_impact_review']=deepcopy(retained_quality['reading_impact_review'])
+            base['reading_impact_review']['validated']=False
+            base['reading_impact_review'].pop('reused_response',None)
+            base['reading_impact_review']['response_reuse']={
+                'status':'candidate','reason':'awaiting_current_impact_binding'}
     if review_scope:base['review_scope_id']=identity(review_scope)
     def checkpoint():
         if owned and on_progress:on_progress(deepcopy(base))
@@ -375,21 +386,29 @@ def review_reader_quality(*, question, configuration, record, findings, client, 
                 and reading_check and reading_check['status']=='gap' and groups
                 and all(group['kind']=='repetition' for group in groups)
                 and all(row['status']=='satisfied' for row in checks if row['id']!='reading')):
+            if owned:base['reading_impact_required']=True
             impact_input={'question':question,'criterion':criteria['reading'],
                 'diagnosis':reading_check,'other_checks':[row for row in checks if row['id']!='reading'],
                 'paragraphs':[row for row in paragraphs if row['id'] in {
                     anchor['paragraph_id'] for group in groups for anchor in group['occurrences']}],
                 'scope_instruction':review_scope.get('instruction')}
-            impact_binding=identity({'contract':READING_IMPACT_CONTRACT,'report':binding,
-                'input':impact_input,'model':model})
+            impact_binding=identity({'contract':READING_IMPACT_CONTRACT,'report':global_binding if owned else binding,
+                'input':impact_input,'model':model,
+                **({'material_policy':MATERIAL_POLICY,'route':getattr(client,'route_info',None)} if owned else {})})
             saved=previous.get('reading_impact_review') or {}
-            impact={'contract':READING_IMPACT_CONTRACT,'binding':impact_binding}
+            impact={'contract':READING_IMPACT_CONTRACT,'binding':impact_binding,
+                **({'validated':False} if owned else {})}
             impact['response_reuse']=response_reuse_observation(saved,impact_binding)
             base['reading_impact_review']=impact
             if saved.get('binding')==impact_binding and saved.get('raw_response'):
                 impact['raw_response']=saved['raw_response'];impact['reused_response']=True
+                if owned:
+                    impact['finish_reason']=saved.get('finish_reason') or ('stop' if saved.get('result') else None)
+                    if impact['finish_reason']!='stop':return {**base,'reason':'reader_impact_response_incomplete'}
                 impact['response_reuse'].update(status='hit',reasons=[])
             else:
+                if owned and missing_paid_response('reader-impact:'+impact_binding):
+                    return {**base,'reason':'reader_impact_paid_response_unavailable'}
                 packed=json.dumps(impact_input,ensure_ascii=False,separators=(',',':'))
                 impact_messages=[{'role':'system','content':
                     'Reconcile a candidate repetition diagnosis with its actual report passages. '
@@ -412,10 +431,14 @@ def review_reader_quality(*, question, configuration, record, findings, client, 
                     'Overall satisfied requires all groups nonblocking. Every decision and the overall '
                     'result need actual literal anchors. No rewritten report text.'},
                     {'role':'user','content':untrusted_context('repetition_impact',packed,limit=len(packed))}]
-                response=budgeted_client(client,budget,'audit',operation='reader_repetition_impact').chat.completions.create(
+                response=budgeted_client(client,budget,'audit',operation='reader_repetition_impact',
+                    content_unit_id='reader-impact:'+impact_binding if owned else None).chat.completions.create(
                     model=model,messages=impact_messages,temperature=0,max_tokens=2048,
                     response_format={'type':'json_object'})
                 choice=response.choices[0];impact['raw_response']=choice.message.content or ''
+                if owned:
+                    impact['finish_reason']=choice.finish_reason
+                    checkpoint()
                 if choice.finish_reason!='stop':return {**base,'reason':'reader_impact_response_incomplete'}
             value=json.loads(impact['raw_response']);decisions=value['decisions']
             if (len(decisions)!=len(groups) or {row['group_id'] for row in decisions}!={g['id'] for g in groups}
@@ -427,6 +450,7 @@ def review_reader_quality(*, question, configuration, record, findings, client, 
             for anchor in [*value['anchors'],*[anchor for row in decisions for anchor in row['anchors']]]:
                 validate_anchor(anchor)
             impact['result']=value
+            if owned:impact['validated']=True
             base['original_reading_diagnosis']=json.loads(base['raw_response'])['checks'][
                 next(index for index,row in enumerate(checks) if row['id']=='reading')]
             nonblocking={row['group_id'] for row in decisions if not row['blocking']}

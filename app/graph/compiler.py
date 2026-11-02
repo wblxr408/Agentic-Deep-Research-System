@@ -3020,18 +3020,28 @@ async def report_node(state: ResearchState) -> dict:
         return paused
     if org_config.get('reader_quality_policy'):
         from app.report_quality import review_reader_quality
+        from app.query_understanding import identity
         def on_reader_progress(value):
             agent.last_usage=agent.request_budget.usage()
             try:on_report_candidate({'stage':'reader_quality_checkpoint','reader_quality':value})
             except RuntimeError as error:raise TokenBudgetExceeded('reader_review_checkpoint_unavailable') from error
         for editorial_round in range(2):
+            # The root checkpoint can contain a newer paid response than the
+            # fact-audit snapshot restored by resume_audit. Revalidate that raw
+            # candidate instead of hiding it behind the older reader record.
+            root_reader=(organization_result or {}).get('reader_quality')
+            audit_reader=(agent.last_audit or {}).get('reader_quality')
+            retained_reader=audit_reader or root_reader
+            if org_config.get('reader_material_policy'):
+                current_report_id=identity((agent.last_module_report or {}).get('reading_structure'))
+                retained_reader=next((row for row in (root_reader,audit_reader)
+                    if row and row.get('report_content_id')==current_report_id),root_reader or audit_reader)
             try:
                 quality=await asyncio.to_thread(review_reader_quality,
                     question=_synthesis_question(state),configuration=org_config,
                     record=agent.last_module_report or {},findings={**(organization_result or {}),
                         'claim_review_scope':(agent.last_audit or {}).get('review_scope'),
-                        'reader_quality':(agent.last_audit or {}).get('reader_quality')
-                            or (organization_result or {}).get('reader_quality')},
+                        'reader_quality':retained_reader},
                     client=agent.client,model=agent.model,budget=agent.request_budget,
                     evidence=state.get('collected_evidence') or [],
                     retained_requests=(state.get('budget_state') or {}).get('model_requests') or [],
