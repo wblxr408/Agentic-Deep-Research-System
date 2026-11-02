@@ -212,6 +212,7 @@ def judgment_context(view,max_bytes=8000,*,evidence=None):
 
 def stage_handoff(technical,judgments,max_bytes,*,prior_records=None,complete_records=False,evidence=None):
     if complete_records:
+        from app.organization_deep_dive import reading_contract_context
         # A result never travels without the conditions and comparison that
         # qualify it. Quotes remain in authoritative evidence, linked by span.
         bundles=[]
@@ -237,6 +238,8 @@ def stage_handoff(technical,judgments,max_bytes,*,prior_records=None,complete_re
                 fields[field]={'text':statement['text'],'proof_ids':list(dict.fromkeys(pointers))}
             if fields:bundles.append({'kind':'technical_evidence_bundle','output_id':output_id,
                 'fields':fields,'proofs':proofs,'field':'complete_technical_record',
+                **({'reading_contract':reading_contract_context(card['reading_contract'])}
+                   if card.get('reading_contract') else {}),
                 'semantic_status':'candidate_requires_source_review'})
         candidates=[{'kind':'judgment_candidate',**{key:item[key] for key in
             ('judgment_id','question','conclusion','reasoning','significance','alternatives','choice','related_output_ids') if key in item},

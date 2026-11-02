@@ -35,6 +35,7 @@ def reader_quality_satisfied(record,audit):
     if not required:return True
     if required not in SUPPORTED_POLICIES:return False
     quality=(audit or {}).get('reader_quality') or {}
+    if (record or {}).get('reading_field_policy') and quality.get('reading_field_policy')!=record['reading_field_policy']:return False
     scope=(audit or {}).get('review_scope')
     if scope and quality.get('review_scope_id')!=identity(scope):return False
     if quality.get('packet_contract')==PACKET_CONTRACT and quality.get('material_review_complete') is not True:return False
@@ -51,6 +52,11 @@ def reading_repair_targets(quality):
 
 
 def review_reader_quality(*, question, configuration, record, findings, client, model, budget):
+    from app.organization_deep_dive import READING_FIELD_POLICY,reading_contract_context
+    if (configuration.get('reading_field_policy') not in {None,READING_FIELD_POLICY}
+            or record.get('reading_field_policy')!=configuration.get('reading_field_policy')):
+        return {'policy':record.get('reader_quality_policy'),'status':'incomplete','passed':False,
+            'reason':'reader_reading_field_policy_mismatch'}
     policy=record.get('reader_quality_policy') or configuration.get('reader_quality_policy') or POLICY
     if (policy not in SUPPORTED_POLICIES or configuration.get('reader_quality_policy') not in (None,policy)):
         return {'policy':policy,'status':'incomplete','passed':False,'reason':'reader_review_policy_mismatch'}
@@ -90,18 +96,30 @@ def review_reader_quality(*, question, configuration, record, findings, client, 
         criteria['mechanisms']=('Explain mechanisms, experimental conditions, comparisons and limits '
             'needed to understand the central conclusions. Missing incidental implementation inventories '
             'or secondary measurements is not a gap merely because retained cards contain them.')
+    profiled=configuration.get('reading_field_policy')==READING_FIELD_POLICY
+    if profiled and 'mechanisms' in criteria:
+        criteria['mechanisms']+=(' Use each source-located reading contract as a question-specific acquisition '
+            'plan, not factual approval or proof of non-applicability. Theoretical results need their '
+            'assumptions and argument; synthesis needs its scope, method and findings. Do not demand an '
+            'empirical baseline, hardware inventory or experiment from every theoretical/synthesis paper '
+            'merely to fill the schema. Still flag any missing conditions, comparisons or measurements '
+            'necessary for the report\'s actual central claims, regardless of the chosen profile; a '
+            'misfit profile cannot justify losing important available knowledge.')
     payload={'question':question,'criteria':criteria,'paragraphs':paragraphs,
         'accepted_works':[{'output_id':row['output_id'],'title':row['title']} for row in works],
-        'technical_cards':[{'output_id':row.get('output_id'),'fields':{
+        'technical_cards':[{'output_id':row.get('output_id'),
+            **({'reading_contract':reading_contract_context(row.get('reading_contract'))} if profiled else {}),'fields':{
             key:value.get('text') for key,value in (row.get('fields') or {}).items() if isinstance(value,dict)}}
             for row in reading.get('cards',[])],
         'actions':(findings or {}).get('actions'),
         'judgments':(findings or {}).get('research_judgments'),
         'fact_review_scope':review_scope}
-    binding=identity({'policy':policy,'review_contract':REVIEW_CONTRACT,'packet_contract':PACKET_CONTRACT,'model':model,'input':payload})
+    binding=identity({'policy':policy,'review_contract':REVIEW_CONTRACT,'packet_contract':PACKET_CONTRACT,'model':model,'input':payload,
+        **({'reading_field_policy':READING_FIELD_POLICY} if profiled else {})})
     base={'policy':policy,'review_contract':REVIEW_CONTRACT,'binding':binding,'model':model,'scope':'main_and_appendix_text',
         'report_content_id':identity(record.get('reading_structure')),
         'criteria':criteria,'status':'incomplete','passed':False,'packet_contract':PACKET_CONTRACT}
+    if profiled:base['reading_field_policy']=READING_FIELD_POLICY
     if review_scope:base['review_scope_id']=identity(review_scope)
     # The global pass reads the complete report. Candidate knowledge is checked
     # in separate complete packets, avoiding one oversized admission reserve.

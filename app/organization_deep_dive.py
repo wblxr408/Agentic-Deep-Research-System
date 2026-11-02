@@ -16,6 +16,57 @@ FIELDS={'problem':'研究问题','prior_limitations':'已有方法局限','metho
     'innovation':'创新主张','experimental_design':'实验设计','baselines':'对照基线','conditions':'适用／复现条件',
     'results':'来源报告的结果','limitations':'结果边界与局限'}
 FieldName=Literal['problem','prior_limitations','method_overview','mechanism','innovation','experimental_design','baselines','conditions','results','limitations']
+READING_FIELD_POLICY='adrs-question-reading-fields-v1'
+READING_PROFILES={
+    'unknown':('mechanism','experimental_design','baselines','conditions','results'),
+    'empirical':('mechanism','experimental_design','baselines','conditions','results'),
+    'theoretical':('mechanism','conditions','results'),
+    'synthesis':('method_overview','conditions','results'),
+}
+
+
+class ReadingContractProposal(ScopeRecord):
+    profile:Literal['unknown','empirical','theoretical','synthesis']='unknown'
+    reason:str=Field(min_length=3,max_length=500)
+    basis:tuple[RelationProof,...]=Field(default=(),max_length=3)
+    additional_required_fields:tuple[FieldName,...]=Field(default=(),max_length=10)
+
+
+def required_reading_fields(configuration,reading_contract=None):
+    """A source-located reading plan narrows acquisition, never fact verification."""
+    if (configuration or {}).get('reading_field_policy')!=READING_FIELD_POLICY:
+        from app.analysis_phase_contract import enabled
+        return [*(['mechanism'] if enabled(configuration) else []),'experimental_design','baselines','conditions','results']
+    current=reading_contract or {}
+    proposal=current.get('proposal') or {}
+    valid=current.get('policy')==READING_FIELD_POLICY and current.get('status')=='source_located_planning_judgment'
+    profile=proposal.get('profile','unknown') if valid else 'unknown'
+    additional=(proposal.get('additional_required_fields') or []) if valid else []
+    return list(dict.fromkeys([*READING_PROFILES.get(profile,READING_PROFILES['unknown']),
+        *((configuration or {}).get('required_reading_fields') or []),
+        *additional]))
+
+
+def retain_reading_contract(previous,candidate):
+    """A condition follow-up cannot silently relax an already located plan."""
+    if (previous or {}).get('status')=='source_located_planning_judgment':
+        conflict=False
+        if (candidate or {}).get('status')=='source_located_planning_judgment':
+            old_fields=set(previous['required_fields']);new_fields=set(candidate['required_fields'])
+            if old_fields<=new_fields:
+                if old_fields<new_fields or previous.get('profile')!=candidate.get('profile'):return candidate,False
+            else:conflict=True
+        return previous,conflict
+    return candidate or previous,False
+
+
+def reading_contract_context(value):
+    """Reader/writer needs the plan, not another serialization of its source excerpts."""
+    if not value:return None
+    pointers=[item['evidence_id'] for item in value.get('basis',[])] or value.get('basis_evidence_ids',[])
+    return {**{key:value[key] for key in ('policy','status','profile','reason','required_fields','additional_required_fields') if key in value},
+        'semantics':'field_acquisition_plan_not_source_semantic_or_fact_approval',
+        'basis_evidence_ids':list(dict.fromkeys(pointers))}
 
 
 class TechnicalStatement(ScopeRecord):
@@ -33,6 +84,7 @@ class TechnicalCardProposal(ScopeRecord):
     output_id:Identifier
     fields:dict[FieldName,TechnicalStatement]=Field(default_factory=dict,max_length=10)
     figure_references:tuple[FigureReference,...]=Field(default=(),max_length=20)
+    reading_contract:ReadingContractProposal|None=None
 
 
 class TechnicalPreviewRequest(ScopeRecord):
@@ -66,6 +118,7 @@ def _full_text(source):
 
 
 def build_technical_cards(configuration,findings,evidence,proposals=None):
+    configuration=configuration or {}
     from app.organization_findings import _publication_url
     sources={item['evidence_id']:item for item in evidence if item.get('evidence_id') and item.get('source_url')}
     outputs={item['output_id']:item for item in (findings.get('scope_result') or {}).get('outputs',[])}
@@ -78,7 +131,10 @@ def build_technical_cards(configuration,findings,evidence,proposals=None):
             if not isinstance(value,dict):raise ValueError('technical_card_expected_object')
             # Validate fields independently: a malformed optional field must
             # not erase other source-located knowledge in this work's card.
-            card=TechnicalCardProposal.model_validate({**value,'fields':{},'figure_references':[]})
+            card=TechnicalCardProposal.model_validate({**value,'fields':{},'figure_references':[],'reading_contract':None})
+            if configuration.get('reading_field_policy')==READING_FIELD_POLICY and value.get('reading_contract') is not None:
+                try:card=card.model_copy(update={'reading_contract':ReadingContractProposal.model_validate(value['reading_contract'])})
+                except ValueError as error:pending.append({'output_id':card.output_id,'kind':'reading_contract','reason':str(error)[:400]})
             valid_fields={};valid_figures=[]
             raw_fields=value.get('fields') or {}
             if not isinstance(raw_fields,dict):
@@ -127,9 +183,23 @@ def build_technical_cards(configuration,findings,evidence,proposals=None):
         output=outputs[output_id];proposal=proposed.get(output_id);fields={};figures=[]
         available=[source for source in sources.values() if linked_source(source,output)]
         full=any(_full_text(source) for source in available)
+        reading_contract=None
+        if configuration.get('reading_field_policy')==READING_FIELD_POLICY:
+            reading_contract={'policy':READING_FIELD_POLICY,'status':'fallback','profile':'unknown',
+                'reason':'study_profile_not_established','basis':[],
+                'semantics':'field_acquisition_plan_not_source_semantic_or_fact_approval'}
+            candidate=proposal.reading_contract if proposal else None
+            if candidate and candidate.basis:
+                try:
+                    anchors=[locate(proof,output,False) for proof in candidate.basis]
+                    reading_contract.update(status='source_located_planning_judgment',profile=candidate.profile,
+                        reason=candidate.reason,basis=anchors,proposal=candidate.model_dump(mode='json'))
+                except ValueError as error:pending.append({'output_id':output_id,'kind':'reading_contract','reason':str(error)})
+            reading_contract['required_fields']=required_reading_fields(configuration,reading_contract)
         for key,label in FIELDS.items():
             statement=proposal.fields.get(key) if proposal else None
             record={'label':label,'text':None,'status':'unknown','proofs':[],'reason':'not_extracted_from_available_source'}
+            if reading_contract is not None:record['required_for_reading']=key in reading_contract['required_fields']
             if statement:
                 try:
                     anchors=[locate(proof,output,key not in {'problem','method_overview'}) for proof in statement.proofs]
@@ -154,6 +224,7 @@ def build_technical_cards(configuration,findings,evidence,proposals=None):
                     'source_url':anchor['source_url']+(f'#page={item.page}' if item.page else ''),'origin':'original_source_reference_not_system_generated_chart'})
             except ValueError as error:pending.append({'output_id':output_id,'kind':'figure_reference','reason':str(error)})
         cards.append({'output_id':output_id,'title':output['title'],'source_urls':output['source_urls'],
+            **({'reading_contract':reading_contract} if reading_contract is not None else {}),
             'reading_depth':'full_text_source_with_bounded_context' if full else 'abstract_metadata_only',
             'full_text_available':full,'model_read_entire_document':False,'fields':fields,'figure_references':figures,
             'unknown_fields':[key for key,value in fields.items() if value['status']=='unknown'],
@@ -170,10 +241,11 @@ def reconcile_retained_technical(configuration,findings,evidence,workflow):
     Follow-up fields supersede earlier candidates only after their own primary
     source quotations validate. Replaced candidates remain in field history.
     """
+    configuration=configuration or {}
     from copy import deepcopy
     previous=findings.get('technical_reading') or {}
     cards={row['output_id']:deepcopy(row) for row in previous.get('cards',[])}
-    pending=[];phases=[]
+    pending=[];phases=[];reading_contracts={}
     completed=(workflow or {}).get('completed') or {}
     # Targeted condition reading has precedence even if checkpoint JSON key
     # order was changed by a database serializer.
@@ -186,6 +258,13 @@ def reconcile_retained_technical(configuration,findings,evidence,workflow):
         pending.extend({'phase':phase,**row} for row in view['pending_records'])
         for candidate in view['cards']:
             target=cards.setdefault(candidate['output_id'],deepcopy(candidate))
+            if configuration.get('reading_field_policy')==READING_FIELD_POLICY:
+                retained,conflict=retain_reading_contract(reading_contracts.get(candidate['output_id']),candidate.get('reading_contract'))
+                if retained:
+                    reading_contracts[candidate['output_id']]=retained
+                    target['reading_contract']=deepcopy(retained)
+                if conflict:pending.append({'output_id':candidate['output_id'],'phase':phase,'kind':'reading_contract',
+                    'reason':'retained_source_located_reading_contract_not_silently_replaced'})
             for name,field in candidate['fields'].items():
                 if not field.get('text') or not field.get('proofs'):continue
                 old=target['fields'].get(name) or {}
@@ -197,6 +276,10 @@ def reconcile_retained_technical(configuration,findings,evidence,workflow):
                 if figure not in target['figure_references']:target['figure_references'].append(figure)
             target['unknown_fields']=[name for name,field in target['fields'].items() if field['status']=='unknown']
     if not phases:return previous
+    for card in cards.values():
+        reading_contract=card.get('reading_contract')
+        if configuration.get('reading_field_policy')==READING_FIELD_POLICY and reading_contract:
+            for name,field in card['fields'].items():field['required_for_reading']=name in reading_contract['required_fields']
     return {**previous,'schema_version':VERSION,'cards':list(cards.values()),
         'pending_records':pending,'selected_output_ids':list(cards),'gaps':previous.get('gaps',[]),
         'reconciliation':{'policy':'adrs-retained-technical-fields-v2','phases':phases,
@@ -206,7 +289,9 @@ def reconcile_retained_technical(configuration,findings,evidence,workflow):
 
 def technical_context(view):
     if not view:return None
-    return {'schema_version':view['schema_version'],'cards':view['cards'][:20],
+    return {'schema_version':view['schema_version'],'cards':[{**row,
+        **({'reading_contract':reading_contract_context(row['reading_contract'])} if row.get('reading_contract') else {})}
+        for row in view['cards'][:20]],
         'retained_card_count':len(view['cards']),'pending_records':view['pending_records'][:10],'gaps':view['gaps'],
         **({'reading_selection':view['reading_selection']} if view.get('reading_selection') else {})}
 

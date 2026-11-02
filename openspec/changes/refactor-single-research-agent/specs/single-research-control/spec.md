@@ -38,6 +38,10 @@
 - **WHEN** 多个已授权来源读取互不依赖且当前份额允许并行
 - **THEN** 系统沿现有DAG执行有界批次并分别记录结果，不为每条读取强制新增模型决策
 
+#### Scenario: All accepted works have already been requested for reading
+- **WHEN** 新任务冻结明确全部阅读，或保留同义的既有用户请求，而当前政策支持这项合同
+- **THEN** 系统直接以全部已纳入成果构造原分批深读，不额外调用代表选择模型或输出无用途的全量选择表；候选未纳入和缺材料状态保留，原预算与恢复机会不增加
+
 ### Requirement: Specialist boundaries follow observable responsibilities
 
 系统 SHALL 为规划、取证、分析、评审、写作和交付明确输入、产出、触发、状态写入者和停止责任。已有工具无需因类名含Agent再次包装；专家保留独有职责。删除评审调用须说明其与保留检查在问题、材料、判据和依赖上的重复，以及独有覆盖的承接位置。

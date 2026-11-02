@@ -58,6 +58,14 @@
 - **WHEN** 图文复核仍基于同一问题和主张范围且该枚举未成为决定性前提
 - **THEN** 系统保留相同免核范围，不因进入图注或解释阶段重新要求逐项核验
 
+#### Scenario: A theoretical paper is read for its formal contribution
+- **WHEN** 同一次初读提供合法原文定位的理论导读合同，且用户没有另行要求实验字段
+- **THEN** 系统围绕机制、假设／适用条件及来源结果计算缺口，不机械追加实验设计和经验对照；未要求字段保持未知而非认定不适用，事实及核心结论的必要条件继续核验
+
+#### Scenario: A follow-up attempts to reduce its required reading fields
+- **WHEN** 补读候选将已有来源定位合同的必需字段缩小，或省略用户明确要求的字段
+- **THEN** 系统保留原要求和冲突，允许有原文依据的需求扩大，不借换profile使未完成项变成完成；报告和读者审核仍按冻结政策及实际核心结论判断
+
 ### Requirement: Reader review remains current and bounded
 
 系统 SHALL 对初稿完成当前整稿的读者审核，修订后根据实际影响使相关维度失效并复核；核心结论或结构变化触发相应全局复核。有效未变维度可以组合复用，最终结果须绑定当前稿。争议重复组最多进行一次有界实质影响复核，不以不断更换合同取得新尝试。

@@ -5,6 +5,7 @@ import json
 import re
 from datetime import UTC, datetime
 from urllib.parse import urlsplit
+from typing import Literal
 
 from pydantic import Field, model_validator
 
@@ -17,7 +18,7 @@ from app.organization_corpus import CorpusDeclaration, freeze_corpus, corpus_ins
 from app.channels.models import ChannelError
 from app.organization_taxonomy import TaxonomyRequest, freeze_taxonomy
 from app.organization_relationships import VERSION as RELATIONSHIP_POLICY_VERSION
-from app.organization_deep_dive import VERSION as TECHNICAL_POLICY_VERSION
+from app.organization_deep_dive import VERSION as TECHNICAL_POLICY_VERSION,READING_FIELD_POLICY,FieldName
 from app.organization_trends import VERSION as TREND_POLICY_VERSION
 from app.organization_actions import ActionRequirements, VERSION as ACTION_POLICY_VERSION
 from app.organization_statistics import VERSION as STATISTICS_POLICY_VERSION
@@ -28,6 +29,8 @@ class OrganizationResearchRequest(ScopeRecord):
     purpose: ResearchPurpose = 'research_development'
     modules: tuple[ResearchModule, ...] | None = Field(default=None, max_length=6)
     corpus: CorpusDeclaration = Field(default_factory=CorpusDeclaration)
+    reading_mode:Literal['question_driven','all']='question_driven'
+    required_reading_fields:tuple[FieldName,...]=Field(default=(),max_length=10)
     taxonomy: TaxonomyRequest = Field(default_factory=TaxonomyRequest)
     action_requirements: ActionRequirements = Field(default_factory=ActionRequirements)
     weights: WeightConfigurationRequest = Field(default_factory=WeightConfigurationRequest)
@@ -39,6 +42,8 @@ class OrganizationResearchRequest(ScopeRecord):
             raise ValueError('choose weights or a personal preset, not both')
         # Resolve defaults during construction; ScopeRecord is frozen afterwards.
         object.__setattr__(self, 'modules', resolve_modules(self.purpose, self.modules))
+        if (self.reading_mode=='all' or self.required_reading_fields) and 'deep_dive' not in self.modules:
+            raise ValueError('explicit_reading_requirements_require_deep_dive_module')
         try:
             freeze_corpus(self.corpus, self.scope.model_dump(mode='json'))
             freeze_taxonomy(self.taxonomy, list(self.scope.disciplines))
@@ -70,6 +75,8 @@ def freeze_organization_request(request: OrganizationResearchRequest | None, sel
         'topic_action_policy':'adrs-topic-actions-v2',
         'research_handoff_policy':'adrs-complete-evidence-handoff-v2',
         'report_material_policy':REPORT_MATERIAL_POLICY,
+        'reading_field_policy':READING_FIELD_POLICY,
+        'reading_mode':request.reading_mode,'required_reading_fields':list(dict.fromkeys(request.required_reading_fields)),
         'work_identity_policy':'adrs-primary-work-versions-v1',
         'reader_quality_policy':'adrs-reader-quality-v1',
         'claim_review_scope':{'policy':'adrs-reader-essential-facts-v1','mode':'essential',

@@ -80,7 +80,25 @@
 
 字段导读状态沿同一`corpus_progress.items`按成果ID引用，不另存一套导读结果；`full_document_read`与事实支持均不由本投影授予。读取失败收据中的缺口作为`read_gap_history`展示，已有有效保留材料不会因一次历史失败被误记为从未取得。原报告`corpus.declared_membership`消费相同投影；当前可从质量高级详情和结构化结果查看，专门的成员选择／状态界面、Markdown／PDF清单装配和基于完整成员的交付裁决仍待后续接合，不以未被调用的Markdown辅助函数宣称报告已经呈现。
 
-新任务沿版本化章节政策启用任务进度；旧根不因此迁移。原Analyst范围识别后登记接受成员；原reading_plan／representative_reading保存选择角色和理由，未选项保留；原两篇一批与字段原文校验结果更新逐篇状态。必要字段沿现有条件补读政策：experimental_design、baselines、conditions、results，以及该阶段合同要求的mechanism。其他已取得字段仍保留，当前不把这五字段覆盖称为全部十字段或整篇全文精读通过。
+### 逐篇深读字段合同
+
+新创建的组织研究冻结`reading_field_policy: adrs-question-reading-fields-v1`，不迁移未带该政策的旧根。组织研究请求新增`reading_mode`（`question_driven`默认／`all`）及可选`required_reading_fields`（原十种技术字段，最多十项），服务器合并去重后保存。显式all或必需字段要求同时选择deep_dive，否则拒绝输入，不静默忽略要求或增选模块。模式控制全部／按问题选择，尚不提供单独的“仅摘要”深度模式或前端新选择器，材料可用层级与实际已读状态继续分列。
+
+现有两篇一批的初读同时提出`technical_cards[].reading_contract`：profile、简短reason、当前原始来源的basis，以及问题确有需要的additional_required_fields。basis仍经原请求局部passage ID展开和原文字面定位，不能用另一篇或未取得来源作为依据；错误的可选合同不抹除其他有效字段。不增加分类Agent或额外模型调用。
+
+| 导读类型 | 默认必需字段 |
+|---|---|
+| empirical／unknown | mechanism、experimental_design、baselines、conditions、results |
+| theoretical | mechanism、conditions（假设／适用条件）、results（来源定理／结果） |
+| synthesis | method_overview、conditions（范围／方法条件）、results（综合发现） |
+
+这些类型是有原文定位的计划判断，不是独立核证或“不适用”认证。缺少类型依据时沿unknown保守字段；所有类型均叠加用户明确要求的字段和有依据的额外需求。初读尽量提供已有材料能支持的必需字段；共享补读只处理各自缺口，reading_focus只是批次并集，不要求两篇返回完全相同的字段。已定位合同可在后续扩大需求，不能静默缩减；重建时按原phase顺序保留合同及冲突。合法重新分类而需缩减字段的显式再评估仍待原依赖／修订任务接合。
+
+明确全部阅读的新任务直接使用全部已纳入成果；深读入口不再额外请求代表选择，landscape也不再生成无用途的全量reading_plan。其余按问题选择继续原计划与理由；缺材料或范围待核不会因此被默认为纳入。旧根保持原选择及条件补读路径。
+
+同一合同用于逐篇required_fields／missing_fields、剩余预测和技术材料交接。综合／写作／读者输入只携带紧凑计划与原始证据ID，完整类型依据留在技术卡和原phase，不反复复制长段原文。读者审核不能强迫理论／综述填实验模板，也不能用错误profile跳过核心结论真正必要的条件、对照或指标。新报告与审核绑定字段政策，未知版本或不匹配保持未完成。未要求仍是未知而非原文不存在，字面定位仍不等于语义支持、全文已读或独立复现。
+
+原Analyst范围识别后登记接受成员；原reading_plan／representative_reading保存选择角色和理由，未选项保留；原两篇一批与字段原文校验结果更新逐篇状态。未带新政策的旧根继续原experimental_design、baselines、conditions、results及阶段所需mechanism条件补读；其他已取得字段仍保留，不把这些字段覆盖称为全部十字段或整篇全文精读通过。
 
 每篇保存实际材料层级、所需／已定位／缺失字段、来源ID／版本（可取得时）及原phase定位。`required_fields_located`仅指现有必要字段有已定位候选，full_document_read保持false，事实支持不会由该状态授予。没有资料或字段返回时留缺口，不据摘要推断原论文缺少内容。
 

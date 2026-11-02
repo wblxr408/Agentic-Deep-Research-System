@@ -120,6 +120,10 @@ Return JSON with analysis_text and any additional fields explicitly required bel
         from app.research_context import (analysis_binding, identity_batches, QUESTION_SEED_VERSION,
             CONTEXT_PACKING_VERSION, LEGACY_CONTEXT_PACKING_VERSION, workflow_packing_version)
         from app.organization_purpose import MODULES, REPORT_MATERIAL_POLICY
+        from app.organization_deep_dive import READING_FIELD_POLICY,required_reading_fields,retain_reading_contract
+        if configuration.get('reading_field_policy') not in {None,READING_FIELD_POLICY}:
+            self.last_workflow=deepcopy(resume_state or {})
+            raise TokenBudgetExceeded('analysis_context_contract_changed')
         from app.organization_findings import build_organization_findings
         modules=list(configuration.get('modules') or [])
         from app.research_judgments import VERSION as JUDGMENT_VERSION, ORDER, build_judgments
@@ -145,11 +149,15 @@ Return JSON with analysis_text and any additional fields explicitly required bel
             'completed':{},'attempts':{},'status':'running'}
         self.last_workflow=workflow
         accepted={}
+        from app.analysis_phase_contract import reading_all_requested
+        all_reading=(configuration.get('reading_field_policy')==READING_FIELD_POLICY
+            and reading_all_requested(configuration,user_query))
 
         def progress():
             if on_progress:on_progress(deepcopy(workflow))
 
         def phase(key, phase_config, kind, seed=None):
+            if all_reading:phase_config={**phase_config,'_reading_all_requested':True}
             from app.query_understanding import identity
             seed_binding=identity({'configuration':phase_config,'kind':kind,'seed':seed})
             action_contract_binding=None
@@ -159,7 +167,7 @@ Return JSON with analysis_text and any additional fields explicitly required bel
                 action_contract_binding=identity(action_instructions(phase_config))
             selection_required=(kind=='question' and phase_config.get('modules')==['landscape']
                 and phase_config.get('research_handoff_policy')=='adrs-complete-evidence-handoff-v2'
-                and not phase_config.get('_post_reading_synthesis'))
+                and not phase_config.get('_post_reading_synthesis') and not phase_config.get('_reading_all_requested'))
             def validate_selection(record):
                 from app.analysis_phase_contract import validate_reading_plan
                 validate_reading_plan((seed or {}).get('outputs',[]),record['organization_data'].get('reading_plan'))
@@ -392,7 +400,7 @@ Return JSON with analysis_text and any additional fields explicitly required bel
                     'full_document_read':False,'support_status':'not_granted_by_reading_progress'}
             corpus_progress={'version':'adrs-task-corpus-progress-v1','analysis_binding':binding,
                 'scope_rule_version':configuration.get('scope_rule_version'),
-                'required_field_policy':'existing_condition_followup_not_full_document_certificate',
+                'required_field_policy':configuration.get('reading_field_policy') or 'existing_condition_followup_not_full_document_certificate',
                 'membership_basis':'accepted_scope_outputs_not_complete_directory_screening',
                 'items':items,'semantics':'located_required_fields_not_whole_document_reading_or_factual_approval'}
             if (configuration.get('corpus') or {}).get('collection_mode')=='rag_corpus':
@@ -424,6 +432,7 @@ Return JSON with analysis_text and any additional fields explicitly required bel
             'actions':('action_cards',)}
         texts={};contexts=[];judgments=[];judgment_gaps=[];prior_records=[];retired_judgments=[]
         technical_by_output={}
+        reading_contracts={}
         retained_evidence=[item.model_dump(mode='json') for item in evidence_list]
         def retain_technical(record, batch, phase_id):
             from app.organization_deep_dive import build_technical_cards
@@ -442,12 +451,22 @@ Return JSON with analysis_text and any additional fields explicitly required bel
             for card in view['cards']:
                 if card['output_id'] not in permitted:continue
                 target=technical_by_output.setdefault(card['output_id'],{'output_id':card['output_id'],'fields':{},'figure_references':[]})
+                if configuration.get('reading_field_policy')==READING_FIELD_POLICY:
+                    chosen,conflict=retain_reading_contract(reading_contracts.get(card['output_id']),card.get('reading_contract'))
+                    if chosen:
+                        reading_contracts[card['output_id']]=chosen
+                        if chosen.get('proposal'):target['reading_contract']=chosen['proposal']
+                    if conflict:record['context']['technical_card_pending_records'].append({'output_id':card['output_id'],
+                        'kind':'reading_contract','reason':'retained_source_located_reading_contract_not_silently_replaced'})
                 for key,field in card['fields'].items():
                     if field.get('text') and field.get('proofs'):
                         target['fields'][key]={'text':field['text'],'proofs':[
                             {'evidence_id':proof['evidence_id'],'quote':proof['quote']} for proof in field['proofs']]}
                 if corpus_progress is not None:
                     item=corpus_progress['items'][card['output_id']]
+                    if card['output_id'] in reading_contracts:
+                        item['reading_contract']=reading_contracts[card['output_id']]
+                        item['required_fields']=list(item['reading_contract']['required_fields'])
                     item['material_availability']='full_text' if card['full_text_available'] else 'full_text_not_established'
                     item['availability_basis']='current_primary_source_link_and_coverage'
                     for name,field in card['fields'].items():
@@ -507,7 +526,7 @@ Return JSON with analysis_text and any additional fields explicitly required bel
             batches=[seed]
             if module=='deep_dive':
                 from app.analysis_phase_contract import reading_representatives
-                if complete_handoff and reading_plan is None:
+                if complete_handoff and reading_plan is None and not all_reading:
                     selection=phase('question:reading_selection',{**configuration,'modules':['landscape']},'question',seed)
                     reading_plan=selection['organization_data'].get('reading_plan',[])
                     workflow['reading_plan']=reading_plan
@@ -516,15 +535,13 @@ Return JSON with analysis_text and any additional fields explicitly required bel
                     evidence_list,configuration,user_query,reading_plan=reading_plan)
                 if reading_selection:workflow['representative_reading']=reading_selection
                 if corpus_progress is not None:
-                    from app.analysis_phase_contract import enabled as phase_contract_enabled
-                    required=['experimental_design','baselines','conditions','results']
-                    if phase_contract_enabled(configuration):required.insert(0,'mechanism')
+                    required=required_reading_fields(configuration)
                     plan={row['output_id']:row for row in (reading_selection or {}).get('plan',[])}
                     selected={row['output_id'] for row in representatives}
                     for output_id,item in corpus_progress['items'].items():
                         selection=plan.get(output_id) or {}
                         item.update(reading_role=selection.get('role') or ('selected' if output_id in selected else 'not_selected'),
-                            selection_reason=selection.get('reason'),
+                            selection_reason=selection.get('reason') or ('explicit_all_accepted_works_requested' if all_reading else None),
                             reading_status='pending' if output_id in selected else 'not_selected',
                             required_fields=list(required) if output_id in selected else [],
                             missing_fields=list(required) if output_id in selected else [])
@@ -562,10 +579,7 @@ Return JSON with analysis_text and any additional fields explicitly required bel
                     retain_technical(record,batch,phase_id)
                     contexts[-1]['technical_field_checks']=record['context']['technical_field_checks']
                     contexts[-1]['technical_card_pending_records']=record['context']['technical_card_pending_records']
-                    from app.analysis_phase_contract import enabled as phase_contract_enabled
-                    condition_fields=('experimental_design','baselines','conditions','results')
-                    if phase_contract_enabled(configuration):condition_fields=('mechanism',*condition_fields)
-                    missing={item['output_id']:[field for field in condition_fields if field not in
+                    missing={item['output_id']:[field for field in required_reading_fields(configuration,reading_contracts.get(item['output_id'])) if field not in
                         technical_by_output.get(item['output_id'],{}).get('fields',{})] for item in batch['outputs']}
                     missing={key:value for key,value in missing.items() if value}
                     if missing:

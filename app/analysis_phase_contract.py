@@ -44,7 +44,7 @@ def contract(configuration, phase):
     fields=list(SHAPES[module])
     if configuration.get('_post_reading_synthesis'):fields.append('module_summaries')
     if (module=='landscape' and configuration.get('research_handoff_policy')=='adrs-complete-evidence-handoff-v2'
-            and not configuration.get('_post_reading_synthesis')):
+            and not configuration.get('_post_reading_synthesis') and not configuration.get('_reading_all_requested')):
         fields.append('reading_plan')
     return {'version':VERSION,'phase':module,'required_arrays':fields,
         'allowed_fields':fields,'judgments':module in {'landscape','evolution','validation','actions'}}
@@ -75,6 +75,29 @@ def instructions(configuration, phase, seed=None):
         from app.organization_deep_dive import FIELDS
         organization['technical_cards'][0]['fields']={field:{'text':'the source-supported requested field',
             'proofs':[{'passage_id':'CURRENT ID'}]} for field in seed['reading_focus'] if field in FIELDS}
+    from app.organization_deep_dive import READING_FIELD_POLICY,READING_PROFILES,required_reading_fields
+    reading_contract=''
+    if policy['phase']=='deep_dive' and configuration.get('reading_field_policy')==READING_FIELD_POLICY:
+        card=organization['technical_cards'][0]
+        card['reading_contract']={'profile':'empirical|theoretical|synthesis|unknown',
+            'reason':'why this profile and these fields serve the reader question',
+            'basis':[{'passage_id':'CURRENT ID'}],'additional_required_fields':[]}
+        if not (seed or {}).get('reading_focus'):
+            card['fields']={field:{'text':'concise relevant source-supported field',
+                'proofs':[{'passage_id':'CURRENT ID'}]} for field in
+                dict.fromkeys(['problem','method_overview',*required_reading_fields(configuration)])}
+        reading_contract=('\nReading contract for each ASSIGNED paper: choose empirical, theoretical, synthesis, '
+            'or unknown from that paper\'s own supplied passages. A located basis supports this planning '
+            'judgment, not a certificate that omitted fields do not apply. Mixed empirical/theoretical work '
+            'uses empirical; uncertainty uses unknown. Profile field sets: '+json.dumps(READING_PROFILES)+
+            '. The first reading should supply the profile-required fields already supported by its passages, '
+            'rather than reserving all conditions/results for a second call. Keep compact fields. Explicit '
+            'owner-required fields always remain required: '+json.dumps(configuration.get('required_reading_fields') or [])+
+            '. Add only other fields necessary for the actual reader question via additional_required_fields. '
+            'Do not invent missing content or claim an unrequested field absent from the paper. A targeted '
+            'follow-up serves only missing_fields_by_output for each assigned ID; its reading_focus is a '
+            'batch union, not permission to require every field from every paper. A located contract is '
+            'retained across follow-ups; do not drop its required fields by changing profile or scope.\n')
     shape={'analysis_text':'one concise lead, at most four sentences','organization_data':organization}
     if policy['judgments']:shape['research_judgments']=[]
     synthesis=('\nThis is the final research synthesis AFTER technical reading and relationship analysis. '
@@ -107,7 +130,7 @@ def instructions(configuration, phase, seed=None):
         'A passage reference is exactly {"passage_id":"CURRENT ID"}, without quote or evidence_id. '
         'Choose multiple IDs in the existing proof arrays when a field needs several passages. '
         'Keep all numerical conditions necessary for the statement; references alone do not prove support. '
-        'For deep reading return a card for each assigned output ID; a targeted follow-up supplies only '
+        +reading_contract+'For deep reading return a card for each assigned output ID; a targeted follow-up supplies only '
         'its requested missing fields. This phase supplies structured research material; the later writer owns the report.')
 
 
@@ -164,13 +187,17 @@ def validate_reading_plan(outputs, reading_plan):
     return plan
 
 
-def reading_representatives(outputs, metadata, evidence, configuration, query, *, reading_plan=None):
-    """Select reading order; all accepted outputs remain in the root corpus."""
-    if not enabled(configuration):return outputs,None
+def reading_all_requested(configuration,query):
     requests=list(re.finditer(r'逐篇|全部(?:论文|成果)|所有论文|\bevery\s+paper\b|\ball\s+(?:papers|publications)\b',query,re.I))
     explicit_all=any(not re.search(r'(?:不需要|不必|不用|不要|无需|并非|\bnot\b|\bwithout\b|no need to)[^，。;.!?]{0,16}$',
         query[max(0,match.start()-32):match.start()],re.I) for match in requests)
-    all_requested=(configuration.get('corpus') or {}).get('collection_mode')=='seeds_only' or explicit_all
+    return (configuration.get('corpus') or {}).get('collection_mode')=='seeds_only' or explicit_all or configuration.get('reading_mode')=='all'
+
+
+def reading_representatives(outputs, metadata, evidence, configuration, query, *, reading_plan=None):
+    """Select reading order; all accepted outputs remain in the root corpus."""
+    if not enabled(configuration):return outputs,None
+    all_requested=reading_all_requested(configuration,query)
     if configuration.get('research_handoff_policy')=='adrs-complete-evidence-handoff-v2' and not all_requested and reading_plan is not None:
         by_id={row['output_id']:row for row in outputs};plan=validate_reading_plan(outputs,reading_plan)
         selected=[by_id[key] for key,row in plan.items() if row['role'] in {'core','supporting'}]
