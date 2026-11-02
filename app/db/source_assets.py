@@ -33,6 +33,13 @@ CREATE TABLE IF NOT EXISTS research_source_pages (
  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
  PRIMARY KEY(asset_id,page,renderer), CHECK(width*height<=2000000)
 );
+CREATE TABLE IF NOT EXISTS research_source_figure_layouts (
+ asset_id UUID NOT NULL REFERENCES research_source_assets(asset_id) ON DELETE CASCADE,
+ extractor TEXT NOT NULL, payload JSONB NOT NULL,
+ created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+ PRIMARY KEY(asset_id,extractor),
+ CHECK(octet_length(payload::text)<=2000000)
+);
 '''
 
 
@@ -95,7 +102,16 @@ async def current_original(conn,session_id,owner_id,evidence,*,include_bytes=Tru
     return dict(row)
 
 
-async def retain_page(conn,binding,asset_id,page,png,width,height,*,local_mode=False):
+def _renderer_contract(renderer):
+    from app.source_figure_extraction import FIGURE_RENDERER
+    import re
+    if not isinstance(renderer,str) or renderer!=PAGE_RENDERER and not re.fullmatch(re.escape(FIGURE_RENDERER)+r':[0-9a-f]{32}',renderer):
+        raise ValueError('source_page_renderer_invalid')
+    return renderer
+
+
+async def retain_page(conn,binding,asset_id,page,png,width,height,*,local_mode=False,renderer=PAGE_RENDERER):
+    renderer=_renderer_contract(renderer)
     if (type(page) is not int or not 1<=page<=80 or type(width) is not int or type(height) is not int
             or not 1<=width<=2000 or not 1<=height<=2000 or width*height>2_000_000
             or not isinstance(png,bytes) or not png.startswith(b'\x89PNG\r\n\x1a\n')
@@ -104,12 +120,64 @@ async def retain_page(conn,binding,asset_id,page,png,width,height,*,local_mode=F
     owned=await conn.fetchval('''SELECT 1 FROM research_source_assets WHERE asset_id=$1::uuid
         AND session_id=$2::uuid AND owner_id=$3::uuid''',str(asset_id),binding['session_id'],binding['owner_id'])
     if not owned:raise ValueError('source_asset_not_owned')
+    if renderer!=PAGE_RENDERER:
+        prior=await conn.fetchrow('''SELECT width,height FROM research_source_pages
+            WHERE asset_id=$1::uuid AND page=$2 AND renderer=$3''',str(asset_id),page,renderer)
+        if prior:
+            if prior['width']!=width or prior['height']!=height:raise ValueError('source_figure_pixel_version_conflict')
+            return
+        used=await conn.fetchval('''SELECT COALESCE(SUM(octet_length(p.png)),0)
+            FROM research_source_pages p JOIN research_source_assets a ON a.asset_id=p.asset_id
+            WHERE a.session_id=$1::uuid AND a.owner_id=$2::uuid AND p.renderer<>$3''',
+            binding['session_id'],binding['owner_id'],PAGE_RENDERER)
+        if int(used)+len(png)>MAX_TASK_BYTES:raise ValueError('source_figure_pixel_task_byte_limit')
     await conn.execute('''INSERT INTO research_source_pages(asset_id,page,renderer,png,width,height)
-        VALUES($1::uuid,$2,$3,$4,$5,$6) ON CONFLICT DO NOTHING''',str(asset_id),page,PAGE_RENDERER,png,width,height)
+        VALUES($1::uuid,$2,$3,$4,$5,$6) ON CONFLICT DO NOTHING''',str(asset_id),page,renderer,png,width,height)
 
 
-async def current_page(conn,session_id,owner_id,evidence,page):
+async def current_page(conn,session_id,owner_id,evidence,page,*,renderer=PAGE_RENDERER):
+    renderer=_renderer_contract(renderer)
     original=await current_original(conn,session_id,owner_id,evidence,include_bytes=False)
     row=await conn.fetchrow('''SELECT png,width,height,renderer FROM research_source_pages
-        WHERE asset_id=$1 AND page=$2 AND renderer=$3''',original['asset_id'],page,PAGE_RENDERER)
+        WHERE asset_id=$1 AND page=$2 AND renderer=$3''',original['asset_id'],page,renderer)
     return dict(row) if row else None
+
+
+async def retain_figure_layout(conn,binding,evidence,layout,*,local_mode=False):
+    """Immutable parser output owned by the existing original, not a new cache service."""
+    import json
+    from app.source_figure_extraction import EXTRACTOR,EXTRACTOR_REVISION,MAX_LAYOUT_BYTES,renderer_key
+    if layout.get('extractor')!=EXTRACTOR or not isinstance(layout.get('figures'),list):
+        raise ValueError('source_figure_layout_version_changed')
+    if layout.get('source_revision')!=EXTRACTOR_REVISION or len(layout['figures'])>1000:
+        raise ValueError('source_figure_layout_version_changed')
+    for figure in layout['figures']:renderer_key(figure)
+    encoded=json.dumps(layout,ensure_ascii=False)
+    if len(encoded.encode('utf8'))>MAX_LAYOUT_BYTES:raise ValueError('source_figure_layout_byte_limit')
+    await _lock_execution(conn,binding,local_mode=local_mode)
+    original=await current_original(conn,binding['session_id'],binding['owner_id'],evidence,include_bytes=False)
+    prior=await conn.fetchval('''SELECT payload FROM research_source_figure_layouts
+        WHERE asset_id=$1 AND extractor=$2''',original['asset_id'],EXTRACTOR)
+    if prior is not None:
+        if isinstance(prior,str):prior=json.loads(prior)
+        if prior!=layout:raise ValueError('source_figure_layout_version_conflict')
+        return
+    used=await conn.fetchval('''SELECT COALESCE(SUM(octet_length(l.payload::text)),0)
+        FROM research_source_figure_layouts l JOIN research_source_assets a ON a.asset_id=l.asset_id
+        WHERE a.session_id=$1::uuid AND a.owner_id=$2::uuid''',binding['session_id'],binding['owner_id'])
+    if int(used)+len(encoded.encode('utf8'))>MAX_TASK_BYTES:raise ValueError('source_figure_layout_task_byte_limit')
+    await conn.execute('''INSERT INTO research_source_figure_layouts(asset_id,extractor,payload)
+        VALUES($1,$2,$3::jsonb) ON CONFLICT DO NOTHING''',original['asset_id'],EXTRACTOR,encoded)
+    stored=await conn.fetchval('''SELECT payload FROM research_source_figure_layouts
+        WHERE asset_id=$1 AND extractor=$2''',original['asset_id'],EXTRACTOR)
+    if isinstance(stored,str):stored=json.loads(stored)
+    if stored!=layout:raise ValueError('source_figure_layout_version_conflict')
+
+
+async def current_figure_layout(conn,session_id,owner_id,evidence):
+    import json
+    from app.source_figure_extraction import EXTRACTOR
+    original=await current_original(conn,session_id,owner_id,evidence,include_bytes=False)
+    stored=await conn.fetchval('''SELECT payload FROM research_source_figure_layouts
+        WHERE asset_id=$1 AND extractor=$2''',original['asset_id'],EXTRACTOR)
+    return json.loads(stored) if isinstance(stored,str) else stored
