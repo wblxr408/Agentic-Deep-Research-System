@@ -15,6 +15,7 @@ POLICY_VERSION = 'adrs-analysis-modules-v1'
 REPORT_MATERIAL_POLICY = 'adrs-owned-chapter-input-v1'
 REPORT_ASSEMBLY_POLICY = 'adrs-batched-report-assembly-v1'
 EDITORIAL_PARTITION_POLICY = 'adrs-editorial-paragraph-packets-v1'
+READER_IMPACT_POLICY = 'adrs-inline-reader-impact-v1'
 MAX_ASSEMBLED_PARAGRAPHS = 2048
 REPORT_WRITING_GUIDANCE = '''
 面向报告读者的写作要求：
@@ -449,6 +450,7 @@ def assemble_module_report(raw: str, configuration: dict, citation_count: int, *
         **({'reader_material_policy':configuration['reader_material_policy']} if configuration.get('reader_material_policy') else {}),
         **({'reader_coverage_policy':configuration['reader_coverage_policy']} if configuration.get('reader_coverage_policy') else {}),
         **({'reader_document_policy':configuration['reader_document_policy']} if configuration.get('reader_document_policy') else {}),
+        **({'reader_impact_policy':configuration['reader_impact_policy']} if configuration.get('reader_impact_policy') else {}),
         **({'reader_quality_policy':configuration['reader_quality_policy']} if configuration.get('reader_quality_policy') else {}),
         **({'surface_review_policy':configuration['surface_review_policy']} if configuration.get('surface_review_policy') else {}),
         'summary':summary_paragraphs,
