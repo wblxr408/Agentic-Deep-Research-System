@@ -23,6 +23,7 @@ from app.report_material_packets import POLICY as READER_MATERIAL_POLICY,COVERAG
 from app.organization_trends import VERSION as TREND_POLICY_VERSION
 from app.report_timeline import POLICY as PUBLICATION_EVENT_POLICY
 from app.report_mechanisms import POLICY as MECHANISM_GRAPH_POLICY
+from app.claim_scope_dependencies import POLICY as CLAIM_DEPENDENCY_POLICY
 from app.organization_actions import ActionRequirements, VERSION as ACTION_POLICY_VERSION
 from app.organization_statistics import VERSION as STATISTICS_POLICY_VERSION
 
@@ -91,6 +92,7 @@ def freeze_organization_request(request: OrganizationResearchRequest | None, sel
         'work_identity_policy':'adrs-primary-work-versions-v1',
         'reader_quality_policy':'adrs-reader-quality-v1',
         'claim_review_scope':{'policy':'adrs-reader-essential-facts-v1','mode':'essential',
+            'dependency_policy':CLAIM_DEPENDENCY_POLICY,
             'reason':'Only consequential report claims require source verification.'},
         'surface_review_policy':'adrs-report-surfaces-v1',
         'relationship_policy_version': RELATIONSHIP_POLICY_VERSION,

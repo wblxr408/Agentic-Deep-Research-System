@@ -34,6 +34,12 @@ def apply_review_scope(audit, scope):
     result=deepcopy(audit)
     from app.query_understanding import identity
     exemptions={item['claim_key']:item for item in scope.get('exclusions',[])}
+    dependency_policy=scope.get('dependency_policy')
+    dependency_context=None
+    if dependency_policy:
+        from app.claim_scope_dependencies import POLICY as DEPENDENCY_POLICY,catalogue,selection_binding
+        dependency_context=identity(catalogue(result.get('claims',[])))
+        selection=result.get('scope_selection') or {}
     for row in result.get('claims',[]):
         exemption=exemptions.get(claim_scope_key(row))
         if exemption:
@@ -41,8 +47,12 @@ def apply_review_scope(audit, scope):
                 'category':exemption['category'],'reason':exemption['reason']}
         decision=row.get('scope_decision') or {}
         model_binding=identity({'scope':identity(scope),'claim':claim_scope_key(row),'model':audit.get('audit_model')})
+        if dependency_policy:
+            model_binding=(selection_binding(scope,claim_scope_key(row),audit.get('audit_model'),
+                dependency_context,selection.get('route_id')) if dependency_policy==DEPENDENCY_POLICY
+                and selection.get('policy')==dependency_policy and selection.get('context_id')==dependency_context else None)
         row['verification_required']=(decision.get('required',True) if exemption
-            or decision.get('binding')==model_binding else True)
+            or model_binding is not None and decision.get('binding')==model_binding else True)
     rows=[row for row in result.get('claims',[]) if row['verification_required']]
     supported=sum(row['status']=='supported' for row in rows)
     unfinished=[row for row in rows if row['status']=='not_checked' or
@@ -58,6 +68,9 @@ def apply_review_scope(audit, scope):
         revision_requests=[row for row in result.get('revision_requests',[]) if row['claim_id'] in required_ids],
         needs_review=not rows or supported!=len(rows),
         quality='incomplete' if unfinished else 'required_claims_supported' if rows and supported==len(rows) else 'needs_revision')
+    if dependency_policy and dependency_policy!=DEPENDENCY_POLICY:
+        result.update(needs_review=True,audit_incomplete=True,quality='incomplete',
+            scope_error='scope_dependency_policy_unsupported')
     return result
 
 
@@ -618,11 +631,20 @@ def audit_report(report: str, evidence: list[Evidence], *, client: Any, model: s
             deadline=deadline),'audit')
     if isinstance(client,BudgetedClient):client=client.with_operation('fact_review')
     claims = extract_claims(report)
+    for claim in claims:claim['declared_kind']=(paragraph_kinds or {}).get(claim['paragraph_context'])
     review_scope=deepcopy(review_scope or (previous_audit or {}).get('review_scope'))
     if review_scope and not review_scope.get('question'):
         review_scope['question']=((task_context or {}).get('task-input:request') or {}).get('query')
     scope_client=client.with_operation('fact_scope_selection') if isinstance(client,BudgetedClient) else client
-    scope_decisions=_review_scope_decisions(claims,review_scope,previous_audit,scope_client,model)
+    scope_selection=None
+    if (review_scope or {}).get('dependency_policy'):
+        from app.claim_scope_dependencies import POLICY as DEPENDENCY_POLICY,select_scope
+        if review_scope.get('policy')==ESSENTIAL_REVIEW_POLICY and review_scope['dependency_policy']==DEPENDENCY_POLICY:
+            scope_decisions,scope_selection=select_scope(claims,review_scope,previous_audit,scope_client,model)
+        else:
+            scope_decisions={}
+            scope_selection={'policy':review_scope['dependency_policy'],'reason':'scope_dependency_policy_unsupported'}
+    else:scope_decisions=_review_scope_decisions(claims,review_scope,previous_audit,scope_client,model)
     claim_limit = len(claims) if max_claims is None else max(0, max_claims)
     # Semantic judgement reads multilingual claims and retained passages
     # directly. Optional retrieval planning has a small, separate allowance.
@@ -985,6 +1007,7 @@ def audit_report(report: str, evidence: list[Evidence], *, client: Any, model: s
     source_claims = sum(not row.get('allowed_method_ids') for row in rows)
     result={"schema_version": "2", "verification_kind": "model_judgement_with_source_or_frozen_task_provenance",
             'audit_contract_version':AUDIT_CONTRACT_VERSION,'audit_model':model,
+            **({'scope_selection':scope_selection} if scope_selection is not None else {}),
             'batching':{'version':'adrs-shared-audit-packing-v2',
                 'max_payload_characters':max_payload_chars,'max_batch_claims':max_batch_claims,
                 'admission':'full_request_byte_bound_and_original_remaining_allowance',
