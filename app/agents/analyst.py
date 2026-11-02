@@ -352,6 +352,15 @@ Return JSON with analysis_text and any additional fields explicitly required bel
             if resolved_entities:
                 extract_config = {**extract_config,'scope':{**extract_config['scope'],
                     'entities':resolved_entities}}
+            if (configuration.get('report_material_policy')==REPORT_MATERIAL_POLICY
+                    and (configuration.get('corpus') or {}).get('collection_mode')=='rag_corpus'):
+                from app.rag_corpus import declared_scope_links
+                partial=workflow.setdefault('corpus_progress',{'version':'adrs-task-corpus-progress-v1',
+                    'analysis_binding':binding,'items':{},'membership_basis':'accepted_outputs_only_declared_members_separate',
+                    'semantics':'scope_recorded_reading_not_yet_scheduled'})
+                partial['declared_scope']=declared_scope_links(configuration['corpus']['rag_membership'],
+                    [item.model_dump(mode='json') for item in evidence_list],resolved)
+                progress()
         accepted=build_organization_findings(extract_config,[item.model_dump(mode='json') for item in evidence_list],data) or {}
         ambiguous=[item for item in accepted.get('pending_records',[])
             if 'ambiguous affiliation identity' in str(item.get('reason',''))]
@@ -386,6 +395,10 @@ Return JSON with analysis_text and any additional fields explicitly required bel
                 'required_field_policy':'existing_condition_followup_not_full_document_certificate',
                 'membership_basis':'accepted_scope_outputs_not_complete_directory_screening',
                 'items':items,'semantics':'located_required_fields_not_whole_document_reading_or_factual_approval'}
+            if (configuration.get('corpus') or {}).get('collection_mode')=='rag_corpus':
+                from app.rag_corpus import declared_scope_links
+                corpus_progress['declared_scope']=declared_scope_links(configuration['corpus']['rag_membership'],
+                    [item.model_dump(mode='json') for item in evidence_list],accepted)
             workflow['corpus_progress']=corpus_progress
         from app.research_context import publication_identity_handoff
         seed['publication_identity']=publication_identity_handoff(accepted,evidence_list,max_bytes=12000)

@@ -455,7 +455,7 @@ def build_organization_findings(configuration: dict | None, evidence: list[dict]
             opening=_publication_opening(source)
             locator_title=urlsplit(title_field).scheme in {'http','https'}
             primary_fields=[title_field]
-            if acquisition.get('format')=='pdf' or not title_field or locator_title:
+            if acquisition.get('format') in {'pdf','internal_source'} or not title_field or locator_title:
                 primary_fields.append(opening)
             # A PDF reader's fallback title is often its URL. It must not
             # override a literal primary title retained on the opening pages.
@@ -695,6 +695,8 @@ def build_organization_findings(configuration: dict | None, evidence: list[dict]
                 publications[publication.output_id] = updated
                 meta = publication_meta[previous.output_id]
                 meta['evidence_ids'] = sorted(set(meta['evidence_ids']) | evidence_ids)
+                if ((configuration.get('corpus') or {}).get('collection_mode')=='rag_corpus'):
+                    meta['primary_evidence_ids']=sorted(set(meta.get('primary_evidence_ids',[])) | {publication.title_proof.evidence_id})
                 if field_policy and meta.get('output_type') is None and output_type is not None:
                     meta.update(output_type=output_type,output_type_status=type_status)
                 if venue and not meta.get('venue'):
@@ -716,6 +718,8 @@ def build_organization_findings(configuration: dict | None, evidence: list[dict]
             publications[publication.output_id] = output
             canonical[key] = canonical[source_key] = output
             publication_meta[output.output_id] = {'output_type': output_type, 'venue': venue,
+                **({'primary_evidence_ids':[publication.title_proof.evidence_id]}
+                   if (configuration.get('corpus') or {}).get('collection_mode')=='rag_corpus' else {}),
                 **({'metadata_policy':metadata_policy,'proposed_output_type':publication.output_type,
                     'venue_status':'source_opening_quote_checked' if venue else 'unknown',
                     'output_type_status':type_status} if field_policy else {}),

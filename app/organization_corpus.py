@@ -358,7 +358,7 @@ def _read_corpus_source(url: str, configuration: dict, *, timeout: float,on_requ
         collected_at=datetime.now(UTC).isoformat(), acquisition=acquisition)]
 
 
-def build_corpus(configuration, findings, evidence, tool_histories) -> dict | None:
+def build_corpus(configuration, findings, evidence, tool_histories,*,workflow=None) -> dict | None:
     declaration = (configuration or {}).get('corpus')
     if not declaration:
         return None
@@ -433,7 +433,18 @@ def build_corpus(configuration, findings, evidence, tool_histories) -> dict | No
     accepted_ids = {entry['output_id'] for entry in accepted}
     full_text_ids = {entry['output_id'] for entry in accepted if entry['full_text_status'] == 'acquired'}
     declared_version = declaration.get('rule_version', 'adrs-corpus-v2')
+    declared={}
+    if declaration.get('collection_mode')=='rag_corpus':
+        from app.rag_corpus import declared_member_progress,declared_scope_links
+        progress=(workflow or {}).get('corpus_progress') or {}
+        reading=progress.get('items') if ((workflow or {}).get('binding')
+            and progress.get('version')=='adrs-task-corpus-progress-v1'
+            and progress.get('analysis_binding')==workflow['binding']) else None
+        declared['declared_membership']=declared_member_progress(configuration,evidence,
+            scope_links=declared_scope_links(declaration['rag_membership'],evidence,findings),
+            reading_items=reading,tool_histories=tool_histories)
     return {'schema_version': declared_version, 'declaration': declaration,
+        **declared,
         'request_frozen_at': configuration['evidence_cutoff'], 'evaluated_at': evaluated_at,
         'coverage': 'declared_retrieved_sample_not_real_world_census', 'records': records,
         'executed_queries': [{'requested_query': (call.get('args') or {}).get('query'),

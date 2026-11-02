@@ -2170,7 +2170,9 @@ def rag_node(state: ResearchState) -> dict:
                 result_summary=f"{len(results)} rag chunks",
             )
             _update_tool_safety(tool_history, schema_validated=True,retrieval_channels=agent.last_channel_status,
-                **({'source_ids':node.source_ids,'source_read_gaps':agent.last_source_gaps} if node.source_ids else {}))
+                **({'source_ids':node.source_ids,'source_read_gaps':agent.last_source_gaps,
+                    'rag_corpus_scope_id':((state.get('organization_research') or {}).get('corpus') or {}).get('rag_membership',{}).get('scope_id')}
+                   if node.source_ids else {}))
             node.status = StepStatus.DONE
             node.last_error = None
             node.last_error_category = None
@@ -2247,7 +2249,12 @@ def rag_node(state: ResearchState) -> dict:
                 {"tool_name": "knowledge_base_search", "status": "error", "error": str(e),
                     'retrieval_channels':agent.last_channel_status},
             ))
-            _update_tool_safety(tool_history,retrieval_channels=agent.last_channel_status)
+            _update_tool_safety(tool_history,retrieval_channels=agent.last_channel_status,
+                **({'source_ids':node.source_ids,
+                    'rag_corpus_scope_id':((state.get('organization_research') or {}).get('corpus') or {}).get('rag_membership',{}).get('scope_id'),
+                    'source_read_gaps':[{'source_id':source_id,'reason':'explicit_source_read_failed',
+                        'error_category':category,'meaning':'attempt_failure_not_proof_source_missing'} for source_id in node.source_ids]}
+                   if node.source_ids else {}))
             _finish_tool_history(tool_history, status="error", error=str(e))
             node_outcomes.append(_make_node_outcome(
                 node_id=node.node_id,
@@ -2755,7 +2762,7 @@ async def report_node(state: ResearchState) -> dict:
             organization_result = {**(organization_result or {}), 'classification': classify_publications(
                 org_config['taxonomy'], organization_result or {}, state.get('collected_evidence', []), org_config['scope'])}
         corpus = build_corpus(state.get('organization_research'), organization_result,
-            state.get('collected_evidence', []), state.get('tool_histories', []))
+            state.get('collected_evidence', []), state.get('tool_histories', []),workflow=state.get('analysis_workflow'))
         if corpus:
             organization_result = {**(organization_result or {}), 'corpus': corpus}
         if org_config:

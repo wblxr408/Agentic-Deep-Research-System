@@ -253,3 +253,116 @@ async def read_frozen_sources(conn,source_ids,manifest,*,owner_id,task_id,group)
                     for page in parse.get('pages') or [] if isinstance(page,dict)],
                 'full_text_basis':'owner_declared_original_complete_retained_artifact_not_publication_authentication'}}})
     return results,gaps
+
+
+def _retained_members(manifest,evidence):
+    """Match trusted retained source bindings; never infer membership from titles."""
+    members={item['source_id']:item for item in manifest['members']}
+    retained={key:[] for key in members}
+    for item in evidence:
+        acquisition=item.get('acquisition') or {}
+        member=members.get(acquisition.get('source_document_id'))
+        record=acquisition.get('research_record') or {}
+        if (member and item.get('source_type')=='knowledge_base' and item.get('collected_by')=='rag'
+                and item.get('source_url')==member['source_url']
+                and acquisition.get('format')=='internal_source'
+                and acquisition.get('corpus_scope_id')==manifest['scope_id']
+                and acquisition.get('parse_version_id')==member['parse_version_id']
+                and acquisition.get('source_content_version')==member['source_content_version']
+                and acquisition.get('source_access_revision')==member['source_access_revision']
+                and (acquisition.get('source_access_snapshot') or {}).get('source_id')==member['source_id']
+                and record.get('work_id')==member['work_id'] and record.get('kind')==member['record_kind']):
+            retained[member['source_id']].append(item)
+    return retained
+
+
+def declared_scope_links(manifest,evidence,findings):
+    """Store compact scope decisions in the existing phase checkpoint."""
+    retained=_retained_members(manifest,evidence)
+    by_evidence={item['evidence_id']:member for member in manifest['members']
+        for item in retained[member['source_id']]}
+    decisions={item['work_id']:[] for item in manifest['members']}
+    conflicts=[]
+    for output in ((findings or {}).get('scope_result') or {}).get('outputs',[]):
+        metadata=((findings or {}).get('publication_metadata') or {}).get(output['output_id'],{})
+        proofs=[key for key in metadata.get('primary_evidence_ids',[]) if key in by_evidence]
+        work_ids={by_evidence[key]['work_id'] for key in proofs}
+        if len(work_ids)!=1:
+            conflicts.append({'output_id':output['output_id'],'work_ids':sorted(work_ids),
+                'reason':'primary_source_work_identity_ambiguous' if work_ids else 'no_declared_primary_source_link'})
+            continue
+        decisions[next(iter(work_ids))].append({'status':'accepted','output_id':output['output_id'],
+            'evidence_ids':proofs,'source_ids':sorted({by_evidence[key]['source_id'] for key in proofs}),
+            'reason_code':'existing_scope_checks_accepted_not_fact_audit'})
+    for pending in (findings or {}).get('pending_records',[]):
+        if pending.get('kind')!='publication':continue
+        proposed=pending.get('proposed_record') or {}
+        proof=(proposed.get('title_proof') or {}).get('evidence_id')
+        member=by_evidence.get(proof)
+        if not member:continue
+        code=pending.get('reason_code')
+        decisions[member['work_id']].append({
+            'status':'excluded' if code in {'publication_date_out_of_scope','output_type_out_of_scope'} else 'pending',
+            'output_id':pending.get('id'),'evidence_ids':[proof],'source_ids':[member['source_id']],
+            'reason_code':code or 'scope_not_established','reason':pending.get('reason')})
+    return {'version':'adrs-declared-scope-links-v1','scope_id':manifest['scope_id'],
+        'decisions':decisions,'identity_gaps':conflicts}
+
+
+def declared_member_progress(configuration,evidence,*,scope_links=None,reading_items=None,tool_histories=()):
+    """Project every frozen member, even before analysis; no second state store."""
+    from collections import Counter
+    corpus=(configuration or {}).get('corpus') or {}
+    manifest=corpus.get('rag_membership') or {}
+    if corpus.get('collection_mode')!='rag_corpus' or manifest.get('version')!='adrs-rag-membership-v1':return None
+    retained=_retained_members(manifest,evidence)
+    current_ids={item['evidence_id'] for values in retained.values() for item in values}
+    reading_items=reading_items or {}
+    linked=scope_links if ((scope_links or {}).get('version')=='adrs-declared-scope-links-v1'
+        and scope_links.get('scope_id')==manifest['scope_id']) else {}
+    gaps={item['source_id']:[] for item in manifest['members']}
+    for history in tool_histories:
+        for call in history.get('tool_calls',[]):
+            safety=call.get('safety_json') or {}
+            if safety.get('rag_corpus_scope_id',manifest['scope_id'])!=manifest['scope_id']:continue
+            for gap in safety.get('source_read_gaps',[]):
+                if gap.get('source_id') in gaps and gap not in gaps[gap['source_id']]:gaps[gap['source_id']].append(gap)
+    sources=[];works={}
+    for member in manifest['members']:
+        source_id=member['source_id'];values=retained[source_id]
+        full=any((item.get('acquisition') or {}).get('complete_retained_artifact')
+            and (item.get('acquisition') or {}).get('coverage')=='full_text'
+            and not (item.get('acquisition') or {}).get('truncated')
+            and (item.get('acquisition') or {}).get('retained_characters')==len(item.get('content') or '') for item in values)
+        sources.append({**member,'acquisition_status':'retained_matching_version' if values else 'not_retained',
+            'evidence_ids':[item['evidence_id'] for item in values],'available_kind':member['record_kind'],
+            'full_text_available':full,'read_gap_history':gaps[source_id]})
+        work=works.setdefault(member['work_id'],{'work_id':member['work_id'],'source_ids':[],
+            'retained_source_ids':[],'full_text_available':False})
+        work['source_ids'].append(source_id)
+        if values:work['retained_source_ids'].append(source_id)
+        work['full_text_available']=work['full_text_available'] or full
+    for work_id,work in works.items():
+        decisions=(linked.get('decisions') or {}).get(work_id,[])
+        valid=[item for item in decisions if item.get('evidence_ids') and set(item['evidence_ids'])<=current_ids]
+        accepted=list(dict.fromkeys(item['output_id'] for item in valid if item['status']=='accepted'))
+        pending=any(item['status']=='pending' for item in valid)
+        excluded_sources={key for item in valid if item['status']=='excluded' for key in item['source_ids']}
+        conflict=any(work_id in gap['work_ids'] for gap in linked.get('identity_gaps',[]))
+        status=('identity_conflict' if conflict else 'accepted_with_pending' if accepted and pending else
+            'accepted' if accepted else 'pending' if pending else
+            'excluded' if set(work['source_ids'])<=excluded_sources else 'pending' if valid else
+            'needs_scope_refresh' if decisions else 'not_screened')
+        work.update(screening_status=status,scope_decisions=valid,accepted_output_ids=accepted,
+            stale_scope_decision_count=len(decisions)-len(valid),
+            reading_status_counts=dict(Counter((reading_items.get(key) or {}).get('reading_status','not_recorded') for key in accepted)),
+            required_fields_located_output_ids=[key for key in accepted
+                if (reading_items.get(key) or {}).get('reading_status')=='required_fields_located'],
+            full_document_read=False,support_status='not_granted_by_membership_progress')
+    return {'version':'adrs-declared-member-progress-v1','scope_id':manifest['scope_id'],
+        'sources':sources,'works':list(works.values()),'declared_source_count':len(sources),'declared_work_count':len(works),
+        'retained_source_count':sum(bool(item['evidence_ids']) for item in sources),
+        'screening_status_counts':dict(Counter(item['screening_status'] for item in works.values())),
+        'identity_gaps':linked.get('identity_gaps',[]),
+        'semantics':'retained_task_snapshot_not_live_permission_full_reading_or_fact_approval',
+        'effects':{'model_calls':0,'network_requests':0,'index_writes':0}}

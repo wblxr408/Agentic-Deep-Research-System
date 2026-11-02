@@ -211,14 +211,24 @@ def technical_context(view):
         **({'reading_selection':view['reading_selection']} if view.get('reading_selection') else {})}
 
 
-def task_reading_progress(workflow):
+def task_reading_progress(workflow,*,configuration=None,evidence=(),tool_histories=()):
     """Read the existing Analyst checkpoint; this is not another corpus ledger."""
     from collections import Counter
     progress=(workflow or {}).get('corpus_progress')
+    current=bool((workflow or {}).get('binding') and progress and progress.get('version')=='adrs-task-corpus-progress-v1'
+        and progress.get('analysis_binding')==(workflow or {}).get('binding'))
+    from app.rag_corpus import declared_member_progress
+    declared=declared_member_progress(configuration,evidence,
+        scope_links=progress.get('declared_scope') if current else None,
+        reading_items=progress.get('items') if current else None,tool_histories=tool_histories)
+    declaration={'declared_membership':declared} if declared is not None else {}
     if not progress or progress.get('version')!='adrs-task-corpus-progress-v1':
-        return {'status':'not_recorded','items':[],'semantics':'legacy_or_unstarted_not_zero_completed_papers'}
+        return {'status':'not_recorded','items':[],'semantics':'legacy_or_unstarted_not_zero_completed_papers',**declaration}
+    if not current:
+        return {'status':'stale_analysis_binding','items':[],**declaration,
+            'semantics':'retained_progress_not_valid_for_current_analysis'}
     items=list((progress.get('items') or {}).values())
-    return {**{key:value for key,value in progress.items() if key!='items'},
+    return {**{key:value for key,value in progress.items() if key not in {'items','declared_scope'}},**declaration,
         'status':'recorded','items':items,'member_count':len(items),
         'reading_status_counts':dict(Counter(item['reading_status'] for item in items)),
         'works_with_field_gaps':sum(bool(item.get('missing_fields')) for item in items),
