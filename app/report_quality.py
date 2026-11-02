@@ -13,13 +13,25 @@ from openai import APIError
 from app.llm_budget import TokenBudgetExceeded, budgeted_client, request_token_bound
 from app.query_understanding import identity
 from app.security.prompt_security import untrusted_context
-from app.report_material_packets import POLICY as MATERIAL_POLICY,material_owners,context_overrides,material_packets
+from app.report_material_packets import POLICY as MATERIAL_POLICY,COVERAGE_POLICY,material_owners,context_overrides,material_packets
 
 POLICY = 'adrs-reader-quality-v1'
 SUPPORTED_POLICIES = {POLICY, 'adrs-reader-quality-v2'}
 REVIEW_CONTRACT = 'adrs-reader-purpose-v4'
 PACKET_CONTRACT = 'adrs-reader-packets-v1'
 READING_IMPACT_CONTRACT = 'adrs-reader-repetition-impact-v1'
+
+
+def validate_work_coverage(coverage,known_works,by_id):
+    if (not isinstance(coverage,list) or len(coverage)!=len(known_works)
+            or {row['output_id'] for row in coverage}!=set(known_works)):raise ValueError('work_coverage')
+    for row in coverage:
+        destination=row.get('destination');ids=row.get('paragraph_ids')
+        if destination not in {'main','appendix','background','excluded'}:raise ValueError('invalid_destination')
+        if not isinstance(ids,list) or any(key not in by_id for key in ids):raise ValueError('invalid_work_anchor')
+        if not str(row.get('reason') or '').strip() or destination!='excluded' and not ids:raise ValueError('unjustified_work_destination')
+        if destination=='appendix' and not any(':appendix:' in key for key in ids):raise ValueError('appendix_destination_mismatch')
+        if destination=='main' and not any(':appendix:' not in key for key in ids):raise ValueError('main_destination_mismatch')
 
 
 def response_reuse_observation(previous,binding,*,model=None):
@@ -37,6 +49,16 @@ def reader_quality_satisfied(record,audit):
     if not required:return True
     if required not in SUPPORTED_POLICIES:return False
     quality=(audit or {}).get('reader_quality') or {}
+    coverage_policy=(record or {}).get('reader_coverage_policy')
+    if coverage_policy:
+        if ((record or {}).get('reader_material_policy')!=MATERIAL_POLICY
+                or coverage_policy!=COVERAGE_POLICY or quality.get('reader_coverage_policy')!=coverage_policy
+                or quality.get('coverage_complete') is not True):return False
+        work_ids=(quality.get('material_packet_plan') or {}).get('required_work_ids')
+        rows=quality.get('work_coverage') or []
+        if (not isinstance(work_ids,list) or not isinstance(rows,list)
+                or any(not isinstance(row,dict) for row in rows) or len(rows)!=len(work_ids)
+                or {row.get('output_id') for row in rows}!=set(work_ids)):return False
     material_policy=(record or {}).get('reader_material_policy')
     if material_policy:
         if material_policy!=MATERIAL_POLICY or quality.get('reader_material_policy')!=material_policy:return False
@@ -71,6 +93,11 @@ def review_reader_quality(*, question, configuration, record, findings, client, 
                           evidence=(),retained_requests=(),on_progress=None):
     from app.organization_deep_dive import READING_FIELD_POLICY,reading_contract_context
     owned=configuration.get('reader_material_policy')==MATERIAL_POLICY
+    coverage_split=configuration.get('reader_coverage_policy')==COVERAGE_POLICY
+    if (configuration.get('reader_coverage_policy') not in {None,COVERAGE_POLICY}
+            or record.get('reader_coverage_policy')!=configuration.get('reader_coverage_policy')
+            or coverage_split and not owned):
+        return {'status':'incomplete','passed':False,'reason':'reader_coverage_policy_mismatch'}
     if (configuration.get('reader_material_policy') not in {None,MATERIAL_POLICY}
             or record.get('reader_material_policy')!=configuration.get('reader_material_policy')):
         return {'status':'incomplete','passed':False,'reason':'reader_material_policy_mismatch'}
@@ -136,12 +163,14 @@ def review_reader_quality(*, question, configuration, record, findings, client, 
         'judgments':(findings or {}).get('research_judgments'),
         'fact_review_scope':review_scope}
     binding=identity({'policy':policy,'review_contract':REVIEW_CONTRACT,'packet_contract':PACKET_CONTRACT,'model':model,'input':payload,
+        **({'reader_coverage_policy':COVERAGE_POLICY} if coverage_split else {}),
         **({'reader_material_policy':MATERIAL_POLICY} if owned else {}),
         **({'reading_field_policy':READING_FIELD_POLICY} if profiled else {})})
     base={'policy':policy,'review_contract':REVIEW_CONTRACT,'binding':binding,'model':model,'scope':'main_and_appendix_text',
         'report_content_id':identity(record.get('reading_structure')),
         'criteria':criteria,'status':'incomplete','passed':False,'packet_contract':PACKET_CONTRACT}
     if profiled:base['reading_field_policy']=READING_FIELD_POLICY
+    if coverage_split:base['reader_coverage_policy']=COVERAGE_POLICY
     if owned:
         base.update(reader_material_policy=MATERIAL_POLICY,packet_contract=MATERIAL_POLICY)
         retained_quality=(findings or {}).get('reader_quality') or {}
@@ -179,7 +208,8 @@ def review_reader_quality(*, question, configuration, record, findings, client, 
         try:
             action_cards=[{key:card[key] for key in action_keys if key in card} for card in ((findings or {}).get('actions') or {}).get('cards',[])]
             owners,paragraph_meta,source_dependencies=material_owners(record,findings or {},evidence,
-                payload['technical_cards'] if 'mechanisms' in criteria else [],action_cards if 'first_project' in criteria else [])
+                payload['technical_cards'] if 'mechanisms' in criteria else [],action_cards if 'first_project' in criteria else [],
+                coverage_works=works if coverage_split else ())
         except (ValueError,KeyError,TypeError) as error:
             return {**base,'reason':'reader_material_plan_invalid','contract_error':str(error)[:200]}
         groups={identity(row['paragraph_ids']):row['paragraph_ids'] for row in owners}
@@ -221,9 +251,12 @@ def review_reader_quality(*, question, configuration, record, findings, client, 
         'Return JSON {"checks":[{"id":"criterion ID","status":"satisfied|gap","reason":"specific reasoning",'
         '"anchors":[{"paragraph_id":"provided ID","quote":"exact report excerpt"}],'
         '"repair":"specific missing reading or editorial action when gap"}],'
-        '"work_coverage":[{"output_id":"each accepted ID","destination":"main|appendix|background|excluded",'
-        '"paragraph_ids":["provided IDs"],"reason":"why this treatment fits the question"}]}. '
-        'When reading has status gap, add repair_groups to that check: '
+        + ('"work_coverage":[]}. Individual work destinations are returned by the bounded material '
+           'packets afterward. Here evaluate the complete report and all reader criteria, including '
+           'whether selection loses important acquired knowledge; do not assume those packets passed. '
+           if coverage_split else '"work_coverage":[{"output_id":"each accepted ID","destination":"main|appendix|background|excluded",'
+           '"paragraph_ids":["provided IDs"],"reason":"why this treatment fits the question"}]}. ')
+        + 'When reading has status gap, add repair_groups to that check: '
         '[{"id":"unique issue ID","kind":"repetition|contradiction|missing_argument|internal_state",'
         '"reason":"why these passages harm the reading task","repair":"concrete editorial operation",'
         '"retain_in":"provided paragraph ID for repetition, otherwise null",'
@@ -239,7 +272,10 @@ def review_reader_quality(*, question, configuration, record, findings, client, 
         'experimental conditions. Explain the specific lack of added judgment rather than declaring any '
         'recurring term or caution redundant. For other reading defects, identify every affected paragraph '
         'with the same occurrence format. Every reading anchor must be covered by a repair group. '
-        'Include each criterion and accepted work exactly once. A satisfied criterion needs report anchors '
+        + ('Include each criterion exactly once and return work_coverage:[]; every accepted work is '
+           'still required in the separate bounded material review. ' if coverage_split else
+           'Include each criterion and accepted work exactly once. ')
+        + 'A satisfied criterion needs report anchors '
         'that jointly demonstrate the capability. Main/appendix/background destinations need actual report '
         'paragraphs; exclusion needs a question-specific justification. Missing important knowledge is a gap '
         'even when its exclusion is honestly stated. Do not require an unsupported inheritance claim or '
@@ -308,7 +344,7 @@ def review_reader_quality(*, question, configuration, record, findings, client, 
             if len(nested)==1:
                 result['work_coverage']=nested[0]
                 base.setdefault('format_adjustments',[]).append('selection_work_coverage_to_root')
-        checks=result['checks'];coverage=result['work_coverage']
+        checks=result['checks'];coverage=[] if coverage_split else result['work_coverage']
         if not isinstance(checks,list) or not isinstance(coverage,list):raise ValueError('invalid_arrays')
         if len(checks)!=len(criteria) or {row['id'] for row in checks}!=set(criteria):raise ValueError('criterion_coverage')
         def validate_anchor(anchor):
@@ -366,14 +402,7 @@ def review_reader_quality(*, question, configuration, record, findings, client, 
                 return {**base,'status':'needs_revision','passed':False,'checks':checks,
                     'work_coverage':[],'reason':'reader_gap_from_complete_checks_pending_coverage'}
             return {**base,'checks':checks,'reason':'reader_review_response_incomplete'}
-        if len(coverage)!=len(known_works) or {row['output_id'] for row in coverage}!=known_works:raise ValueError('work_coverage')
-        for row in coverage:
-            destination=row.get('destination');ids=row.get('paragraph_ids')
-            if destination not in {'main','appendix','background','excluded'}:raise ValueError('invalid_destination')
-            if not isinstance(ids,list) or any(key not in by_id for key in ids):raise ValueError('invalid_work_anchor')
-            if not str(row.get('reason') or '').strip() or destination!='excluded' and not ids:raise ValueError('unjustified_work_destination')
-            if destination=='appendix' and not any(':appendix:' in key for key in ids):raise ValueError('appendix_destination_mismatch')
-            if destination=='main' and not any(':appendix:' not in key for key in ids):raise ValueError('main_destination_mismatch')
+        if not coverage_split:validate_work_coverage(coverage,known_works,by_id)
         if owned and base.get('response_truncated'):
             return {**base,'checks':checks,'work_coverage':coverage,'reason':'reader_review_response_incomplete'}
         base['global_review_valid']=True
@@ -476,11 +505,13 @@ def review_reader_quality(*, question, configuration, record, findings, client, 
                 from app.analysis_phase_contract import reading_all_requested
                 entries=material_packets(owners,paragraph_meta,source_dependencies,contexts,coverage,
                     question=question,criteria=criteria,model=model,route=getattr(client,'route_info',None),scope=review_scope,
-                    allow_exclusion=not reading_all_requested(configuration,question))
+                    allow_exclusion=not reading_all_requested(configuration,question),
+                    coverage_policy=COVERAGE_POLICY if coverage_split else None)
                 base['material_packet_plan']={'policy':MATERIAL_POLICY,'report_content_id':base['report_content_id'],
                     'required_packet_bindings':{row['name']:row['binding'] for row in entries},
                     'input_bytes':{row['name']:row['input_bytes'] for row in entries},
                     'blocked_packets':[row['name'] for row in entries if row['blocked']]}
+                if coverage_split:base['material_packet_plan']['required_work_ids']=sorted(known_works)
                 checkpoint()
             else:
                 entries=[{'name':name,'criterion':criterion,
@@ -526,13 +557,29 @@ def review_reader_quality(*, question, configuration, record, findings, client, 
                     if owned:part_messages[0]['content']+=(' Paragraph IDs are packet-local aliases. Use only '
                         'IDs and literal excerpts supplied here; the server maps them to the current report. '
                         'The global reader has read the complete report and assigned necessary nonlocal '
-                        'contexts. Do not infer absence from unrelated prose omitted from this packet. '
+                        'contexts. Do not infer absence from unrelated prose omitted from this packet. ')
+                    if owned and not coverage_split:part_messages[0]['content']+=(
                         'Only when exclusion_only is true may a satisfied result have anchors:[]: explain '
                         'why no important knowledge needed for this question is lost. The global exclusion '
                         'alone is insufficient; compare the actual supplied material with the question.')
+                    if coverage_split:part_messages[0]['content']+=(
+                        ' Work coverage contract: also return work_coverage as a TOP-LEVEL array of '
+                        '{"output_id":"each coverage_work_ids ID exactly once",'
+                        '"destination":"main|appendix|background|excluded",'
+                        '"paragraph_ids":["packet-local IDs"],"reason":"question-specific treatment reasoning"}. '
+                        'Use [] when coverage_work_ids is empty. For technical records, evaluate retained '
+                        'knowledge and work destinations together, not two independent reviews. For coverage '
+                        'records without technical fields, assess their actual role and important acquired '
+                        'knowledge without inventing a missing technical template. Non-excluded destinations '
+                        'need actual supplied report paragraphs; main/appendix must match their report layer. '
+                        'An excluded work is not automatically a pass: important missing knowledge is a gap. '
+                        'If allow_exclusion is false, any excluded work requires status:gap and a repair; '
+                        'do not count it as completed requested reading. Only when allow_exclusion is true '
+                        'and ALL coverage_work_ids are nonempty and justifiably excluded may a satisfied '
+                        'result use anchors:[]. Judge relevance independently from the supplied material.')
                     response=budgeted_client(client,budget,'audit',operation='reader_material_review',
                         content_unit_id='reader-material:'+packet_binding if owned else None).chat.completions.create(
-                        model=model,messages=part_messages,temperature=0,max_tokens=2048,
+                        model=model,messages=part_messages,temperature=0,max_tokens=4096 if coverage_split else 2048,
                         response_format={'type':'json_object'})
                     choice=response.choices[0];part['raw_response']=choice.message.content or ''
                     if owned:
@@ -540,9 +587,27 @@ def review_reader_quality(*, question, configuration, record, findings, client, 
                         checkpoint()
                     if choice.finish_reason!='stop':return {**base,'reason':'reader_material_response_incomplete'}
                 value=json.loads(part['raw_response'])
+                exclusion_pass=owned and packet.get('exclusion_only')
+                if coverage_split:
+                    rows=value.get('work_coverage');expected=packet['coverage_work_ids']
+                    if (not isinstance(rows,list) or len(rows)!=len(expected)
+                            or {row['output_id'] for row in rows}!=set(expected)):
+                        raise ValueError('reader_packet_work_coverage')
+                    for row in rows:
+                        ids=row.get('paragraph_ids')
+                        if not isinstance(ids,list) or any(key not in entry['aliases'] for key in ids):
+                            raise ValueError('reader_work_anchor_outside_packet')
+                        row['paragraph_ids']=[entry['aliases'][key] for key in ids]
+                    validate_work_coverage(rows,expected,by_id)
+                    if (not packet['allow_exclusion'] and value.get('status')=='satisfied'
+                            and any(row['destination']=='excluded' for row in rows)):
+                        raise ValueError('reader_all_work_exclusion')
+                    exclusion_pass=bool(expected and packet['allow_exclusion']
+                        and all(row['destination']=='excluded' for row in rows))
+                    coverage.extend(rows)
                 if (value.get('status') not in {'satisfied','gap'} or not str(value.get('reason') or '').strip()
                         or not isinstance(value.get('anchors'),list)
-                        or value['status']=='satisfied' and not value['anchors'] and not (owned and packet.get('exclusion_only'))
+                        or value['status']=='satisfied' and not value['anchors'] and not exclusion_pass
                         or value['status']=='gap' and not str(value.get('repair') or '').strip()):
                     raise ValueError('reader_material_invalid')
                 if owned:
@@ -566,6 +631,9 @@ def review_reader_quality(*, question, configuration, record, findings, client, 
             if not base['material_review_complete']:
                 return {**base,'checks':checks,'work_coverage':coverage,'reason':'reader_material_packet_requires_partition'}
             if owned:base['material_reviews']={row['name']:base['material_reviews'][row['name']] for row in entries}
+            if coverage_split:
+                validate_work_coverage(coverage,known_works,by_id)
+                base['coverage_complete']=True
             passed=all(row['status']=='satisfied' for row in checks)
         completed={**base,'status':'satisfied' if passed else 'needs_revision','passed':passed,
             'checks':checks,'work_coverage':coverage,'semantics':'model_editorial_judgment_with_literal_report_anchors'}

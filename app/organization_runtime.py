@@ -19,7 +19,7 @@ from app.channels.models import ChannelError
 from app.organization_taxonomy import TaxonomyRequest, freeze_taxonomy
 from app.organization_relationships import VERSION as RELATIONSHIP_POLICY_VERSION
 from app.organization_deep_dive import VERSION as TECHNICAL_POLICY_VERSION,READING_FIELD_POLICY,FieldName
-from app.report_material_packets import POLICY as READER_MATERIAL_POLICY
+from app.report_material_packets import POLICY as READER_MATERIAL_POLICY,COVERAGE_POLICY as READER_COVERAGE_POLICY
 from app.organization_trends import VERSION as TREND_POLICY_VERSION
 from app.organization_actions import ActionRequirements, VERSION as ACTION_POLICY_VERSION
 from app.organization_statistics import VERSION as STATISTICS_POLICY_VERSION
@@ -80,6 +80,7 @@ def freeze_organization_request(request: OrganizationResearchRequest | None, sel
         'editorial_partition_policy':EDITORIAL_PARTITION_POLICY,
         'reading_field_policy':READING_FIELD_POLICY,
         'reader_material_policy':READER_MATERIAL_POLICY,
+        'reader_coverage_policy':READER_COVERAGE_POLICY,
         'reading_mode':request.reading_mode,'required_reading_fields':list(dict.fromkeys(request.required_reading_fields)),
         'work_identity_policy':'adrs-primary-work-versions-v1',
         'reader_quality_policy':'adrs-reader-quality-v1',

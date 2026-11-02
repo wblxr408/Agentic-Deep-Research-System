@@ -6,11 +6,12 @@ from collections import defaultdict
 from app.query_understanding import identity
 
 POLICY='adrs-reader-owned-material-v1'
+COVERAGE_POLICY='adrs-packet-work-coverage-v1'
 MAX_BYTES=60000
 MAX_RECORDS=8
 
 
-def material_owners(record,findings,evidence,technical,actions):
+def material_owners(record,findings,evidence,technical,actions,*,coverage_works=()):
     """Use exact citations and retained identities; titles only locate report prose."""
     sources=[item.model_dump(mode='json') if hasattr(item,'model_dump') else item for item in evidence]
     if technical and not sources:raise ValueError('reader_material_requires_retained_evidence')
@@ -55,21 +56,23 @@ def material_owners(record,findings,evidence,technical,actions):
         work_sources[key]|={source_id for source_id in metadata.get('evidence_ids',[])
             if (by_source.get(source_id) or {}).get('source_url') in output.get('source_urls',[])}
     owners=[];seen=set()
-    for kind,rows in (('technical',technical),('actions',actions)):
+    covered={row.get('output_id') for row in technical}
+    coverage_rows=[{'output_id':row['output_id'],'title':row['title']} for row in coverage_works if row['output_id'] not in covered]
+    for kind,rows in (('technical',technical),('actions',actions),('coverage',coverage_rows)):
         for row in rows:
-            key=row.get('output_id') if kind=='technical' else row.get('action_id')
+            key=row.get('output_id') if kind!='actions' else row.get('action_id')
             if not isinstance(key,str) or not key or (kind,key) in seen:raise ValueError('reader_material_owner_identity_invalid')
             seen.add((kind,key));owner_id=kind+':'+key
-            original=cards.get(key,{}) if kind=='technical' else next(
+            original=cards.get(key,{}) if kind!='actions' else next(
                 (item for item in (findings.get('actions') or {}).get('cards',[]) if item.get('action_id')==key),{})
-            links=work_sources.get(key,set()) if kind=='technical' else proof_ids({name:original[name]
+            links=work_sources.get(key,set()) if kind!='actions' else proof_ids({name:original[name]
                 for name in ('basis','supporting','proofs','public_contacts','public_entrypoints') if name in original}).union(*(
                 work_sources.get(work,set()) for work in row.get('related_output_ids') or []))
             if kind=='actions' and not links:links=set(by_source)
-            title=(outputs.get(key) or {}).get('title') if kind=='technical' else row.get('question') or row.get('goal')
+            title=(outputs.get(key) or {}).get('title') if kind!='actions' else row.get('question') or row.get('goal')
             selected={key for key,paragraph in paragraphs.items()
                 if (set(paragraph['source_ids']) & links or title and title in paragraph['text'])
-                and (kind=='technical' or paragraph['module_id'] in {'actions','relationships'})}
+                and (kind!='actions' or paragraph['module_id'] in {'actions','relationships'})}
             if kind=='actions' and not selected:
                 selected={key for key,value in paragraphs.items() if value['module_id']=='actions'}
             if any(key not in by_source for key in links):raise ValueError('reader_material_source_binding_missing')
@@ -92,7 +95,7 @@ def context_overrides(value,owners,paragraphs):
     return result
 
 
-def material_packets(owners,paragraphs,dependencies,contexts,coverage,*,question,criteria,model,route,scope,allow_exclusion):
+def material_packets(owners,paragraphs,dependencies,contexts,coverage,*,question,criteria,model,route,scope,allow_exclusion,coverage_policy=None):
     """Stable hash-prefix partitions split only affected buckets; records stay whole."""
     destinations={item['output_id']:item for item in coverage}
     # Local IDs survive index shifts. Duplicate occurrences remain distinct.
@@ -111,13 +114,18 @@ def material_packets(owners,paragraphs,dependencies,contexts,coverage,*,question
             prose.append({**{name:value for name,value in row.items() if name!='id'},'id':alias})
             source_dependencies.update({name:dependencies.get(name,'unresolved') for name in row['source_ids']})
         for row in rows:source_dependencies.update(row['source_dependencies'])
-        kind=rows[0]['kind'];criterion='mechanisms' if kind=='technical' else 'first_project'
+        kind=rows[0]['kind'];criterion={'technical':'mechanisms','actions':'first_project','coverage':'selection'}[kind]
         packet={'question':question,'criterion':criteria[criterion],'material':[row['material'] for row in rows],
             'paragraphs':prose,'source_dependencies':source_dependencies,'review_scope':scope,
             'destinations':{row['key']:(destinations.get(row['key']) or {}).get('destination')
                 for row in rows if kind=='technical'}}
         packet['exclusion_only']=bool(allow_exclusion and kind=='technical'
             and all((destinations.get(row['key']) or {}).get('destination')=='excluded' for row in rows))
+        if coverage_policy:
+            packet.pop('destinations',None)
+            packet.pop('exclusion_only',None)
+            packet.update(coverage_policy=coverage_policy,allow_exclusion=bool(allow_exclusion),
+                coverage_work_ids=[row['key'] for row in rows if row['kind']!='actions'])
         size=len(json.dumps(packet,ensure_ascii=False,separators=(',',':')).encode('utf-8'))
         return {'name':kind+':'+prefix,'criterion':criterion,'packet':packet,'aliases':pointers,
             'binding':identity({'policy':POLICY,'model':model,'route':route,'packet':packet}),
@@ -131,7 +139,7 @@ def material_packets(owners,paragraphs,dependencies,contexts,coverage,*,question
         groups=defaultdict(list)
         for row in rows:groups[identity(row['owner_id'])[len(prefix)]].append(row)
         for label,values in sorted(groups.items()):partition(values,prefix+label)
-    for kind in ('technical','actions'):
+    for kind in ('technical','actions','coverage'):
         rows=sorted((row for row in owners if row['kind']==kind),key=lambda row:row['owner_id'])
         if rows:partition(rows,'')
     return result
