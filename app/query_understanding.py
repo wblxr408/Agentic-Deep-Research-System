@@ -370,6 +370,10 @@ def interpret_query(query: str, options: QueryOptions, delivery: DeliveryRequest
     drawing_policy=freeze_drawing_policy(delivery,skill_context)
     delivery_snapshot['drawing_policy']=drawing_policy
     delivery_snapshot['source_media_policy']='adrs-source-media-v2'
+    from app.report_pdf import PDF_CHART_POLICY
+    delivery_snapshot['pdf_chart_policy']=PDF_CHART_POLICY
+    delivery_snapshot['descriptor_id']=identity({'configuration':delivery.model_dump(mode='json'),
+        'pdf_chart_policy':PDF_CHART_POLICY})
     if delivery.drawing_mode!='builtin':
         delivery_snapshot['renderer_status']='trusted_matplotlib_pending' if drawing_policy['status']=='ready' else 'drawing_configuration_blocked'
         if drawing_policy['status']!='ready':

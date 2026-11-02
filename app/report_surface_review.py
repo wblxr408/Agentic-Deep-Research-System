@@ -22,6 +22,7 @@ def surface_binding(charts,media):
 def review_surfaces(view,media,evidence,*,statistics,client,model,budget,source_spans=None,previous=None,
                     review_scope=None,report_audit=None):
     charts=view.get('charts') or [];issues=[];paragraphs=[];locations={};page_spans={}
+    issues.extend(view.get('pdf_projection_issues') or [])
     retained_contexts={};retained_claims=[]
     refs={'citation:'+str(number) for number in range(1,len(evidence)+1)}
     def statement(text,citations,location,*,exact_context=None):

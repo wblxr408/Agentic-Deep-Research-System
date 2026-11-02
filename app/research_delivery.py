@@ -95,6 +95,19 @@ def report_for_reading(report: str, citations: list[dict] | None = None) -> str:
     return reader + '\n\n' + '\n'.join(references) + '\n'
 
 
+def _apply_surface_corrections(charts,corrections):
+    from app.report_surface_review import surface_binding
+    if not corrections or corrections.get('base_binding')!=surface_binding(charts,None):return
+    by_chart={row['chart_id']:row for row in charts}
+    for correction in corrections.get('cells',[]):
+        parts=correction['cell_id'].rsplit(':',2)
+        if len(parts)!=3 or not parts[1].isdigit() or not parts[2].isdigit():continue
+        chart=by_chart.get(parts[0]);row_index,column=int(parts[1]),int(parts[2])
+        if (chart and chart.get('kind') in {'table','matrix'} and row_index<len(chart.get('rows',[]))
+                and 0<column<len(chart['rows'][row_index]['values'])):
+            chart['rows'][row_index]['values'][column]=correction['text']
+
+
 def _finite(value):
     return value if isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value) else None
 
@@ -106,6 +119,10 @@ def build_delivery_view(*, task_id: str, execution_id: str | None, query: str, r
     frozen = (understanding or {}).get('delivery') or {}
     template, theme = frozen.get('template', 'markdown-v1'), frozen.get('theme', 'plain-v1')
     result = organization_result or {}
+    pdf_projection=bool(frozen.get('pdf_chart_policy') and frozen.get('drawing_mode','builtin')=='builtin'
+        and frozen.get('layout') is None and ('pdf' in (frozen.get('formats') or [])
+            or result.get('delivery_target')=='main_and_appendix_pdf'))
+    pdf_issues=[]
     from app.report_quality import reader_quality_satisfied
     reader_quality_ok=reader_quality_satisfied(result.get('module_report'),audit)
     summary = result.get('report_summary') or {}
@@ -231,18 +248,8 @@ def build_delivery_view(*, task_id: str, execution_id: str | None, query: str, r
             'citation_ids': sorted(available_citations), 'source_binding': 'retained_citation_ids',
             'note': '按参考资料所属域名统计引用条目。'})
     corrections=result.get('surface_corrections') or {}
-    if corrections:
-        from app.report_surface_review import surface_binding
-        if corrections.get('base_binding')==surface_binding(charts,None):
-            by_chart={row['chart_id']:row for row in charts}
-            for correction in corrections.get('cells',[]):
-                parts=correction['cell_id'].rsplit(':',2)
-                if len(parts)!=3 or not parts[1].isdigit() or not parts[2].isdigit():continue
-                chart=by_chart.get(parts[0]);row_index,column=int(parts[1]),int(parts[2])
-                if (chart and chart.get('kind') in {'table','matrix'} and row_index<len(chart.get('rows',[]))
-                        and 0<column<len(chart['rows'][row_index]['values'])):
-                    chart['rows'][row_index]['values'][column]=correction['text']
-    if result.get('delivery_target')=='main_and_appendix_pdf':
+    if not pdf_projection:_apply_surface_corrections(charts,corrections)
+    if result.get('delivery_target')=='main_and_appendix_pdf' and not pdf_projection:
         from app.report_pdf import printed_charts
         charts=printed_charts(charts)
     selected_modules = ((understanding or {}).get('slots') or {}).get('modules') or []
@@ -251,6 +258,13 @@ def build_delivery_view(*, task_id: str, execution_id: str | None, query: str, r
     elif template == 'markdown-v1':
         specs = [{'page_id': f'section-{index+1}', 'title': section['title'],
             '_section': index, 'chart_kind': 'none'} for index, section in enumerate(sections)]
+        if pdf_projection:
+            from app.organization_purpose import MODULES
+            owned={_heading_key(MODULES[row['module_id']][0]):row['module_id']
+                for row in (result.get('module_report') or {}).get('modules',[]) if row['module_id'] in MODULES}
+            for spec in specs:
+                module=owned.get(_heading_key(spec['title']))
+                if module:spec.update(module=module,chart_kind='auto')
     else:
         ordering = PRESET_MODULES.get(template, tuple(MODULE_LABELS))
         ordered_modules = [module for module in ordering if module in selected_modules]
@@ -317,6 +331,7 @@ def build_delivery_view(*, task_id: str, execution_id: str | None, query: str, r
             'title': spec.get('title', f'第{index+1}页'), 'question': spec.get('question', ''), 'module': module,
             'markdown': markdown[:16000], 'content_match': match_basis if matched else 'not_found',
             'citation_ids': sorted(used & available_citations), 'charts': chart_refs, 'gaps': gaps,
+            **({'requested_chart_kind':requested_kind} if pdf_projection else {}),
             'semantics': 'report_excerpt_not_new_facts_or_independent_answer_verification'})
     layout_binding = None
     if frozen.get('layout') is not None:
@@ -330,6 +345,10 @@ def build_delivery_view(*, task_id: str, execution_id: str | None, query: str, r
             statistics=statistics, citations=citations, result=result, slots=(understanding or {}).get('slots') or {},
             task_id=task_id, execution_id=execution_id, descriptor_id=frozen.get('descriptor_id'),
             chart_skill_ids=frozen.get('chart_skill_ids') or {})
+    if pdf_projection:
+        from app.report_pdf import project_pdf_view
+        charts,pages,pdf_issues=project_pdf_view(charts,pages,frozen['pdf_chart_policy'])
+        _apply_surface_corrections(charts,corrections)
     drawing_mode = frozen.get('drawing_mode', 'builtin')
     formats = frozen.get('formats') or ['markdown']
     drawing = {'requested_mode': drawing_mode, 'requested_skill_ids': frozen.get('drawing_skill_ids') or [],
@@ -371,6 +390,7 @@ def build_delivery_view(*, task_id: str, execution_id: str | None, query: str, r
             surface_binding(charts,source_media if source_media is not None else result.get('source_media')))
     view = {'schema_version': VERSION, 'task_id': task_id, 'execution_id': execution_id,
         'delivery_complete': surface_ok and reader_quality_ok and not bool((result.get('module_report') or {}).get('issues'))
+            and not pdf_issues
             and drawing['status'] in {'ready','rendered','not_needed'}
             and not (layout_binding and layout_binding['required_missing'])
             and bool(audit) and not audit.get('needs_review',True) and not audit.get('audit_incomplete',False),
@@ -381,15 +401,17 @@ def build_delivery_view(*, task_id: str, execution_id: str | None, query: str, r
             if re.search(r'^#\s+(.+)$', report, re.M) else query[:180]),
         'question':query, 'report_markdown': reader_report,
         'main_report_markdown': main_report, 'appendix_markdown': appendix_report,
-        'review_status':'draft_needs_review' if not surface_ok or not reader_quality_ok or not audit or audit.get('needs_review',True) else 'automatic_review_completed_human_review_pending',
+        'review_status':'draft_needs_review' if pdf_issues or not surface_ok or not reader_quality_ok or not audit or audit.get('needs_review',True) else 'automatic_review_completed_human_review_pending',
         'pages': pages, 'charts': charts, 'drawing': drawing,
+        **({'pdf_chart_policy':frozen['pdf_chart_policy'],'pdf_projection_issues':pdf_issues} if pdf_projection else {}),
         'source_media':deepcopy(source_media or {'status':'not_loaded','pages':[]}),
         **({'layout_binding':layout_binding} if layout_binding is not None else {}),
         'sources': all_sources, 'citations': citations, 'audit': deepcopy(audit),
         'statistics': deepcopy(statistics), 'module_results': {key: deepcopy(result.get(field)) for key, field in
             [('relationships', 'relationship_view'), ('deep_dive', 'technical_reading'), ('evolution', 'trend_view'), ('actions', 'actions')]},
         'gaps': list(dict.fromkeys(str(gap) for gap in [*(summary.get('gaps') or []), *(result.get('gaps') or []),
-            *(['未保存正文来源支持审核，不能把已生成报告标为已核实。'] if not audit else [])])),
+            *(['未保存正文来源支持审核，不能把已生成报告标为已核实。'] if not audit else []),
+            *(['所需图表尚无可用的PDF表示，报告图文交付未完成。'] if pdf_issues else [])])),
         'formats': [{'format': name, 'status': 'ready' if name in {'markdown', 'html', 'json','pdf'} else
             'adapter_unavailable',
             'alternative': 'browser_print_to_pdf' if name == 'pdf' else None,

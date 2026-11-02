@@ -51,6 +51,58 @@ def prose(markdown):
     return ''.join(blocks)
 
 
+def referenced_charts(charts,images,figure_refs):
+    """Render the same referenced, reviewed descriptors without model calls."""
+    from app.figure_renderer import render as render_figures
+    body=''
+    for index,chart in enumerate(charts):
+        kind=chart['pdf_presentation']
+        body+='<h3>'+inline(chart['title'])+'</h3>'
+        if kind=='table':
+            columns=chart.get('columns') or [];rows=chart.get('rows') or []
+            if not rows and chart.get('points'):
+                columns=['条目',chart['unit_label']]
+                rows=[{'values':[point['label'],'未覆盖' if point.get('value') is None else str(point['value'])],
+                    'citation_ids':chart.get('citation_ids') or []} for point in chart['points']]
+            elif not rows and chart.get('edges'):
+                names={node['id']:node['label'] for node in chart.get('nodes') or []}
+                columns=['参与方','参与方','来源关系']
+                rows=[{'values':[names[edge['source']],names[edge['target']],edge.get('label','')],
+                    'citation_ids':edge.get('citation_ids') or []} for edge in chart['edges']]
+            if not columns or not rows or any(len(row['values'])!=len(columns) for row in rows):
+                raise ValueError('pdf_table_descriptor_invalid')
+            body+='<table><tr>'+''.join('<td>'+inline(column)+'</td>' for column in columns)+'</tr>'
+            for row in rows:
+                body+='<tr>'
+                for column,value in enumerate(row['values']):
+                    cells=row.get('cell_citation_ids')
+                    refs=cells.get(str(column),[]) if isinstance(cells,dict) else row.get('citation_ids',[])
+                    numbers=[str(ref).replace('citation:','') for ref in refs]
+                    figure_refs.update(int(number) for number in numbers if number.isdigit())
+                    body+='<td>'+inline(str(value)+' '+' '.join('['+number+']' for number in numbers))+'</td>'
+                body+='</tr>'
+            body+='</table>'
+        else:
+            if kind not in {'bar','line','network'}:raise ValueError('pdf_plot_kind_unsupported')
+            rendered=render_figures({'charts':[chart],'plan':{'figures':[{
+                'chart_id':chart['chart_id'],'kind':kind,'width':6.5,'height':5,
+                'dpi':180,'palette':'colorblind'}]}})
+            asset=rendered['assets'][0];name=f'chart-{index}.png'
+            images[name]=base64.b64decode(asset['png'].split(',',1)[1],validate=True)
+            size=asset['size_inches'];height=470*size['height']/size['width']
+            body+=f'<img src="{name}" width="470" height="{height}"/>'
+            body+='<p>'+inline(' '.join(asset['notes']))+'</p>'
+        if chart.get('note'):body+='<p>'+inline(chart['note'])+'</p>'
+        if chart.get('truncated'):
+            shown=len(chart.get('points') or chart.get('edges') or [])
+            total=chart.get('total_points') or chart.get('total_edges') or shown
+            body+='<p>'+inline(f'本视图保留{shown}/{total}个条目；图示范围另见图注，不代表全部成员。')+'</p>'
+        refs=[str(ref).replace('citation:','') for ref in chart.get('citation_ids') or []]
+        figure_refs.update(int(ref) for ref in refs if ref.isdigit())
+        if refs:body+='<p>'+inline(' '.join('['+ref+']' for ref in refs))+'</p>'
+    return body
+
+
 def render(payload):
     from reportlab.platypus import SimpleDocTemplate, Paragraph, Image, LongTable, TableStyle, PageBreak, CondPageBreak
     from reportlab.lib.styles import ParagraphStyle
@@ -69,7 +121,11 @@ def render(payload):
     # captions and explanations; page layout is deterministic, not model-made.
     images={}
     figure_refs=set()
-    if payload['part']=='main':
+    if payload['part']=='main' and payload.get('pdf_chart_policy'):
+        from app.report_pdf import PDF_CHART_POLICY
+        if payload['pdf_chart_policy']!=PDF_CHART_POLICY:raise ValueError('pdf_chart_policy_unsupported')
+        body+=referenced_charts(payload.get('charts') or [],images,figure_refs)
+    elif payload['part']=='main':
         comparison=next((chart for chart in payload.get('charts',[])
             if chart.get('chart_id')=='technical_comparison' and chart.get('rows')),None)
         if comparison:
