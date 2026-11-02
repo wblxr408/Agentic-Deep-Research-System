@@ -86,6 +86,14 @@
 - **WHEN** 完整汇总超出冻结版本支持的装配资源边界或当前下游上下文容量
 - **THEN** 保留真实容量缺口和已付费候选，不截断尾部、减少全部阅读成员或据此宣称百篇已交付
 
+#### Scenario: Paragraph allocation exceeds one editorial request
+- **WHEN** 全部已写段落无法在一次编辑请求中完整输入并输出逐项去向
+- **THEN** 新政策按完整段落分包，提供只读邻段并逐包唯一分配；跨包未知重复保留，同包重复省略须有仍保留的对应项。所有包完成后按原顺序装配，局部分配不替代完整读者／事实／图文审核
+
+#### Scenario: An editorial packet is resumed after dispatch
+- **WHEN** 该包已有原响应或保存了未确认结果的派发状态
+- **THEN** 系统绑定实际消息、模型、路由和政策重验原响应及当前段落映射；未知派发不盲重发，格式修正最多一次且机会先保存，纯JSON围栏投影不另调模型
+
 ### Requirement: Synthesis uses bounded topic evidence and retains original provenance
 
 系统 SHALL 复用逐篇证据产物按当前问题形成主题比较、条件及反例，再向章节提供必要输入和原文引用。综合摘要只能作为导航／候选，关键事实仍须回到来源；章节不默认接收全部论文全文或此前章节，必要条件和未覆盖范围不得静默丢失。

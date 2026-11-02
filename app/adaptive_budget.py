@@ -49,7 +49,9 @@ def remaining_work(state, root, stage):
     from app.db.report_delivery import retained_report_candidate
     candidate=retained_report_candidate(state) if stage=='report' and findings.get('report_candidate_draft') else None
     writing_units=1 if candidate else len(modules)+1  # Retain room for a required editorial repair.
-    if not candidate and root.get('remaining_writing_units') is not None:
+    from app.organization_purpose import EDITORIAL_PARTITION_POLICY
+    if (root.get('remaining_writing_units') is not None and
+            (not candidate or config.get('editorial_partition_policy')==EDITORIAL_PARTITION_POLICY)):
         writing_units=max(1,_nonnegative(root['remaining_writing_units']))
     if candidate:
         draft=candidate.get('module_report') or {}

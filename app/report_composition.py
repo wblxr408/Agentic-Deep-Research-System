@@ -293,6 +293,7 @@ def compose_sections(*,question,analysis,configuration,findings,evidence,statist
     sections,selection=select_paragraphs(sections,question=question,client=client,model=model,budget=budget,
         retained=saved_selection,on_saved=save_selection,configuration=configuration)
     manifest['editorial_selection']=selection
+    manifest['application_response_reuse'].extend(selection.get('application_response_reuse') or [])
     if configuration.get('report_assembly_policy'):
         # Assembly defects cannot be repaired by paying to rewrite the lead.
         assembled_model.model_validate({'title':'assembled report','summary':[],'modules':sections})

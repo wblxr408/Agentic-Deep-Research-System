@@ -13,7 +13,7 @@ from app.research_matching import WeightConfigurationRequest, preview_weights
 from app.research_evaluation import public_sources, scheme_catalogue
 from app.db.presets import PresetReference
 from app.research_scope import OrganizationResearchScope, ScopeRecord
-from app.organization_purpose import ResearchPurpose, ResearchModule, POLICY_VERSION, REPORT_MATERIAL_POLICY, REPORT_ASSEMBLY_POLICY, resolve_modules, analysis_instructions
+from app.organization_purpose import ResearchPurpose, ResearchModule, POLICY_VERSION, REPORT_MATERIAL_POLICY, REPORT_ASSEMBLY_POLICY, EDITORIAL_PARTITION_POLICY, resolve_modules, analysis_instructions
 from app.organization_corpus import CorpusDeclaration, freeze_corpus, corpus_instructions
 from app.channels.models import ChannelError
 from app.organization_taxonomy import TaxonomyRequest, freeze_taxonomy
@@ -77,6 +77,7 @@ def freeze_organization_request(request: OrganizationResearchRequest | None, sel
         'research_handoff_policy':'adrs-complete-evidence-handoff-v2',
         'report_material_policy':REPORT_MATERIAL_POLICY,
         'report_assembly_policy':REPORT_ASSEMBLY_POLICY,
+        'editorial_partition_policy':EDITORIAL_PARTITION_POLICY,
         'reading_field_policy':READING_FIELD_POLICY,
         'reader_material_policy':READER_MATERIAL_POLICY,
         'reading_mode':request.reading_mode,'required_reading_fields':list(dict.fromkeys(request.required_reading_fields)),

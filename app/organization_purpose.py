@@ -14,6 +14,7 @@ ResearchModule = Literal['landscape', 'evolution', 'relationships', 'deep_dive',
 POLICY_VERSION = 'adrs-analysis-modules-v1'
 REPORT_MATERIAL_POLICY = 'adrs-owned-chapter-input-v1'
 REPORT_ASSEMBLY_POLICY = 'adrs-batched-report-assembly-v1'
+EDITORIAL_PARTITION_POLICY = 'adrs-editorial-paragraph-packets-v1'
 MAX_ASSEMBLED_PARAGRAPHS = 2048
 REPORT_WRITING_GUIDANCE = '''
 面向报告读者的写作要求：
@@ -442,6 +443,7 @@ def assemble_module_report(raw: str, configuration: dict, citation_count: int, *
     appendix_markdown = '## 技术附录\n\n'+'\n'.join(appendix_lines) if appendix_lines else ''
     return main_markdown+('\n\n'+appendix_markdown if appendix_markdown else ''), {'rule_version': POLICY_VERSION, 'purpose': configuration['purpose'],
         **({'report_assembly_policy':configuration['report_assembly_policy']} if configuration.get('report_assembly_policy') else {}),
+        **({'editorial_partition_policy':configuration['editorial_partition_policy']} if configuration.get('editorial_partition_policy') else {}),
         **({'report_material_policy':configuration['report_material_policy']} if configuration.get('report_material_policy') else {}),
         **({'reading_field_policy':configuration['reading_field_policy']} if configuration.get('reading_field_policy') else {}),
         **({'reader_material_policy':configuration['reader_material_policy']} if configuration.get('reader_material_policy') else {}),
