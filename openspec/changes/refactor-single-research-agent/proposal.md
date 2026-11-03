@@ -1,6 +1,6 @@
 # Proposal
 
-**当前路线（2026-11-01用户确认）：** 本变更在 `codex/simplify-existing-architecture` 实施原架构精简；原目录名保留历史引用。先做原账本／缓存计量、内容归属和有界输入、分级与依赖复用，再按覆盖删重复调用。三角色方案保存在独立 `codex/three-role-agents` 分支，不成为本变更前提；已进入5.1／5.5部分源码实施，完整差量与运行接受仍待完成，见[实施记录](../../../docs/acceptance/architecture-simplification-20261101.md)。
+**当前路线（2026-11-03用户复评）：** 保留`codex/simplify-existing-architecture`及原目录引用。先复评已改实现与重复判断，调整把研究决策写死的规则，再接内容归属、最小复用／恢复和百篇图文交付；计量贯穿。AI决定研究策略、重要性、充分性和修订范围，代码执行真实权限／预算／版本／恢复边界。当前仅更新规划，业务实施维持暂停；三角色方案和W07继续独立／后置。源码基线f75c6e1，未提交复用候选待返工，不算已交付。实际状态见[tasks](tasks.md)及[实施记录](../../../docs/acceptance/architecture-simplification-20261101.md)。
 
 ## Why
 

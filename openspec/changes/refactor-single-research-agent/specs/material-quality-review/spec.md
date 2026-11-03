@@ -8,7 +8,7 @@
 
 ### Requirement: Essential claims include their decisive premises
 
-系统 SHALL 将必答问题、核心结论、成果归属、决定性比较及建议所依赖的事实前提纳入必要核验，连同其数字、单位、条件、时间及外推范围。模型自报的低重要性标签不能免除这些依赖；重要性不明确时按必要项处理。
+系统 SHALL 由AI依据用户问题和证据识别必答问题、核心结论、成果归属、决定性比较及建议的事实前提，纳入必要核验及相关数字、单位、条件、时间和外推范围。写作标签不能免除实际前提；重要性或依赖不明确时保留对应问题／结论的缺口，由AI选择局部补证、核验或收缩表述，不因一处不明将整稿全部列为必核。
 
 #### Scenario: A secondary number justifies the recommendation
 - **WHEN** 写作把原先标为次要的实验数字用于支撑主要建议
@@ -36,7 +36,7 @@
 
 ### Requirement: Repetition blocks only for material reading harm
 
-系统 SHALL 结合命题、读者功能和实际后果判断重复。摘要预告、导航、不同对象的边界及结果旁必要条件不能仅因相同术语被判阻塞。阻塞判断须定位相关内容并解释其导致的误解、矛盾、论证缺失或实质阅读负担。
+系统 SHALL 在现有阅读调用中由AI结合命题、读者功能和实际后果判断重复，给出影响、依据、位置及最小修复。摘要预告、导航、不同对象的边界及结果旁必要条件不能仅因相同术语被判阻塞；三个维度用于解释，不以三个布尔的固定组合代替语义判断。阻塞判断须解释实际误解、矛盾、论证缺失或阅读负担；不因null自动追加评审。
 
 #### Scenario: Similar wording serves distinct reader purposes
 - **WHEN** 摘要概述资源可用性而行动章说明具体资源入口，或两段分别限定硬件迁移与负载迁移
@@ -62,13 +62,13 @@
 - **WHEN** 同一次初读提供合法原文定位的理论导读合同，且用户没有另行要求实验字段
 - **THEN** 系统围绕机制、假设／适用条件及来源结果计算缺口，不机械追加实验设计和经验对照；未要求字段保持未知而非认定不适用，事实及核心结论的必要条件继续核验
 
-#### Scenario: A follow-up attempts to reduce its required reading fields
-- **WHEN** 补读候选将已有来源定位合同的必需字段缩小，或省略用户明确要求的字段
-- **THEN** 系统保留原要求和冲突，允许有原文依据的需求扩大，不借换profile使未完成项变成完成；报告和读者审核仍按冻结政策及实际核心结论判断
+#### Scenario: New evidence changes the inferred reading requirements
+- **WHEN** 新原文表明系统推定的论文类型或必需字段不适合当前研究问题
+- **THEN** AI可提出有依据的再分类及字段调整，保存理由、差异和剩余缺口；用户明确字段不能自行取消，不把未读或未知字段伪装为完成
 
 ### Requirement: Reader review remains current and bounded
 
-系统 SHALL 对初稿完成当前整稿的读者审核，修订后根据实际影响使相关维度失效并复核；核心结论或结构变化触发相应全局复核。有效未变维度可以组合复用，最终结果须绑定当前稿。争议重复组最多进行一次有界实质影响复核，不以不断更换合同取得新尝试。
+系统 SHALL 对初稿完成当前整稿的读者审核，修订后由AI根据实际影响确定局部或全局范围并复用有效未变维度，最终结果绑定当前稿。关键争议的额外影响复核为按需动作，不是固定第二评审；同一输入不重复，确有新证据时仍受原根累计机会与预算限制，不以换合同重领尝试。
 
 #### Scenario: A local deletion preserves all claims and coverage
 - **WHEN** 删除仅去除无新用途的复述，必要主张、前提和其他章节职责均未变化
@@ -104,7 +104,7 @@
 
 #### Scenario: Reconciliation needs another original appendix passage
 - **WHEN** 整合判断仍需要某个当前附录原段才能成立
-- **THEN** 系统在原根额度内至多补看一次指定原段并重做受影响整合，保存机会且恢复不重领；仍不足、正文／固定布局或整合材料超限时保持未完成，不删掉疑点或默认通过
+- **THEN** AI依据实际缺口、已提供材料、预期收益和剩余资源选择是否继续补看及最小整合范围；代码执行当前原根上限并保存机会，恢复不重领，无新增信息不重复，容量不足分批或保留具体缺口，不能删疑点默认通过
 
 ### Requirement: Visual delivery covers the declared research needs
 
