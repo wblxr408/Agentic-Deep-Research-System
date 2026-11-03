@@ -5,7 +5,7 @@ import json
 from collections import defaultdict
 from copy import deepcopy
 
-from app.llm_budget import BudgetedClient, TokenBudgetExceeded, budgeted_client, request_token_bound
+from app.llm_budget import BudgetedClient, TokenBudgetExceeded, budgeted_client, operation_dispatch_status, request_token_bound
 from app.organization_purpose import CHAPTER_RESPONSIBILITIES, EDITORIAL_PARTITION_POLICY, report_draft_model
 from app.query_understanding import identity
 from app.security.prompt_security import untrusted_context
@@ -131,8 +131,7 @@ def select_paragraph_packets(modules,*,question,client,model,budget,retained,on_
                 response=active.chat.completions.create(model=model,messages=messages,
                     temperature=0,max_tokens=OUTPUT_TOKENS,response_format={'type':'json_object'})
             except TokenBudgetExceeded:
-                calls=[row for row in getattr(budget,'calls',[]) if row.get('content_unit_id')==unit]
-                if not any(row.get('dispatch_status')!='not_dispatched' and row.get('status')!='blocked_before_dispatch' for row in calls):
+                if operation_dispatch_status(getattr(budget,'calls',[]),unit)!='dispatch_attempted':
                     part[dispatch_key]='not_dispatched';checkpoint()
                 raise
             choice=response.choices[0] if response.choices else None

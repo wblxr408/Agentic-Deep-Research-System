@@ -10,7 +10,7 @@ from copy import deepcopy
 
 from openai import APIError
 
-from app.llm_budget import TokenBudgetExceeded, budgeted_client, request_token_bound
+from app.llm_budget import TokenBudgetExceeded, budgeted_client, operation_dispatch_status, request_token_bound
 from app.query_understanding import identity
 from app.security.prompt_security import untrusted_context
 from app.report_material_packets import POLICY as MATERIAL_POLICY,SUPPORTED_POLICIES as MATERIAL_POLICIES,COVERAGE_POLICY,DOCUMENT_POLICY,material_owners,context_overrides,material_packets
@@ -304,9 +304,7 @@ def review_reader_quality(*, question, configuration, record, findings, client, 
     def checkpoint():
         if owned and on_progress:on_progress(deepcopy(base))
     def missing_paid_response(unit):
-        return any(row.get('content_unit_id')==unit
-            and row.get('status') not in {'blocked_before_dispatch'} and row.get('dispatch_status')!='not_dispatched'
-            for row in [*retained_requests,*getattr(budget,'calls',[])])
+        return operation_dispatch_status([*retained_requests,*getattr(budget,'calls',[])],unit)=='dispatch_attempted'
     # The global pass reads the complete report. Candidate knowledge is checked
     # in separate complete packets, avoiding one oversized admission reserve.
     global_payload={key:payload[key] for key in ('question','criteria','paragraphs','accepted_works')}
@@ -517,8 +515,7 @@ def review_reader_quality(*, question, configuration, record, findings, client, 
                     model=model,messages=messages,temperature=0,max_tokens=output_cap,response_format={'type':'json_object'})
             except TokenBudgetExceeded:
                 if document_policy:
-                    calls=[row for row in getattr(budget,'calls',[]) if row.get('content_unit_id')=='reader-global:'+global_binding]
-                    if not any(row.get('dispatch_status')!='not_dispatched' and row.get('status')!='blocked_before_dispatch' for row in calls):
+                    if operation_dispatch_status(getattr(budget,'calls',[]),'reader-global:'+global_binding)!='dispatch_attempted':
                         base['global_dispatch_status']='not_dispatched';checkpoint()
                 raise
             choice=response.choices[0]

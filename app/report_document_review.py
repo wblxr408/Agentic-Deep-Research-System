@@ -5,7 +5,7 @@ import json
 from collections import defaultdict
 from copy import deepcopy
 
-from app.llm_budget import BudgetedClient, TokenBudgetExceeded, budgeted_client, request_token_bound
+from app.llm_budget import BudgetedClient, TokenBudgetExceeded, budgeted_client, operation_dispatch_status, request_token_bound
 from app.query_understanding import identity
 from app.report_material_packets import DOCUMENT_POLICY,context_overrides
 from app.security.prompt_security import untrusted_context
@@ -115,8 +115,7 @@ def prepare_document_review(payload,paragraphs,owners,*,client,model,budget,reta
                 response=active.chat.completions.create(model=model,messages=entry['messages'],temperature=0,
                     max_tokens=4096,response_format={'type':'json_object'})
             except TokenBudgetExceeded:
-                calls=[row for row in getattr(budget,'calls',[]) if row.get('content_unit_id')==unit]
-                if not any(row.get('dispatch_status')!='not_dispatched' and row.get('status')!='blocked_before_dispatch' for row in calls):
+                if operation_dispatch_status(getattr(budget,'calls',[]),unit)!='dispatch_attempted':
                     part['dispatch_status']='not_dispatched';checkpoint()
                 raise
             choice=response.choices[0] if response.choices else None

@@ -85,6 +85,19 @@ CONTEXT_INSTRUCTION=(
     'the needed contexts and consequence are also the same.')
 
 
+def _valid_scope_decision(value,allowed_dependencies):
+    """Shared decision fields; each consumer still owns coverage and bindings."""
+    if not isinstance(value,dict):return False
+    dependencies=value.get('depends_on')
+    return (type(value.get('required')) is bool and type(value.get('dependencies_complete')) is bool
+        and isinstance(value.get('role'),str) and value['role'] in {'required','supporting','advisory'}
+        and isinstance(value.get('category'),str) and value['category'] in CATEGORIES
+        and isinstance(value.get('reason'),str) and bool(value['reason'].strip())
+        and not ((value['role']=='required' or value['category']=='core') and not value['required'])
+        and isinstance(dependencies,list)
+        and all(isinstance(key,str) and key in allowed_dependencies for key in dependencies))
+
+
 def local_scope_response(response,targets,aliases,retention_groups):
     """Keep independently valid decisions; unresolved targets retain obligations.
 
@@ -104,12 +117,7 @@ def local_scope_response(response,targets,aliases,retention_groups):
             hints={key for key in dependencies if isinstance(key,str) and key in aliases}
             for key in known:premises.setdefault(key,set()).update(hints)
         valid=(isinstance(ids,list) and bool(ids) and all(isinstance(key,str) and key in wanted for key in ids)
-            and type(value.get('required')) is bool and type(value.get('dependencies_complete')) is bool
-            and isinstance(value.get('role'),str) and value['role'] in {'required','supporting','advisory'}
-            and isinstance(value.get('category'),str) and value['category'] in CATEGORIES
-            and isinstance(value.get('reason'),str) and bool(value['reason'].strip())
-            and not ((value['role']=='required' or value['category']=='core') and not value['required'])
-            and isinstance(dependencies,list) and all(isinstance(key,str) and key in aliases for key in dependencies))
+            and _valid_scope_decision(value,aliases))
         if valid:values.append(value)
         else:invalid.update(known)
     prior=response.get('retained_groups',[])
@@ -217,7 +225,7 @@ def _select_scope_once(claims,scope,previous,client,model,*,on_progress=None,ret
                        support_candidates=None,target_claim_keys=None,paginate=False,replay_binding=None,
                        reuse_previous_decisions=True,finalize=True,input_view=None):
     from app.claim_verification import claim_scope_key,AuditCheckpointError
-    from app.llm_budget import TokenBudgetExceeded,request_token_bound
+    from app.llm_budget import TokenBudgetExceeded,operation_dispatch_status,request_token_bound
     from app.query_understanding import identity
     from app.security.prompt_security import untrusted_context
     data=catalogue(claims);context_id=identity(data)
@@ -480,10 +488,8 @@ def _select_scope_once(claims,scope,previous,client,model,*,on_progress=None,ret
             if replay_binding and binding!=replay_binding:raise ValueError('scope_page_saved_inputs_changed')
             saved=next((row for row in saved_selection.get('batches',[])
                 if row.get('binding')==binding),{})
-            receipts=[row for row in getattr(getattr(client,'budget',None),'calls',[])
-                if row.get('content_unit_id')=='fact-scope:'+binding]
-            not_dispatched=on_progress is not None and bool(receipts) and all(row.get('status')=='blocked_before_dispatch'
-                or row.get('dispatch_status')=='not_dispatched' for row in receipts)
+            dispatch=operation_dispatch_status(getattr(getattr(client,'budget',None),'calls',[]),'fact-scope:'+binding)
+            not_dispatched=on_progress is not None and dispatch=='not_dispatched'
             if 'raw_response' in saved:
                 record.update(raw_response=saved['raw_response'],finish_reason=saved.get('finish_reason'),response_reused=True)
             elif saved.get('dispatch_status') in {'dispatch_attempted','dispatch_intent'} and not not_dispatched:
@@ -493,8 +499,7 @@ def _select_scope_once(claims,scope,previous,client,model,*,on_progress=None,ret
                     metadata['reason']='scope_complete_request_exceeds_current_capacity'
                     raise TokenBudgetExceeded(metadata['reason'])
                 active=client.with_operation('fact_scope_selection',content_unit_id='fact-scope:'+binding)
-                if any(row.get('content_unit_id')=='fact-scope:'+binding and row.get('status')!='blocked_before_dispatch'
-                        and row.get('dispatch_status')!='not_dispatched' for row in active.budget.calls):
+                if operation_dispatch_status(active.budget.calls,'fact-scope:'+binding)=='dispatch_attempted':
                     raise ValueError('scope_paid_response_unavailable')
                 if on_progress:
                     record['dispatch_status']='dispatch_intent';on_progress(deepcopy(metadata))
@@ -567,13 +572,9 @@ def _select_scope_once(claims,scope,previous,client,model,*,on_progress=None,ret
                         decision.pop('promotion_reason',None)
                         retained_rows[key]=decision;covered.append(alias)
             for value in values:
-                ids=value.get('claim_ids');dependencies=value.get('depends_on')
+                ids=value.get('claim_ids')
                 if (not isinstance(ids,list) or not ids or any(not isinstance(key,str) for key in ids)
-                        or type(value.get('required')) is not bool or type(value.get('dependencies_complete')) is not bool
-                        or value.get('role') not in {'required','supporting','advisory'} or value.get('category') not in CATEGORIES
-                        or not isinstance(value.get('reason'),str) or not value['reason'].strip()
-                        or (value['role']=='required' or value['category']=='core') and not value['required']
-                        or not isinstance(dependencies,list) or any(not isinstance(key,str) or key not in aliases for key in dependencies)):
+                        or not _valid_scope_decision(value,aliases)):
                     raise ValueError('scope_dependency_decision_invalid')
                 covered.extend(ids)
             if len(covered)!=len(pending) or set(covered)!={row['claim_id'] for row in pending}:
@@ -622,9 +623,7 @@ def _select_scope_once(claims,scope,previous,client,model,*,on_progress=None,ret
         except AuditCheckpointError:raise
         except (APIError,ValueError,TypeError,KeyError,AttributeError,IndexError,TokenBudgetExceeded) as error:
             record.update(validated=False,reason=str(error)[:200])
-            calls=[row for row in getattr(getattr(client,'budget',None),'calls',[])
-                if row.get('content_unit_id')=='fact-scope:'+binding]
-            if any(row.get('status')!='blocked_before_dispatch' and row.get('dispatch_status')!='not_dispatched' for row in calls):
+            if operation_dispatch_status(getattr(getattr(client,'budget',None),'calls',[]),'fact-scope:'+binding)=='dispatch_attempted':
                 record['dispatch_status']='dispatch_attempted'
             elif saved.get('dispatch_status') in {'dispatch_attempted','dispatch_intent'}:record['dispatch_status']=saved['dispatch_status']
             else:record['dispatch_status']='not_dispatched'
@@ -713,17 +712,11 @@ def _select_scope_pages(claims,scope,previous,client,model,*,on_progress,retaine
         return identity({'page':{name:value for name,value in page.items() if name!='result_binding'},
             'raw_response':batch.get('raw_response'),'finish_reason':batch.get('finish_reason')})
     def valid_decision(key,value):
-        return (isinstance(value,dict) and key in keys and type(value.get('required')) is bool
-            and isinstance(value.get('role'),str) and value['role'] in {'required','supporting','advisory'}
-            and isinstance(value.get('category'),str) and value['category'] in CATEGORIES
-            and isinstance(value.get('reason'),str) and bool(value['reason'].strip())
-            and type(value.get('dependencies_complete')) is bool and isinstance(value.get('depends_on'),list)
-            and all(isinstance(item,str) and item in all_keys for item in value['depends_on'])
+        return (key in keys and _valid_scope_decision(value,all_keys)
             and isinstance(value.get('authority'),str) and value['authority'] in {'model_importance_with_dependencies','conservative_scope'}
             and (value['authority']!='conservative_scope' or value['required'] and not value['dependencies_complete'])
             and (input_view is None or value.get('context_sufficient') is True
                 or value['required'] and not value['dependencies_complete'])
-            and not ((value['role']=='required' or value['category']=='core') and not value['required'])
             and value.get('binding')==selection_binding(scope,key,model,context_id,route_id))
     def merge_support(page):
         contexts=page.get('support_reuse_contexts') or {};prefix='page:'+page['request_binding']+':'

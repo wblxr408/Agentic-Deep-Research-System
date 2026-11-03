@@ -13,7 +13,7 @@ from collections import Counter
 from copy import deepcopy
 from typing import Any
 from openai import APIError
-from app.llm_budget import TokenBudgetExceeded
+from app.llm_budget import TokenBudgetExceeded, operation_dispatch_status
 from app.graph.state import Evidence
 from app.security.prompt_security import untrusted_context
 
@@ -1098,8 +1098,7 @@ def audit_report(report: str, evidence: list[Evidence], *, client: Any, model: s
         saved_records=sorted(progress['responses'].values(),key=lambda row:row.get('sequence',0))
         for saved in saved_records:
             if 'raw_response' in saved or saved.get('dispatch_status') not in {'dispatch_intent','dispatch_attempted'}:continue
-            receipts=[row for row in client.budget.calls if row.get('content_unit_id')=='fact-review:'+str(saved.get('binding'))]
-            if receipts and all(row.get('status')=='blocked_before_dispatch' or row.get('dispatch_status')=='not_dispatched' for row in receipts):
+            if operation_dispatch_status(client.budget.calls,'fact-review:'+str(saved.get('binding')))=='not_dispatched':
                 saved['dispatch_status']='not_dispatched'
         unknown_ids={key for saved in saved_records if saved.get('report_content_id')==current_id
             and saved.get('model')==model and saved.get('route_id')==route_id and 'raw_response' not in saved
@@ -1174,9 +1173,8 @@ def audit_report(report: str, evidence: list[Evidence], *, client: Any, model: s
             else:
                 if durable:
                     active_client=active_client.with_operation('fact_review',content_unit_id='fact-review:'+binding)
-                    prior=[row for row in active_client.budget.calls if row.get('content_unit_id')=='fact-review:'+binding
-                        and row.get('status')!='blocked_before_dispatch' and row.get('dispatch_status')!='not_dispatched']
-                    if prior or saved.get('dispatch_status') in {'dispatch_intent','dispatch_attempted'}:
+                    if (operation_dispatch_status(active_client.budget.calls,'fact-review:'+binding)=='dispatch_attempted'
+                            or saved.get('dispatch_status') in {'dispatch_intent','dispatch_attempted'}):
                         record.update(status='paid_response_unavailable',dispatch_status='dispatch_attempted')
                         for row in batch:row.update(status='not_checked',reason='Paid fact response unavailable; request not replayed')
                         progress['responses'][binding]=deepcopy(record);checkpoint()
@@ -1269,7 +1267,7 @@ def audit_report(report: str, evidence: list[Evidence], *, client: Any, model: s
                 for row in batch:row['reason']='Verification unavailable: '+type(exc).__name__
         except TokenBudgetExceeded as exc:
             record.update(status='budget_blocked',reason=exc.reason)
-            if durable and binding and not any(row.get('content_unit_id')=='fact-review:'+binding for row in client.budget.calls):
+            if durable and binding and operation_dispatch_status(client.budget.calls,'fact-review:'+binding) is None:
                 record['dispatch_status']='not_dispatched'
             errors.append(exc.reason)
             for row in batch:
@@ -1281,10 +1279,8 @@ def audit_report(report: str, evidence: list[Evidence], *, client: Any, model: s
                 row["reason"] = "Verification unavailable: " + type(exc).__name__
         if durable and binding:
             if 'raw_response' not in record:
-                receipts=[row for row in client.budget.calls if row.get('content_unit_id')=='fact-review:'+binding]
-                if receipts and all(row.get('status')=='blocked_before_dispatch' or row.get('dispatch_status')=='not_dispatched' for row in receipts):
-                    record['dispatch_status']='not_dispatched'
-                elif receipts:record['dispatch_status']='dispatch_attempted'
+                dispatch=operation_dispatch_status(client.budget.calls,'fact-review:'+binding)
+                if dispatch is not None:record['dispatch_status']=dispatch
             progress['responses'][binding]=deepcopy(record);checkpoint()
 
     supported = sum(row["status"] == "supported" for row in rows)

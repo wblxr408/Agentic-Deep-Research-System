@@ -9,7 +9,7 @@ from functools import wraps
 from openai import APIError
 
 from app.claim_verification import AuditCheckpointError, audit_report, module_paragraph_kinds, module_scope_layout, shared_passage_payload, select_excerpts
-from app.llm_budget import TokenBudgetExceeded, budgeted_client, request_token_bound
+from app.llm_budget import TokenBudgetExceeded, budgeted_client, operation_dispatch_status, request_token_bound
 from app.organization_purpose import CHAPTER_RESPONSIBILITIES, REPORT_MATERIAL_POLICY, report_draft_model, assemble_module_report, report_prose, module_report_instructions
 from app.security.prompt_security import untrusted_context
 from app.report_content_units import reconcile as reconcile_content_units,lineage_after_deletions,references as content_references,require_patch_reference,patch_reference,validate_draft,paragraphs as content_paragraphs
@@ -174,9 +174,7 @@ def _reader_edit_response(*,messages,contract,purpose,output_cap,record,quality,
     if saved.get('binding')!=binding:saved={}
     unit='reader-revision:'+binding
     active=active.with_operation('reader_revision',content_unit_id=unit)
-    receipts=[row for row in budget.calls if row.get('content_unit_id')==unit]
-    not_dispatched=bool(receipts) and all(row.get('status')=='blocked_before_dispatch'
-        or row.get('dispatch_status')=='not_dispatched' for row in receipts)
+    dispatch=operation_dispatch_status(budget.calls,unit)
     if saved.get('status')=='response_received':
         reply=prior.get('raw_model_response')
         if not isinstance(reply,str):raise TokenBudgetExceeded('reader_revision_paid_response_unavailable')
@@ -187,8 +185,8 @@ def _reader_edit_response(*,messages,contract,purpose,output_cap,record,quality,
         _editor_response_consumed(budget)
         if saved.get('finish_reason')!='stop':raise TokenBudgetExceeded('reader_revision_output_incomplete')
         return reply
-    if ((saved.get('status') in {'dispatch_intent','dispatch_attempted'} or receipts)
-            and not not_dispatched):
+    if ((saved.get('status') in {'dispatch_intent','dispatch_attempted'} or dispatch is not None)
+            and dispatch!='not_dispatched'):
         raise TokenBudgetExceeded('reader_revision_paid_response_unavailable')
     required=request_token_bound(messages,response_format={'type':'json_object'})+output_cap
     if getattr(budget,'editor_work_active',False):budget.editor_request_bound=required
@@ -204,11 +202,9 @@ def _reader_edit_response(*,messages,contract,purpose,output_cap,record,quality,
         response=active.chat.completions.create(model=model,messages=messages,temperature=temperature,
             max_tokens=output_cap,response_format={'type':'json_object'})
     except Exception:
-        receipts=[row for row in budget.calls if row.get('content_unit_id')==unit]
-        not_dispatched=bool(receipts) and all(row.get('status')=='blocked_before_dispatch'
-            or row.get('dispatch_status')=='not_dispatched' for row in receipts)
+        dispatch=operation_dispatch_status(budget.calls,unit)
         on_candidate('',stage='reader_revision_dispatch',revision_request={**request,
-            'status':'not_dispatched' if not_dispatched else 'dispatch_attempted'})
+            'status':'not_dispatched' if dispatch=='not_dispatched' else 'dispatch_attempted'})
         raise
     choice=response.choices[0] if response.choices else None
     reply=choice.message.content or '' if choice else ''

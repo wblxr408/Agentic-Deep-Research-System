@@ -17,6 +17,23 @@ class TokenBudgetExceeded(RuntimeError):
         super().__init__(reason)
 
 
+def operation_dispatch_status(receipts: list[dict], content_unit_id: str) -> str | None:
+    """Reduce this operation's receipt evidence without granting a replay.
+
+    None means no matching receipt, not proof of non-dispatch. Any matching
+    receipt not explicitly blocked before dispatch remains possibly dispatched.
+    Callers retain their own saved-intent and paid-response recovery rules.
+    """
+    status = None
+    for row in receipts:
+        if row.get('content_unit_id') != content_unit_id:
+            continue
+        if row.get('status') != 'blocked_before_dispatch' and row.get('dispatch_status') != 'not_dispatched':
+            return 'dispatch_attempted'
+        status = 'not_dispatched'
+    return status
+
+
 def request_token_bound(messages: list[dict], **extra: Any) -> int:
     """Conservative text admission, not a claim of exact provider tokenization.
 
