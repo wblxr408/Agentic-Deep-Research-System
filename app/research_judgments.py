@@ -153,6 +153,9 @@ def build_judgments(values,evidence,context,*,configuration=None,findings=None,p
     modules=set((configuration or {}).get('_report_modules') or (configuration or {}).get('modules') or [])
     sources={item['evidence_id']:item for item in evidence if item.get('evidence_id')}
     selected={row['evidence_id']:row for row in (context or {}).get('sources',[]) if row.get('evidence_id')}
+    supplied_judgments={row.get('judgment_id') for row in
+        ((context or {}).get('analysis_handoff') or {}).get('records',[])
+        if row.get('kind')=='judgment_candidate' and row.get('judgment_id')}
     entities={item['entity_id'] for item in ((configuration or {}).get('scope') or {}).get('entities',[])}
     outputs={item['output_id'] for item in ((findings or {}).get('scope_result') or {}).get('outputs',[])}
     records=[];pending=[];seen=set()
@@ -168,6 +171,13 @@ def build_judgments(values,evidence,context,*,configuration=None,findings=None,p
                 except ValueError:
                     pending.append({'reason':'judgment_content_placement_invalid','proposed_id':item.judgment_id})
             if item.judgment_id in seen:raise ValueError('duplicate_judgment_id')
+            if (placement_enabled and phase=='question:post_reading_synthesis' and item.supersedes
+                    and not set(item.supersedes)<=supplied_judgments):
+                # A valid source-located new argument may survive, but it
+                # cannot retire prior arguments this request did not receive.
+                pending.append({'reason':'judgment_supersession_not_supplied_to_synthesis',
+                    'proposed_id':item.judgment_id,'supersedes':list(item.supersedes)})
+                item=item.model_copy(update={'supersedes':()})
             if not set(item.entity_ids)<=entities or not set(item.related_output_ids)<=outputs:
                 raise ValueError('judgment_outside_accepted_objects_or_works')
             anchors=[]
@@ -282,7 +292,8 @@ def stage_handoff(technical,judgments,max_bytes,*,prior_records=None,complete_re
                    if card.get('reading_contract') else {}),
                 'semantic_status':'candidate_requires_source_review'})
         candidates=[{'kind':'judgment_candidate',**{key:item[key] for key in
-            ('judgment_id','question','conclusion','reasoning','significance','alternatives','choice','related_output_ids','content_placement') if key in item},
+            ('judgment_id','question','conclusion','observations','reasoning','significance',
+             'alternatives','choice','related_output_ids','entity_ids','content_placement') if key in item},
             'basis':[{key:proof[key] for key in ('evidence_id','start','end') if key in proof}
                 for proof in item.get('basis',[])]} for item in reversed(judgments)]
         # Rotate record types, preventing a run of old judgments from consuming

@@ -173,7 +173,16 @@ def instructions(configuration, phase, seed=None):
                 'use it only for a distinct reader task. Keep necessary local conditions, but do '
                 'not restate the same argument in every summary. Placement is revisable; a '
                 'replacement candidate may supersede an existing placement while preserving '
-                'its supported scientific content. Do not request another outline/ownership call.')
+                'its supported scientific content. Compare supplied judgment candidates by question, '
+                'conclusion, observations, conditions and reader use, even when their IDs differ. '
+                'When they develop the same argument, return a replacement research_judgment with '
+                'a new judgment_id and supersedes listing the exact supplied IDs, explaining the '
+                'consolidation in reasoning and choosing one content_placement. Preserve the affected '
+                'related_output_ids, evidence, qualifications and distinct supporting uses. Shared '
+                'topics or wording alone do not justify consolidation; keep different conditions, '
+                'conflicting results and distinct arguments separate. If the supplied evidence or '
+                'response capacity cannot preserve their substance, leave the original candidates '
+                'active rather than silently dropping details. Do not request another outline/ownership call.')
     return (synthesis+'\nCURRENT PHASE OUTPUT CONTRACT (overrides generic Skill report templates):\n'+
         json.dumps(shape,ensure_ascii=False,separators=(',',':'))+
         '\nThe example describes field names, not facts. Use the actual selected IDs and only supported '
