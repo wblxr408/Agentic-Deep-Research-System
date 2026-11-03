@@ -47,6 +47,11 @@ class ContentPlacement(ScopeRecord):
         return self
 
 
+class JudgmentPlacement(ScopeRecord):
+    judgment_id:Identifier
+    content_placement:ContentPlacement
+
+
 class Judgment(ScopeRecord):
     judgment_id:Identifier
     question:str=Field(min_length=3,max_length=500)
@@ -242,6 +247,33 @@ def reconcile_judgments(current,incoming,*,allow_supersession=False):
         active=[row for row in active if row['judgment_id'] not in replaced]
         active.append(item)
     return active,retired,pending
+
+
+def place_judgments(current,values,context,modules,*,input_binding=None):
+    """Update writing metadata for supplied active candidates, never their science."""
+    from collections import Counter
+    if values is None:return list(current),[],[]
+    if not isinstance(values,list):return list(current),[{'reason':'judgment_placements_expected_array'}],[]
+    supplied={row.get('judgment_id') for row in ((context or {}).get('analysis_handoff') or {}).get('records',[])
+        if row.get('kind')=='judgment_candidate' and row.get('judgment_id')}
+    active={row['judgment_id'] for row in current};accepted={};pending=[]
+    counts=Counter(row.get('judgment_id') for row in values
+        if isinstance(row,dict) and isinstance(row.get('judgment_id'),str))
+    for raw in values:
+        try:
+            item=JudgmentPlacement.model_validate(raw)
+            if counts[item.judgment_id]!=1:raise ValueError('judgment_placement_duplicate_identity')
+            if item.judgment_id not in active or item.judgment_id not in supplied:
+                raise ValueError('judgment_placement_not_active_or_not_supplied')
+            accepted[item.judgment_id]=item.content_placement.for_modules(modules).model_dump(mode='json')
+        except (ValueError,TypeError) as error:
+            reason=str(error) if str(error).startswith('judgment_placement_') else 'judgment_placement_schema_invalid'
+            pending.append({'reason':reason,**({'judgment_id':raw['judgment_id']}
+                if isinstance(raw,dict) and isinstance(raw.get('judgment_id'),str) else {})})
+    return [{**row,**({'content_placement':accepted[row['judgment_id']],
+        'placement_phase':'question:post_reading_synthesis',
+        **({'placement_input_binding':input_binding} if input_binding else {})}
+        if row['judgment_id'] in accepted else {})} for row in current],pending,list(accepted)
 
 
 def judgment_context(view,max_bytes=8000,*,evidence=None):

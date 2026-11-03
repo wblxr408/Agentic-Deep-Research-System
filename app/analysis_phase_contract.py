@@ -43,11 +43,16 @@ def contract(configuration, phase):
     module=modules[0]
     fields=list(SHAPES[module])
     if configuration.get('_post_reading_synthesis'):fields.append('module_summaries')
+    allowed=list(fields)
+    from app.organization_purpose import REPORT_MATERIAL_POLICY
+    if configuration.get('_post_reading_synthesis') and configuration.get('report_material_policy')==REPORT_MATERIAL_POLICY:
+        allowed.append('judgment_placements')
     if (module=='landscape' and configuration.get('research_handoff_policy')=='adrs-complete-evidence-handoff-v2'
             and not configuration.get('_post_reading_synthesis') and not configuration.get('_reading_all_requested')):
         fields.append('reading_plan')
+        allowed.append('reading_plan')
     return {'version':VERSION,'phase':module,'required_arrays':fields,
-        'allowed_fields':fields,'judgments':module in {'landscape','evolution','validation','actions'}}
+        'allowed_fields':allowed,'judgments':module in {'landscape','evolution','validation','actions'}}
 
 
 def instructions(configuration, phase, seed=None):
@@ -62,6 +67,10 @@ def instructions(configuration, phase, seed=None):
     if configuration.get('_post_reading_synthesis'):
         organization['module_summaries']=[{'module_id':key,'analysis_text':'final evidence-grounded connecting argument for this selected module'}
             for key in configuration.get('_synthesis_modules',[])]
+        if 'judgment_placements' in policy['allowed_fields']:
+            organization['judgment_placements']=[{'judgment_id':'EXACT SUPPLIED JUDGMENT ID','content_placement':{
+                'owner_module':'SELECTED MODULE ID','reason':'question-specific reason for this home',
+                'supporting_uses':[{'module_id':'OTHER SELECTED MODULE ID','reader_use':'distinct necessary application'}]}}]
     if 'reading_plan' in policy['required_arrays']:
         organization['reading_plan']=[{'output_id':'ACCEPTED ID','question':'reader question served',
             'role':'core|supporting|background|excluded','reason':'why this work matters or is excluded'}]
@@ -183,6 +192,16 @@ def instructions(configuration, phase, seed=None):
                 'conflicting results and distinct arguments separate. If the supplied evidence or '
                 'response capacity cannot preserve their substance, leave the original candidates '
                 'active rather than silently dropping details. Do not request another outline/ownership call.')
+            synthesis+=(' For existing candidates whose scientific content does not need replacement, '
+                'use organization_data.judgment_placements in this SAME response to supply or revise '
+                'only their content_placement, referring to exact judgment IDs in the supplied analysis_handoff. '
+                'Do not repeat their conclusion, evidence or reasoning just to assign a writing home. '
+                'Choose one main home and only distinct necessary supporting uses from these selected '
+                'report modules: '+json.dumps(configuration.get('_report_modules') or configuration.get('_synthesis_modules',[]))+
+                '. Leave uncertain or unseen candidates unassigned; do not invent IDs, erase candidates, '
+                'or infer scientific support from placement. This optional metadata is separate from '
+                'the small number of new research judgments. Resolve what the current context and '
+                'response capacity permit; omission preserves the existing candidate and placement.')
     return (synthesis+'\nCURRENT PHASE OUTPUT CONTRACT (overrides generic Skill report templates):\n'+
         json.dumps(shape,ensure_ascii=False,separators=(',',':'))+
         '\nThe example describes field names, not facts. Use the actual selected IDs and only supported '

@@ -502,8 +502,9 @@ Return JSON with analysis_text and any additional fields explicitly required bel
         reading_plan=None
         complete_handoff=configuration.get('research_handoff_policy')=='adrs-complete-evidence-handoff-v2'
         synthesized=False
+        placement_result=None
         def synthesize():
-            nonlocal judgments,synthesized
+            nonlocal judgments,synthesized,placement_result
             if synthesized or not complete_handoff or not strategy_version:return
             synthesized=True
             if not technical_by_output and not prior_records:return
@@ -517,6 +518,8 @@ Return JSON with analysis_text and any additional fields explicitly required bel
                 result.get('judgments',{}).get('records',[]),allow_supersession=True)
             retired_judgments.extend(retired)
             judgment_gaps.extend([*rejected,*result.get('judgments',{}).get('pending_records',[])])
+            if configuration.get('report_material_policy')==REPORT_MATERIAL_POLICY:
+                placement_result=result
             data['interpretations']=result['organization_data'].get('interpretations',[])
             for summary in result['organization_data'].get('module_summaries',[]):
                 key=summary['module_id']
@@ -612,6 +615,15 @@ Return JSON with analysis_text and any additional fields explicitly required bel
                         data.setdefault(key,[]).extend(record['organization_data'][key])
             texts[module]='## '+MODULES[module][0]+'\n\n'+'\n\n'.join(module_texts)
         synthesize()
+        if placement_result is not None:
+            from app.research_judgments import place_judgments
+            # Writing-only changes must not invalidate later scientific phases
+            # or make their seed depend on runtime placement attribution.
+            judgments,placement_gaps,placed=place_judgments(judgments,
+                placement_result['organization_data'].get('judgment_placements'),placement_result.get('context'),modules,
+                input_binding=placement_result.get('phase_input_binding'))
+            judgment_gaps.extend(placement_gaps)
+            workflow['research_synthesis']['placement_judgment_ids']=placed
         if 'deep_dive' in modules:data['technical_cards']=list(technical_by_output.values())
         workflow.update(status='completed',active_phase=None)
         self.last_workflow=workflow
