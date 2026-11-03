@@ -134,7 +134,7 @@ def _reader_edit_response(*,messages,contract,purpose,output_cap,record,quality,
     if getattr(budget,'editor_work_active',False):
         budget.remaining_writing_units=0 if purpose=='audit' else max(1,budget.remaining_writing_units or 0)
         budget.editor_request_purpose=purpose
-        budget.editor_request_bound=request_token_bound(messages,response_format={'type':'json_object'})+(minimum_output or output_cap)
+        budget.editor_request_bound=request_token_bound(messages,response_format={'type':'json_object'})+output_cap
     from app.query_understanding import identity
     basis=_editor_request_basis(messages=messages,contract=contract,purpose=purpose,record=record,
         quality=quality,evidence=evidence,cited=cited,client=active,model=model,budget=budget,temperature=temperature)
@@ -1255,6 +1255,7 @@ def revise_report_claims(content, record, audit, *, on_round=None, on_event=None
     return content,record,audit
 
 
+@_reader_work_forecast
 def _revise_report_once(content, record, audit, *, configuration, statistics, evidence,
                          client, model, budget, deadline, citation_count, upgrade_callback=None, task_context=None,
                          source_spans=None,on_candidate=None,retained_responses=None,audit_options=None,findings=None):
@@ -1316,6 +1317,7 @@ def _revise_report_once(content, record, audit, *, configuration, statistics, ev
     if batch:batches.append(batch)
     protected=(configuration.get('report_material_policy')==REPORT_MATERIAL_POLICY
         and getattr(budget,'execution_control',None) is not None)
+    live_forecast=protected and getattr(budget,'editor_work_active',False)
     from app.query_understanding import identity
     original_id=identity(record['raw_model_response'])
     responses=(((findings or {}).get('report_editor_sections') or {}).get('responses') or {}
@@ -1414,6 +1416,13 @@ def _revise_report_once(content, record, audit, *, configuration, statistics, ev
         while True:
             messages=correction_messages(batches[0])
             required=request_token_bound(messages,response_format={'type':'json_object'})+1024
+            if live_forecast:
+                # Count pending response work until its original input has
+                # been revalidated. The common response method removes it on
+                # recovery/receipt; paid batches still precede fresh admission.
+                budget.remaining_writing_units=len(batches)
+                budget.editor_request_purpose='report'
+                budget.editor_request_bound=required-1024+output_cap(batches[0])
             if (tuple(item['paragraph_id'] for item in batches[0]) in restored
                     or budget.available('report')>=required or len(batches[0])==1):
                 return messages,required
@@ -1457,6 +1466,7 @@ def _revise_report_once(content, record, audit, *, configuration, statistics, ev
             if saved_replies:
                 reply=saved_replies.pop(0)
                 reused_reply_count+=1
+                if live_forecast:_editor_response_consumed(budget)
             elif protected:
                 reply=_reader_edit_response(messages=messages,contract=CLAIM_EDIT_CONTRACT,purpose='report',
                     output_cap=output_cap(batch),minimum_output=1024,required_audit=2048,
@@ -1484,6 +1494,9 @@ def _revise_report_once(content, record, audit, *, configuration, statistics, ev
                     citation_sets[item['paragraph_id']])
                 format_adjustments.extend({'paragraph_id':item['paragraph_id'],'kind':kind}
                     for kind in item.get('format_adjustments',[]))
+        if live_forecast:
+            budget.remaining_writing_units=0
+            budget.editor_request_bound=0;budget.editor_request_purpose=None
         original=record['raw_model_response'].strip()
         if original.startswith('```json') and original.endswith('```'):original=original[7:-3].strip()
         draft=report_draft_model(configuration).model_validate_json(original).model_dump(mode='json')
