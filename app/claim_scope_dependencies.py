@@ -8,7 +8,9 @@ import json
 from copy import deepcopy
 from openai import APIError
 
-POLICY='adrs-essential-claim-dependencies-v1'
+LEGACY_POLICY='adrs-essential-claim-dependencies-v1'
+POLICY='adrs-essential-claim-dependencies-v2-local-uncertainty'
+SUPPORTED_POLICIES={LEGACY_POLICY,POLICY}
 MAX_CONTEXT_BYTES=120000
 CATEGORIES={'core','background','implementation_detail','secondary_measurement',
     'proposed_protocol','evaluative_phrasing','incidental_adoption'}
@@ -32,7 +34,7 @@ def catalogue(claims):
 
 def selection_binding(scope,key,model,context_id,route_id):
     from app.query_understanding import identity
-    return identity({'policy':POLICY,'scope':identity(scope),'claim':key,'model':model,
+    return identity({'policy':scope.get('dependency_policy') or POLICY,'scope':identity(scope),'claim':key,'model':model,
         'context':context_id,'route':route_id})
 
 
@@ -42,11 +44,13 @@ def select_scope(claims,scope,previous,client,model):
     from app.query_understanding import identity
     from app.security.prompt_security import untrusted_context
     data=catalogue(claims);context_id=identity(data)
+    policy=scope.get('dependency_policy') or POLICY
+    adaptive=policy==POLICY
     route_id=identity(getattr(client,'route_info',None))
-    metadata={'policy':POLICY,'context_id':context_id,'route_id':route_id,'batches':[],
+    metadata={'policy':policy,'context_id':context_id,'route_id':route_id,'batches':[],
         'semantics':'review_dependencies_not_source_certification'}
     previous_selection=(previous or {}).get('scope_selection') or {}
-    if (previous_selection.get('policy')==POLICY and previous_selection.get('context_id')==context_id
+    if (previous_selection.get('policy')==policy and previous_selection.get('context_id')==context_id
             and previous_selection.get('route_id')==route_id):
         metadata['batches']=deepcopy(previous_selection.get('batches') or [])
     old={claim_scope_key(row):row for row in (previous or {}).get('claims',[])}
@@ -64,7 +68,8 @@ def select_scope(claims,scope,previous,client,model):
             decisions[key]={'required':False,'role':'advisory','category':item['category'],
                 'reason':item['reason'],'depends_on':[],'dependencies_complete':True,'authority':'explicit_owner'}
         elif (saved.get('binding')==selection_binding(scope,key,model,context_id,route_id)
-                and saved.get('authority')=='model_importance_with_dependencies' and saved.get('dependencies_complete') is True):
+                and saved.get('authority')=='model_importance_with_dependencies'
+                and (type(saved.get('dependencies_complete')) is bool if adaptive else saved.get('dependencies_complete') is True)):
             decisions[key]=deepcopy(saved);decisions[key]['response_reused']=True
         else:pending.append(row)
     model_data={'contexts':data['contexts'],'claims':[{key:value for key,value in row.items() if key!='claim_key'}
@@ -98,9 +103,16 @@ def select_scope(claims,scope,previous,client,model):
             '"reason":"effect on reader conclusion"}]}. Group targets ONLY when their consequence, '
             'role and dependencies are the same; otherwise use separate groups. Cover every target '
             'exactly once. required role and core category must set required=true. No report rewrites.')
+        if adaptive:
+            instruction+=(' An unresolved dependency applies to the affected claim or conclusion, not '
+                'the whole report. Keep that claim required and explain what needs resolving; do not '
+                'escalate unrelated advisory content. Identify the actual premises needed for this '
+                'question; a complete formal graph for every sentence is not a research goal. '
+                'Previously contradicted is a diagnostic, not an unchangeable truth verdict; classify '
+                'current consequence from evidence and scope without silently approving the old claim.')
         messages=[{'role':'system','content':instruction},
             {'role':'user','content':untrusted_context('complete_scope_context',shared,limit=len(shared))}]
-        binding=identity({'messages':messages,'model':model,'route':route_id,'policy':POLICY})
+        binding=identity({'messages':messages,'model':model,'route':route_id,'policy':policy})
         record={'binding':binding,'claim_keys':[row['claim_key'] for row in pending]}
         metadata['batches']=[row for row in metadata['batches'] if row.get('binding')!=binding]+[record]
         saved={}
@@ -153,14 +165,15 @@ def select_scope(claims,scope,previous,client,model):
             elif saved.get('dispatch_status')=='dispatch_attempted':record['dispatch_status']='dispatch_attempted'
             else:record['dispatch_status']='not_dispatched'
             for row in pending:decisions[row['claim_key']]=conservative(row,'scope_dependency_selection_unavailable')
-    # A missing edge can conceal a core premise. An incomplete map does not
-    # establish that the remaining claims are safe to exempt.
     incomplete=any(not row.get('dependencies_complete') for row in decisions.values())
     metadata['dependencies_complete']=not incomplete
+    if adaptive:metadata['unresolved_claim_keys']=[key for key,row in decisions.items() if not row.get('dependencies_complete')]
     for key,decision in decisions.items():
         if decision.get('authority')=='explicit_owner':continue
-        if incomplete or (old.get(key) or {}).get('status')=='contradicted':
-            decision.update(required=True,role='required',promotion_reason='incomplete_dependency_map' if incomplete else 'known_conflict_requires_correction')
+        uncertain=not decision.get('dependencies_complete') if adaptive else incomplete
+        if uncertain or (old.get(key) or {}).get('status')=='contradicted':
+            decision.update(required=True,role='required',promotion_reason='unresolved_local_dependencies' if uncertain and adaptive
+                else 'incomplete_dependency_map' if uncertain else 'known_conflict_requires_correction')
     queue=[key for key,decision in decisions.items() if decision['required']];seen=set()
     while queue:
         key=queue.pop()

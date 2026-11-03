@@ -16,6 +16,7 @@ REPORT_MATERIAL_POLICY = 'adrs-owned-chapter-input-v1'
 REPORT_ASSEMBLY_POLICY = 'adrs-batched-report-assembly-v1'
 EDITORIAL_PARTITION_POLICY = 'adrs-editorial-paragraph-packets-v1'
 READER_IMPACT_POLICY = 'adrs-inline-reader-impact-v1'
+RESEARCH_REVIEW_POLICY = 'adrs-research-readiness-v1'
 MAX_ASSEMBLED_PARAGRAPHS = 2048
 REPORT_WRITING_GUIDANCE = '''
 面向报告读者的写作要求：

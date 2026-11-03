@@ -2569,7 +2569,8 @@ async def reflection_node(state: ResearchState) -> dict:
         verification: VerificationResult = await asyncio.to_thread(agent.reflect,
             _research_question(state),state["analysis"],evidence_list,
             skill_prompt=_skill_prompt(state, 'reflection') or None,
-            reflection_hints=_agent_skill_hints(state, "reflection"),organization_research=state.get('organization_research'))
+            reflection_hints=_agent_skill_hints(state, "reflection"),organization_research=state.get('organization_research'),
+            research_findings=state.get('organization_result'))
     except TokenBudgetExceeded as error:
         if (not agent.request_budget.calls and state.get('analysis') and error.reason in {
                 'token_budget_exhausted','insufficient_context_budget','model_time_reservation_exhausted'}):
@@ -2583,6 +2584,8 @@ async def reflection_node(state: ResearchState) -> dict:
     session, budget_state = _apply_llm_usage_to_state(state, "reflection", _agent_model_usage(agent))
     verification_data=verification.model_dump()
     verification_data['response_status']=agent.last_context_manifest.get('status','response_error')
+    readiness=agent.last_context_manifest.get('scope')=='key_research_judgments_not_final_report_verification'
+    if readiness:verification_data['review_scope']=agent.last_context_manifest['scope']
     reflection_findings={**(state.get('organization_result') or {}),
         'reflection_context':agent.last_context_manifest}
 
@@ -2590,6 +2593,9 @@ async def reflection_node(state: ResearchState) -> dict:
     if verification_data['response_status']!='valid':
         emit_event(state,EventType.AGENT_ERROR,'reflection',
             '反思响应未完成；已保留实际响应与用量，报告仍须完整核对。')
+    elif readiness:
+        emit_event(state,EventType.AGENT_COMPLETE,'reflection',
+            '研究评审建议补充关键证据或调整计划。' if verification.needs_revision else '研究评审建议进入写作；成稿仍须事实、读者与图文审核。')
     elif verification.needs_revision:
         emit_event(
             state, EventType.AGENT_COMPLETE, "reflection",
@@ -2607,7 +2613,8 @@ async def reflection_node(state: ResearchState) -> dict:
     trace = [AgentEvent(
         agent="reflection",
         event_type="agent_complete",
-        content=(f"Verification: confidence={verification.overall_confidence:.2f}, needs_revision={verification.needs_revision}"
+        content=((f"Research readiness: needs_revision={verification.needs_revision}; final report not certified" if readiness else
+            f"Verification: confidence={verification.overall_confidence:.2f}, needs_revision={verification.needs_revision}")
             if verification_data['response_status']=='valid' else '反思格式恢复未完成；原响应与用量已保留。')
     ).model_dump()]
 

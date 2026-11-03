@@ -304,7 +304,10 @@ def iteration_decision(state: dict, policy: PlanningPolicy) -> dict:
         gaps.append('unsupported_claims')
     if verification.get('conflicts'):
         gaps.append('evidence_conflicts')
-    if (int(verification.get('total_claims') or 0) > int(verification.get('verified_claims') or 0)
+    readiness=verification.get('review_scope')=='key_research_judgments_not_final_report_verification'
+    if (readiness and verification.get('needs_revision') and str(verification.get('revision_focus') or '').strip()):
+        gaps.append('material_research_focus')
+    elif (not readiness and int(verification.get('total_claims') or 0) > int(verification.get('verified_claims') or 0)
             and str(verification.get('revision_focus') or '').strip()):
         gaps.append('unverified_claims_with_revision_focus')
     # Locator/census caveats remain visible, but cannot by themselves request

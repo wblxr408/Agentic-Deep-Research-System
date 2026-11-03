@@ -37,7 +37,7 @@ def apply_review_scope(audit, scope):
     dependency_policy=scope.get('dependency_policy')
     dependency_context=None
     if dependency_policy:
-        from app.claim_scope_dependencies import POLICY as DEPENDENCY_POLICY,catalogue,selection_binding
+        from app.claim_scope_dependencies import SUPPORTED_POLICIES as DEPENDENCY_POLICIES,catalogue,selection_binding
         dependency_context=identity(catalogue(result.get('claims',[])))
         selection=result.get('scope_selection') or {}
     for row in result.get('claims',[]):
@@ -49,7 +49,7 @@ def apply_review_scope(audit, scope):
         model_binding=identity({'scope':identity(scope),'claim':claim_scope_key(row),'model':audit.get('audit_model')})
         if dependency_policy:
             model_binding=(selection_binding(scope,claim_scope_key(row),audit.get('audit_model'),
-                dependency_context,selection.get('route_id')) if dependency_policy==DEPENDENCY_POLICY
+                dependency_context,selection.get('route_id')) if dependency_policy in DEPENDENCY_POLICIES
                 and selection.get('policy')==dependency_policy and selection.get('context_id')==dependency_context else None)
         row['verification_required']=(decision.get('required',True) if exemption
             or model_binding is not None and decision.get('binding')==model_binding else True)
@@ -68,7 +68,7 @@ def apply_review_scope(audit, scope):
         revision_requests=[row for row in result.get('revision_requests',[]) if row['claim_id'] in required_ids],
         needs_review=not rows or supported!=len(rows),
         quality='incomplete' if unfinished else 'required_claims_supported' if rows and supported==len(rows) else 'needs_revision')
-    if dependency_policy and dependency_policy!=DEPENDENCY_POLICY:
+    if dependency_policy and dependency_policy not in DEPENDENCY_POLICIES:
         result.update(needs_review=True,audit_incomplete=True,quality='incomplete',
             scope_error='scope_dependency_policy_unsupported')
     return result
@@ -638,8 +638,8 @@ def audit_report(report: str, evidence: list[Evidence], *, client: Any, model: s
     scope_client=client.with_operation('fact_scope_selection') if isinstance(client,BudgetedClient) else client
     scope_selection=None
     if (review_scope or {}).get('dependency_policy'):
-        from app.claim_scope_dependencies import POLICY as DEPENDENCY_POLICY,select_scope
-        if review_scope.get('policy')==ESSENTIAL_REVIEW_POLICY and review_scope['dependency_policy']==DEPENDENCY_POLICY:
+        from app.claim_scope_dependencies import SUPPORTED_POLICIES as DEPENDENCY_POLICIES,select_scope
+        if review_scope.get('policy')==ESSENTIAL_REVIEW_POLICY and review_scope['dependency_policy'] in DEPENDENCY_POLICIES:
             scope_decisions,scope_selection=select_scope(claims,review_scope,previous_audit,scope_client,model)
         else:
             scope_decisions={}
