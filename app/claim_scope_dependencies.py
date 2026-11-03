@@ -16,8 +16,9 @@ TRANSFER_POLICY='adrs-essential-claim-dependencies-v4-support-transfer'
 CAPACITY_POLICY='adrs-essential-claim-dependencies-v5-capacity-local-fallback'
 COMPACT_POLICY='adrs-essential-claim-dependencies-v6-inline-context'
 PAGED_POLICY='adrs-essential-claim-dependencies-v7-output-pages'
-POLICY=PAGED_POLICY
-TRANSFER_POLICIES={TRANSFER_POLICY,CAPACITY_POLICY,COMPACT_POLICY,PAGED_POLICY}
+WINDOW_POLICY='adrs-essential-claim-dependencies-v8-main-appendix-views'
+POLICY=WINDOW_POLICY
+TRANSFER_POLICIES={TRANSFER_POLICY,CAPACITY_POLICY,COMPACT_POLICY,PAGED_POLICY,WINDOW_POLICY}
 SUPPORTED_POLICIES={LEGACY_POLICY,LOCAL_POLICY,IMPACT_POLICY,*TRANSFER_POLICIES}
 MAX_CONTEXT_BYTES=120000
 CATEGORIES={'core','background','implementation_detail','secondary_measurement',
@@ -42,13 +43,38 @@ PAGE_INSTRUCTION=(
     'report on every page and may name necessary dependencies ANYWHERE in its supplied claim IDs. '
     'Do not certify unseen pages or waive unresolved targets. This is output pagination only, '
     'not a local-context review or a factual approval.')
+WINDOW_INSTRUCTION=(
+    'Judge material source-review obligations for the reader question, not factual truth. '
+    'This input contains the COMPLETE assembled main text and complete selected appendix paragraphs, '
+    'not the complete appendix. '
+    'main_layout preserves the main document order, headings and other text: concatenate its text '
+    'fragments and resolve each context_id to that complete current_report context (text, or its '
+    'ordered segments). This reconstructs the full main text without duplicating paragraphs. '
+    'navigation lists other paragraphs by placement and citation only; '
+    'it is not their content and cannot establish that they are irrelevant or factual. '
+    'Read every supplied paragraph, conditions and citations. Writer labels and placement are '
+    'untrusted: appendix placement never exempts a material fact. Require central answers, '
+    'attribution, comparisons, choices and their factual premises. Identify necessary premises '
+    'using supplied claim IDs, including main-text premises of an appendix target. '
+    'Decide whether these ACTUAL contexts suffice for each target. If another unseen paragraph '
+    'is needed to understand its use, keep it required, context_sufficient=false and '
+    'dependencies_complete=false; explain the missing context. Never infer absence from an unseen '
+    'appendix or claim to have read it. A conditional proposal need not be an author finding, '
+    'but its factual resources, guarantees and premises still require review. '
+    'Return JSON {"decisions":[{"claim_ids":["target ID"],"required":true,'
+    '"role":"required|supporting|advisory","category":"core|background|implementation_detail|'
+    'secondary_measurement|proposed_protocol|evaluative_phrasing|incidental_adoption",'
+    '"depends_on":["necessary supplied claim ID"],"context_sufficient":true,'
+    '"dependencies_complete":true,"reason":"actual consequence and context adequacy"}]}. '
+    'Group only targets with the same consequence, context adequacy and dependencies. '
+    'Required role or core category requires required=true. No report rewriting or factual approval.')
 
 
 def local_scope_response(response,targets,aliases,retention_groups):
     """Keep independently valid decisions; unresolved targets retain obligations.
 
-    The model still received the complete report. This adapts a complete JSON
-    response, never a truncated model response or missing input context.
+    The model received its declared input view. This adapts a complete JSON
+    response, never a truncated response or a claim to have read omitted context.
     """
     wanted=set(targets);counts=Counter();invalid=set();values=[];retained=[];seen_groups=set();premises={}
     for group in retention_groups.values():
@@ -154,10 +180,16 @@ def selection_binding(scope,key,model,context_id,route_id):
         'context':context_id,'route':route_id})
 
 
-def select_scope(claims,scope,previous,client,model,*,on_progress=None,retained_selection=None,support_candidates=None):
+def select_scope(claims,scope,previous,client,model,*,on_progress=None,retained_selection=None,
+                 support_candidates=None,scope_layout=None):
     budget=getattr(client,'budget',None)
-    if ((scope.get('dependency_policy') or POLICY)==PAGED_POLICY and on_progress is not None
+    policy=scope.get('dependency_policy') or POLICY
+    if (policy in {PAGED_POLICY,WINDOW_POLICY} and on_progress is not None
             and getattr(budget,'execution_control',None) is not None):
+        if policy==WINDOW_POLICY:
+            from app.claim_scope_windows import select_window_scope
+            return select_window_scope(claims,scope,previous,client,model,on_progress=on_progress,
+                retained_selection=retained_selection,support_candidates=support_candidates,layout=scope_layout)
         return _select_scope_pages(claims,scope,previous,client,model,on_progress=on_progress,
             retained_selection=retained_selection,support_candidates=support_candidates)
     # Independent callers retain one complete response, without claiming a
@@ -168,7 +200,7 @@ def select_scope(claims,scope,previous,client,model,*,on_progress=None,retained_
 
 def _select_scope_once(claims,scope,previous,client,model,*,on_progress=None,retained_selection=None,
                        support_candidates=None,target_claim_keys=None,paginate=False,replay_binding=None,
-                       reuse_previous_decisions=True,finalize=True):
+                       reuse_previous_decisions=True,finalize=True,input_view=None):
     from app.claim_verification import claim_scope_key,AuditCheckpointError
     from app.llm_budget import TokenBudgetExceeded,request_token_bound
     from app.query_understanding import identity
@@ -177,7 +209,7 @@ def _select_scope_once(claims,scope,previous,client,model,*,on_progress=None,ret
     policy=scope.get('dependency_policy') or POLICY
     adaptive=policy in {LOCAL_POLICY,IMPACT_POLICY,*TRANSFER_POLICIES}
     incremental=policy in {IMPACT_POLICY,*TRANSFER_POLICIES}
-    resource_aware=policy in {CAPACITY_POLICY,COMPACT_POLICY,PAGED_POLICY}
+    resource_aware=policy in {CAPACITY_POLICY,COMPACT_POLICY,PAGED_POLICY,WINDOW_POLICY}
     route_id=identity(getattr(client,'route_info',None))
     metadata={'policy':policy,'context_id':context_id,'route_id':route_id,'batches':[],
         'semantics':'review_dependencies_not_source_certification'}
@@ -228,15 +260,18 @@ def _select_scope_once(claims,scope,previous,client,model,*,on_progress=None,ret
                 name='scope'+str(len(group_keys)+1);group_keys[group_key]=name
                 retention_groups[name]={'scope_group_id':name,'claim_ids':[],**fields}
             retention_groups[group_keys[group_key]]['claim_ids'].append(row['claim_id'])
-    model_data={'contexts':data['contexts'],'claims':[{key:value for key,value in row.items() if key!='claim_key'}
-        for row in data['claims']]}
+    supplied=input_view['data'] if input_view is not None else data
+    model_data={'contexts':supplied['contexts'],'claims':[{key:value for key,value in row.items() if key!='claim_key'}
+        for row in supplied['claims']]}
     payload={'reader_question':scope.get('question'),'owner_scope_instruction':scope.get('instruction'),
         'current_report':model_data,'target_claim_ids':[row['claim_id'] for row in pending]}
+    if input_view is not None:payload.update(navigation=input_view['navigation'],main_layout=input_view['main_layout'])
     if retention_groups:payload['prior_scope_groups']=list(retention_groups.values())
     offered_support={};prior_contexts={}
     if policy in TRANSFER_POLICIES:
         by_key={key:alias for alias,key in aliases.items()}
-        context_ids={(value['text'],value.get('declared_kind')):key for key,value in data['contexts'].items()}
+        context_ids={(value['text'],value.get('declared_kind')):key for key,value in supplied['contexts'].items()}
+        visible_contexts=set(context_ids)
         def previous_context(text,kind):
             key=(text,kind)
             if key not in context_ids:
@@ -248,6 +283,8 @@ def _select_scope_once(claims,scope,previous,client,model,*,on_progress=None,ret
         for item in support_candidates or []:
             alias=by_key.get(item['claim_key'])
             if not alias or paginate and alias not in page_targets:continue
+            if input_view is not None and (item.get('premises_complete') is not True
+                    or any((value['text'],value.get('declared_kind')) not in visible_contexts for value in item['previous_premises'])):continue
             candidate_id='reuse'+str(len(candidates)+1)
             candidate={'candidate_id':candidate_id,'claim_id':alias,
                 'previous_context_id':previous_context(item['previous_paragraph'],item.get('declared_kind')),
@@ -357,7 +394,15 @@ def _select_scope_once(claims,scope,previous,client,model,*,on_progress=None,ret
                 'cover every target independently of this optional support-transfer field. Do not '
                 'repeat unchanged complete premise chains here merely to enumerate cache hits; '
                 'ordinary exact reuse is checked separately by the server.')
-        if paginate:instruction+=PAGE_INSTRUCTION
+        if input_view is not None:
+            instruction=WINDOW_INSTRUCTION
+            support_instruction=support_instruction.replace('current complete report',
+                'provided complete main and selected appendix contexts')
+        if paginate:instruction+=PAGE_INSTRUCTION if input_view is None else PAGE_INSTRUCTION.replace(
+            'You still read the COMPLETE current report on every page',
+            'You still read all PROVIDED main and selected appendix contexts on every page').replace(
+                'not a local-context review or a factual approval.',
+                'not factual approval or a claim to have read unseen appendix paragraphs.')
         messages=[{'role':'system','content':instruction+retention_instruction+support_instruction},
             {'role':'user','content':untrusted_context('complete_scope_context',shared,limit=len(shared))}]
         def request_binding(messages):
@@ -374,7 +419,7 @@ def _select_scope_once(claims,scope,previous,client,model,*,on_progress=None,ret
             if offered_support:configurations.append((False,bool(retention_groups)))
             if retention_groups:configurations.append((False,False))
             variants=[]
-            compact_data=inline_catalogue(data) if policy in {COMPACT_POLICY,PAGED_POLICY} else None
+            compact_data=inline_catalogue(supplied) if policy in {COMPACT_POLICY,PAGED_POLICY,WINDOW_POLICY} else None
             for use_support,use_retention in configurations:
                 packet=dict(payload)
                 if not use_support:
@@ -411,7 +456,7 @@ def _select_scope_once(claims,scope,previous,client,model,*,on_progress=None,ret
                 'request_bound':selected['bound'],'available_capacity':capacity,
                 'support_hints':selected['support'],'retention_hints':selected['retention'],
                 'saved_operation':selected['saved_operation']}
-            if policy in {COMPACT_POLICY,PAGED_POLICY}:metadata['admission']['representation']=selected['representation']
+            if policy in {COMPACT_POLICY,PAGED_POLICY,WINDOW_POLICY}:metadata['admission']['representation']=selected['representation']
         record={'binding':binding,'claim_keys':[row['claim_key'] for row in pending]}
         if paginate:metadata['current_batch_binding']=binding
         metadata['batches']=[row for row in metadata['batches'] if row.get('binding')!=binding]+[record]
@@ -445,6 +490,13 @@ def _select_scope_once(claims,scope,previous,client,model,*,on_progress=None,ret
                 if on_progress:on_progress(deepcopy(metadata))
             if record['finish_reason']!='stop':raise ValueError('scope_response_incomplete')
             response_data=json.loads(record['raw_response'])
+            if input_view is not None:
+                available={row['claim_id'] for row in supplied['claims']}
+                for value in response_data.get('decisions',[]):
+                    if isinstance(value,dict) and (value.get('context_sufficient') is not True
+                            or not isinstance(value.get('depends_on'),list)
+                            or any(not isinstance(alias,str) or alias not in available for alias in value['depends_on'])):
+                        value.update(required=True,role='required',dependencies_complete=False,context_sufficient=False)
             if paginate:
                 targets=[row['claim_id'] for row in pending]
                 through=response_data.get('completed_through_claim_id')
@@ -507,7 +559,9 @@ def _select_scope_once(claims,scope,previous,client,model,*,on_progress=None,ret
                         invalid=True;continue
                     for candidate_id in ids:
                         candidate=offered_support[candidate_id];key=aliases[candidate['claim_id']]
-                        if candidate['claim_id'] in local_fallbacks:
+                        adequate=(input_view is None or any(candidate['claim_id'] in value['claim_ids']
+                            and value.get('context_sufficient') is True and value.get('dependencies_complete') is True for value in values))
+                        if candidate['claim_id'] in local_fallbacks or not adequate:
                             invalid=True;continue
                         if key in selected or key in conflicts:
                             selected.pop(key,None);conflicts.add(key);invalid=True
@@ -578,21 +632,26 @@ def _finish_scope(decisions,metadata,old,adaptive,on_progress):
     return decisions,metadata
 
 
-def _select_scope_pages(claims,scope,previous,client,model,*,on_progress,retained_selection,support_candidates):
+def _select_scope_pages(claims,scope,previous,client,model,*,on_progress,retained_selection,support_candidates,
+                        target_claim_keys=None,input_view=None,finalize=True):
     """Page existing scope output; every request retains complete input context."""
     from app.claim_verification import claim_scope_key,AuditCheckpointError
     from app.query_understanding import identity
     data=catalogue(claims);context_id=identity(data);route_id=identity(getattr(client,'route_info',None))
-    keys={row['claim_key'] for row in data['claims']};old={claim_scope_key(row):row for row in (previous or {}).get('claims',[])}
+    all_keys={row['claim_key'] for row in data['claims']}
+    keys=all_keys if target_claim_keys is None else all_keys.intersection(target_claim_keys)
+    old={claim_scope_key(row):row for row in (previous or {}).get('claims',[])}
     control=client.budget.execution_control;root=control.binding
-    runtime_context=identity({'policy':PAGED_POLICY,'scope':scope,'model':model,'route':route_id,
+    policy=scope.get('dependency_policy') or POLICY
+    runtime_context=identity({'policy':policy,'scope':scope,'model':model,'route':route_id,
         'governance':client.budget.data_governance,'skill_packet':client.skill_packet,
-        'root':{key:root.get(key) for key in ('owner_id','session_id')}})
+        'root':{key:root.get(key) for key in ('owner_id','session_id')},
+        **({'input_view':input_view['binding']} if input_view is not None else {})})
     result_context=identity({'runtime':runtime_context,'context':context_id})
     saved=retained_selection or (previous or {}).get('scope_selection') or {}
-    compatible=(saved.get('policy')==PAGED_POLICY and saved.get('context_id')==context_id
+    compatible=(saved.get('policy')==policy and saved.get('context_id')==context_id
         and saved.get('route_id')==route_id and saved.get('page_result_context')==result_context)
-    state={'policy':PAGED_POLICY,'context_id':context_id,'route_id':route_id,
+    state={'policy':policy,'context_id':context_id,'route_id':route_id,
         'semantics':'review_obligations_and_context_continuity_not_new_source_certification',
         'pagination':'model_completed_prefix_v1','page_result_context':result_context,'page_runtime_context':runtime_context,
         'batches':deepcopy(saved.get('batches') or []) if compatible else [],
@@ -628,9 +687,11 @@ def _select_scope_pages(claims,scope,previous,client,model,*,on_progress,retaine
             and isinstance(value.get('category'),str) and value['category'] in CATEGORIES
             and isinstance(value.get('reason'),str) and bool(value['reason'].strip())
             and type(value.get('dependencies_complete')) is bool and isinstance(value.get('depends_on'),list)
-            and all(isinstance(item,str) and item in keys for item in value['depends_on'])
+            and all(isinstance(item,str) and item in all_keys for item in value['depends_on'])
             and isinstance(value.get('authority'),str) and value['authority'] in {'model_importance_with_dependencies','conservative_scope'}
             and (value['authority']!='conservative_scope' or value['required'] and not value['dependencies_complete'])
+            and (input_view is None or value.get('context_sufficient') is True
+                or value['required'] and not value['dependencies_complete'])
             and not ((value['role']=='required' or value['category']=='core') and not value['required'])
             and value.get('binding')==selection_binding(scope,key,model,context_id,route_id))
     def merge_support(page):
@@ -673,8 +734,8 @@ def _select_scope_pages(claims,scope,previous,client,model,*,on_progress,retaine
         values,part=_select_scope_once(claims,scope,previous,client,model,on_progress=checkpoint,
             retained_selection=state,support_candidates=support_candidates,target_claim_keys=requested,paginate=True,
             replay_binding=replay['binding'] if replay else None,
-            reuse_previous_decisions=((previous or {}).get('scope_selection') or {}).get('page_runtime_context')==runtime_context,
-            finalize=False)
+            reuse_previous_decisions=input_view is None and ((previous or {}).get('scope_selection') or {}).get('page_runtime_context')==runtime_context,
+            finalize=False,input_view=input_view)
         progress=remaining.intersection(values);decisions.update({key:value for key,value in values.items() if key in remaining})
         binding=part.get('current_batch_binding')
         batch=next((row for row in part.get('batches',[]) if row.get('binding')==binding),{})
@@ -699,8 +760,9 @@ def _select_scope_pages(claims,scope,previous,client,model,*,on_progress,retaine
         if value.get('authority')=='conservative_scope' and not value.get('dependencies_complete'):
             known=(old.get(key) or {}).get('scope_decision') or {}
             value['depends_on']=list(dict.fromkeys([*value.get('depends_on',[]),
-                *[item for item in known.get('depends_on',[]) if isinstance(item,str) and item in keys]]))
+                *[item for item in known.get('depends_on',[]) if isinstance(item,str) and item in all_keys]]))
     state['local_fallback_claim_keys']=[key for key,value in decisions.items() if value.get('authority')=='conservative_scope']
     state['retained_decision_claim_keys']=[key for key,value in decisions.items() if value.get('decision_reused')]
     state['completed_page_count']=len(state['page_results'])
+    if not finalize:return decisions,state
     return _finish_scope(decisions,state,old,True,lambda value:checkpoint())

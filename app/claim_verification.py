@@ -540,6 +540,28 @@ def module_paragraph_kinds(record: dict | None) -> dict[str, str]:
             for item in paragraphs}
 
 
+def module_scope_layout(record: dict | None) -> dict | None:
+    """Carry exact assembly roles; these are navigation, never importance."""
+    from app.organization_purpose import report_prose
+    from app.query_understanding import identity
+    structure=(record or {}).get('reading_structure') or {}
+    main=structure.get('main_markdown');appendix=structure.get('appendix_markdown')
+    if not isinstance(main,str) or not isinstance(appendix,str):return None
+    rows=[]
+    def add(items,module,section):
+        for item in items:
+            wire=(report_prose(item['rendered_text'])+' '+
+                ' '.join(f'[citation:{n}]' for n in item['citations'])).rstrip()
+            for text in dict.fromkeys(claim['paragraph_context'] for claim in extract_claims(wire)):
+                rows.append({'text':text,'module_id':module,'section':section})
+    add(record.get('summary',[]),'summary','main')
+    for module in record.get('modules',[]):
+        add(module.get('paragraphs',[]),module['module_id'],'main')
+        add(module.get('appendix',[]),module['module_id'],'appendix')
+    return {'policy':'adrs-assembled-scope-layout-v1',
+        'report_id':identity(main+('\n\n'+appendix if appendix else '')),'main_markdown':main,'paragraphs':rows}
+
+
 def research_method_context(query: str, configuration: dict, evidence: list[Evidence]) -> dict:
     """Root-owned inputs and acquisition facts; none establish external absence."""
     return {'task-input:request': {'query': query, 'scope': configuration.get('scope'),
@@ -624,6 +646,7 @@ def audit_report(report: str, evidence: list[Evidence], *, client: Any, model: s
                  deadline: float | None = None, cross_language_retrieval: bool = False,
                  bound_statistics: list[dict] | None = None,
                  paragraph_kinds: dict[str, str] | None = None,
+                 scope_layout: dict | None = None,
                  task_context: dict | None = None,
                  previous_audit: dict | None = None, source_spans: dict | None = None,
                  paragraph_source_spans: dict | None = None,
@@ -638,6 +661,7 @@ def audit_report(report: str, evidence: list[Evidence], *, client: Any, model: s
             deadline=deadline),'audit')
     if isinstance(client,BudgetedClient):client=client.with_operation('fact_review')
     from app.query_understanding import identity
+    if scope_layout is not None and scope_layout.get('report_id')!=identity(report):scope_layout=None
     durable=on_progress is not None
     progress=deepcopy(retained_progress or {}) if durable else {}
     if durable:
@@ -752,18 +776,19 @@ def audit_report(report: str, evidence: list[Evidence], *, client: Any, model: s
     scope_client=client.with_operation('fact_scope_selection') if isinstance(client,BudgetedClient) else client
     scope_selection=None
     if (review_scope or {}).get('dependency_policy'):
-        from app.claim_scope_dependencies import SUPPORTED_POLICIES as DEPENDENCY_POLICIES,select_scope
+        from app.claim_scope_dependencies import SUPPORTED_POLICIES as DEPENDENCY_POLICIES,WINDOW_POLICY,select_scope
         if review_scope.get('policy')==ESSENTIAL_REVIEW_POLICY and review_scope['dependency_policy'] in DEPENDENCY_POLICIES:
             from app.claim_scope_dependencies import catalogue
             scope_key=identity({'scope':review_scope,'catalogue':catalogue(claims),'model':model,
                 'route':getattr(scope_client,'route_info',None),
+                **({'scope_layout':identity(scope_layout)} if review_scope['dependency_policy']==WINDOW_POLICY else {}),
                 **({'governance':client.budget.data_governance,'skill_packet':client.skill_packet} if durable else {})})
             def save_scope(value):
                 progress['scope_selections'][scope_key]=deepcopy(value);checkpoint()
             scope_decisions,scope_selection=select_scope(claims,review_scope,previous_audit,scope_client,model,
                 on_progress=save_scope if durable else None,
                 retained_selection=progress['scope_selections'].get(scope_key) if durable else None,
-                support_candidates=support_candidates)
+                support_candidates=support_candidates,scope_layout=scope_layout)
         else:
             scope_decisions={}
             scope_selection={'policy':review_scope['dependency_policy'],'reason':'scope_dependency_policy_unsupported'}

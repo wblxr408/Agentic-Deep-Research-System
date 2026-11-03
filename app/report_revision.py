@@ -8,7 +8,7 @@ from functools import wraps
 
 from openai import APIError
 
-from app.claim_verification import AuditCheckpointError, audit_report, module_paragraph_kinds, shared_passage_payload, select_excerpts
+from app.claim_verification import AuditCheckpointError, audit_report, module_paragraph_kinds, module_scope_layout, shared_passage_payload, select_excerpts
 from app.llm_budget import TokenBudgetExceeded, budgeted_client, request_token_bound
 from app.organization_purpose import CHAPTER_RESPONSIBILITIES, REPORT_MATERIAL_POLICY, report_draft_model, assemble_module_report, report_prose, module_report_instructions
 from app.security.prompt_security import untrusted_context
@@ -397,6 +397,7 @@ def revise_reader_report(content,record,audit,*,question,findings,configuration,
             new_audit=audit_report(revised,evidence,client=budgeted_client(client,budget,'audit'),model=model,
                 token_budget=budget.available('audit'),deadline=deadline,bound_statistics=bound,
                 paragraph_kinds=module_paragraph_kinds(new_record),task_context=task_context,
+                scope_layout=module_scope_layout(new_record),
                 previous_audit=audit,source_spans=source_spans,paragraph_source_context=source_context,**(audit_options or {}))
             return revised,new_record,new_audit
     rounds=record.get('repair_rounds') or []
@@ -741,6 +742,7 @@ def revise_reader_report(content,record,audit,*,question,findings,configuration,
     new_audit=audit_report(revised,evidence,client=budgeted_client(client,budget,'audit'),model=model,
         token_budget=budget.available('audit'),deadline=deadline,bound_statistics=bound,
         paragraph_kinds=module_paragraph_kinds(new_record),task_context=task_context,
+        scope_layout=module_scope_layout(new_record),
         previous_audit=audit,source_spans=source_spans,paragraph_source_context=source_context,**(audit_options or {}))
     return revised,new_record,new_audit
 
@@ -941,6 +943,7 @@ def _revise_reader_structure(record,audit,*,question,findings,configuration,stat
     new_audit=audit_report(revised,evidence,client=budgeted_client(client,budget,'audit'),model=model,
         token_budget=budget.available('audit'),deadline=deadline,bound_statistics=bound,
         paragraph_kinds=module_paragraph_kinds(new_record),task_context=task_context,
+        scope_layout=module_scope_layout(new_record),
         previous_audit=audit,source_spans=source_spans,**(audit_options or {}))
     return revised,new_record,new_audit
 
@@ -1197,6 +1200,7 @@ def finalize_supported_report(content,record,audit,*,configuration,statistics,ev
     new_audit=audit_report(revised,evidence,client=budgeted_client(client,budget,'audit'),model=model,
         token_budget=budget.available('audit'),deadline=deadline,
         paragraph_kinds=module_paragraph_kinds(new_record),task_context=task_context,
+        scope_layout=module_scope_layout(new_record),
         previous_audit=audit,source_spans=source_spans,**(audit_options or {}))
     new_record['supported_finalization']={'removed_paragraphs':removed,'original_record':{
         'raw_model_response':record['raw_model_response']},'original_audit':_prior_audit_summary(audit),
@@ -1450,6 +1454,7 @@ def _revise_report_once(content, record, audit, *, configuration, statistics, ev
         new_audit=audit_report(revised,evidence,client=budgeted_client(client,budget,'audit'),model=model,
             token_budget=budget.available('audit'),deadline=deadline,bound_statistics=bound,
             paragraph_kinds=module_paragraph_kinds(new_record), task_context=task_context,previous_audit=audit,
+            scope_layout=module_scope_layout(new_record),
             source_spans=source_spans,paragraph_source_context=paragraph_context,**(audit_options or {}))
         new_record['semantic_revision']={'original_record':{'raw_model_response':record['raw_model_response']},
             'original_audit':_prior_audit_summary(audit),

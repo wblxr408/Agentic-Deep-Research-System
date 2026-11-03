@@ -575,7 +575,7 @@ Evidence Sources:
                 self.retain_candidate(self.last_module_report['raw_model_response'],content=content,
                     record=self.last_module_report,stage='assembled_before_audit')
             audit_tokens = self.request_budget.available('audit')
-            from app.claim_verification import module_paragraph_kinds, research_method_context
+            from app.claim_verification import module_paragraph_kinds, module_scope_layout, research_method_context
             method_context = research_method_context(user_query, organization_research, evidence_list) if module_mode else None
             bound_statistics=[]
             if self.last_module_report:
@@ -589,6 +589,7 @@ Evidence Sources:
                 client=budgeted_client(self.client,self.request_budget,'audit'), model=active_model,
                 token_budget=audit_tokens, deadline=verification_deadline,bound_statistics=bound_statistics,
                 paragraph_kinds=module_paragraph_kinds(self.last_module_report), task_context=method_context,
+                scope_layout=module_scope_layout(self.last_module_report),
                 source_spans=located_spans,review_scope=(organization_research or {}).get('claim_review_scope'),**audit_options)
             if self.last_module_report is not None:
                 from app.report_revision import revise_report_claims
@@ -665,7 +666,7 @@ Evidence Sources:
                      audit_unit_frontier:str|None=None,proposal_reassessment:bool=False,
                      pending_excerpt_window:int|None=None) -> tuple[str, list[Citation]]:
         """Continue only the unfinished audit of an unchanged, retained draft."""
-        from app.claim_verification import module_paragraph_kinds, research_method_context
+        from app.claim_verification import module_paragraph_kinds, module_scope_layout, research_method_context
         from app.research_context import reading_source_spans
         from app.report_revision import revise_report_claims
 
@@ -736,6 +737,7 @@ Evidence Sources:
                 client=budgeted_client(active_client,self.request_budget,'audit'),model=active_model,
                 token_budget=self.request_budget.available('audit'),deadline=self.request_budget.deadline,
                 bound_statistics=bound_statistics,paragraph_kinds=module_paragraph_kinds(self.last_module_report),
+                scope_layout=module_scope_layout(self.last_module_report),
                 task_context=method_context,previous_audit=saved_audit,source_spans=located_spans,
                 paragraph_source_context=(self.last_module_report or {}).get('source_audit_context'),
                 proposal_reassessment=proposal_reassessment,
