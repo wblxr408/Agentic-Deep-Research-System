@@ -3008,6 +3008,7 @@ async def report_node(state: ResearchState) -> dict:
                     if (state.get('session') or {}).get('report_contract_resume') else None),
                 retained_model=candidate['model'] if candidate else None,
                 retained_sections=section_candidates,
+                retained_record=candidate['module_report'] if candidate else None,
                 evidence_list=evidence_list,
                 reflection=verification,
                 output_length=state.get("output_length") or state.get("session", {}).get("output_length"),

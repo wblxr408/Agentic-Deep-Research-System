@@ -221,6 +221,7 @@ def retained_report_candidate(state):
             or not candidate['raw_model_response'].strip()
             or not isinstance(candidate.get('model'),str)
             or not candidate['model']
+            or record.get('raw_model_response')!=candidate['raw_model_response']
             or record.get('issues') or record.get('validation_errors')
             or not record.get('reading_structure')):
         return None

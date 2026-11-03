@@ -143,7 +143,10 @@ class ReportAgent:
             **({'revision_request':revision_request} if revision_request is not None else {}),
             'citations':[item.model_dump(mode='json') for item in self.last_citations],
             'report_context':self.last_context_manifest}
-        self.on_candidate(candidate)
+        try:self.on_candidate(candidate)
+        except RuntimeError as error:
+            if str(error)!='report_candidate_checkpoint_unavailable':raise
+            raise TokenBudgetExceeded('report_candidate_checkpoint_unavailable') from error
         self._last_revision_candidate=candidate if revision_request is not None else None
 
     @property
@@ -194,6 +197,7 @@ class ReportAgent:
         retained_draft: str | None = None,
         retained_model: str | None = None,
         retained_sections: dict | None = None,
+        retained_record: dict | None = None,
     ) -> tuple[str, list[Citation]]:
         """
         Generate the final research report.
@@ -498,6 +502,25 @@ Evidence Sources:
                 content, self.last_module_report = assemble_module_report(content, organization_research, len(citations),
                     statistics=organization_statistics,allowed_citations=allowed_citations,publication_titles=publication_titles)
                 if normalizations:self.last_module_report['envelope_normalizations']=normalizations
+                if retained_record is not None:
+                    # The root already checked task/input bindings. Restore
+                    # spent opportunities before any repair or checkpoint,
+                    # without transferring an earlier quality approval.
+                    from app.report_content_units import reconcile as reconcile_content_units
+                    try:
+                        if (not retained_draft or retained_record.get('raw_model_response')!=retained_draft
+                                or self.last_module_report.get('issues')
+                                or retained_record.get('reading_structure')!=self.last_module_report.get('reading_structure')):
+                            raise ValueError('retained_report_record_changed')
+                        reconcile_content_units(retained_record,self.last_module_report)
+                    except ValueError as error:
+                        self.last_module_report=deepcopy(retained_record)
+                        structure=retained_record['reading_structure']
+                        self.last_draft=structure['main_markdown']+(
+                            '\n\n'+structure['appendix_markdown'] if structure.get('appendix_markdown') else '')
+                        raise TokenBudgetExceeded('report_candidate_record_changed') from error
+                    for key in ('repair_rounds','structural_revision_attempted','reader_revision','editorial_request_binding'):
+                        if key in retained_record:self.last_module_report[key]=deepcopy(retained_record[key])
                 if self.last_module_report['issues']:
                     # Section composition still needs the existing bounded
                     # whole-report contract correction after assembly.
@@ -603,6 +626,8 @@ Evidence Sources:
                     self.last_draft=draft
                     self.last_module_report=record
                     self.last_audit=audit
+                    self.retain_candidate(record['raw_model_response'],content=draft,record=record,
+                        stage='claim_revision_round_recorded')
                 content,self.last_module_report,self.last_audit=revise_report_claims(content,self.last_module_report,self.last_audit,
                     configuration=organization_research,statistics=organization_statistics,evidence=evidence_list,
                     client=self.client,model=active_model,budget=self.request_budget,deadline=verification_deadline,
@@ -758,6 +783,8 @@ Evidence Sources:
             self.last_draft=draft
             self.last_module_report=record
             self.last_audit=audit
+            self.retain_candidate(record['raw_model_response'],content=draft,record=record,
+                stage='claim_revision_round_recorded')
         if not (reader_revision and (self.last_audit.get('revision_attempt') or {}).get('attempted')):
             content,self.last_module_report,self.last_audit=revise_report_claims(content,self.last_module_report,self.last_audit,
                 configuration=organization_research,statistics=organization_statistics,evidence=evidence_list,
