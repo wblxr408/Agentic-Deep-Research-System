@@ -5,21 +5,38 @@ import json
 from collections import defaultdict
 from app.query_understanding import identity
 
-POLICY='adrs-reader-owned-material-v1'
+LEGACY_POLICY='adrs-reader-owned-material-v1'
+POLICY='adrs-reader-owned-material-v2-scientific-dependencies'
+SUPPORTED_POLICIES={LEGACY_POLICY,POLICY}
 COVERAGE_POLICY='adrs-packet-work-coverage-v1'
 DOCUMENT_POLICY='adrs-reader-document-passes-v1'
 MAX_BYTES=60000
 MAX_RECORDS=8
 
 
-def material_owners(record,findings,evidence,technical,actions,*,coverage_works=()):
+def source_dependency(source,policy):
+    if policy==LEGACY_POLICY:
+        return identity({name:source.get(name) for name in
+            ('evidence_id','content','source_url','source_type','acquisition')})
+    acquisition=source.get('acquisition') or {}
+    snapshot=acquisition.get('source_access_snapshot')
+    return identity({'policy':policy,**{name:source.get(name) for name in
+        ('evidence_id','content','source_url','source_title','source_type')},
+        'versions':{name:acquisition.get(name) for name in
+            ('source_document_id','source_content_version','parse_version_id','coverage')},
+        'access_revision':acquisition.get('source_access_revision'),
+        'access_snapshot':{key:value for key,value in snapshot.items() if key!='checked_at'}
+            if isinstance(snapshot,dict) else snapshot})
+
+
+def material_owners(record,findings,evidence,technical,actions,*,coverage_works=(),policy=POLICY):
     """Use exact citations and retained identities; titles only locate report prose."""
     sources=[item.model_dump(mode='json') if hasattr(item,'model_dump') else item for item in evidence]
     if technical and not sources:raise ValueError('reader_material_requires_retained_evidence')
     source_ids={index:item['evidence_id'] for index,item in enumerate(sources,1)}
     by_source={item['evidence_id']:item for item in sources}
-    dependencies={key:identity({name:item.get(name) for name in
-        ('evidence_id','content','source_url','source_type','acquisition')}) for key,item in by_source.items()}
+    if policy not in SUPPORTED_POLICIES:raise ValueError('reader_material_policy_unsupported')
+    dependencies={key:source_dependency(item,policy) for key,item in by_source.items()}
     paragraphs={};sections=defaultdict(list)
     for module in record.get('modules',[]):
         for section in ('paragraphs','appendix'):
@@ -96,8 +113,10 @@ def context_overrides(value,owners,paragraphs):
     return result
 
 
-def material_packets(owners,paragraphs,dependencies,contexts,coverage,*,question,criteria,model,route,scope,allow_exclusion,coverage_policy=None):
+def material_packets(owners,paragraphs,dependencies,contexts,coverage,*,question,criteria,model,route,scope,allow_exclusion,
+                     coverage_policy=None,policy=POLICY,binding_context=None):
     """Stable hash-prefix partitions split only affected buckets; records stay whole."""
+    if policy not in SUPPORTED_POLICIES:raise ValueError('reader_material_policy_unsupported')
     destinations={item['output_id']:item for item in coverage}
     # Local IDs survive index shifts. Duplicate occurrences remain distinct.
     local_ids={};counts=defaultdict(int)
@@ -127,9 +146,12 @@ def material_packets(owners,paragraphs,dependencies,contexts,coverage,*,question
             packet.pop('exclusion_only',None)
             packet.update(coverage_policy=coverage_policy,allow_exclusion=bool(allow_exclusion),
                 coverage_work_ids=[row['key'] for row in rows if row['kind']!='actions'])
+        if policy==POLICY:packet.pop('source_dependencies')
         size=len(json.dumps(packet,ensure_ascii=False,separators=(',',':')).encode('utf-8'))
         return {'name':kind+':'+prefix,'criterion':criterion,'packet':packet,'aliases':pointers,
-            'binding':identity({'policy':POLICY,'model':model,'route':route,'packet':packet}),
+            'binding':identity({'policy':policy,'model':model,'route':route,'packet':packet,
+                **({'source_dependencies':source_dependencies,'review_context':binding_context} if policy==POLICY else {})}),
+            **({'source_dependencies':source_dependencies} if policy==POLICY else {}),
             'input_bytes':size,'owner_ids':[row['owner_id'] for row in rows],
             'blocked':size>MAX_BYTES}
     result=[]

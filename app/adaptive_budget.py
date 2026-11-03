@@ -81,12 +81,12 @@ def remaining_work(state, root, stage):
             required_audit_units=1
     audit_units=max(1,required_audit_units-_nonnegative(root.get('current_stage_audit_calls')))
     reader_work=None;document_work=None
-    from app.report_material_packets import POLICY as MATERIAL_POLICY
+    from app.report_material_packets import SUPPORTED_POLICIES as MATERIAL_POLICIES
     reader=findings.get('reader_quality') or saved_audit.get('reader_quality') or {}
     plan=reader.get('material_packet_plan') or {}
     module=(candidate or {}).get('module_report') or findings.get('module_report') or {}
     from app.query_understanding import identity
-    if (config.get('reader_material_policy')==MATERIAL_POLICY and plan.get('policy')==MATERIAL_POLICY
+    if (config.get('reader_material_policy') in MATERIAL_POLICIES and plan.get('policy')==config.get('reader_material_policy')
             and reader.get('report_content_id')==plan.get('report_content_id')==identity(module.get('reading_structure'))
             and isinstance(plan.get('required_packet_bindings'),dict)):
         parts=reader.get('material_reviews') or {}

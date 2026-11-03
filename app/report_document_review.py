@@ -38,7 +38,7 @@ INSTRUCTIONS=(
     'or final reader passes. Keep them concise without deleting decisive conditions.')
 
 
-def prepare_document_review(payload,paragraphs,owners,*,client,model,budget,retained,report_content_id,on_progress):
+def prepare_document_review(payload,paragraphs,owners,*,client,model,budget,retained,report_content_id,on_progress,binding_context=None):
     aliases={};current={};counts=defaultdict(int);sections=defaultdict(list)
     for key,row in paragraphs.items():
         digest=identity({name:value for name,value in row.items() if name!='id'})
@@ -60,7 +60,8 @@ def prepare_document_review(payload,paragraphs,owners,*,client,model,budget,reta
         messages=[{'role':'system','content':INSTRUCTIONS},
             {'role':'user','content':untrusted_context('reader_appendix_pass',packed,limit=len(packed))}]
         return {'id':prefix or 'root','binding':identity({'policy':DOCUMENT_POLICY,'model':model,
-            'route':getattr(client,'route_info',None),'messages':messages}),
+            'route':getattr(client,'route_info',None),'messages':messages,
+            **({'review_context':binding_context} if binding_context is not None else {})}),
             'keys':keys,'supplied':supplied,'owners':local_owners,'messages':messages,
             'input_bytes':len(packed.encode('utf-8')),'blocked':len(packed.encode('utf-8'))>MAX_BYTES}
     entries=[]

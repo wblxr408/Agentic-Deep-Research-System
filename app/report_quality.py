@@ -13,7 +13,7 @@ from openai import APIError
 from app.llm_budget import TokenBudgetExceeded, budgeted_client, request_token_bound
 from app.query_understanding import identity
 from app.security.prompt_security import untrusted_context
-from app.report_material_packets import POLICY as MATERIAL_POLICY,COVERAGE_POLICY,DOCUMENT_POLICY,material_owners,context_overrides,material_packets
+from app.report_material_packets import POLICY as MATERIAL_POLICY,SUPPORTED_POLICIES as MATERIAL_POLICIES,COVERAGE_POLICY,DOCUMENT_POLICY,material_owners,context_overrides,material_packets
 from app.organization_purpose import READER_IMPACT_POLICY,READER_IMPACT_POLICIES
 from app.report_content_units import POLICY as CONTENT_UNIT_POLICY,references as content_references
 
@@ -84,9 +84,10 @@ def reader_quality_satisfied(record,audit):
                 for row in ((parts.get(key) or {}).get('result') or {}).get('paragraphs',[])]
             if (not isinstance(required_ids,list) or len(observed)!=len(required_ids)
                     or set(observed)!=set(required_ids)):return False
+    material_policy=(record or {}).get('reader_material_policy')
     coverage_policy=(record or {}).get('reader_coverage_policy')
     if coverage_policy:
-        if ((record or {}).get('reader_material_policy')!=MATERIAL_POLICY
+        if (material_policy not in MATERIAL_POLICIES
                 or coverage_policy!=COVERAGE_POLICY or quality.get('reader_coverage_policy')!=coverage_policy
                 or quality.get('coverage_complete') is not True):return False
         work_ids=(quality.get('material_packet_plan') or {}).get('required_work_ids')
@@ -94,15 +95,14 @@ def reader_quality_satisfied(record,audit):
         if (not isinstance(work_ids,list) or not isinstance(rows,list)
                 or any(not isinstance(row,dict) for row in rows) or len(rows)!=len(work_ids)
                 or {row.get('output_id') for row in rows}!=set(work_ids)):return False
-    material_policy=(record or {}).get('reader_material_policy')
     if material_policy:
-        if material_policy!=MATERIAL_POLICY or quality.get('reader_material_policy')!=material_policy:return False
+        if material_policy not in MATERIAL_POLICIES or quality.get('reader_material_policy')!=material_policy:return False
         impact=quality.get('reading_impact_review') or {}
         if (quality.get('reading_impact_required') and
                 (impact.get('validated') is not True or impact.get('finish_reason')!='stop')):return False
         plan=quality.get('material_packet_plan') or {};parts=quality.get('material_reviews') or {}
         expected=plan.get('required_packet_bindings')
-        if (plan.get('policy')!=MATERIAL_POLICY or quality.get('packet_contract')!=MATERIAL_POLICY or quality.get('material_review_complete') is not True
+        if (plan.get('policy')!=material_policy or quality.get('packet_contract')!=material_policy or quality.get('material_review_complete') is not True
                 or not isinstance(expected,dict) or plan.get('report_content_id')!=quality.get('report_content_id')
                 or plan.get('blocked_packets') or any((parts.get(key) or {}).get('binding')!=binding
                     or (parts.get(key) or {}).get('validated') is not True
@@ -170,7 +170,15 @@ def inline_reading_impact(check,*,policy=READER_IMPACT_POLICY):
 def review_reader_quality(*, question, configuration, record, findings, client, model, budget,
                           evidence=(),retained_requests=(),on_progress=None,_partition_document=False):
     from app.organization_deep_dive import READING_FIELD_POLICIES,reading_contract_context
-    owned=configuration.get('reader_material_policy')==MATERIAL_POLICY
+    material_policy=configuration.get('reader_material_policy')
+    owned=material_policy in MATERIAL_POLICIES
+    binding_context=None
+    if material_policy==MATERIAL_POLICY:
+        root_binding=getattr(getattr(budget,'execution_control',None),'binding',None) or {}
+        governance=getattr(budget,'data_governance',None)
+        binding_context={'root':{key:root_binding.get(key) for key in ('owner_id','session_id')},
+            'data_governance':{key:governance.get(key) for key in
+                ('version','data_class','max_model_class','policy_id')} if isinstance(governance,dict) else governance}
     content_policy=configuration.get('content_unit_policy')
     if (content_policy not in {None,CONTENT_UNIT_POLICY} or record.get('content_unit_policy')!=content_policy):
         return {'status':'incomplete','passed':False,'reason':'reader_content_unit_policy_mismatch'}
@@ -191,7 +199,7 @@ def review_reader_quality(*, question, configuration, record, findings, client, 
             or record.get('reader_coverage_policy')!=configuration.get('reader_coverage_policy')
             or coverage_split and not owned):
         return {'status':'incomplete','passed':False,'reason':'reader_coverage_policy_mismatch'}
-    if (configuration.get('reader_material_policy') not in {None,MATERIAL_POLICY}
+    if (material_policy not in {None,*MATERIAL_POLICIES}
             or record.get('reader_material_policy')!=configuration.get('reader_material_policy')):
         return {'status':'incomplete','passed':False,'reason':'reader_material_policy_mismatch'}
     if (configuration.get('reading_field_policy') is not None and configuration['reading_field_policy'] not in READING_FIELD_POLICIES
@@ -259,7 +267,8 @@ def review_reader_quality(*, question, configuration, record, findings, client, 
         **({'reader_impact_policy':impact_policy} if impact_policy else {}),
         **({'reader_document_policy':document_policy} if document_policy else {}),
         **({'reader_coverage_policy':COVERAGE_POLICY} if coverage_split else {}),
-        **({'reader_material_policy':MATERIAL_POLICY} if owned else {}),
+        **({'reader_material_policy':material_policy} if owned else {}),
+        **({'review_context':binding_context} if binding_context is not None else {}),
         **({'reading_field_policy':configuration['reading_field_policy']} if profiled else {})})
     base={'policy':policy,'review_contract':REVIEW_CONTRACT,'binding':binding,'model':model,'scope':'main_and_appendix_text',
         'report_content_id':identity(record.get('reading_structure')),
@@ -277,7 +286,8 @@ def review_reader_quality(*, question, configuration, record, findings, client, 
                         'global_dispatch_binding','global_dispatch_status'):
                 if key in retained_quality:base[key]=deepcopy(retained_quality[key])
     if owned:
-        base.update(reader_material_policy=MATERIAL_POLICY,packet_contract=MATERIAL_POLICY)
+        base.update(reader_material_policy=material_policy,packet_contract=material_policy)
+        if binding_context is not None:base['review_context_id']=identity(binding_context)
         retained_quality=(findings or {}).get('reader_quality') or {}
         base['material_reviews']=deepcopy(retained_quality.get('material_reviews') or {})
         for part in base['material_reviews'].values():
@@ -314,7 +324,7 @@ def review_reader_quality(*, question, configuration, record, findings, client, 
             action_cards=[{key:card[key] for key in action_keys if key in card} for card in ((findings or {}).get('actions') or {}).get('cards',[])]
             owners,paragraph_meta,source_dependencies=material_owners(record,findings or {},evidence,
                 payload['technical_cards'] if 'mechanisms' in criteria else [],action_cards if 'first_project' in criteria else [],
-                coverage_works=works if coverage_split else ())
+                coverage_works=works if coverage_split else (),policy=material_policy)
         except (ValueError,KeyError,TypeError) as error:
             return {**base,'reason':'reader_material_plan_invalid','contract_error':str(error)[:200]}
         groups={identity(row['paragraph_ids']):row['paragraph_ids'] for row in owners}
@@ -331,7 +341,8 @@ def review_reader_quality(*, question, configuration, record, findings, client, 
             global_payload,document=prepare_document_review(global_payload,paragraph_meta,owners,
                 client=client,model=model,budget=budget,
                 retained=((findings or {}).get('reader_quality') or {}).get('document_review'),
-                report_content_id=base['report_content_id'],on_progress=document_progress if on_progress else None)
+                report_content_id=base['report_content_id'],on_progress=document_progress if on_progress else None,
+                binding_context=binding_context)
             base['document_review']=document
             base['document_reconciliation_input_id']=identity(global_payload)
             document_prepared=True
@@ -457,8 +468,9 @@ def review_reader_quality(*, question, configuration, record, findings, client, 
             'only for additional definitions, conditions or cross-chapter references needed by the default '
             'contexts. Return [] explicitly when no additions are needed. Do not omit necessary nonlocal '
             'context to reduce size. These assignments navigate the current report, not new facts or approvals.')
-        global_binding=identity({'policy':MATERIAL_POLICY,'model':model,
-            'route':getattr(client,'route_info',None),'messages':messages,'review_scope':review_scope})
+        global_binding=identity({'policy':material_policy,'model':model,
+            'route':getattr(client,'route_info',None),'messages':messages,'review_scope':review_scope,
+            **({'review_context':binding_context} if binding_context is not None else {})})
         base['global_binding']=global_binding
     else:global_binding=binding
     if document_policy:
@@ -655,7 +667,7 @@ def review_reader_quality(*, question, configuration, record, findings, client, 
                 'scope_instruction':(review_scope or {}).get('instruction')}
             impact_binding=identity({'contract':READING_IMPACT_CONTRACT,'report':global_binding if owned else binding,
                 'input':impact_input,'model':model,
-                **({'material_policy':MATERIAL_POLICY,'route':getattr(client,'route_info',None)} if owned else {})})
+                **({'material_policy':material_policy,'route':getattr(client,'route_info',None)} if owned else {})})
             saved=previous.get('reading_impact_review') or {}
             impact={'contract':READING_IMPACT_CONTRACT,'binding':impact_binding,
                 **({'validated':False} if owned else {})}
@@ -762,8 +774,9 @@ def review_reader_quality(*, question, configuration, record, findings, client, 
                 entries=material_packets(owners,paragraph_meta,source_dependencies,contexts,coverage,
                     question=question,criteria=criteria,model=model,route=getattr(client,'route_info',None),scope=review_scope,
                     allow_exclusion=not reading_all_requested(configuration,question),
-                    coverage_policy=COVERAGE_POLICY if coverage_split else None)
-                base['material_packet_plan']={'policy':MATERIAL_POLICY,'report_content_id':base['report_content_id'],
+                    coverage_policy=COVERAGE_POLICY if coverage_split else None,
+                    policy=material_policy,binding_context=binding_context)
+                base['material_packet_plan']={'policy':material_policy,'report_content_id':base['report_content_id'],
                     'required_packet_bindings':{row['name']:row['binding'] for row in entries},
                     'input_bytes':{row['name']:row['input_bytes'] for row in entries},
                     'blocked_packets':[row['name'] for row in entries if row['blocked']]}
@@ -780,6 +793,20 @@ def review_reader_quality(*, question, configuration, record, findings, client, 
                 saved=(previous.get('material_reviews') or {}).get(name) or {}
                 part={'binding':packet_binding,**({'validated':False} if owned else {})}
                 part['response_reuse']=response_reuse_observation(saved,packet_binding)
+                if material_policy==MATERIAL_POLICY:
+                    part.update(source_dependencies=deepcopy(entry['source_dependencies']),
+                        review_context_id=identity(binding_context),payload_id=identity(packet))
+                    if saved and saved.get('binding')!=packet_binding:
+                        reasons=part['response_reuse']['reasons']
+                        prior_dependencies=saved.get('source_dependencies')
+                        if not isinstance(prior_dependencies,dict):reasons.append('source_dependency_record_unavailable')
+                        elif prior_dependencies!=part['source_dependencies']:
+                            reasons.append('scientific_source_or_access_changed')
+                            part['response_reuse']['changed_source_ids']=sorted(key for key in
+                                set(prior_dependencies)|set(part['source_dependencies'])
+                                if prior_dependencies.get(key)!=part['source_dependencies'].get(key))
+                        if saved.get('review_context_id')!=part['review_context_id']:reasons.append('root_or_governance_changed_or_unrecorded')
+                        if saved.get('payload_id')!=part['payload_id']:reasons.append('material_or_prose_changed_or_unrecorded')
                 base['material_reviews'][name]=part
                 if owned and entry['blocked']:
                     part['reason']='reader_material_packet_requires_partition';continue

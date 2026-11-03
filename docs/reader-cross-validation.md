@@ -1,5 +1,17 @@
 # 最终读者交叉验证：重复与恢复阻塞归因
 
+## 2026-11-03：读者材料的科学依赖与程序绑定
+
+新组织根冻结`adrs-reader-owned-material-v2-scientific-dependencies`，沿原读者包、Root检查点及请求收据续作，不新增缓存服务或模型阶段。旧v1继续原完整acquisition依赖、原消息和响应绑定，读者门及剩余工作预测识别其原合同；不能因默认常量升级使旧任务失去已有消费者。
+
+v2按实际源的evidence身份、科学正文、URL／标题／类型、source_document_id、source_content_version、parse_version_id及coverage建立来源依赖；另保留source_access_revision和source_access_snapshot中的范围、实际任务、分组、有效期等字段，只排除该快照的checked_at。工具耗时、采集运行信息和其他未被读者材料消费的acquisition字段不直接使本依赖失效。科学正文／版本或稳定访问约束变更仍保守失效对应包；不是任意来源版本的语义迁移，也不取消上游current_synthesis_state／RAG的当前许可、图像代际／路径或来源生命周期复核。
+
+材料模型读取技术／行动卡和报告上下文，不需要程序用的来源指纹。v2把source_dependencies移出模型packet，仍置于对应缓存binding；问题、材料、报告段、非局部上下文、范围、覆盖／排除约定及模型／路由继续绑定。当前可信执行控制中的owner_id／session_id和实际外传治理字段（版本、data_class、max_model_class、policy_id）另作review_context，贯穿全局读者、影响复核、材料包及长附录pass；nonpublic_sources中的诊断原因不单独成为失效条件，当前最高治理级别仍由原准入保证。这些程序字段不装入模型提示。execution_id不入缓存键，恢复不因换执行号丢掉有效响应；实际检查点／取消／执行围栏仍按原Root处理。没有Root上下文的独立调用不由此获得跨主体／跨任务共享权。
+
+材料包继续按当前绑定恢复原文并重验finish_reason、逐篇覆盖、真实锚点和必要修复，不直接复用旧整稿“通过”。原material_reviews中保存当前source_dependencies、review_context_id和payload_id，失配时说明科学来源／访问、Root／治理或材料／正文变化；只有实际旧记录可比时才报告changed_source_ids，缺旧记录说明未知。应用复用、模型实际usage与费用仍分开，不把依赖变少算成Token退款。稳定分区、逐包保存、无原文未知派发不重发及原根额度保持。
+
+最小观察目标待授权：仅访问checked_at或无关采集字段变化可保持包绑定；正文、版本、访问修订／有效期变化使相关包失效；其他无关来源在本包及实际治理级别不变时不使本包失效；新主体／任务／有效治理改变不得使用相同程序绑定；同根换执行可在当前围栏下消费有效原文；模型正文不含依赖指纹而科学guard仍有效；旧v1门禁／恢复／剩余预测保持。仅源码／调用链审阅，未执行测试、模型、真实恢复、权限／并发案例或费用评估；完整读者维度语义组合、超长正文／整合及百篇效果仍待3.6／5，原26项不据此勾选。
+
 ## 2026-11-03：完整请求容量与局部范围回退
 
 新组织根冻结`adrs-essential-claim-dependencies-v5-capacity-local-fallback`，沿v4来源／前提复用及原范围调用续作。v1—v4保留原冻结合同；只有v5不再以固定120000字节决定能否判断范围。新准入使用现有request_token_bound计算完整实际messages、JSON响应格式及6144输出空间，比较原根可用audit额度与已声明模型窗口。字节上界是保守准入，不冒充供应商分词或原生usage；不新增额度、模型升级或大窗口服务。
