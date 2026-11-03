@@ -442,7 +442,7 @@ def assemble_module_report(raw: str, configuration: dict, citation_count: int, *
             'status': 'draft_requires_review' if paragraphs else 'unavailable'})
     main_markdown = '\n'.join(lines)
     appendix_markdown = '## 技术附录\n\n'+'\n'.join(appendix_lines) if appendix_lines else ''
-    return main_markdown+('\n\n'+appendix_markdown if appendix_markdown else ''), {'rule_version': POLICY_VERSION, 'purpose': configuration['purpose'],
+    record={'rule_version': POLICY_VERSION, 'purpose': configuration['purpose'],
         **({'report_assembly_policy':configuration['report_assembly_policy']} if configuration.get('report_assembly_policy') else {}),
         **({'editorial_partition_policy':configuration['editorial_partition_policy']} if configuration.get('editorial_partition_policy') else {}),
         **({'report_material_policy':configuration['report_material_policy']} if configuration.get('report_material_policy') else {}),
@@ -462,3 +462,6 @@ def assemble_module_report(raw: str, configuration: dict, citation_count: int, *
         'reference_count_rule':'specific_single_work_and_named_current_work_subset_v1',
         'rejected_paragraphs': rejected,
         'independent_semantic_review': False}
+    from app.report_content_units import initialize
+    initialize(record,configuration)
+    return main_markdown+('\n\n'+appendix_markdown if appendix_markdown else ''),record

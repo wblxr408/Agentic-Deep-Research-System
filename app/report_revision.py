@@ -11,6 +11,7 @@ from app.claim_verification import audit_report, module_paragraph_kinds, shared_
 from app.llm_budget import TokenBudgetExceeded, budgeted_client, request_token_bound
 from app.organization_purpose import report_draft_model, assemble_module_report, report_prose, module_report_instructions
 from app.security.prompt_security import untrusted_context
+from app.report_content_units import reconcile as reconcile_content_units,lineage_after_deletions,references as content_references,require_patch_reference,patch_reference,validate_draft
 
 CLAIM_EDIT_CONTRACT = 'adrs-claim-clause-edit-v1'
 READER_DELETE_CONTRACT = 'adrs-reader-unit-delete-v1'
@@ -43,7 +44,8 @@ def _apply_clause_edits(text, change, citations=()):
     return text
 
 
-def _carry_audit_context(record,new_record,added=None):
+def _carry_audit_context(record,new_record,added=None,*,lineage=None):
+    reconcile_content_units(record,new_record,lineage)
     paragraphs=[*new_record.get('summary',[]),*[item for module in new_record.get('modules',[])
         for item in [*module.get('paragraphs',[]),*module.get('appendix',[])]]]
     wires={(report_prose(item['rendered_text'])+' '+' '.join(f'[citation:{n}]' for n in item['citations'])).rstrip()
@@ -94,6 +96,7 @@ def revise_reader_report(content,record,audit,*,question,findings,configuration,
     if not audit.get('needs_review') and gaps and all(row.get('id')=='reading' for row in gaps):
         from app.report_quality import reading_repair_targets
         draft=report_draft_model(configuration).model_validate_json(record['raw_model_response']).model_dump(mode='json')
+        validate_draft(record,draft)
         notes={}
         for module in draft['modules']:
             for section in ('paragraphs','appendix'):
@@ -134,7 +137,7 @@ def revise_reader_report(content,record,audit,*,question,findings,configuration,
             revised,new_record=assemble_module_report(raw,configuration,len(evidence),statistics=statistics,
                 publication_titles=[work['title'] for work in ((findings or {}).get('scope_result') or {}).get('outputs',[])])
             if new_record['issues']:raise ValueError('reader_note_edit_contract_invalid')
-            source_context=_carry_audit_context(record,new_record)
+            source_context=_carry_audit_context(record,new_record,lineage=lineage_after_deletions(record,removed))
             if record.get('editorial_request_binding'):
                 new_record['editorial_request_binding']=record['editorial_request_binding']
             new_record['reader_revision']={'policy':'adrs-task-note-consolidation-v1','removed_note_ids':removed,
@@ -167,11 +170,15 @@ def revise_reader_report(content,record,audit,*,question,findings,configuration,
         attempt=audit.get('revision_attempt') or {}
         if attempt.get('status')=='correction_contract_invalid' and attempt.get('raw_responses'):
             corrected=report_draft_model(configuration).model_validate_json(record['raw_model_response']).model_dump(mode='json')
+            validate_draft(record,corrected)
             repairs=[row for raw in attempt['raw_responses'] for row in json.loads(raw).get('repairs',[])]
             ids=[row['paragraph_id'] for row in repairs]
             if len(ids)!=len(set(ids)) or set(ids)!=set(attempt.get('completed_paragraph_ids') or []):
                 raise ValueError('retained_correction_identity_changed')
+            refs=content_references(record)
+            if refs and not set(ids)<=set(refs):raise ValueError('retained_correction_identity_changed')
             for row in repairs:
+                require_patch_reference(row,refs.get(row['paragraph_id']))
                 parts=row['paragraph_id'].split(':')
                 items=corrected['summary'] if parts[0]=='summary' else next(
                     item for item in corrected['modules'] if item['module_id']==parts[0])[parts[1]]
@@ -184,11 +191,13 @@ def revise_reader_report(content,record,audit,*,question,findings,configuration,
             model=model,budget=budget,deadline=deadline,source_spans=source_spans,
             task_context=task_context,on_candidate=on_candidate)
     draft=report_draft_model(configuration).model_validate_json(record['raw_model_response']).model_dump(mode='json')
+    validate_draft(record,draft)
     targets={};rows=[]
+    unit_refs=content_references(record)
     def add(section,items):
         for index,item in enumerate(items):
             key=section+':'+str(index);targets[key]=(items,index)
-            rows.append({'paragraph_id':key,**item})
+            rows.append({'paragraph_id':key,**item,**({'unit_ref':patch_reference(unit_refs[key])} if unit_refs else {})})
     add('summary',draft.get('summary',[]))
     for module in draft['modules']:
         for section in ('paragraphs','appendix'):add(module['module_id']+':'+section,module.get(section,[]))
@@ -284,6 +293,8 @@ def revise_reader_report(content,record,audit,*,question,findings,configuration,
                 'saved_deletion_request':prior.get('raw_model_response') if prior.get('stage')=='reader_revision_response' else None}
             focused=json.dumps(packet,ensure_ascii=False)
             messages[1]['content']=untrusted_context('reader_unit_deletion',focused,limit=len(focused))
+    if unit_refs and not unit_mode:
+        messages[0]['content']+=' Copy the current unit_ref string unchanged into each repair, including delete operations. This server-owned handle binds the supplied current paragraph and expected content/context versions.'
     # A deletion-only response to the final audit is audit remediation. The
     # root's final-audit hold remains available for this bounded operation;
     # substantive writing still uses the report allocation.
@@ -306,11 +317,13 @@ def revise_reader_report(content,record,audit,*,question,findings,configuration,
         for row in unit_rows:
             if not any(unit['id'] in removed for unit in row['units']):continue
             text=''.join(unit['text'] for unit in row['units'] if unit['id'] not in removed)
-            changes.append({'paragraph_id':row['paragraph_id'],**({'text':text} if text.strip() else {'delete':True})})
+            changes.append({'paragraph_id':row['paragraph_id'],**({'text':text} if text.strip() else {'delete':True}),
+                **({'unit_ref':patch_reference(unit_refs[row['paragraph_id']])} if unit_refs else {})})
     else:changes=result.get('repairs',[])
     keys=[item.get('paragraph_id') for item in changes]
     if not changes or len(keys)!=len(set(keys)) or any(key not in targets for key in keys):
         raise ValueError('reader_revision_paragraph_ids_invalid')
+    for change in changes:require_patch_reference(change,unit_refs.get(change['paragraph_id']))
     if reading_only and any(key not in edit_ids for key in keys):raise ValueError('reader_edit_outside_targets')
     for change in changes:
         if reading_only and 'edits' in change:
@@ -364,7 +377,7 @@ def revise_reader_report(content,record,audit,*,question,findings,configuration,
         if context:
             wire=(report_prose(item['rendered_text'])+' '+' '.join(f'[citation:{n}]' for n in item['citations'])).rstrip()
             added_context[wire]=context
-    source_context=_carry_audit_context(record,new_record,added_context)
+    source_context=_carry_audit_context(record,new_record,added_context,lineage=lineage_after_deletions(record,deleted))
     if record.get('editorial_request_binding'):
         new_record['editorial_request_binding']=record['editorial_request_binding']
     bound=[{'rendered_paragraph':item['rendered_text'],**binding} for item in [
@@ -522,6 +535,7 @@ def _revise_reader_structure(record,audit,*,question,findings,configuration,stat
         if new_record['issues']:
             if on_candidate:on_candidate(raw,record=new_record,stage='structural_revision_contract_rejected')
             raise ValueError('reader_revision_contract_invalid')
+    reconcile_content_units(record,new_record)
     if findings.get('editorial_request'):
         new_record['editorial_request_binding']=identity(findings['editorial_request'])
     new_record['reader_revision']={'policy':'adrs-structural-editor-v3','original_content_identity':identity(record['raw_model_response']),
@@ -683,6 +697,7 @@ def finalize_supported_report(content,record,audit,*,configuration,statistics,ev
     """
     draft=report_draft_model(configuration).model_validate_json(record['raw_model_response']).model_dump(mode='json')
     failed={row['paragraph_context'] for row in audit.get('claims',[]) if row.get('verification_required',True) and row.get('status')!='supported'}
+    validate_draft(record,draft)
     removed=[]
     def retain(items,section):
         kept=[]
@@ -702,6 +717,7 @@ def finalize_supported_report(content,record,audit,*,configuration,statistics,ev
         module['appendix']=retain(module.get('appendix',[]),module['module_id']+':appendix')
     revised,new_record=assemble_module_report(json.dumps(draft,ensure_ascii=False),configuration,len(evidence),statistics=statistics)
     if new_record['issues']:raise TokenBudgetExceeded('supported_report_module_incomplete')
+    reconcile_content_units(record,new_record,lineage_after_deletions(record,[row['paragraph_id'] for row in removed]))
     if on_candidate:on_candidate(new_record['raw_model_response'],content=revised,record=new_record,
         stage='finalization_before_audit')
     new_audit=audit_report(revised,evidence,client=budgeted_client(client,budget,'audit'),model=model,
@@ -764,6 +780,9 @@ def _revise_report_once(content, record, audit, *, configuration, statistics, ev
     """Only change mapped paragraph text, then audit the whole resulting report."""
     if not audit.get('needs_review') or audit.get('audit_incomplete') or audit.get('budget_incomplete'):
         return content,record,audit
+    unit_refs=content_references(record)
+    if unit_refs:
+        validate_draft(record,report_draft_model(configuration).model_validate_json(record['raw_model_response']).model_dump(mode='json'))
     paragraphs=[]
     for index,item in enumerate(record.get('summary',[])):
         paragraphs.append(('summary',index,item))
@@ -786,6 +805,7 @@ def _revise_report_once(content, record, audit, *, configuration, statistics, ev
             audit_context=True,source_spans=source_spans)
         correction_context[key]=context
         targets.append({'paragraph_id':key,'text':item['text'],'kind':item['kind'],
+            **({'unit_ref':patch_reference(unit_refs[key])} if unit_refs else {}),
             'citations':item['citations'],'issues':[{'text':row['text'],'reason':row['reason'],
                 'status':row['status'],'allowed_method_ids':row.get('allowed_method_ids',[]),
                 'assessment_kind':row.get('assessment_kind'),'premise_status':row.get('premise_status'),
@@ -801,6 +821,7 @@ def _revise_report_once(content, record, audit, *, configuration, statistics, ev
     def retain(reason,attempted=False):
         audit['revision_attempt']={'attempted':attempted,'status':reason,'paragraph_count':len(targets),
             'raw_response':reply,'raw_responses':list(replies),'request_attempts':request_attempts,
+            **({'base_content_version':record['content_document_version']} if unit_refs else {}),
             'completed_paragraph_ids':list(replacements)}
         return content,record,audit
     if not targets:return retain('unmapped_paragraphs')
@@ -847,6 +868,8 @@ def _revise_report_once(content, record, audit, *, configuration, statistics, ev
         'Use the unescaped paragraph text for quote, not the Markdown-escaped issue sentence. '
         'Do not return the complete paragraph. Each edit must be disjoint and limited to a diagnosed '
         'clause and its necessary connecting punctuation. All other text stays byte-for-byte unchanged.')
+    if unit_refs:
+        instructions+=' Copy each target unit_ref string unchanged into its repair. It binds the server-owned unit and expected content/context versions; it is not a source or approval.'
     def correction_messages(items):
         needed=list(dict.fromkeys(key for item in items for issue in item['issues'] for key in issue['excerpt_ids']))
         sources,fragments,references=shared_passage_payload([excerpts[key] for key in needed])
@@ -908,6 +931,7 @@ def _revise_report_once(content, record, audit, *, configuration, statistics, ev
             originals={item['paragraph_id']:item['text'] for item in batch}
             citation_sets={item['paragraph_id']:item['citations'] for item in batch}
             for item in changes:
+                require_patch_reference(item,unit_refs.get(item['paragraph_id']))
                 replacements[item['paragraph_id']]=_apply_clause_edits(originals[item['paragraph_id']],item,
                     citation_sets[item['paragraph_id']])
                 format_adjustments.extend({'paragraph_id':item['paragraph_id'],'kind':kind}
@@ -915,6 +939,7 @@ def _revise_report_once(content, record, audit, *, configuration, statistics, ev
         original=record['raw_model_response'].strip()
         if original.startswith('```json') and original.endswith('```'):original=original[7:-3].strip()
         draft=report_draft_model(configuration).model_validate_json(original).model_dump(mode='json')
+        validate_draft(record,draft)
         for target in targets:
             text=replacements[target['paragraph_id']]
             if not isinstance(text,str) or not text.strip():return retain('empty_correction',True)
@@ -945,7 +970,7 @@ def _revise_report_once(content, record, audit, *, configuration, statistics, ev
             item=items[int(parts[-1])]
             wire=(report_prose(item['rendered_text'])+' '+' '.join(f'[citation:{n}]' for n in item['citations'])).rstrip()
             paragraph_context[wire]=correction_context[target['paragraph_id']]
-        paragraph_context=_carry_audit_context(record,new_record,paragraph_context)
+        paragraph_context=_carry_audit_context(record,new_record,paragraph_context,lineage=lineage_after_deletions(record))
         if on_candidate:on_candidate(new_record['raw_model_response'],content=revised,record=new_record,
             stage='claim_revision_before_audit')
         new_audit=audit_report(revised,evidence,client=budgeted_client(client,budget,'audit'),model=model,

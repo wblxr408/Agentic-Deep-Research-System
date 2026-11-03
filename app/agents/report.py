@@ -540,6 +540,8 @@ Evidence Sources:
                     content, self.last_module_report = assemble_module_report(repaired_raw, organization_research,
                         len(citations), statistics=organization_statistics,allowed_citations=allowed_citations,
                         publication_titles=publication_titles)
+                    from app.report_content_units import reconcile as reconcile_content_units
+                    reconcile_content_units(first_record,self.last_module_report)
                     self.last_module_report['repair_history'] = [first_record]
                 if self.last_module_report['issues']:
                     self.last_partial_response = self.last_module_report.get('raw_model_response') or ''.join(chunks)

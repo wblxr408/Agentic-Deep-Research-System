@@ -24,6 +24,7 @@ from app.organization_trends import VERSION as TREND_POLICY_VERSION
 from app.report_timeline import POLICY as PUBLICATION_EVENT_POLICY
 from app.report_mechanisms import POLICY as MECHANISM_GRAPH_POLICY
 from app.claim_scope_dependencies import POLICY as CLAIM_DEPENDENCY_POLICY
+from app.report_content_units import POLICY as CONTENT_UNIT_POLICY
 from app.organization_actions import ActionRequirements, VERSION as ACTION_POLICY_VERSION
 from app.organization_statistics import VERSION as STATISTICS_POLICY_VERSION
 
@@ -88,6 +89,7 @@ def freeze_organization_request(request: OrganizationResearchRequest | None, sel
         'reader_coverage_policy':READER_COVERAGE_POLICY,
         'reader_document_policy':READER_DOCUMENT_POLICY,
         'reader_impact_policy':READER_IMPACT_POLICY,
+        'content_unit_policy':CONTENT_UNIT_POLICY,
         'reading_mode':request.reading_mode,'required_reading_fields':list(dict.fromkeys(request.required_reading_fields)),
         'work_identity_policy':'adrs-primary-work-versions-v1',
         'reader_quality_policy':'adrs-reader-quality-v1',

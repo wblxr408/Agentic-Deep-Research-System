@@ -15,6 +15,7 @@ from app.query_understanding import identity
 from app.security.prompt_security import untrusted_context
 from app.report_material_packets import POLICY as MATERIAL_POLICY,COVERAGE_POLICY,DOCUMENT_POLICY,material_owners,context_overrides,material_packets
 from app.organization_purpose import READER_IMPACT_POLICY
+from app.report_content_units import POLICY as CONTENT_UNIT_POLICY,references as content_references
 
 POLICY = 'adrs-reader-quality-v1'
 SUPPORTED_POLICIES = {POLICY, 'adrs-reader-quality-v2'}
@@ -50,6 +51,12 @@ def reader_quality_satisfied(record,audit):
     if not required:return True
     if required not in SUPPORTED_POLICIES:return False
     quality=(audit or {}).get('reader_quality') or {}
+    content_policy=(record or {}).get('content_unit_policy')
+    if content_policy:
+        if (content_policy!=CONTENT_UNIT_POLICY or quality.get('content_unit_policy')!=content_policy
+                or quality.get('content_document_version')!=record.get('content_document_version')):return False
+        try:content_references(record)
+        except (ValueError,KeyError,TypeError):return False
     impact_policy=(record or {}).get('reader_impact_policy')
     if impact_policy:
         impact=quality.get('inline_reading_impact') or {}
@@ -156,6 +163,13 @@ def review_reader_quality(*, question, configuration, record, findings, client, 
                           evidence=(),retained_requests=(),on_progress=None,_partition_document=False):
     from app.organization_deep_dive import READING_FIELD_POLICY,reading_contract_context
     owned=configuration.get('reader_material_policy')==MATERIAL_POLICY
+    content_policy=configuration.get('content_unit_policy')
+    if (content_policy not in {None,CONTENT_UNIT_POLICY} or record.get('content_unit_policy')!=content_policy):
+        return {'status':'incomplete','passed':False,'reason':'reader_content_unit_policy_mismatch'}
+    if content_policy:
+        try:content_references(record)
+        except (ValueError,KeyError,TypeError):
+            return {'status':'incomplete','passed':False,'reason':'reader_content_unit_record_changed'}
     impact_policy=configuration.get('reader_impact_policy')
     if (impact_policy not in {None,READER_IMPACT_POLICY} or record.get('reader_impact_policy')!=impact_policy
             or impact_policy and not owned):
@@ -243,6 +257,7 @@ def review_reader_quality(*, question, configuration, record, findings, client, 
         'report_content_id':identity(record.get('reading_structure')),
         'criteria':criteria,'status':'incomplete','passed':False,'packet_contract':PACKET_CONTRACT}
     if profiled:base['reading_field_policy']=READING_FIELD_POLICY
+    if content_policy:base.update(content_unit_policy=content_policy,content_document_version=record['content_document_version'])
     if impact_policy:base['reader_impact_policy']=impact_policy
     if coverage_split:base['reader_coverage_policy']=COVERAGE_POLICY
     if document_policy:
