@@ -19,6 +19,7 @@ READER_DELETE_CONTRACT = 'adrs-reader-unit-delete-v1'
 READER_AUDIT_EDIT_CONTRACT = 'adrs-reader-audit-delete-v1'
 READER_CLAUSE_CONTRACT = 'adrs-reader-local-clauses-v2-placement'
 EDITOR_CONTEXT_POLICY = 'adrs-editor-context-v4-reader-feedback'
+EDITOR_LEAD_POLICY = 'adrs-edited-lead-result-v1'
 
 
 def _reader_work_forecast(function):
@@ -953,6 +954,7 @@ def _edit_sections(payload,record,audit,findings,configuration,client,model,budg
     retained=(findings.get('report_editor_sections') or {}).get('raw_model_response')
     saved=json.loads(retained) if retained else {}
     sections=saved.get('sections',{}) if saved.get('binding')==binding else {}
+    lead_input=saved.get('lead_input') if saved.get('binding')==binding else None
     draft=payload['current_report']
     if (payload.get('editorial_request') or {}).get('mode')=='coherence':
         for module in draft['modules']:
@@ -961,11 +963,18 @@ def _edit_sections(payload,record,audit,findings,configuration,client,model,budg
         budget.remaining_writing_units=sum(row['module_id'] not in sections for row in draft['modules'])+1+int('lead' not in sections)
     def save():
         if on_candidate:on_candidate(json.dumps({'binding':binding,'sections':sections,
+            **({'lead_input':lead_input} if lead_input is not None else {}),
             **({'context_policy':context_policy,'execution_mode':'chapters',
                 'admission':saved.get('admission')} if slim else {})},ensure_ascii=False),
             stage='structural_revision_sections')
     def request(section_id,packet,extra):
-        if section_id in sections:return sections[section_id]
+        nonlocal lead_input
+        protected=(configuration.get('report_material_policy')==REPORT_MATERIAL_POLICY
+            and getattr(budget,'execution_control',None) is not None)
+        bound_lead=section_id=='lead' and slim and protected
+        # A legacy completed lead has no evidence of its original dependencies.
+        # Preserve that contract, rather than inventing provenance or repaying it.
+        if section_id in sections and (not bound_lead or lead_input is None):return sections[section_id]
         pending=findings.get('report_candidate') or {}
         pending_raw=pending.get('raw_model_response') if (
             pending.get('stage')=='structural_revision_section_response:'+section_id
@@ -980,24 +989,36 @@ def _edit_sections(payload,record,audit,findings,configuration,client,model,budg
                 module_report_instructions(configuration),module_report_instructions({**configuration,'modules':[section_id]})))
         messages=[{'role':'system','content':local_instructions+'\n'+extra},
             {'role':'user','content':untrusted_context('chapter_editor_inputs',raw,limit=len(raw))}]
-        protected=(configuration.get('report_material_policy')==REPORT_MATERIAL_POLICY
-            and getattr(budget,'execution_control',None) is not None)
+        # Both recovery and accepted-lead reuse bind only the actual input's
+        # citations. An appendix-only allocation change is not a new lead input.
+        cited=set()
+        def citations(value):
+            if isinstance(value,dict):
+                refs=value.get('citations')
+                if isinstance(refs,(list,tuple)):cited.update(ref for ref in refs if type(ref) is int)
+                for key in ('citation','citation_id'):
+                    if type(value.get(key)) is int:cited.add(value[key])
+                for child in value.values():citations(child)
+            elif isinstance(value,(list,tuple)):
+                for child in value:citations(child)
+        citations(packet)
+        lead_binding=None
+        if bound_lead:
+            budget.execution_control.check()
+            lead_binding=identity(_editor_request_basis(messages=messages,contract=editor_policy+':lead',
+                purpose='report',record=record,quality=audit.get('reader_quality') or {},evidence=evidence,
+                cited=cited,client=budgeted_client(client,budget,'report'),model=model,budget=budget,temperature=.1))
+            if section_id in sections:
+                if (isinstance(lead_input,dict) and lead_input.get('policy')==EDITOR_LEAD_POLICY
+                        and lead_input.get('input_binding')==lead_binding
+                        and lead_input.get('result_binding')==identity(sections[section_id])):
+                    return sections[section_id]
+                sections.pop(section_id);lead_input=None;save()
         if pending_raw and not protected:
             reply=pending_raw
         else:
             # The packet can contain both original windows and retained prose.
             # Bind their actual cited sources, not every source in the corpus.
-            cited=set()
-            def citations(value):
-                if isinstance(value,dict):
-                    refs=value.get('citations')
-                    if isinstance(refs,(list,tuple)):cited.update(ref for ref in refs if type(ref) is int)
-                    for key in ('citation','citation_id'):
-                        if type(value.get(key)) is int:cited.add(value[key])
-                    for child in value.values():citations(child)
-                elif isinstance(value,(list,tuple)):
-                    for child in value:citations(child)
-            citations(packet)
             reply=_reader_edit_response(messages=messages,contract=editor_policy+':'+section_id,
                 purpose='report',output_cap=16384 if section_id=='coherence' else 12288,minimum_output=4096,
                 record=record,quality=audit.get('reader_quality') or {},findings=findings,
@@ -1006,6 +1027,14 @@ def _edit_sections(payload,record,audit,findings,configuration,client,model,budg
         value=json.loads(reply)
         if section_id=='lead':value['modules']=[draft['modules'][0]]
         parsed=report_draft_model(configuration).model_validate(value).model_dump(mode='json')
+        if bound_lead:
+            if any(not set(row['citations'])<=cited for row in parsed['summary']):
+                raise ValueError('lead_writing_new_citation')
+            # A lead result contains no copy of the chapter used only to
+            # validate the original report envelope.
+            parsed={key:parsed[key] for key in ('title','summary')}
+            lead_input={'policy':EDITOR_LEAD_POLICY,'input_binding':lead_binding,
+                'result_binding':identity(parsed)}
         if section_id not in {'lead','coherence'}:
             selected=[row for row in parsed['modules'] if row['module_id']==section_id]
             if len(selected)!=1:raise ValueError('editor_section_identity_changed')
@@ -1111,7 +1140,9 @@ def _edit_sections(payload,record,audit,findings,configuration,client,model,budg
         feedback={'owner_request':payload.get('editorial_request'),'reader_review':payload.get('reader_quality')},
         configuration=configuration)
     if previous_selection_binding!=selection['binding']:
-        sections.pop('lead',None)
+        # New leads are checked against their actual main-text request below;
+        # legacy leads still follow the original complete-selection contract.
+        if lead_input is None:sections.pop('lead',None)
         save()
     if getattr(budget,'editor_work_active',False):budget.remaining_writing_units=int('lead' not in sections)
     lead=request('lead',{'question':payload['question'],'chapters':[{'module_id':row['module_id'],
