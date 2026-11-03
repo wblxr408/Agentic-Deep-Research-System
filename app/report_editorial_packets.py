@@ -98,8 +98,6 @@ def select_paragraph_packets(modules,*,question,client,model,budget,retained,on_
         budget.remaining_writing_units=1+sum((state['packets'].get(entry['id']) or {}).get('binding')!=entry['binding']
             or (state['packets'].get(entry['id']) or {}).get('validated') is not True for entry in packets)
         if on_saved:on_saved(deepcopy(state))
-    checkpoint()
-
     def request(entry,part,messages,*,repair=False):
         raw_key='repair_raw_response' if repair else 'raw_response'
         finish_key='repair_finish_reason' if repair else 'finish_reason'
@@ -113,31 +111,39 @@ def select_paragraph_packets(modules,*,question,client,model,budget,retained,on_
             return part[raw_key]
         if part.get(dispatch_key)=='pending':
             raise TokenBudgetExceeded('editorial_packet_paid_response_unavailable')
-        if request_token_bound(messages,response_format={'type':'json_object'})+OUTPUT_TOKENS>budget.available('report'):
-            raise TokenBudgetExceeded('editorial_packet_original_allowance_insufficient')
-        if on_saved is None:raise TokenBudgetExceeded('editorial_packet_checkpoint_required')
-        unit='editorial-packet:'+operation_binding+(':repair' if repair else ':initial')
-        # Persist the opportunity before dispatch; interruption cannot reset it.
-        if repair:part.update(repair_attempted=True,repair_input_binding=operation_binding)
-        part[dispatch_key]='pending';checkpoint()
+        required=request_token_bound(messages,response_format={'type':'json_object'})+OUTPUT_TOKENS
+        live_editor=getattr(budget,'editor_work_active',False)
+        if live_editor:
+            budget.editor_request_purpose='report';budget.editor_request_bound=required
         try:
-            operation='editorial_packet_repair' if repair else 'editorial_packet_selection'
-            active=(client.with_operation(operation,content_unit_id=unit)
-                if isinstance(client,BudgetedClient) and client.budget is budget and client.purpose=='report'
-                else budgeted_client(client,budget,'report',operation=operation,content_unit_id=unit))
-            response=active.chat.completions.create(model=model,messages=messages,
-                temperature=0,max_tokens=OUTPUT_TOKENS,response_format={'type':'json_object'})
-        except TokenBudgetExceeded:
-            calls=[row for row in getattr(budget,'calls',[]) if row.get('content_unit_id')==unit]
-            if not any(row.get('dispatch_status')!='not_dispatched' and row.get('status')!='blocked_before_dispatch' for row in calls):
-                part[dispatch_key]='not_dispatched';checkpoint()
-            raise
-        choice=response.choices[0] if response.choices else None
-        part[raw_key]=choice.message.content or '' if choice else ''
-        part[finish_key]=choice.finish_reason if choice else None
-        part[dispatch_key]='response_received';checkpoint()
-        if part[finish_key]!='stop':raise TokenBudgetExceeded('editorial_packet_response_incomplete')
-        return part[raw_key]
+            if required>budget.available('report'):
+                raise TokenBudgetExceeded('editorial_packet_original_allowance_insufficient')
+            if on_saved is None:raise TokenBudgetExceeded('editorial_packet_checkpoint_required')
+            unit='editorial-packet:'+operation_binding+(':repair' if repair else ':initial')
+            # Persist the opportunity before dispatch; interruption cannot reset it.
+            if repair:part.update(repair_attempted=True,repair_input_binding=operation_binding)
+            part[dispatch_key]='pending';checkpoint()
+            try:
+                operation='editorial_packet_repair' if repair else 'editorial_packet_selection'
+                active=(client.with_operation(operation,content_unit_id=unit)
+                    if isinstance(client,BudgetedClient) and client.budget is budget and client.purpose=='report'
+                    else budgeted_client(client,budget,'report',operation=operation,content_unit_id=unit))
+                response=active.chat.completions.create(model=model,messages=messages,
+                    temperature=0,max_tokens=OUTPUT_TOKENS,response_format={'type':'json_object'})
+            except TokenBudgetExceeded:
+                calls=[row for row in getattr(budget,'calls',[]) if row.get('content_unit_id')==unit]
+                if not any(row.get('dispatch_status')!='not_dispatched' and row.get('status')!='blocked_before_dispatch' for row in calls):
+                    part[dispatch_key]='not_dispatched';checkpoint()
+                raise
+            choice=response.choices[0] if response.choices else None
+            part[raw_key]=choice.message.content or '' if choice else ''
+            part[finish_key]=choice.finish_reason if choice else None
+            part[dispatch_key]='response_received';checkpoint()
+            if part[finish_key]!='stop':raise TokenBudgetExceeded('editorial_packet_response_incomplete')
+            return part[raw_key]
+        finally:
+            if live_editor:
+                budget.editor_request_purpose=None;budget.editor_request_bound=0
 
     def validate(raw,entry):
         body=raw.strip()
@@ -161,37 +167,61 @@ def select_paragraph_packets(modules,*,question,client,model,budget,retained,on_
                     or row['kind']=='irrelevant' and targets):raise ValueError('editorial_selection_omission_reason')
         return plan
 
-    plans=[]
+    def repair_messages(entry,part,raw):
+        return [*entry['messages'],{'role':'assistant','content':raw},
+            {'role':'user','content':'Repair this allocation without rewriting prose. '+str(part.get('repair_contract_error') or '')+
+                '. Return the complete corrected JSON. Every editable ID has one destination, no read-only IDs.'}]
+
+    def accept(part,raw,plan,*,reused=False):
+        part['validated']=True;part['plan']=plan
+        part['format_adjustments']=['json_fence_removed'] if raw.strip().startswith('```json') else []
+        if reused:part['reused_response']=True
+
+    # Revalidate every saved response before the first fresh budget admission.
+    # A missing earlier packet must not make later paid packets look unstarted.
     for entry in packets:
         previous=state['packets'].get(entry['id']) or {}
         part=previous if previous.get('binding')==entry['binding'] else {'binding':entry['binding'],'validated':False}
         state['packets'][entry['id']]=part
         if entry['blocked']:
             part['reason']='editorial_packet_requires_context_partition';continue
+        raw_key='repair_raw_response' if part.get('repair_attempted') else 'raw_response'
+        finish_key='repair_finish_reason' if part.get('repair_attempted') else 'finish_reason'
+        if raw_key not in part or part.get(finish_key)!='stop':continue
+        if part.get('repair_attempted'):
+            if 'raw_response' not in part or part.get('finish_reason')!='stop':continue
+            repair_binding=identity({'packet_binding':entry['binding'],
+                'messages':repair_messages(entry,part,part['raw_response'])})
+            if part.get('repair_input_binding') not in {None,repair_binding}:continue
+        raw=part[raw_key]
+        try:plan=validate(raw,entry)
+        except (ValueError,TypeError,KeyError,AttributeError):continue
+        accept(part,raw,plan,reused=True)
+    checkpoint()
+
+    plans=[]
+    for entry in packets:
+        part=state['packets'][entry['id']]
+        if entry['blocked']:continue
+        if part['validated']:
+            plans.append(part['plan']);continue
         try:
             raw=request(entry,part,entry['messages'])
             if part.get('repair_attempted'):
                 if 'repair_raw_response' not in part and part.get('repair_dispatch_status')!='not_dispatched':
                     raise TokenBudgetExceeded('editorial_packet_paid_response_unavailable')
-                repair_messages=[*entry['messages'],{'role':'assistant','content':raw},
-                    {'role':'user','content':'Repair this allocation without rewriting prose. '+str(part.get('repair_contract_error') or '')+
-                        '. Return the complete corrected JSON. Every editable ID has one destination, no read-only IDs.'}]
-                raw=request(entry,part,repair_messages,repair=True)
+                raw=request(entry,part,repair_messages(entry,part,raw),repair=True)
                 plan=validate(raw,entry)
             else:
                 try:plan=validate(raw,entry)
                 except (ValueError,TypeError,KeyError,AttributeError) as error:
                     part['repair_contract_error']=str(error)[:300]
-                    repair_messages=[*entry['messages'],{'role':'assistant','content':raw},
-                        {'role':'user','content':'Repair this allocation without rewriting prose. '+part['repair_contract_error']+
-                            '. Return the complete corrected JSON. Every editable ID has one destination, no read-only IDs.'}]
-                    raw=request(entry,part,repair_messages,repair=True)
+                    raw=request(entry,part,repair_messages(entry,part,raw),repair=True)
                     plan=validate(raw,entry)
         except (ValueError,TypeError,KeyError,AttributeError) as error:
             part['contract_error']=str(error)[:300];checkpoint()
             raise TokenBudgetExceeded('editorial_packet_allocation_incomplete') from error
-        part['validated']=True;part['plan']=plan
-        part['format_adjustments']=['json_fence_removed'] if raw.strip().startswith('```json') else []
+        accept(part,raw,plan)
         plans.append(plan);checkpoint()
     if state['packet_plan']['blocked_packets']:
         raise TokenBudgetExceeded('editorial_packet_requires_context_partition')
