@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 import re
 from copy import deepcopy
+from functools import wraps
 
 from openai import APIError
 
@@ -18,6 +19,32 @@ READER_DELETE_CONTRACT = 'adrs-reader-unit-delete-v1'
 READER_AUDIT_EDIT_CONTRACT = 'adrs-reader-audit-delete-v1'
 READER_CLAUSE_CONTRACT = 'adrs-reader-local-clauses-v2-placement'
 EDITOR_CONTEXT_POLICY = 'adrs-editor-context-v4-reader-feedback'
+
+
+def _reader_work_forecast(function):
+    """Scope live editor demand to this existing phase, restoring its parent."""
+    @wraps(function)
+    def run(*args,**kwargs):
+        budget=kwargs['budget'];configuration=kwargs['configuration']
+        if (configuration.get('report_material_policy')!=REPORT_MATERIAL_POLICY
+                or getattr(budget,'execution_control',None) is None
+                or getattr(budget,'resource_scheduler',None) is None):
+            return function(*args,**kwargs)
+        fields=('remaining_writing_units','editor_work_active','editor_request_bound','editor_request_purpose')
+        before={key:getattr(budget,key,None) for key in fields}
+        budget.remaining_writing_units=1;budget.editor_work_active=True;budget.editor_request_bound=0
+        budget.editor_request_purpose=None
+        try:return function(*args,**kwargs)
+        finally:
+            for key,value in before.items():setattr(budget,key,value)
+    return run
+
+
+def _editor_response_consumed(budget):
+    if getattr(budget,'editor_work_active',False):
+        budget.remaining_writing_units=max(0,(budget.remaining_writing_units or 0)-1)
+        budget.editor_request_bound=0
+        budget.editor_request_purpose=None
 
 
 def _editor_context_policy(findings,configuration):
@@ -98,6 +125,10 @@ def _reader_edit_response(*,messages,contract,purpose,output_cap,record,quality,
         return reply
     control.check()
     if on_candidate is None:raise TokenBudgetExceeded('reader_revision_checkpoint_unavailable')
+    if getattr(budget,'editor_work_active',False):
+        budget.remaining_writing_units=0 if purpose=='audit' else max(1,budget.remaining_writing_units or 0)
+        budget.editor_request_purpose=purpose
+        budget.editor_request_bound=request_token_bound(messages,response_format={'type':'json_object'})+(minimum_output or output_cap)
     from app.query_understanding import identity
     basis=_editor_request_basis(messages=messages,contract=contract,purpose=purpose,record=record,
         quality=quality,evidence=evidence,cited=cited,client=active,model=model,budget=budget,temperature=temperature)
@@ -152,12 +183,14 @@ def _reader_edit_response(*,messages,contract,purpose,output_cap,record,quality,
             else 'reader_revision_response_incomplete',revision_request={**saved,'response_reused':True,
                 'family_binding':family,'output_tokens':output_cap,
                 'original_report_id':identity(record['raw_model_response'])})
+        _editor_response_consumed(budget)
         if saved.get('finish_reason')!='stop':raise TokenBudgetExceeded('reader_revision_output_incomplete')
         return reply
     if ((saved.get('status') in {'dispatch_intent','dispatch_attempted'} or receipts)
             and not not_dispatched):
         raise TokenBudgetExceeded('reader_revision_paid_response_unavailable')
     required=request_token_bound(messages,response_format={'type':'json_object'})+output_cap
+    if getattr(budget,'editor_work_active',False):budget.editor_request_bound=required
     capacity=available_capacity()
     if (output_cap<minimum_output or capacity<required
             or budget.available('audit')<required_audit):raise TokenBudgetExceeded('reader_revision_context_budget')
@@ -181,6 +214,7 @@ def _reader_edit_response(*,messages,contract,purpose,output_cap,record,quality,
     on_candidate(reply,stage=response_stage if choice and choice.finish_reason=='stop'
         else 'reader_revision_response_incomplete',revision_request={**request,
             'status':'response_received','finish_reason':choice.finish_reason if choice else None})
+    _editor_response_consumed(budget)
     if choice is None or choice.finish_reason!='stop':raise TokenBudgetExceeded('reader_revision_output_incomplete')
     return reply
 
@@ -242,6 +276,7 @@ def _current_reading_decisions(record,quality):
     return decisions
 
 
+@_reader_work_forecast
 def revise_reader_report(content,record,audit,*,question,findings,configuration,statistics,evidence,
                          client,model,budget,deadline,source_spans,task_context,on_candidate=None,audit_options=None):
     """One report-wide edit, followed by the same complete source audit.
@@ -354,6 +389,7 @@ def revise_reader_report(content,record,audit,*,question,findings,configuration,
                    if direct_plan else {}),
                 'original_record':{'raw_model_response':record['raw_model_response']},'original_audit':_prior_audit_summary(audit)}
             if on_candidate:on_candidate(raw,content=revised,record=new_record,stage='reader_notes_before_audit')
+            if getattr(budget,'editor_work_active',False):budget.remaining_writing_units=0
             paragraphs=[*new_record.get('summary',[]),*[p for module in new_record['modules']
                 for p in [*module['paragraphs'],*module.get('appendix',[])]]]
             bound=[{'rendered_paragraph':p['rendered_text'],**binding} for p in paragraphs for binding in p.get('statistic_bindings',[])]
@@ -921,6 +957,8 @@ def _edit_sections(payload,record,audit,findings,configuration,client,model,budg
     if (payload.get('editorial_request') or {}).get('mode')=='coherence':
         for module in draft['modules']:
             sections.setdefault(module['module_id'],{'title':draft['title'],'summary':[],'modules':[module]})
+    if getattr(budget,'editor_work_active',False):
+        budget.remaining_writing_units=sum(row['module_id'] not in sections for row in draft['modules'])+1+int('lead' not in sections)
     def save():
         if on_candidate:on_candidate(json.dumps({'binding':binding,'sections':sections,
             **({'context_policy':context_policy,'execution_mode':'chapters',
@@ -1075,6 +1113,7 @@ def _edit_sections(payload,record,audit,findings,configuration,client,model,budg
     if previous_selection_binding!=selection['binding']:
         sections.pop('lead',None)
         save()
+    if getattr(budget,'editor_work_active',False):budget.remaining_writing_units=int('lead' not in sections)
     lead=request('lead',{'question':payload['question'],'chapters':[{'module_id':row['module_id'],
         'paragraphs':row['paragraphs']} for row in modules]},
         'Write only title and summary from these edited chapter judgments; the server preserves all edited modules. '

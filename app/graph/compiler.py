@@ -445,6 +445,9 @@ def _stage_model_budget(state: ResearchState, stage: str) -> ModelTokenBudget:
                 'elapsed_wall_clock_seconds':float(root['elapsed_wall_clock_seconds'])+time.monotonic()-scheduler_started,
                 'model_requests':[*root.get('model_requests',[]),*current_meter.calls],
                 'remaining_writing_units':getattr(current_meter,'remaining_writing_units',None),
+                'editor_work_active':getattr(current_meter,'editor_work_active',False),
+                'editor_request_bound':getattr(current_meter,'editor_request_bound',None),
+                'editor_request_purpose':getattr(current_meter,'editor_request_purpose',None),
                 'current_stage_audit_calls':max(0,audit_calls-audit_epoch)}
             decision=stage_allocation(state,live,stage)
             current_meter.limit=current_meter.spent+current_meter.inflight+decision['stage_limit']

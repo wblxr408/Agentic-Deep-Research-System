@@ -53,6 +53,13 @@ def remaining_work(state, root, stage):
     if (root.get('remaining_writing_units') is not None and
             (not candidate or config.get('editorial_partition_policy')==EDITORIAL_PARTITION_POLICY)):
         writing_units=max(1,_nonnegative(root['remaining_writing_units']))
+    editor_work=None
+    if stage=='report' and root.get('editor_work_active') is True:
+        writing_units=_nonnegative(root.get('remaining_writing_units'))
+        editor_work={'pending_writing_units':writing_units,
+            'current_request_bound':_nonnegative(root.get('editor_request_bound')),
+            'current_request_purpose':root.get('editor_request_purpose'),
+            'semantics':'live_editor_demand_not_quality_approval_or_new_allowance'}
     if candidate:
         draft=candidate.get('module_report') or {}
         paragraph_count=sum(len(row.get('paragraphs') or [])+len(row.get('appendix') or [])
@@ -126,10 +133,19 @@ def remaining_work(state, root, stage):
         costs[key]=max(2048,ceil((ordered[min(len(ordered)-1,ceil(len(ordered)*.75)-1)]
             if ordered else defaults[key])*1.25))
     units={'analysis':analysis_units,'writing':writing_units,'audit':audit_units}
+    tokens={key:units[key]*costs[key] for key in units}
+    if editor_work and writing_units and editor_work['current_request_purpose']!='audit':
+        # The current complete request is known; observed per-call samples
+        # estimate only the other unfinished steps, not this request again.
+        tokens['writing']=max(tokens['writing'],editor_work['current_request_bound']+
+            max(0,writing_units-1)*costs['writing'])
+    if editor_work and editor_work['current_request_purpose']=='audit':
+        tokens['audit']=max(tokens['audit'],editor_work['current_request_bound'])
     return {'units':units,'unit_tokens':costs,'assembled_claim_count':claim_count,
+        **({'editor_work':editor_work} if editor_work is not None else {}),
         **({'reader_material_work':reader_work} if reader_work is not None else {}),
         **({'reader_document_work':document_work} if document_work is not None else {}),
-        'tokens':{key:units[key]*costs[key] for key in units},
+        'tokens':tokens,
         'sample_counts':{key:len(value) for key,value in samples.items()},
         'basis':'remaining_phases_and_bound_candidate_with_observed_usage',
         'reading_work':{'members':len(progress_items),
