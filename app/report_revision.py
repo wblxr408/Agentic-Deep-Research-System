@@ -282,7 +282,7 @@ def _current_reading_decisions(record,quality):
 
 @_reader_work_forecast
 def revise_reader_report(content,record,audit,*,question,findings,configuration,statistics,evidence,
-                         client,model,budget,deadline,source_spans,task_context,on_candidate=None,audit_options=None):
+                         client,model,budget,deadline,source_spans,task_context,on_candidate=None,audit_options=None,reader_options=None):
     """One report-wide edit, followed by the same complete source audit.
 
     Existing paragraph identities constrain edits. The editor may shorten or
@@ -296,7 +296,10 @@ def revise_reader_report(content,record,audit,*,question,findings,configuration,
                 or quality.get('contract_error') in {'missing_repair',"'work_coverage'",'reading_repetition_owner_invalid'})):
         from app.report_quality import review_reader_quality
         quality=review_reader_quality(question=question,configuration=configuration,record=record,
-            findings={**(findings or {}),'reader_quality':quality},client=client,model=model,budget=budget,evidence=evidence)
+            findings={**(findings or {}),'reader_quality':quality,
+                'claim_review_scope':audit.get('review_scope') or (findings or {}).get('claim_review_scope')},
+            client=client,model=model,budget=budget,
+            evidence=evidence,**(reader_options or {}))
         audit={**audit,'reader_quality':quality}
         findings={**(findings or {}),'reader_quality':quality}
         if quality.get('status')!='needs_revision':return content,record,audit
@@ -313,7 +316,10 @@ def revise_reader_report(content,record,audit,*,question,findings,configuration,
         # repair plan. Re-diagnose the retained text before spending an edit.
         if quality.get('review_contract')!=REVIEW_CONTRACT:
             quality=review_reader_quality(question=question,configuration=configuration,record=record,
-                findings={**(findings or {}),'reader_quality':quality},client=client,model=model,budget=budget,evidence=evidence)
+                findings={**(findings or {}),'reader_quality':quality,
+                    'claim_review_scope':audit.get('review_scope') or (findings or {}).get('claim_review_scope')},
+                client=client,model=model,budget=budget,
+                evidence=evidence,**(reader_options or {}))
             audit={**audit,'reader_quality':quality}
             findings={**(findings or {}),'reader_quality':quality}
             if quality.get('status')!='needs_revision':return content,record,audit

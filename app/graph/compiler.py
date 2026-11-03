@@ -2996,7 +2996,8 @@ async def report_node(state: ResearchState) -> dict:
                 supported_finalization=bool((state.get('session') or {}).get('supported_finalization_mode')),
                 proposal_reassessment=bool((state.get('session') or {}).get('proposal_review_mode')),
                 pending_excerpt_window=450 if (state.get('session') or {}).get('audit_pending_compaction') else None,
-                organization_findings=organization_result)
+                organization_findings=organization_result,
+                retained_requests=(state.get('budget_state') or {}).get('model_requests') or [])
         else:
             report, citations = await asyncio.to_thread(agent.generate_stream,
                 user_query=_synthesis_question(state),
@@ -3090,10 +3091,6 @@ async def report_node(state: ResearchState) -> dict:
     if org_config.get('reader_quality_policy'):
         from app.report_quality import review_reader_quality,reader_quality_satisfied
         from app.query_understanding import identity
-        def on_reader_progress(value):
-            agent.last_usage=agent.request_budget.usage()
-            try:on_report_candidate({'stage':'reader_quality_checkpoint','reader_quality':value})
-            except RuntimeError as error:raise TokenBudgetExceeded('reader_review_checkpoint_unavailable') from error
         for editorial_round in range(2):
             # The root checkpoint can contain a newer paid response than the
             # fact-audit snapshot restored by resume_audit. Revalidate that raw
@@ -3115,7 +3112,7 @@ async def report_node(state: ResearchState) -> dict:
                     evidence=state.get('collected_evidence') or [],
                     retained_requests=(state.get('budget_state') or {}).get('model_requests') or [],
                     retained_reviews=(root_reader,audit_reader),
-                    on_progress=on_reader_progress)
+                    on_progress=agent.retain_reader_quality)
             except TokenBudgetExceeded as error:
                 quality={'policy':org_config['reader_quality_policy'],'status':'incomplete','passed':False,'reason':error.reason}
             finally:
@@ -3138,7 +3135,8 @@ async def report_node(state: ResearchState) -> dict:
                     organization_statistics=(organization_result or {}).get('statistics'),
                     technical_reading=(organization_result or {}).get('technical_reading'),
                     analysis_workflow=state.get('analysis_workflow'),report_context=agent.last_context_manifest,
-                    writing_plan=agent.last_writing_plan,reader_revision=True,organization_findings=organization_result)
+                    writing_plan=agent.last_writing_plan,reader_revision=True,organization_findings=organization_result,
+                    retained_requests=(state.get('budget_state') or {}).get('model_requests') or [])
             except TokenBudgetExceeded as error:
                 paused=_model_budget_pause(state,agent,'report',error,
                     report=agent.last_draft,citations=agent.last_citations)

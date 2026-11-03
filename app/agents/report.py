@@ -149,6 +149,13 @@ class ReportAgent:
             raise TokenBudgetExceeded('report_candidate_checkpoint_unavailable') from error
         self._last_revision_candidate=candidate if revision_request is not None else None
 
+    def retain_reader_quality(self, value):
+        """Save the existing reader checkpoint from either review entrance."""
+        self.last_usage=self.request_budget.usage()
+        if not self.on_candidate:raise TokenBudgetExceeded('reader_review_checkpoint_unavailable')
+        try:self.on_candidate({'stage':'reader_quality_checkpoint','reader_quality':value})
+        except RuntimeError as error:raise TokenBudgetExceeded('reader_review_checkpoint_unavailable') from error
+
     @property
     def client(self) -> OpenAI:
         if self._client is None:
@@ -690,7 +697,7 @@ Evidence Sources:
                      writing_plan: dict | None,reader_revision:bool=False,
                      organization_findings:dict|None=None,supported_finalization:bool=False,
                      audit_unit_frontier:str|None=None,proposal_reassessment:bool=False,
-                     pending_excerpt_window:int|None=None) -> tuple[str, list[Citation]]:
+                     pending_excerpt_window:int|None=None,retained_requests=()) -> tuple[str, list[Citation]]:
         """Continue only the unfinished audit of an unchanged, retained draft."""
         from app.claim_verification import module_paragraph_kinds, module_scope_layout, research_method_context
         from app.research_context import reading_source_spans
@@ -738,7 +745,10 @@ Evidence Sources:
             try:
                 revision=finalize_supported_report if supported_finalization else revise_reader_report
                 content,self.last_module_report,self.last_audit=revision(content,self.last_module_report,
-                    self.last_audit,**({} if supported_finalization else {'question':user_query,'findings':organization_findings}),
+                    self.last_audit,**({} if supported_finalization else {'question':user_query,'findings':organization_findings,
+                        'reader_options':{'retained_requests':retained_requests,
+                            'retained_reviews':((organization_findings or {}).get('reader_quality'),self.last_audit.get('reader_quality')),
+                            'on_progress':self.retain_reader_quality if self.on_candidate else None}}),
                     configuration=organization_research,statistics=organization_statistics,evidence=evidence_list,
                     client=active_client,model=active_model,budget=self.request_budget,deadline=self.request_budget.deadline,
                     source_spans=located_spans,task_context=method_context,on_candidate=self.retain_candidate,audit_options=audit_options)
