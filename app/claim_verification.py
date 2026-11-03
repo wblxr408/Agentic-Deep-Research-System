@@ -661,13 +661,11 @@ def audit_report(report: str, evidence: list[Evidence], *, client: Any, model: s
             scope_key=identity({'scope':review_scope,'catalogue':catalogue(claims),'model':model,
                 'route':getattr(scope_client,'route_info',None),
                 **({'governance':client.budget.data_governance,'skill_packet':client.skill_packet} if durable else {})})
-            scope_previous=previous_audit
-            if durable and progress['scope_selections'].get(scope_key):
-                scope_previous={**(previous_audit or {}),'scope_selection':progress['scope_selections'][scope_key]}
             def save_scope(value):
                 progress['scope_selections'][scope_key]=deepcopy(value);checkpoint()
-            scope_decisions,scope_selection=select_scope(claims,review_scope,scope_previous,scope_client,model,
-                on_progress=save_scope if durable else None)
+            scope_decisions,scope_selection=select_scope(claims,review_scope,previous_audit,scope_client,model,
+                on_progress=save_scope if durable else None,
+                retained_selection=progress['scope_selections'].get(scope_key) if durable else None)
         else:
             scope_decisions={}
             scope_selection={'policy':review_scope['dependency_policy'],'reason':'scope_dependency_policy_unsupported'}
