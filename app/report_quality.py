@@ -46,6 +46,18 @@ def response_reuse_observation(previous,binding,*,model=None):
         'current_binding':binding,'retained_binding':previous.get('binding')}
 
 
+def saved_reader_response(rows,binding,*,key='binding'):
+    """Select a raw candidate; its consumer still validates the current result."""
+    rows=[row for row in rows if isinstance(row,dict)]
+    matching=[row for row in rows if row.get(key)==binding]
+    # Keep usable raw output ahead of dispatch metadata. Without raw output,
+    # one snapshot's uncertain dispatch must survive another's empty state.
+    return max(matching,key=lambda row:(bool(row.get('raw_response')),
+        bool(row.get('raw_response')) and (row.get('finish_reason') or row.get('global_finish_reason'))=='stop',
+        (row.get('dispatch_status') or row.get('global_dispatch_status')) in {'pending','response_received'}),
+        default=rows[0] if rows else {})
+
+
 def reader_quality_satisfied(record,audit):
     required=(record or {}).get('reader_quality_policy')
     if not required:return True
@@ -168,10 +180,12 @@ def inline_reading_impact(check,*,policy=READER_IMPACT_POLICY):
 
 
 def review_reader_quality(*, question, configuration, record, findings, client, model, budget,
-                          evidence=(),retained_requests=(),on_progress=None,_partition_document=False):
+                          evidence=(),retained_requests=(),retained_reviews=(),on_progress=None,_partition_document=False):
     from app.organization_deep_dive import READING_FIELD_POLICIES,reading_contract_context
     material_policy=configuration.get('reader_material_policy')
     owned=material_policy in MATERIAL_POLICIES
+    previous=(findings or {}).get('reader_quality') or {}
+    candidates=[previous,*[row for row in retained_reviews if isinstance(row,dict)]] if owned else [previous]
     binding_context=None
     if material_policy==MATERIAL_POLICY:
         root_binding=getattr(getattr(budget,'execution_control',None),'binding',None) or {}
@@ -340,7 +354,7 @@ def review_reader_quality(*, question, configuration, record, findings, client, 
                 client=client,model=model,budget=budget,
                 retained=((findings or {}).get('reader_quality') or {}).get('document_review'),
                 report_content_id=base['report_content_id'],on_progress=document_progress if on_progress else None,
-                binding_context=binding_context)
+                binding_context=binding_context,retained_reviews=[row.get('document_review') for row in candidates])
             base['document_review']=document
             base['document_reconciliation_input_id']=identity(global_payload)
             document_prepared=True
@@ -479,9 +493,9 @@ def review_reader_quality(*, question, configuration, record, findings, client, 
             if document_prepared:return {**base,'reason':'reader_document_reconciliation_exceeds_model_context'}
             return review_reader_quality(question=question,configuration=configuration,record=record,findings=findings,
                 client=client,model=model,budget=budget,evidence=evidence,retained_requests=retained_requests,
-                on_progress=on_progress,_partition_document=True)
+                retained_reviews=retained_reviews,on_progress=on_progress,_partition_document=True)
     try:
-        previous=(findings or {}).get('reader_quality') or {}
+        previous=saved_reader_response(candidates,global_binding,key='global_binding' if owned else 'binding')
         previous_global={**previous,'binding':previous.get('global_binding')} if owned else previous
         base['response_reuse']=response_reuse_observation(previous_global,global_binding,model=model)
         if (previous_global.get('binding')==global_binding and previous.get('model')==model
@@ -556,7 +570,8 @@ def review_reader_quality(*, question, configuration, record, findings, client, 
                 checkpoint()
                 return review_reader_quality(question=question,configuration=configuration,record=record,
                     findings={**(findings or {}),'reader_quality':base},client=client,model=model,budget=budget,
-                    evidence=evidence,retained_requests=retained_requests,on_progress=on_progress,_partition_document=True)
+                    evidence=evidence,retained_requests=retained_requests,retained_reviews=candidates,
+                    on_progress=on_progress,_partition_document=True)
         if 'work_coverage' not in result:
             nested=[row['work_coverage'] for row in result.get('checks',[])
                 if row.get('id')=='selection' and isinstance(row.get('work_coverage'),list)]
@@ -665,7 +680,7 @@ def review_reader_quality(*, question, configuration, record, findings, client, 
             impact_binding=identity({'contract':READING_IMPACT_CONTRACT,'report':global_binding if owned else binding,
                 'input':impact_input,'model':model,
                 **({'material_policy':material_policy,'route':getattr(client,'route_info',None)} if owned else {})})
-            saved=previous.get('reading_impact_review') or {}
+            saved=saved_reader_response([row.get('reading_impact_review') for row in candidates],impact_binding)
             impact={'contract':READING_IMPACT_CONTRACT,'binding':impact_binding,
                 **({'validated':False} if owned else {})}
             impact['response_reuse']=response_reuse_observation(saved,impact_binding)
@@ -787,7 +802,7 @@ def review_reader_quality(*, question, configuration, record, findings, client, 
             for entry in entries:
                 name=entry['name'];criterion=entry['criterion'];packet=entry['packet']
                 packet_binding=entry['binding'] if owned else identity({'contract':PACKET_CONTRACT,'part':name,'model':model,'packet':packet})
-                saved=(previous.get('material_reviews') or {}).get(name) or {}
+                saved=saved_reader_response([(row.get('material_reviews') or {}).get(name) for row in candidates],packet_binding)
                 part={'binding':packet_binding,**({'validated':False} if owned else {})}
                 part['response_reuse']=response_reuse_observation(saved,packet_binding)
                 if material_policy==MATERIAL_POLICY:

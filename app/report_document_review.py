@@ -38,7 +38,8 @@ INSTRUCTIONS=(
     'or final reader passes. Keep them concise without deleting decisive conditions.')
 
 
-def prepare_document_review(payload,paragraphs,owners,*,client,model,budget,retained,report_content_id,on_progress,binding_context=None):
+def prepare_document_review(payload,paragraphs,owners,*,client,model,budget,retained,report_content_id,on_progress,binding_context=None,retained_reviews=()):
+    from app.report_quality import saved_reader_response
     aliases={};current={};counts=defaultdict(int);sections=defaultdict(list)
     for key,row in paragraphs.items():
         digest=identity({name:value for name,value in row.items() if name!='id'})
@@ -73,7 +74,10 @@ def prepare_document_review(payload,paragraphs,owners,*,client,model,budget,reta
         for key in keys:groups[identity(aliases[key])[len(prefix)]].append(key)
         for label,group in sorted(groups.items()):partition(group,prefix+label)
     if appendix:partition(appendix,'')
-    old=retained or {}
+    candidates=[retained or {},*[row for row in retained_reviews if isinstance(row,dict)]]
+    current_documents=[row for row in candidates if row.get('report_content_id')==report_content_id]
+    old=next((row for row in current_documents if row.get('context_expansion_used')),
+        current_documents[0] if current_documents else candidates[0])
     state={'policy':DOCUMENT_POLICY,'report_content_id':report_content_id,'status':'incomplete',
         'plan':{'required_bindings':{entry['id']:entry['binding'] for entry in entries},
             'appendix_paragraph_ids':appendix,'input_bytes':{entry['id']:entry['input_bytes'] for entry in entries},
@@ -95,8 +99,9 @@ def prepare_document_review(payload,paragraphs,owners,*,client,model,budget,reta
     observations=[];contexts={};required=set(state.get('requested_paragraph_ids') or [])
     if any(key not in paragraphs for key in required):raise TokenBudgetExceeded('reader_document_context_invalid')
     for entry in entries:
-        prior=state['passes'].get(entry['id']) or {}
+        prior=deepcopy(saved_reader_response([(row.get('passes') or {}).get(entry['id']) for row in candidates],entry['binding']))
         part=prior if prior.get('binding')==entry['binding'] else {'binding':entry['binding']}
+        part['validated']=False;part.pop('reused_response',None)
         part['response_reuse']={'status':'not_reused','reason':'saved_response_pending_revalidation'
             if 'raw_response' in part else 'saved_response_unavailable_or_input_changed'}
         state['passes'][entry['id']]=part

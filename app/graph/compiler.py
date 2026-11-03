@@ -3088,7 +3088,7 @@ async def report_node(state: ResearchState) -> dict:
         paused['organization_result']=organization_result
         return paused
     if org_config.get('reader_quality_policy'):
-        from app.report_quality import review_reader_quality
+        from app.report_quality import review_reader_quality,reader_quality_satisfied
         from app.query_understanding import identity
         def on_reader_progress(value):
             agent.last_usage=agent.request_budget.usage()
@@ -3114,6 +3114,7 @@ async def report_node(state: ResearchState) -> dict:
                     client=agent.client,model=agent.model,budget=agent.request_budget,
                     evidence=state.get('collected_evidence') or [],
                     retained_requests=(state.get('budget_state') or {}).get('model_requests') or [],
+                    retained_reviews=(root_reader,audit_reader),
                     on_progress=on_reader_progress)
             except TokenBudgetExceeded as error:
                 quality={'policy':org_config['reader_quality_policy'],'status':'incomplete','passed':False,'reason':error.reason}
@@ -3150,7 +3151,7 @@ async def report_node(state: ResearchState) -> dict:
                     report=report,citations=citations)
                 paused['organization_result']=organization_result
                 return paused
-        if not quality['passed']:
+        if not quality['passed'] or not reader_quality_satisfied(agent.last_module_report,agent.last_audit):
             paused=_model_budget_pause(state,agent,'report',TokenBudgetExceeded(
                 'reader_quality_needs_revision' if quality['status']=='needs_revision' else 'reader_quality_incomplete'),
                 report=report,citations=citations)
