@@ -53,6 +53,22 @@ def _editor_feedback(quality):
     return result
 
 
+def _editor_request_basis(*,messages,contract,purpose,record,quality,evidence,cited,client,model,budget,temperature):
+    from app.report_material_packets import POLICY as SOURCE_POLICY, source_dependency
+    control=getattr(budget,'execution_control',None)
+    root=control.binding if control is not None else {}
+    governance=getattr(budget,'data_governance',None) or {}
+    return {'policy':'adrs-reader-edit-response-v1','contract':contract,
+        'messages':messages,'model':model,'route':getattr(client,'route_info',None),
+        'purpose':purpose,'temperature':temperature,
+        'original_report':record['raw_model_response'],'document_version':record.get('content_document_version'),
+        'review_binding':quality.get('binding'),'global_binding':quality.get('global_binding'),
+        'root':{key:root.get(key) for key in ('owner_id','session_id')},
+        'governance':{key:governance.get(key) for key in ('version','data_class','max_model_class','policy_id')},
+        'sources':{str(index):source_dependency(source.model_dump(mode='json'),SOURCE_POLICY)
+            for index,source in enumerate(evidence,1) if index in cited}}
+
+
 def _reader_edit_response(*,messages,contract,purpose,output_cap,record,quality,findings,
                           configuration,evidence,cited,client,model,budget,on_candidate,
                           response_stage='reader_revision_response',temperature=.1,
@@ -61,11 +77,16 @@ def _reader_edit_response(*,messages,contract,purpose,output_cap,record,quality,
     control=getattr(budget,'execution_control',None)
     protected=configuration.get('report_material_policy')==REPORT_MATERIAL_POLICY and control is not None
     active=budgeted_client(client,budget,purpose,operation='reader_revision')
+    context_window=(getattr(active,'route_info',None) or {}).get('context_tokens')
+    def available_capacity():
+        remaining=budget.available(purpose)
+        return min(remaining,context_window) if context_window else remaining
     if not protected:
+        capacity=available_capacity()
         if minimum_output:
-            output_cap=min(output_cap,budget.available(purpose)-request_token_bound(messages,response_format={'type':'json_object'}))
+            output_cap=min(output_cap,capacity-request_token_bound(messages,response_format={'type':'json_object'}))
         required=request_token_bound(messages,response_format={'type':'json_object'})+output_cap
-        if (output_cap<minimum_output or budget.available(purpose)<required
+        if (output_cap<minimum_output or capacity<required
                 or budget.available('audit')<required_audit):raise TokenBudgetExceeded('reader_revision_context_budget')
         response=active.chat.completions.create(model=model,messages=messages,temperature=temperature,
             max_tokens=output_cap,response_format={'type':'json_object'})
@@ -78,17 +99,8 @@ def _reader_edit_response(*,messages,contract,purpose,output_cap,record,quality,
     control.check()
     if on_candidate is None:raise TokenBudgetExceeded('reader_revision_checkpoint_unavailable')
     from app.query_understanding import identity
-    from app.report_material_packets import POLICY as SOURCE_POLICY, source_dependency
-    root=control.binding;governance=getattr(budget,'data_governance',None) or {}
-    basis={'policy':'adrs-reader-edit-response-v1','contract':contract,
-        'messages':messages,'model':model,'route':getattr(active,'route_info',None),
-        'purpose':purpose,'temperature':temperature,
-        'original_report':record['raw_model_response'],'document_version':record.get('content_document_version'),
-        'review_binding':quality.get('binding'),'global_binding':quality.get('global_binding'),
-        'root':{key:root.get(key) for key in ('owner_id','session_id')},
-        'governance':{key:governance.get(key) for key in ('version','data_class','max_model_class','policy_id')},
-        'sources':{str(index):source_dependency(source.model_dump(mode='json'),SOURCE_POLICY)
-            for index,source in enumerate(evidence,1) if index in cited}}
+    basis=_editor_request_basis(messages=messages,contract=contract,purpose=purpose,record=record,
+        quality=quality,evidence=evidence,cited=cited,client=active,model=model,budget=budget,temperature=temperature)
     family=identity({**basis,'output_limit':output_cap,'minimum_output':minimum_output,'required_audit':required_audit})
     prior=(findings or {}).get('report_candidate') or {}
     responses=((findings or {}).get('report_editor_sections') or {}).get('responses') or {}
@@ -103,7 +115,7 @@ def _reader_edit_response(*,messages,contract,purpose,output_cap,record,quality,
                 and minimum_output<=original_cap<=output_cap):
             output_cap=original_cap
         else:
-            output_cap=min(output_cap,budget.available(purpose)-request_token_bound(messages,response_format={'type':'json_object'}))
+            output_cap=min(output_cap,available_capacity()-request_token_bound(messages,response_format={'type':'json_object'}))
     base_binding=identity({**basis,'output_tokens':output_cap})
     if saved.get('base_binding',saved.get('binding'))!=base_binding:saved={}
     repair={}
@@ -146,7 +158,8 @@ def _reader_edit_response(*,messages,contract,purpose,output_cap,record,quality,
             and not not_dispatched):
         raise TokenBudgetExceeded('reader_revision_paid_response_unavailable')
     required=request_token_bound(messages,response_format={'type':'json_object'})+output_cap
-    if (output_cap<minimum_output or budget.available(purpose)<required
+    capacity=available_capacity()
+    if (output_cap<minimum_output or capacity<required
             or budget.available('audit')<required_audit):raise TokenBudgetExceeded('reader_revision_context_budget')
     request={'policy':'adrs-reader-edit-response-v1','binding':binding,'contract':contract,
         'content_unit_id':unit,'status':'dispatch_intent','family_binding':family,'output_tokens':output_cap,
@@ -783,8 +796,55 @@ def _revise_reader_structure(record,audit,*,question,findings,configuration,stat
         'explicit research gap for subsequent review, never invented prose. No internal audit/version metadata.'},
         {'role':'user','content':untrusted_context('structural_revision_inputs',raw_payload,limit=len(raw_payload))}]
     retained_contract=findings.get('report_candidate') or {}
-    if (not findings.get('editorial_request') and retained_contract.get('stage')=='structural_revision_contract_rejected'
-            and retained_contract.get('model')==model and retained_contract.get('raw_model_response')):
+    retained_replacement=(not findings.get('editorial_request') and retained_contract.get('stage')=='structural_revision_contract_rejected'
+        and retained_contract.get('model')==model and retained_contract.get('raw_model_response'))
+    if context_policy==EDITOR_CONTEXT_POLICY and not retained_replacement:
+        # Capacity selects execution shape, never research depth or approval.
+        # Once chosen, retain the shape independently of remaining allowance.
+        editor_binding=identity({'policy':'adrs-section-editor-v4','input':payload,'model':model})
+        editor=findings.get('report_editor_sections') or {}
+        saved_editor=json.loads(editor['raw_model_response']) if editor.get('raw_model_response') else {}
+        same_editor=saved_editor.get('binding')==editor_binding
+        mode=saved_editor.get('execution_mode') if same_editor else None
+        if mode not in {'whole','chapters'}:
+            mode='chapters' if same_editor and saved_editor.get('sections') else None
+        original_id=identity(record['raw_model_response'])
+        requests=[(row.get('revision_request') or {}) for row in (editor.get('responses') or {}).values()]
+        requests.append(retained_contract.get('revision_request') or {})
+        prior=[row for row in requests if row.get('original_report_id')==original_id]
+        if mode is None:
+            if any(row.get('contract','').startswith('adrs-section-editor-v4:') for row in prior):mode='chapters'
+            elif any(row.get('contract')=='adrs-structural-editor-v4' for row in prior):
+                whole_basis=_editor_request_basis(messages=messages,contract='adrs-structural-editor-v4',purpose='report',
+                    record=record,quality=audit.get('reader_quality') or {},evidence=evidence,cited=allowed,
+                    client=client,model=model,budget=budget,temperature=.1)
+                whole_family=identity({**whole_basis,'output_limit':16384,'minimum_output':4096,'required_audit':2048})
+                if any(row.get('family_binding')==whole_family for row in prior):mode='whole'
+        admission=(saved_editor.get('admission') or {}) if same_editor else {}
+        if (findings.get('editorial_request') or {}).get('mode')=='coherence':
+            mode='chapters'
+            if not admission:admission={'semantics':'explicit_coherence_request'}
+        if mode is None:
+            bound=request_token_bound(messages,response_format={'type':'json_object'})
+            capacity=budget.available('report')
+            window=(getattr(client,'route_info',None) or {}).get('context_tokens')
+            if window:capacity=min(capacity,window)
+            output_bound=len(json.dumps(draft,ensure_ascii=False,separators=(',',':')).encode('utf-8'))
+            output_room=min(16384,capacity-bound)
+            mode='whole' if max(4096,output_bound)<=output_room else 'chapters'
+            admission={'request_bound':bound,'original_report_byte_bound':output_bound,
+                'available_capacity':capacity,'output_room':max(0,output_room),
+                'semantics':'conservative_request_and_output_capacity_not_research_sufficiency'}
+        if not admission:admission={'semantics':'retained_editor_execution_shape'}
+        partitioned=mode=='chapters'
+        if on_candidate and (not same_editor or saved_editor.get('execution_mode')!=mode):
+            checkpoint={'binding':editor_binding,'context_policy':context_policy,
+                'execution_mode':mode,'sections':saved_editor.get('sections',{}) if same_editor else {},
+                'admission':admission}
+            frozen=json.dumps(checkpoint,ensure_ascii=False)
+            on_candidate(frozen,stage='structural_revision_sections')
+            findings={**findings,'report_editor_sections':{**editor,'raw_model_response':frozen}}
+    if retained_replacement:
         reply=retained_contract['raw_model_response']
     elif partitioned:
         reply=_edit_sections(payload,record,audit,findings,configuration,client,model,budget,
@@ -863,7 +923,8 @@ def _edit_sections(payload,record,audit,findings,configuration,client,model,budg
             sections.setdefault(module['module_id'],{'title':draft['title'],'summary':[],'modules':[module]})
     def save():
         if on_candidate:on_candidate(json.dumps({'binding':binding,'sections':sections,
-            **({'context_policy':context_policy} if slim else {})},ensure_ascii=False),
+            **({'context_policy':context_policy,'execution_mode':'chapters',
+                'admission':saved.get('admission')} if slim else {})},ensure_ascii=False),
             stage='structural_revision_sections')
     def request(section_id,packet,extra):
         if section_id in sections:return sections[section_id]
