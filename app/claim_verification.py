@@ -27,6 +27,7 @@ _CITATION = re.compile(r"\[(?:citation:)?(\d+)\](?!\()")
 AUDIT_CONTRACT_VERSION = 'adrs-claim-support-v7-premise-action-grounding'
 PROPOSAL_REVIEW_CONTRACT = 'adrs-proposal-premise-review-v1'
 ESSENTIAL_REVIEW_POLICY = 'adrs-reader-essential-facts-v1'
+SOURCE_BASIS_POLICY = 'adrs-source-support-basis-v1'
 
 
 def claim_scope_key(row):
@@ -652,6 +653,102 @@ def audit_report(report: str, evidence: list[Evidence], *, client: Any, model: s
     review_scope=deepcopy(review_scope or (previous_audit or {}).get('review_scope'))
     if review_scope and not review_scope.get('question'):
         review_scope['question']=((task_context or {}).get('task-input:request') or {}).get('query')
+    from app.organization_purpose import report_prose
+    from app.claim_scope_dependencies import TRANSFER_POLICY
+    support_transfer=(review_scope or {}).get('dependency_policy')==TRANSFER_POLICY
+    by_id={ev.evidence_id:ev for ev in evidence};source_fingerprints={}
+    support_review_id=identity({'model':model,'route':getattr(client,'route_info',None),'contract':AUDIT_CONTRACT_VERSION,
+        'governance':getattr(getattr(client,'budget',None),'data_governance',None),
+        'skill_packet':getattr(client,'skill_packet',None)}) if support_transfer else None
+    def paragraph_statistics(paragraph):
+        scope = _CITATION.sub('', paragraph).strip()
+        return [item for item in bound_statistics or []
+            if report_prose(item.get('rendered_paragraph', '')).strip()==scope]
+    def source_basis(ids,paragraph):
+        if not ids or any(type(number) is not int or not 1<=number<=len(evidence) for number in ids):return None
+        bindings=[]
+        for number in ids:
+            ev=evidence[number-1]
+            if ev.evidence_id not in source_fingerprints:
+                acquisition=ev.acquisition or {}
+                source_fingerprints[ev.evidence_id]=identity({'content':ev.content,'url':ev.source_url,'title':ev.source_title,
+                    'versions':{key:acquisition.get(key) for key in
+                        ('source_document_id','source_content_version','parse_version_id','coverage')}})
+            bindings.append({'citation_id':number,'evidence_id':ev.evidence_id,'source':source_fingerprints[ev.evidence_id]})
+        statistics=sorted(identity({key:value for key,value in item.items() if key!='rendered_paragraph'})
+            for item in paragraph_statistics(paragraph))
+        return {'policy':SOURCE_BASIS_POLICY,'review':support_review_id,'sources':bindings,'statistics':statistics}
+    def basis_matches(old,ids,paragraph):
+        return not support_transfer or (old.get('source_basis') is not None
+            and old['source_basis']==source_basis(ids,paragraph))
+    def statistics_match(old,row):
+        return old.get('statistic_context')==row.get('statistic_context') or (support_transfer
+            and old.get('support_basis')=='source_excerpt' and basis_matches(old,row['citation_ids'],row['paragraph_context']))
+    def checked_source_current(old):
+        excerpts=old.get('excerpts') or [];checks=old.get('source_checks') or []
+        if not excerpts or not checks:return False
+        for ex in excerpts:
+            source=by_id.get(ex.get('evidence_id'));start,end,number=ex.get('start'),ex.get('end'),ex.get('citation_id')
+            if (not source or type(start) is not int or type(end) is not int or type(number) is not int
+                    or number not in old['citation_ids'] or not 1<=number<=len(evidence) or source is not evidence[number-1]
+                    or not 0<=start<end<=len(source.content) or source.content[start:end]!=ex.get('quote')):return False
+        known={ex['excerpt_id']:ex for ex in excerpts}
+        for check in checks:
+            source=by_id.get(check.get('evidence_id'));start,end=check.get('quote_start'),check.get('quote_end')
+            selected=known.get(check.get('excerpt_id'))
+            if (not check.get('quote_valid') or not selected or selected['evidence_id']!=check.get('evidence_id') or not source
+                    or type(start) is not int or type(end) is not int or not 0<=start<end<=len(source.content)
+                    or not selected['start']<=start<end<=selected['end']
+                    or source.content[start:end]!=check.get('source_quote')):return False
+        return True
+    report_input_id=identity(report) if support_transfer else None
+    unchanged_report=support_transfer and (previous_audit or {}).get('report_input_id')==report_input_id
+    current_keys={claim_scope_key(row) for row in claims} if support_transfer else set()
+    current_by_key={claim_scope_key(row):row for row in claims} if support_transfer else {}
+    old_by_key={claim_scope_key(row):row for row in (previous_audit or {}).get('claims',[])} if support_transfer else {}
+    def previous_premises(old):
+        decision=old.get('scope_decision') or {}
+        queue=list(decision.get('depends_on') or []);seen={claim_scope_key(old)};contexts=[]
+        complete=decision.get('dependencies_complete') is True
+        while queue:
+            key=queue.pop()
+            if key in seen:continue
+            seen.add(key);premise=old_by_key.get(key)
+            if premise is None:return None
+            # Semantic continuity cannot compensate for a changed or unknown
+            # scientific source behind a known old premise.
+            if premise.get('citation_ids') and not basis_matches(
+                    premise,premise['citation_ids'],premise['paragraph_context']):return None
+            if premise.get('support_basis')=='task_method' and (previous_audit or {}).get('task_method_context')!=task_context:return None
+            context={'text':premise['paragraph_context'],'declared_kind':premise.get('declared_kind')}
+            if context not in contexts:contexts.append(context)
+            decision=premise.get('scope_decision') or {}
+            complete=complete and decision.get('dependencies_complete') is True
+            queue.extend(decision.get('depends_on') or [])
+        return contexts,complete
+    support_candidates=[];support_priors={}
+    if (support_transfer and not unchanged_report and (previous_audit or {}).get('audit_contract_version')==AUDIT_CONTRACT_VERSION
+            and previous_audit.get('audit_model')==model and previous_audit.get('review_scope')==review_scope):
+        supported_by_claim={}
+        def signature(row):return (row['text'],tuple(row['citation_ids']),row.get('citation_scope'),row.get('declared_kind'))
+        for old in previous_audit.get('claims',[]):
+            if (old.get('status')=='supported' and old.get('model_verdict')=='supported'
+                    and old.get('support_basis')=='source_excerpt' and _supported_assessment(old) and checked_source_current(old)):
+                supported_by_claim.setdefault(signature(old),[]).append(old)
+        offered_pairs=set()
+        for claim in claims:
+            matches=supported_by_claim.get(signature(claim),[])
+            for old in matches:
+                key=claim_scope_key(claim);pair=(key,claim_scope_key(old))
+                if pair in offered_pairs:continue
+                if not basis_matches(old,claim['citation_ids'],claim['paragraph_context']):continue
+                premises=previous_premises(old)
+                if premises is None:continue
+                offered_pairs.add(pair);support_priors[(key,old['claim_id'])]=old
+                support_candidates.append({'claim_key':key,'prior_claim_id':old['claim_id'],
+                    'previous_paragraph':old['paragraph_context'],'assessment_kind':old['assessment_kind'],
+                    'declared_kind':old.get('declared_kind'),
+                    'previous_premises':premises[0],'premises_complete':premises[1]})
     scope_client=client.with_operation('fact_scope_selection') if isinstance(client,BudgetedClient) else client
     scope_selection=None
     if (review_scope or {}).get('dependency_policy'):
@@ -665,11 +762,41 @@ def audit_report(report: str, evidence: list[Evidence], *, client: Any, model: s
                 progress['scope_selections'][scope_key]=deepcopy(value);checkpoint()
             scope_decisions,scope_selection=select_scope(claims,review_scope,previous_audit,scope_client,model,
                 on_progress=save_scope if durable else None,
-                retained_selection=progress['scope_selections'].get(scope_key) if durable else None)
+                retained_selection=progress['scope_selections'].get(scope_key) if durable else None,
+                support_candidates=support_candidates)
         else:
             scope_decisions={}
             scope_selection={'policy':review_scope['dependency_policy'],'reason':'scope_dependency_policy_unsupported'}
     else:scope_decisions=_review_scope_decisions(claims,review_scope,previous_audit,scope_client,model)
+    def context_unchanged(old):
+        if not support_transfer:return True
+        queue=[claim_scope_key(old)];seen=set()
+        while queue:
+            key=queue.pop()
+            if key in seen:continue
+            seen.add(key);before=old_by_key.get(key);after=current_by_key.get(key)
+            if not before or not after or before.get('declared_kind')!=after.get('declared_kind'):return False
+            prior=before.get('scope_decision') or {};current=scope_decisions.get(key) or {}
+            dependencies=set(prior.get('depends_on') or [])
+            if (not unchanged_report and (prior.get('dependencies_complete') is not True or current.get('dependencies_complete') is not True)
+                    or dependencies!=set(current.get('depends_on') or []) or not dependencies<=current_keys):return False
+            if before.get('citation_ids') and not basis_matches(before,after['citation_ids'],after['paragraph_context']):return False
+            if before.get('support_basis')=='task_method' and (previous_audit or {}).get('task_method_context')!=task_context:return False
+            queue.extend(dependencies-seen)
+        return True
+    def premise_rows(claim):
+        if not support_transfer:return []
+        key=claim_scope_key(claim)
+        queue=list((scope_decisions.get(key) or {}).get('depends_on') or []);seen={key};result=[]
+        while queue:
+            key=queue.pop()
+            if key in seen or key not in current_by_key:continue
+            seen.add(key);result.append(current_by_key[key])
+            queue.extend((scope_decisions.get(key) or {}).get('depends_on') or [])
+        return result
+    def premise_contexts(claim):
+        return list(dict.fromkeys(row['paragraph_context'] for row in premise_rows(claim)
+            if row['paragraph_context']!=claim['paragraph_context']))
     claim_limit = len(claims) if max_claims is None else max(0, max_claims)
     # Semantic judgement reads multilingual claims and retained passages
     # directly. Optional retrieval planning has a small, separate allowance.
@@ -681,12 +808,6 @@ def audit_report(report: str, evidence: list[Evidence], *, client: Any, model: s
             min(1800,(token_budget or 12000)//10),deadline)
     rows = []
     pending = []
-    by_id = {ev.evidence_id: ev for ev in evidence}
-    from app.organization_purpose import report_prose
-    def paragraph_statistics(paragraph):
-        scope = _CITATION.sub('', paragraph).strip()
-        return [item for item in bound_statistics or []
-            if report_prose(item.get('rendered_paragraph', '')).strip()==scope]
     def reuse_key(row):
         return (row['text'],row['paragraph_context'],tuple(row['citation_ids']),
                 row.get('citation_scope'),row.get('declared_kind'))
@@ -703,6 +824,9 @@ def audit_report(report: str, evidence: list[Evidence], *, client: Any, model: s
     if (previous_audit or {}).get('audit_contract_version')==AUDIT_CONTRACT_VERSION and previous_audit.get('audit_model')==model:
         for old in previous_audit.get('claims', []):
             if (scope_decisions.get(claim_scope_key(old)) or {}).get('required') is False:continue
+            if support_transfer and old.get('support_basis')=='source_excerpt' and not basis_matches(
+                    old,old['citation_ids'],old['paragraph_context']):continue
+            if support_transfer and not context_unchanged(old):continue
             supported=(old.get('status')=='supported' and old.get('model_verdict')=='supported'
                     and _supported_assessment(old,method=old.get('support_basis')=='task_method'))
             conservative=(resume_judged and old.get('status') in {'contradicted','unsupported','unverifiable'}
@@ -717,6 +841,7 @@ def audit_report(report: str, evidence: list[Evidence], *, client: Any, model: s
         if scope_decision and scope_decision.get('required') is False:
             prior=next((old for old in (previous_audit or {}).get('claims',[])
                 if claim_scope_key(old)==claim_scope_key(claim)),None)
+            if prior and support_transfer and not context_unchanged(prior):prior=None
             row=deepcopy(prior) if prior else {'status':'not_checked','model_verdict':None,
                 'model_confidence':None,'excerpts':[],'source_checks':[],'human_review_status':'not_reviewed',
                 'reason':'Outside the reader-essential source verification scope'}
@@ -736,7 +861,9 @@ def audit_report(report: str, evidence: list[Evidence], *, client: Any, model: s
             if reuse_key(old)==reuse_key({**claim,'declared_kind':declared_kind})),None)
         compact_pending=bool(pending_excerpt_window and resume_judged and prior_unit
             and prior_unit.get('model_verdict') is None)
-        excerpts = select_excerpts(claim["text"]+" "+retrieval_query, evidence, cited=ids,
+        selection_query=claim["text"]+" "+retrieval_query
+        if support_transfer:selection_query=' '.join([selection_query,*premise_contexts(claim)])
+        excerpts = select_excerpts(selection_query, evidence, cited=ids,
             max_sources=len(ids), window=pending_excerpt_window if compact_pending else 900, windows_per_source=2,
             audit_context=True, source_spans=(paragraph_source_spans or {}).get(claim['paragraph_context'],source_spans)) if ids else []
         for ex in (paragraph_source_context or {}).get(claim['paragraph_context'],[]):
@@ -754,6 +881,8 @@ def audit_report(report: str, evidence: list[Evidence], *, client: Any, model: s
         # literal passages and normal source/statistic checks still apply.
         if (prior_unit and (previous_audit or {}).get('audit_contract_version')==AUDIT_CONTRACT_VERSION
                 and previous_audit.get('audit_model')==model and prior_unit.get('model_verdict') is not None
+                and basis_matches(prior_unit,ids,claim['paragraph_context'])
+                and context_unchanged(prior_unit)
                 and (prior_unit.get('status')=='supported' or resume_judged)
                 and prior_unit.get('excerpts') and all(
                     ex.get('evidence_id') in by_id and type(ex.get('start')) is int and type(ex.get('end')) is int
@@ -769,6 +898,7 @@ def audit_report(report: str, evidence: list[Evidence], *, client: Any, model: s
                "local_retrieval_query": _audit_search_text(claim['text']+' '+retrieval_query),
                "declared_kind": declared_kind, 'allowed_method_ids': method_ids,
                'statistic_context':paragraph_statistics(claim['paragraph_context']),
+               **({'source_basis':source_basis(ids,claim['paragraph_context'])} if support_transfer and ids else {}),
                "reason": "Explicit claim limit" if i >= claim_limit else "Awaiting source support judgement"}
         if reuse_key(row) in prior_proposals:
             old=prior_proposals[reuse_key(row)]
@@ -781,8 +911,16 @@ def audit_report(report: str, evidence: list[Evidence], *, client: Any, model: s
         if scope_decision:row.update(verification_required=True,scope_decision=scope_decision)
         if i < claim_limit and not invalid:
             candidates = reusable.get(reuse_key(row), [])
+            transfer=(scope_selection or {}).get('support_reuse',{}).get(claim_scope_key(claim)) or {}
+            transferred=support_priors.get((claim_scope_key(claim),transfer.get('prior_claim_id')))
+            if transferred and (transferred.get('declared_kind')!=declared_kind or transferred.get('citation_scope')!=claim.get('citation_scope')
+                    or not basis_matches(transferred,ids,claim['paragraph_context'])):transferred=None
+            if transferred:
+                candidates=[*candidates,transferred]
+                excerpts=deepcopy(transferred['excerpts']);row['excerpts']=excerpts
             for position,old in enumerate(candidates):
-                if old.get('excerpts')!=excerpts or old.get('statistic_context')!=row['statistic_context']:
+                transferring=old is transferred
+                if old.get('excerpts')!=excerpts or not statistics_match(old,row):
                     continue
                 if resume_judged and old.get('status')!='supported':
                     # Negative/uncertain decisions remain negative/uncertain; they
@@ -803,6 +941,7 @@ def audit_report(report: str, evidence: list[Evidence], *, client: Any, model: s
                     if key in old:row[key]=deepcopy(old[key])
                 row['verification_reused']=True
                 row['reused_from_claim_id']=old['claim_id']
+                if transferring:row['support_transfer']={**transfer,'semantics':'current_context_equivalence_with_unchanged_source_basis'}
                 if resume_judged:del candidates[position]
                 break
         if row.get('verification_reused'):continue
@@ -813,7 +952,7 @@ def audit_report(report: str, evidence: list[Evidence], *, client: Any, model: s
         prior=previous_audit.get('claims') or []
         same_claims=(len(prior)==len(rows) and all(
             reuse_key(old)==reuse_key(row) and (old.get('model_verdict') is None or old.get('excerpts')==row.get('excerpts'))
-            and old.get('statistic_context')==row.get('statistic_context')
+            and statistics_match(old,row)
             and old.get('allowed_method_ids')==row.get('allowed_method_ids')
             for old,row in zip(prior,rows)))
         judged=sum(1 for old in prior if old.get('model_verdict') is not None
@@ -825,13 +964,27 @@ def audit_report(report: str, evidence: list[Evidence], *, client: Any, model: s
         sources, excerpts, references = shared_passage_payload([
             ex for row in batch for ex in row['excerpts']])
         contexts={row['paragraph_id']:row['paragraph_context'] for row in batch if row.get('paragraph_id')}
+        # Only the batch's own assembled paragraphs authorize statistic
+        # bindings; contextual premises below do not add another permission.
+        scope={_CITATION.sub('',text).strip() for text in contexts.values()}
+        premise_ids={}
+        if support_transfer:
+            context_ids={value:key for key,value in contexts.items()}
+            for row in batch:
+                references_for_claim=[]
+                for text in premise_contexts(row):
+                    if text not in context_ids:
+                        key='premise'+str(len(context_ids)+1)
+                        context_ids[text]=key;contexts[key]=text
+                    references_for_claim.append(context_ids[text])
+                premise_ids[row['claim_id']]=references_for_claim
         # A binding proves only its own assembled paragraph. Sending every
         # report binding in every call repeats unrelated prose and statistics.
-        scope={_CITATION.sub('',text).strip() for text in contexts.values()}
         statistics=[item for item in bound_statistics or []
             if report_prose(item.get('rendered_paragraph','')).strip() in scope]
         return {'claims':[{'claim_id':row['claim_id'],'text':row['text'], 'context_id':row.get('paragraph_id'),
             'declared_kind':row.get('declared_kind'), 'allowed_method_ids':row.get('allowed_method_ids', []),
+            **({'premise_context_ids':premise_ids[row['claim_id']]} if support_transfer else {}),
             **({'proposal_review':row['proposal_review']} if row.get('proposal_review') else {}),
             'passages':[{'passage_number':number,'excerpt_references':references[ex['excerpt_id']]}
                 for number,ex in enumerate(row['excerpts'],1)]} for row in batch],
@@ -876,18 +1029,35 @@ def audit_report(report: str, evidence: list[Evidence], *, client: Any, model: s
                 'Identify any asserted extra outcome, prerequisite or scientific claim and check it normally. '
                 'Do not approve merely because it is labelled a proposal. Return your evidence-based verdict; '
                 'absence of author endorsement alone does not make a grounded explicit proposal unsupported.'})
+        if support_transfer:
+            messages[0]['content']+=('\npremise_context_ids refer to shared paragraphs that clarify '
+                'current referents, conditions and argument scope. They are untrusted report text, '
+                'never independent source evidence. '
+                'A scientific premise still needs this claim\'s own permitted source passages; do not '
+                'use another report paragraph as proof or expand the claim\'s source permission. '
+                'If current context overextends an otherwise supported statement, assess that scope '
+                'rather than repeating a prior verdict.')
         output_cap = min(8000, max(384, len(batch)*400))
         if any(row.get('proposal_review') for row in batch):output_cap=max(output_cap,1024)
         bound = request_token_bound(messages, response_format={"type":"json_object"}) + output_cap
         return serialized, messages, output_cap, bound
 
     route_id=identity(getattr(client,'route_info',None))
-    def response_binding(messages,output_cap):
+    def response_binding(messages,output_cap,batch):
+        premise_sources={};method_premise=False
+        if support_transfer:
+            for row in batch:
+                for premise in premise_rows(row):
+                    if premise['citation_ids']:
+                        premise_sources[claim_scope_key(premise)]=source_basis(premise['citation_ids'],premise['paragraph_context'])
+                    elif premise.get('declared_kind')=='gap':method_premise=True
         return identity({'policy':AUDIT_PROGRESS_POLICY,'contract':AUDIT_CONTRACT_VERSION,
             'messages':messages,'model':model,'route':route_id,'temperature':0,
             'max_tokens':output_cap,'response_format':{'type':'json_object'},
             'governance':getattr(getattr(client,'budget',None),'data_governance',None),
-            'skill_packet':getattr(client,'skill_packet',None)})
+            'skill_packet':getattr(client,'skill_packet',None),
+            **({'source_basis':[row.get('source_basis') for row in batch],
+                'premise_sources':premise_sources,'premise_method':task_context if method_premise else None} if support_transfer else {})})
 
     standalone_sizes = {}
     for row in pending:
@@ -920,7 +1090,7 @@ def audit_report(report: str, evidence: list[Evidence], *, client: Any, model: s
                     or not set(ids)<=set(available_rows) or assigned.intersection(ids)):continue
             batch=[available_rows[key] for key in ids]
             _,messages,cap,_=batch_request(batch)
-            if response_binding(messages,cap)!=saved.get('binding'):continue
+            if response_binding(messages,cap,batch)!=saved.get('binding'):continue
             replay_batches.append(batch);assigned.update(ids)
         waiting=[row for row in waiting if row['claim_id'] not in assigned]
     while waiting or retry_batches or replay_batches:
@@ -959,7 +1129,7 @@ def audit_report(report: str, evidence: list[Evidence], *, client: Any, model: s
             available = client.budget.available('audit') if isinstance(client,BudgetedClient) else (remaining_tokens or 0)
             record.update(payload_characters=len(serialized), reserved_tokens=reservation,
                 available_tokens=available, output_cap=output_cap)
-            binding=response_binding(messages,output_cap) if durable else None
+            binding=response_binding(messages,output_cap,batch) if durable else None
             saved=progress['responses'].get(binding,{}) if durable else {}
             if durable and saved.get('binding')!=binding:saved={}
             if durable:
@@ -1114,6 +1284,8 @@ def audit_report(report: str, evidence: list[Evidence], *, client: Any, model: s
                 'reused_response_batches':sum(row.get('response_reused') is True for row in batch_records)} if durable else {}),
             'task_method_context':deepcopy(task_context) if any(row.get('allowed_method_ids') for row in rows) else None,
             'reused_supported_claims':sum(bool(row.get('verification_reused')) and row['status']=='supported' for row in rows),
+            **({'report_input_id':report_input_id,
+                'context_transferred_supported_claims':sum(bool(row.get('support_transfer')) for row in rows)} if support_transfer else {}),
             'reused_judged_claims':sum(bool(row.get('verification_reused')) for row in rows),
             'newly_checked_claims':sum(row['model_verdict'] is not None and not row.get('verification_reused') for row in rows),
             "human_review_status": "not_reviewed", "total_claims": len(rows),
