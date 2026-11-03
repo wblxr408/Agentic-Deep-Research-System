@@ -17,8 +17,10 @@ CAPACITY_POLICY='adrs-essential-claim-dependencies-v5-capacity-local-fallback'
 COMPACT_POLICY='adrs-essential-claim-dependencies-v6-inline-context'
 PAGED_POLICY='adrs-essential-claim-dependencies-v7-output-pages'
 WINDOW_POLICY='adrs-essential-claim-dependencies-v8-main-appendix-views'
-POLICY=WINDOW_POLICY
-TRANSFER_POLICIES={TRANSFER_POLICY,CAPACITY_POLICY,COMPACT_POLICY,PAGED_POLICY,WINDOW_POLICY}
+CONTEXT_POLICY='adrs-essential-claim-dependencies-v9-context-requests'
+WINDOW_POLICIES={WINDOW_POLICY,CONTEXT_POLICY}
+POLICY=CONTEXT_POLICY
+TRANSFER_POLICIES={TRANSFER_POLICY,CAPACITY_POLICY,COMPACT_POLICY,PAGED_POLICY,*WINDOW_POLICIES}
 SUPPORTED_POLICIES={LEGACY_POLICY,LOCAL_POLICY,IMPACT_POLICY,*TRANSFER_POLICIES}
 MAX_CONTEXT_BYTES=120000
 CATEGORIES={'core','background','implementation_detail','secondary_measurement',
@@ -68,6 +70,19 @@ WINDOW_INSTRUCTION=(
     '"dependencies_complete":true,"reason":"actual consequence and context adequacy"}]}. '
     'Group only targets with the same consequence, context adequacy and dependencies. '
     'Required role or core category requires required=true. No report rewriting or factual approval.')
+CONTEXT_INSTRUCTION=(
+    ' In each decision also return needed_context_ids:["navigation context ID"], using [] when '
+    'no further context is needed. If scope is unresolved specifically because an unseen appendix '
+    'paragraph is needed, identify the precise navigation IDs and explain their necessity in reason. '
+    'The server can supply those COMPLETE existing paragraphs and ask only the affected targets '
+    'again within the same original budget. Do not request already supplied paragraphs, all '
+    'appendices by default, new sources, URLs or files. A nonempty request must keep required=true, '
+    'context_sufficient=false and dependencies_complete=false until those paragraphs are read. '
+    'If more text will not resolve the uncertainty, return [] and keep the concrete unresolved '
+    'reason; do not invent IDs or repeatedly ask for identical input. Request only contexts that '
+    'could change a material reader consequence or premise; shared citations alone are not a '
+    'reason to traverse every reference or build an exhaustive dependency graph. Group targets only when '
+    'the needed contexts and consequence are also the same.')
 
 
 def local_scope_response(response,targets,aliases,retention_groups):
@@ -184,9 +199,9 @@ def select_scope(claims,scope,previous,client,model,*,on_progress=None,retained_
                  support_candidates=None,scope_layout=None):
     budget=getattr(client,'budget',None)
     policy=scope.get('dependency_policy') or POLICY
-    if (policy in {PAGED_POLICY,WINDOW_POLICY} and on_progress is not None
+    if (policy in {PAGED_POLICY,*WINDOW_POLICIES} and on_progress is not None
             and getattr(budget,'execution_control',None) is not None):
-        if policy==WINDOW_POLICY:
+        if policy in WINDOW_POLICIES:
             from app.claim_scope_windows import select_window_scope
             return select_window_scope(claims,scope,previous,client,model,on_progress=on_progress,
                 retained_selection=retained_selection,support_candidates=support_candidates,layout=scope_layout)
@@ -209,7 +224,7 @@ def _select_scope_once(claims,scope,previous,client,model,*,on_progress=None,ret
     policy=scope.get('dependency_policy') or POLICY
     adaptive=policy in {LOCAL_POLICY,IMPACT_POLICY,*TRANSFER_POLICIES}
     incremental=policy in {IMPACT_POLICY,*TRANSFER_POLICIES}
-    resource_aware=policy in {CAPACITY_POLICY,COMPACT_POLICY,PAGED_POLICY,WINDOW_POLICY}
+    resource_aware=policy in {CAPACITY_POLICY,COMPACT_POLICY,PAGED_POLICY,*WINDOW_POLICIES}
     route_id=identity(getattr(client,'route_info',None))
     metadata={'policy':policy,'context_id':context_id,'route_id':route_id,'batches':[],
         'semantics':'review_dependencies_not_source_certification'}
@@ -395,7 +410,7 @@ def _select_scope_once(claims,scope,previous,client,model,*,on_progress=None,ret
                 'repeat unchanged complete premise chains here merely to enumerate cache hits; '
                 'ordinary exact reuse is checked separately by the server.')
         if input_view is not None:
-            instruction=WINDOW_INSTRUCTION
+            instruction=WINDOW_INSTRUCTION+(CONTEXT_INSTRUCTION if policy==CONTEXT_POLICY else '')
             support_instruction=support_instruction.replace('current complete report',
                 'provided complete main and selected appendix contexts')
         if paginate:instruction+=PAGE_INSTRUCTION if input_view is None else PAGE_INSTRUCTION.replace(
@@ -419,7 +434,7 @@ def _select_scope_once(claims,scope,previous,client,model,*,on_progress=None,ret
             if offered_support:configurations.append((False,bool(retention_groups)))
             if retention_groups:configurations.append((False,False))
             variants=[]
-            compact_data=inline_catalogue(supplied) if policy in {COMPACT_POLICY,PAGED_POLICY,WINDOW_POLICY} else None
+            compact_data=inline_catalogue(supplied) if policy in {COMPACT_POLICY,PAGED_POLICY,*WINDOW_POLICIES} else None
             for use_support,use_retention in configurations:
                 packet=dict(payload)
                 if not use_support:
@@ -456,7 +471,7 @@ def _select_scope_once(claims,scope,previous,client,model,*,on_progress=None,ret
                 'request_bound':selected['bound'],'available_capacity':capacity,
                 'support_hints':selected['support'],'retention_hints':selected['retention'],
                 'saved_operation':selected['saved_operation']}
-            if policy in {COMPACT_POLICY,PAGED_POLICY,WINDOW_POLICY}:metadata['admission']['representation']=selected['representation']
+            if policy in {COMPACT_POLICY,PAGED_POLICY,*WINDOW_POLICIES}:metadata['admission']['representation']=selected['representation']
         record={'binding':binding,'claim_keys':[row['claim_key'] for row in pending]}
         if paginate:metadata['current_batch_binding']=binding
         metadata['batches']=[row for row in metadata['batches'] if row.get('binding')!=binding]+[record]
@@ -492,7 +507,23 @@ def _select_scope_once(claims,scope,previous,client,model,*,on_progress=None,ret
             response_data=json.loads(record['raw_response'])
             if input_view is not None:
                 available={row['claim_id'] for row in supplied['claims']}
+                supplied_contexts=set(supplied['contexts'])
+                navigable={row['context_id'] for row in input_view['navigation']}
                 for value in response_data.get('decisions',[]):
+                    if isinstance(value,dict) and policy==CONTEXT_POLICY:
+                        value.pop('context_requests_already_provided',None)
+                        value.pop('context_request_error',None)
+                        needed=value.get('needed_context_ids',[])
+                        addressable=navigable|supplied_contexts
+                        valid=isinstance(needed,list) and all(isinstance(key,str) and key in addressable for key in needed)
+                        known=list(dict.fromkeys(key for key in (needed if isinstance(needed,list) else [])
+                            if isinstance(key,str) and key in addressable))
+                        value['needed_context_ids']=[key for key in known if key not in supplied_contexts]
+                        already=[key for key in known if key in supplied_contexts]
+                        if already:value['context_requests_already_provided']=already
+                        if not valid:value['context_request_error']='invalid_navigation_contexts'
+                        if not valid or value['needed_context_ids']:
+                            value.update(required=True,role='required',dependencies_complete=False,context_sufficient=False)
                     if isinstance(value,dict) and (value.get('context_sufficient') is not True
                             or not isinstance(value.get('depends_on'),list)
                             or any(not isinstance(alias,str) or alias not in available for alias in value['depends_on'])):

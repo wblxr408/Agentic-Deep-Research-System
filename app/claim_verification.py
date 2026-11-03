@@ -776,12 +776,12 @@ def audit_report(report: str, evidence: list[Evidence], *, client: Any, model: s
     scope_client=client.with_operation('fact_scope_selection') if isinstance(client,BudgetedClient) else client
     scope_selection=None
     if (review_scope or {}).get('dependency_policy'):
-        from app.claim_scope_dependencies import SUPPORTED_POLICIES as DEPENDENCY_POLICIES,WINDOW_POLICY,select_scope
+        from app.claim_scope_dependencies import SUPPORTED_POLICIES as DEPENDENCY_POLICIES,WINDOW_POLICIES,select_scope
         if review_scope.get('policy')==ESSENTIAL_REVIEW_POLICY and review_scope['dependency_policy'] in DEPENDENCY_POLICIES:
             from app.claim_scope_dependencies import catalogue
             scope_key=identity({'scope':review_scope,'catalogue':catalogue(claims),'model':model,
                 'route':getattr(scope_client,'route_info',None),
-                **({'scope_layout':identity(scope_layout)} if review_scope['dependency_policy']==WINDOW_POLICY else {}),
+                **({'scope_layout':identity(scope_layout)} if review_scope['dependency_policy'] in WINDOW_POLICIES else {}),
                 **({'governance':client.budget.data_governance,'skill_packet':client.skill_packet} if durable else {})})
             def save_scope(value):
                 progress['scope_selections'][scope_key]=deepcopy(value);checkpoint()
