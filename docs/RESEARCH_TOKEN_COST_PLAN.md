@@ -40,7 +40,7 @@
 
 原根 `35225435-0693-49e5-853b-43de0aff43a9` 的最终记录为 6,092,491／6,100,000 Token、53／142 次工具调用，正文必核250／250、读者8标准、PDF图文66／66必核已完成。依据为 `outputs/quality-e2e-20261101-runtime/final-acceptance.json` 及 `docs/acceptance/research-quality-e2e-20261030.md`。这包含多次开发修复、合同调整和恢复，不能直接作为一次正常生产研究的成本基线，不能把全部消费归为冗余。
 
-本轮源码审阅确认以下差量；没有通过付费重放测量节省量。
+2026-11-01首次源码定位如下，部分问题已在后续提交修复；当前实现状态见顶部及原tasks，不能把下表当作全部待重新开发。没有通过付费重放测量节省量。
 
 | 路径 | 已有能力／实际问题 | 处理 |
 |---|---|---|
@@ -53,6 +53,33 @@
 | `app/llm_adapters.py` | Anthropic适配器只抽取input／output，未保留cache read／creation；额外参数没有传入请求体 | 支持对应端点时显式传递，统一usage语义；启用缓存前先修计量，不能假定兼容接口自动支持 |
 
 最后一项意味着，若后续供应方启用缓存，既要防止费用估算把缓存输入一律按普通价格计算，也要防止适配器遗漏单独报告的缓存Token。是否影响历史600万须看当时实际供应方收据，不能由源码反推。
+
+### 1.1 现存账本的可归因范围（2026-11-03只读分析）
+
+本轮直接读取`outputs/quality-e2e-20261101-runtime/session.json`：session为`ab356170-70a2-49d3-bcca-c18f828654ea`，中间execution为`f3404719-e4a7-4895-b9ed-dd8e8aad45bd`，checkpoint_seq=360、status=paused，账本累计5,585,578 Token。该文件不是最终6,092,491的完整收据快照；不能把两个时点混为一份分母。
+
+| 该中间快照的结算请求 | 笔数 | 输入Token | 输出Token | 合计Token |
+|---|---:|---:|---:|---:|
+| Planner | 2 | 11,052 | 1,205 | 12,257 |
+| Analyst | 30 | 356,580 | 34,129 | 390,709 |
+| Reflection | 1 | 14,611 | 1,210 | 15,821 |
+| Report用途 | 94 | 2,023,684 | 184,998 | 2,208,682 |
+| Audit用途 | 150 | 2,358,042 | 245,266 | 2,603,308 |
+| 已结算合计 | 277 | 4,763,969 | 466,808 | 5,230,777 |
+
+277笔均标estimated=false。另有3笔unknown、354,801 Token计入当时累计，及1笔inflight预占78,817 Token未再叠入该累计。所有281笔有不同call_id，但全部缺operation和content_unit_id。按此快照已结算分母，Report加Audit占91.99%，输入占91.08%；这支持优先查写审输入与反复修订，**不证明上述比例都是浪费**。
+
+`final-acceptance.json`确认同session最终execution `35225435-0693-49e5-853b-43de0aff43a9`累计6,092,491；`live-delivery-progress.json`及`live-progress.json`各仅保留1行请求摘要，不能据它们补造缺失的最终逐操作明细。历史重复写作、必要补证、恢复及开发返工的精确比例目前未知；无单元ID不能解读为重复数为零，反复更换审核合同的旧结果也不能倒推为本次缓存命中。
+
+### 1.2 沿现有收据补操作归属
+
+现有`BudgetedClient`已记录operation／content_unit_id，数据库沿call_id结算并绑定owner／session／execution，运行账本原投影直接展示它们。本批只补缺失消费者，不新增计量模块或状态字段：
+
+- Analyst沿原workflow、phase key与phase_input_binding形成工作单元，原抽取／问题调用与后续phase尝试分别记analysis_extraction／analysis_question及相应_retry操作。已完成phase原样复用时不造新请求收据。
+- 主请求进入通用备用模型分支时，保留原operation／content_unit_id和Skill标记，仍使用同一预算及备用模型实际路由；两笔call_id与各自实际／未知费用分别保留。
+- 需要模型的原图页面解说、图文单元修订分别记source_page_explanation／surface_revision，使用原packet绑定或实际messages身份；直接复用原已审正文／图资产的路径不生成虚构调用。
+
+工作单元标识用于定位同一工作的多次请求，不是严格相同消息证明、重试许可或浪费标签。phase重试可能是首次派发前失败后的尝试、补证或能力调整；须结合实际请求／来源／模型／状态判断。原根额度、机会、科学消息、输出限额、phase完成与付费恢复合同均保持。历史收据不补造归属。本批仅源码／调用链审阅与已有账本数据分析，未运行模型、测试或恢复重放，没有实测降本。
 
 ## 2. 公开实践与本项目选择
 

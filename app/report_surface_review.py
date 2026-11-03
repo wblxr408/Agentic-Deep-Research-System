@@ -248,7 +248,8 @@ def repair_table_cells(view,review,*,client,model,budget,on_candidate,media=None
         'Return JSON {"cells":[{"cell_id":"supplied ID","text":"corrected cell or explanation"}]}, '
         'exactly once for each supplied cell. Earlier audit reasons are diagnostics, not source facts.'},
         {'role':'user','content':untrusted_context('surface_repairs',payload,limit=len(payload))}]
-    response=budgeted_client(client,budget,'report').chat.completions.create(model=model,messages=messages,
+    response=budgeted_client(client,budget,'report',operation='surface_revision',
+        content_unit_id='surface-repair:'+identity(messages)).chat.completions.create(model=model,messages=messages,
         temperature=.1,max_tokens=4096,response_format={'type':'json_object'})
     choice=response.choices[0] if response.choices else None
     if choice is None:return None

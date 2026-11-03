@@ -113,7 +113,8 @@ def explain_source_pages(media,record,evidence,*,question,client,model,budget,on
                 {'role':'user','content':untrusted_context('original_page_explanation',raw,limit=len(raw))}]
             if request_token_bound(messages,response_format={'type':'json_object'})+1024>budget.available('report'):
                 raise TokenBudgetExceeded('source_page_explanation_original_allowance_insufficient')
-            response=budgeted_client(client,budget,'report').chat.completions.create(model=model,messages=messages,
+            response=budgeted_client(client,budget,'report',operation='source_page_explanation',
+                content_unit_id='source-page:'+packet_binding).chat.completions.create(model=model,messages=messages,
                 temperature=.1,max_tokens=1024,response_format={'type':'json_object'})
             calls+=1;choice=response.choices[0] if response.choices else None
             reply=choice.message.content or '' if choice else ''

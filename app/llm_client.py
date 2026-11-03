@@ -166,7 +166,9 @@ def call_chat_with_fallback(
             raise
         fallback_client, fallback_model = fallback
         if isinstance(primary_client, BudgetedClient):
-            fallback_client = BudgetedClient(fallback_client,primary_client.budget,primary_client.purpose,skill_packet=primary_client.skill_packet)
+            fallback_client = BudgetedClient(fallback_client,primary_client.budget,primary_client.purpose,
+                skill_packet=primary_client.skill_packet,operation=primary_client.operation,
+                content_unit_id=primary_client.content_unit_id)
         logger.warning("Primary LLM request failed before response; using fallback: %s", type(primary_error).__name__)
         return fallback_client.chat.completions.create(model=fallback_model, **kwargs), fallback_model, True
 

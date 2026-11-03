@@ -211,8 +211,12 @@ Return JSON with analysis_text and any additional fields explicitly required bel
                 assigned=output_allowance(phase_config,kind,self.phase_repair,
                     (workflow.get('recovery_counts') or {}).get(key) or {})
                 if assigned is not None:output_tokens=assigned
+                # Group phase work in receipts; the original checkpoint still
+                # owns reuse. A later attempt is not inherently wasted work.
                 text=self.analyze(user_query,evidence_list,skill_prompt,analyst_hints,phase_config,
-                    _phase=kind,_seed=seed,_output_tokens=output_tokens)
+                    _phase=kind,_seed=seed,_output_tokens=output_tokens,
+                    _request_operation='analysis_'+kind+('_retry' if attempts else ''),
+                    _content_unit_id='analysis:'+key+':'+identity({'workflow':binding,'phase_input':seed_binding}))
                 record={'analysis_text':text,'organization_data':deepcopy(self.last_organization_data or {}),
                     'context':deepcopy(self.last_context_manifest),'extraction':deepcopy(self.last_extraction_status),
                     'phase_input_binding':seed_binding}
@@ -647,6 +651,7 @@ Return JSON with analysis_text and any additional fields explicitly required bel
         *, resume_state: dict | None = None, on_progress: Callable[[dict], None] | None = None,
         _phase: str | None = None, _seed: dict | None = None,
         _output_tokens: int = 4096,
+        _request_operation: str | None = None, _content_unit_id: str | None = None,
     ) -> str:
         """
         Generate analysis from collected evidence.
@@ -837,6 +842,8 @@ Collected Evidence:
         # Resolve the permitted context capacity before packing optional text.
         # This constructs a client but does not dispatch a model request.
         active_client=skill_context_client(self.client) if skill_prompt else self.client
+        if _content_unit_id and hasattr(active_client,'with_operation'):
+            active_client=active_client.with_operation(_request_operation,content_unit_id=_content_unit_id)
         if seed_manifest is not None:self.last_context_manifest={'publication_seed':seed_manifest}
         messages, self.last_context_manifest = fit_messages(build_messages, self.request_budget,
             'research', _output_tokens, max_bytes=int(repair.get('max_bytes') or (
