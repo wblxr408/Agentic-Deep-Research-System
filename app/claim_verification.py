@@ -649,6 +649,7 @@ def audit_report(report: str, evidence: list[Evidence], *, client: Any, model: s
                  scope_layout: dict | None = None,
                  task_context: dict | None = None,
                  previous_audit: dict | None = None, source_spans: dict | None = None,
+                 support_audits=(),
                  paragraph_source_spans: dict | None = None,
                  paragraph_source_context: dict | None = None,
                  proposal_reassessment: bool = False,
@@ -730,46 +731,57 @@ def audit_report(report: str, evidence: list[Evidence], *, client: Any, model: s
     current_keys={claim_scope_key(row) for row in claims} if support_transfer else set()
     current_by_key={claim_scope_key(row):row for row in claims} if support_transfer else {}
     old_by_key={claim_scope_key(row):row for row in (previous_audit or {}).get('claims',[])} if support_transfer else {}
-    def previous_premises(old):
+    def previous_premises(old,prior_by_key,method_context):
         decision=old.get('scope_decision') or {}
         queue=list(decision.get('depends_on') or []);seen={claim_scope_key(old)};contexts=[]
         complete=decision.get('dependencies_complete') is True
         while queue:
             key=queue.pop()
             if key in seen:continue
-            seen.add(key);premise=old_by_key.get(key)
+            seen.add(key);premise=prior_by_key.get(key)
             if premise is None:return None
             # Semantic continuity cannot compensate for a changed or unknown
             # scientific source behind a known old premise.
             if premise.get('citation_ids') and not basis_matches(
                     premise,premise['citation_ids'],premise['paragraph_context']):return None
-            if premise.get('support_basis')=='task_method' and (previous_audit or {}).get('task_method_context')!=task_context:return None
+            if premise.get('support_basis')=='task_method' and method_context!=task_context:return None
             context={'text':premise['paragraph_context'],'declared_kind':premise.get('declared_kind')}
             if context not in contexts:contexts.append(context)
             decision=premise.get('scope_decision') or {}
             complete=complete and decision.get('dependencies_complete') is True
             queue.extend(decision.get('depends_on') or [])
         return contexts,complete
-    support_candidates=[];support_priors={}
-    if (support_transfer and not unchanged_report and (previous_audit or {}).get('audit_contract_version')==AUDIT_CONTRACT_VERSION
-            and previous_audit.get('audit_model')==model and previous_audit.get('review_scope')==review_scope):
+    support_candidates=[];support_priors={};support_origins={}
+    if support_transfer and not unchanged_report:
         supported_by_claim={}
         def signature(row):return (row['text'],tuple(row['citation_ids']),row.get('citation_scope'),row.get('declared_kind'))
-        for old in previous_audit.get('claims',[]):
-            if (old.get('status')=='supported' and old.get('model_verdict')=='supported'
-                    and old.get('support_basis')=='source_excerpt' and _supported_assessment(old) and checked_source_current(old)):
-                supported_by_claim.setdefault(signature(old),[]).append(old)
+        sources=[(previous_audit,False)]
+        # Supplemental audits offer positive candidates only; they never replace
+        # this report's scope, paid-response progress or exact-resume snapshot.
+        if isinstance(client,BudgetedClient) and client.budget.execution_control is not None:
+            sources.extend((source,True) for source in support_audits if isinstance(source,dict)
+                and isinstance(source.get('report_input_id'),str) and source['report_input_id'])
+        for source,donor in sources:
+            if (not source or source.get('audit_contract_version')!=AUDIT_CONTRACT_VERSION
+                    or source.get('audit_model')!=model or source.get('review_scope')!=review_scope):continue
+            prior_by_key={claim_scope_key(row):row for row in source.get('claims',[])}
+            for old in source.get('claims',[]):
+                if (old.get('status')=='supported' and old.get('model_verdict')=='supported'
+                        and old.get('support_basis')=='source_excerpt' and _supported_assessment(old) and checked_source_current(old)):
+                    supported_by_claim.setdefault(signature(old),[]).append((old,source,prior_by_key,donor))
         offered_pairs=set()
         for claim in claims:
             matches=supported_by_claim.get(signature(claim),[])
-            for old in matches:
+            for old,source,prior_by_key,donor in matches:
                 key=claim_scope_key(claim);pair=(key,claim_scope_key(old))
                 if pair in offered_pairs:continue
                 if not basis_matches(old,claim['citation_ids'],claim['paragraph_context']):continue
-                premises=previous_premises(old)
+                premises=previous_premises(old,prior_by_key,source.get('task_method_context'))
                 if premises is None:continue
-                offered_pairs.add(pair);support_priors[(key,old['claim_id'])]=old
-                support_candidates.append({'claim_key':key,'prior_claim_id':old['claim_id'],
+                prior_id=('support:'+identity({'report':source['report_input_id'],'claim':pair[1],'id':old['claim_id']})) if donor else old['claim_id']
+                offered_pairs.add(pair);support_priors[(key,prior_id)]=old
+                if donor:support_origins[(key,prior_id)]=source['report_input_id']
+                support_candidates.append({'claim_key':key,'prior_claim_id':prior_id,
                     'previous_paragraph':old['paragraph_context'],'assessment_kind':old['assessment_kind'],
                     'declared_kind':old.get('declared_kind'),
                     'previous_premises':premises[0],'premises_complete':premises[1]})
@@ -966,7 +978,10 @@ def audit_report(report: str, evidence: list[Evidence], *, client: Any, model: s
                     if key in old:row[key]=deepcopy(old[key])
                 row['verification_reused']=True
                 row['reused_from_claim_id']=old['claim_id']
-                if transferring:row['support_transfer']={**transfer,'semantics':'current_context_equivalence_with_unchanged_source_basis'}
+                if transferring:
+                    row['support_transfer']={**transfer,'semantics':'current_context_equivalence_with_unchanged_source_basis'}
+                    origin=support_origins.get((claim_scope_key(claim),transfer.get('prior_claim_id')))
+                    if origin:row['support_transfer']['prior_report_input_id']=origin
                 if resume_judged:del candidates[position]
                 break
         if row.get('verification_reused'):continue

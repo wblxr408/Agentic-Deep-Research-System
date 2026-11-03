@@ -199,14 +199,17 @@ def review_surfaces(view,media,evidence,*,statistics,client,model,budget,source_
                         located[evidence_id]=[('original_page',start,end)]
             if paragraph and located and not exact_context:page_spans[paragraph]=located
     prior=(previous or {}).get('claim_audit')
-    if retained_claims:
+    from app.claim_scope_dependencies import TRANSFER_POLICIES
+    support_audits=(report_audit,) if report_audit and getattr(budget,'execution_control',None) is not None else ()
+    if retained_claims and not (support_audits and (review_scope or {}).get('dependency_policy') in TRANSFER_POLICIES):
         prior={**(prior or {}),'claims':[*((prior or {}).get('claims') or []),*retained_claims],
             'audit_contract_version':report_audit.get('audit_contract_version'),
             'audit_model':report_audit.get('audit_model')}
     audit=audit_report('\n\n'.join(paragraphs),evidence,
         client=budgeted_client(client,budget,'audit'),model=model,token_budget=budget.available('audit'),
         deadline=budget.deadline,source_spans=source_spans,paragraph_source_spans=page_spans,
-        previous_audit=prior,review_scope=review_scope,paragraph_kinds=retained_contexts) if paragraphs else None
+        previous_audit=prior,support_audits=support_audits,
+        review_scope=review_scope,paragraph_kinds=retained_contexts) if paragraphs else None
     passed=not issues and (audit is None or not audit.get('needs_review',True)
         and not audit.get('audit_incomplete') and not audit.get('budget_incomplete'))
     return {'policy':POLICY,'binding':surface_binding(charts,media,view.get('visual_requirements')),'passed':passed,
