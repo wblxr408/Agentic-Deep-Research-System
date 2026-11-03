@@ -2895,7 +2895,26 @@ async def report_node(state: ResearchState) -> dict:
                 'input_binding':candidate_input_binding({**state,'organization_result':organization_result})}
             record={**(organization_result or {}),'report_candidate':candidate}
         if candidate.get('stage')=='structural_revision_sections':
-            record['report_editor_sections']=candidate
+            record['report_editor_sections']={**candidate,
+                'responses':((organization_result or {}).get('report_editor_sections') or {}).get('responses') or {}}
+        if candidate.get('revision_request'):
+            from app.query_understanding import identity
+            request=candidate['revision_request']
+            originals=[agent.last_module_report or {},
+                ((organization_result or {}).get('report_candidate_draft') or {}).get('module_report') or {}]
+            if (request.get('policy')!='adrs-reader-edit-response-v1'
+                    or not isinstance(request.get('binding'),str) or not request['binding']
+                    or request.get('content_unit_id')!='reader-revision:'+request['binding']
+                    or request.get('original_report_id') not in {
+                        identity(draft['raw_model_response']) for draft in originals if draft.get('raw_model_response')}):
+                raise RuntimeError('reader_revision_checkpoint_report_changed')
+            editor=record.get('report_editor_sections') or {}
+            # Keep paid responses alongside the existing validated sections,
+            # rather than stranding them when another editor step saves output.
+            record['report_editor_sections']={**editor,'responses':{
+                **(editor.get('responses') or {}),request['binding']:{
+                    'raw_model_response':candidate.get('raw_model_response'),
+                    'revision_request':request,'model':candidate.get('model')}}}
         if str(candidate.get('stage','')).startswith('writing_section:'):
             section_id=candidate['stage'].removeprefix('writing_section:')
             record['report_section_drafts']={**record.get('report_section_drafts',{}),section_id:candidate}
