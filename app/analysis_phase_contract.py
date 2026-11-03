@@ -75,11 +75,11 @@ def instructions(configuration, phase, seed=None):
         from app.organization_deep_dive import FIELDS
         organization['technical_cards'][0]['fields']={field:{'text':'the source-supported requested field',
             'proofs':[{'passage_id':'CURRENT ID'}]} for field in seed['reading_focus'] if field in FIELDS}
-    from app.organization_deep_dive import READING_FIELD_POLICY,READING_PROFILES,required_reading_fields
+    from app.organization_deep_dive import READING_FIELD_POLICY,READING_FIELD_POLICIES,READING_PROFILES,required_reading_fields
     reading_contract=''
     mechanism_instruction=''
-    from app.report_mechanisms import POLICY as MECHANISM_POLICY
-    if (policy['phase']=='deep_dive' and configuration.get('mechanism_graph_policy')==MECHANISM_POLICY
+    from app.report_mechanisms import POLICY as MECHANISM_POLICY,SUPPORTED_POLICIES as MECHANISM_POLICIES
+    if (policy['phase']=='deep_dive' and configuration.get('mechanism_graph_policy') in MECHANISM_POLICIES
             and (not (seed or {}).get('reading_focus') or 'mechanism' in seed['reading_focus'])):
         organization['technical_cards'][0]['mechanism_graph']={'status':'available|original_figure|insufficient_evidence',
             'reason':'source gap when unavailable','figure_label':None,'nodes':[{'node_id':'component-1','label':'source component name',
@@ -102,7 +102,18 @@ def instructions(configuration, phase, seed=None):
             'paper\'s architecture. No invented components, connections, temporal succession or performance. '
             'When unsupported return status=insufficient_evidence, a specific reason, nodes=[] and edges=[]. '
             'Do not duplicate this graph as prose or start another extraction.\n')
-    if policy['phase']=='deep_dive' and configuration.get('reading_field_policy')==READING_FIELD_POLICY:
+        if configuration.get('mechanism_graph_policy')==MECHANISM_POLICY:
+            organization['technical_cards'][0]['mechanism_graph']['required']=True
+            organization['technical_cards'][0]['mechanism_graph']['status']+='|not_needed'
+            mechanism_instruction+=(' In this SAME response first decide whether a mechanism/architecture '
+                'figure is necessary for the actual question and proposed argument. Set required=true '
+                'or false, with the specific reader purpose in reason; profile and main/appendix '
+                'placement are not necessity rules. Preserve explicit user figure requirements. '
+                'If unnecessary use status=not_needed, required=false, nodes=[], edges=[] and '
+                'figure_label=null; do not extract an unused graph. If necessary but unsupported '
+                'use insufficient_evidence with required=true and a source gap. This necessity '
+                'decision is a planning judgment, never proof of any component or relation.\n')
+    if policy['phase']=='deep_dive' and configuration.get('reading_field_policy') in READING_FIELD_POLICIES:
         card=organization['technical_cards'][0]
         card['reading_contract']={'profile':'empirical|theoretical|synthesis|unknown',
             'reason':'why this profile and these fields serve the reader question',
@@ -123,6 +134,22 @@ def instructions(configuration, phase, seed=None):
             'follow-up serves only missing_fields_by_output for each assigned ID; its reading_focus is a '
             'batch union, not permission to require every field from every paper. A located contract is '
             'retained across follow-ups; do not drop its required fields by changing profile or scope.\n')
+        if configuration.get('reading_field_policy')==READING_FIELD_POLICY:
+            card['reading_contract']['required_fields']=['mechanism','conditions','results']
+            reading_contract=('\nIn this SAME reading response choose required_fields for each ASSIGNED '
+                'paper from the allowed technical field names, based on the actual reader question '
+                'and the supplied original passages. Profile is descriptive, not a fixed field set. '
+                'Give a specific reason and located basis; choose at least one useful field. '
+                'Explicit owner-required fields always remain required: '+json.dumps(configuration.get('required_reading_fields') or [])+
+                '. Supply already supported needed fields in this first response, rather than '
+                'reserving conditions or results for another call. Keep compact source-grounded '
+                'fields; do not invent unavailable content. A follow-up may revise system-inferred '
+                'fields or profile upward or downward when current passages justify it; explain '
+                'why in reason and provide its source basis. Do not drop a still-needed condition '
+                'or counterexample merely to avoid a gap. Prior plans are observations, not orders. '
+                'Changing a plan does not establish that an unread field was read, or that omitted '
+                'passages have no results. Targeted reading_focus is a batch union, not a command '
+                'to fill every field for every paper. No extra planning call is needed.\n')
     reading_contract+=mechanism_instruction
     shape={'analysis_text':'one concise lead, at most four sentences','organization_data':organization}
     if policy['judgments']:shape['research_judgments']=[]

@@ -60,14 +60,15 @@ def review_surfaces(view,media,evidence,*,statistics,client,model,budget,source_
         if original!=requirement.get('original_reference'):
             issues.append({'location':requirement['requirement_id'],'reason':'mechanism_original_binding_changed'});continue
         mechanism_statement(requirement['source_claim'],requirement['citation_ids'],[original['proof']],requirement['requirement_id'])
+    from app.report_mechanisms import SUPPORTED_POLICIES as MECHANISM_POLICIES
     for chart in charts:
         key=chart['chart_id']
-        if chart.get('mechanism_policy')=='adrs-source-mechanism-graph-v1':
+        if chart.get('mechanism_policy') in MECHANISM_POLICIES:
             from app.report_mechanisms import RELATIONS
             card=next((row for row in ((findings or {}).get('technical_reading') or {}).get('cards',[])
                 if row['output_id']==chart['output_id']),{})
             graph=card.get('mechanism_graph') or {};nodes={row['id']:row for row in chart['nodes']}
-            if (graph.get('status')!='source_located_requires_semantic_review'
+            if (graph.get('policy')!=chart['mechanism_policy'] or graph.get('status')!='source_located_requires_semantic_review'
                     or [{key:row[key] for key in ('id','label','proofs')} for row in chart['nodes']]!=graph.get('nodes')
                     or [{key:row[key] for key in ('source','target','relation','label','proofs')} for row in chart['edges']]!=graph.get('edges')):
                 issues.append({'location':key,'reason':'mechanism_graph_binding_changed'});continue

@@ -10,14 +10,16 @@ from urllib.parse import quote
 from pydantic import Field
 from app.research_scope import Identifier, ScopeRecord
 from app.organization_relationships import RelationProof
-from app.report_mechanisms import POLICY as MECHANISM_POLICY,MechanismProposal,locate_graph
+from app.report_mechanisms import POLICY as MECHANISM_POLICY,SUPPORTED_POLICIES as MECHANISM_POLICIES,MechanismProposal,locate_graph
 
 VERSION='adrs-technical-cards-v1'
 FIELDS={'problem':'研究问题','prior_limitations':'已有方法局限','method_overview':'方法概览','mechanism':'机制／架构',
     'innovation':'创新主张','experimental_design':'实验设计','baselines':'对照基线','conditions':'适用／复现条件',
     'results':'来源报告的结果','limitations':'结果边界与局限'}
 FieldName=Literal['problem','prior_limitations','method_overview','mechanism','innovation','experimental_design','baselines','conditions','results','limitations']
-READING_FIELD_POLICY='adrs-question-reading-fields-v1'
+LEGACY_READING_FIELD_POLICY='adrs-question-reading-fields-v1'
+READING_FIELD_POLICY='adrs-question-reading-fields-v2-revisable'
+READING_FIELD_POLICIES={LEGACY_READING_FIELD_POLICY,READING_FIELD_POLICY}
 READING_PROFILES={
     'unknown':('mechanism','experimental_design','baselines','conditions','results'),
     'empirical':('mechanism','experimental_design','baselines','conditions','results'),
@@ -31,25 +33,39 @@ class ReadingContractProposal(ScopeRecord):
     reason:str=Field(min_length=3,max_length=500)
     basis:tuple[RelationProof,...]=Field(default=(),max_length=3)
     additional_required_fields:tuple[FieldName,...]=Field(default=(),max_length=10)
+    required_fields:tuple[FieldName,...]|None=Field(default=None,min_length=1,max_length=10)
 
 
 def required_reading_fields(configuration,reading_contract=None):
     """A source-located reading plan narrows acquisition, never fact verification."""
-    if (configuration or {}).get('reading_field_policy')!=READING_FIELD_POLICY:
+    policy=(configuration or {}).get('reading_field_policy')
+    if policy not in READING_FIELD_POLICIES:
         from app.analysis_phase_contract import enabled
         return [*(['mechanism'] if enabled(configuration) else []),'experimental_design','baselines','conditions','results']
     current=reading_contract or {}
     proposal=current.get('proposal') or {}
-    valid=current.get('policy')==READING_FIELD_POLICY and current.get('status')=='source_located_planning_judgment'
+    valid=current.get('policy')==policy and current.get('status')=='source_located_planning_judgment'
     profile=proposal.get('profile','unknown') if valid else 'unknown'
     additional=(proposal.get('additional_required_fields') or []) if valid else []
-    return list(dict.fromkeys([*READING_PROFILES.get(profile,READING_PROFILES['unknown']),
+    selected=(proposal.get('required_fields') if valid and policy==READING_FIELD_POLICY else None)
+    return list(dict.fromkeys([*(selected if selected is not None else READING_PROFILES.get(profile,READING_PROFILES['unknown'])),
         *((configuration or {}).get('required_reading_fields') or []),
         *additional]))
 
 
-def retain_reading_contract(previous,candidate):
-    """A condition follow-up cannot silently relax an already located plan."""
+def retain_reading_contract(previous,candidate,configuration=None):
+    """Reassess inferred fields with located reasons; preserve explicit requirements."""
+    if ((configuration or {}).get('reading_field_policy')==READING_FIELD_POLICY
+            and (candidate or {}).get('policy')==READING_FIELD_POLICY
+            and candidate.get('status')=='source_located_planning_judgment'
+            and candidate.get('basis') and str(candidate.get('reason') or '').strip()):
+        from copy import deepcopy
+        chosen=deepcopy(candidate)
+        chosen['required_fields']=required_reading_fields(configuration,chosen)
+        if previous and reading_contract_context(previous)!=reading_contract_context(chosen):
+            chosen['adjustment']={'previous_plan':reading_contract_context(previous),
+                'reason':chosen['reason'],'semantics':'revised_acquisition_plan_not_new_reading_or_fact_approval'}
+        return chosen,False
     if (previous or {}).get('status')=='source_located_planning_judgment':
         conflict=False
         if (candidate or {}).get('status')=='source_located_planning_judgment':
@@ -134,10 +150,14 @@ def build_technical_cards(configuration,findings,evidence,proposals=None):
             # Validate fields independently: a malformed optional field must
             # not erase other source-located knowledge in this work's card.
             card=TechnicalCardProposal.model_validate({**value,'fields':{},'figure_references':[],'reading_contract':None,'mechanism_graph':None})
-            if configuration.get('mechanism_graph_policy')==MECHANISM_POLICY and value.get('mechanism_graph') is not None:
-                try:card=card.model_copy(update={'mechanism_graph':MechanismProposal.model_validate(value['mechanism_graph'])})
+            if configuration.get('mechanism_graph_policy') in MECHANISM_POLICIES and value.get('mechanism_graph') is not None:
+                try:
+                    graph=MechanismProposal.model_validate(value['mechanism_graph'])
+                    if configuration.get('mechanism_graph_policy')!=MECHANISM_POLICY and graph.status=='not_needed':
+                        raise ValueError('mechanism_status_not_supported_by_frozen_policy')
+                    card=card.model_copy(update={'mechanism_graph':graph})
                 except ValueError as error:pending.append({'output_id':card.output_id,'kind':'mechanism_graph','reason':str(error)[:400]})
-            if configuration.get('reading_field_policy')==READING_FIELD_POLICY and value.get('reading_contract') is not None:
+            if configuration.get('reading_field_policy') in READING_FIELD_POLICIES and value.get('reading_contract') is not None:
                 try:card=card.model_copy(update={'reading_contract':ReadingContractProposal.model_validate(value['reading_contract'])})
                 except ValueError as error:pending.append({'output_id':card.output_id,'kind':'reading_contract','reason':str(error)[:400]})
             valid_fields={};valid_figures=[]
@@ -189,8 +209,8 @@ def build_technical_cards(configuration,findings,evidence,proposals=None):
         available=[source for source in sources.values() if linked_source(source,output)]
         full=any(_full_text(source) for source in available)
         reading_contract=None
-        if configuration.get('reading_field_policy')==READING_FIELD_POLICY:
-            reading_contract={'policy':READING_FIELD_POLICY,'status':'fallback','profile':'unknown',
+        if configuration.get('reading_field_policy') in READING_FIELD_POLICIES:
+            reading_contract={'policy':configuration['reading_field_policy'],'status':'fallback','profile':'unknown',
                 'reason':'study_profile_not_established','basis':[],
                 'semantics':'field_acquisition_plan_not_source_semantic_or_fact_approval'}
             candidate=proposal.reading_contract if proposal else None
@@ -198,7 +218,8 @@ def build_technical_cards(configuration,findings,evidence,proposals=None):
                 try:
                     anchors=[locate(proof,output,False) for proof in candidate.basis]
                     reading_contract.update(status='source_located_planning_judgment',profile=candidate.profile,
-                        reason=candidate.reason,basis=anchors,proposal=candidate.model_dump(mode='json'))
+                        reason=candidate.reason,basis=anchors,proposal=candidate.model_dump(mode='json',
+                            exclude={'required_fields'} if configuration['reading_field_policy']==LEGACY_READING_FIELD_POLICY else set()))
                 except ValueError as error:pending.append({'output_id':output_id,'kind':'reading_contract','reason':str(error)})
             reading_contract['required_fields']=required_reading_fields(configuration,reading_contract)
         for key,label in FIELDS.items():
@@ -226,17 +247,17 @@ def build_technical_cards(configuration,findings,evidence,proposals=None):
                 if not re.search(source_pattern(item.label,configuration),anchor['quote'],re.I):raise ValueError('figure_label_absent_from_source_quote')
                 page=item.page
                 if page is not None and page not in anchor['pages']:
-                    if configuration.get('mechanism_graph_policy')!=MECHANISM_POLICY:raise ValueError('figure_page_not_supported_by_pdf_offsets')
+                    if configuration.get('mechanism_graph_policy') not in MECHANISM_POLICIES:raise ValueError('figure_page_not_supported_by_pdf_offsets')
                     page=anchor['pages'][0] if len(anchor['pages'])==1 else None
                     pending.append({'output_id':output_id,'kind':'figure_reference_page_normalized','reason':'actual_source_page_used'})
                 figures.append({'label':item.label,'proof':anchor,'page':page,'asset_status':'source_reference_only_not_image_acquired',
                     'source_url':anchor['source_url']+(f'#page={page}' if page else ''),'origin':'original_source_reference_not_system_generated_chart'})
             except ValueError as error:pending.append({'output_id':output_id,'kind':'figure_reference','reason':str(error)})
         graph=None
-        if configuration.get('mechanism_graph_policy')==MECHANISM_POLICY:
-            graph={'policy':MECHANISM_POLICY,'status':'insufficient_evidence','reason':'structured_mechanism_not_acquired'}
+        if configuration.get('mechanism_graph_policy') in MECHANISM_POLICIES:
+            graph={'policy':configuration['mechanism_graph_policy'],'status':'insufficient_evidence','reason':'structured_mechanism_not_acquired'}
             if proposal and proposal.mechanism_graph:
-                try:graph=locate_graph(proposal.mechanism_graph,output,locate)
+                try:graph=locate_graph(proposal.mechanism_graph,output,locate,policy=configuration['mechanism_graph_policy'])
                 except ValueError as error:graph['reason']=str(error)
             if graph.get('status')=='source_figure_requested':
                 from app.report_mechanisms import figure_label_key
@@ -279,8 +300,8 @@ def reconcile_retained_technical(configuration,findings,evidence,workflow):
         pending.extend({'phase':phase,**row} for row in view['pending_records'])
         for candidate in view['cards']:
             target=cards.setdefault(candidate['output_id'],deepcopy(candidate))
-            if configuration.get('reading_field_policy')==READING_FIELD_POLICY:
-                retained,conflict=retain_reading_contract(reading_contracts.get(candidate['output_id']),candidate.get('reading_contract'))
+            if configuration.get('reading_field_policy') in READING_FIELD_POLICIES:
+                retained,conflict=retain_reading_contract(reading_contracts.get(candidate['output_id']),candidate.get('reading_contract'),configuration)
                 if retained:
                     reading_contracts[candidate['output_id']]=retained
                     target['reading_contract']=deepcopy(retained)
@@ -296,13 +317,15 @@ def reconcile_retained_technical(configuration,findings,evidence,workflow):
             for figure in candidate['figure_references']:
                 if figure not in target['figure_references']:target['figure_references'].append(figure)
             graph=candidate.get('mechanism_graph') or {}
-            if graph.get('status') in {'source_located_requires_semantic_review','source_figure_requested'}:target['mechanism_graph']=deepcopy(graph)
+            if (configuration.get('mechanism_graph_policy')==MECHANISM_POLICY and graph.get('requirement_decision')
+                    or graph.get('status') in {'source_located_requires_semantic_review','source_figure_requested'}):
+                target['mechanism_graph']=deepcopy(graph)
             elif 'mechanism_graph' not in target and graph:target['mechanism_graph']=deepcopy(graph)
             target['unknown_fields']=[name for name,field in target['fields'].items() if field['status']=='unknown']
     if not phases:return previous
     for card in cards.values():
         reading_contract=card.get('reading_contract')
-        if configuration.get('reading_field_policy')==READING_FIELD_POLICY and reading_contract:
+        if configuration.get('reading_field_policy') in READING_FIELD_POLICIES and reading_contract:
             for name,field in card['fields'].items():field['required_for_reading']=name in reading_contract['required_fields']
     return {**previous,'schema_version':VERSION,'cards':list(cards.values()),
         'pending_records':pending,'selected_output_ids':list(cards),'gaps':previous.get('gaps',[]),

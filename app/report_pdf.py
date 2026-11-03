@@ -16,13 +16,14 @@ def project_pdf_view(charts,pages,policy):
     if policy!=PDF_CHART_POLICY:
         return [],deepcopy(pages),[{'location':'pdf','reason':'pdf_chart_policy_unsupported'}]
     from app.research_figures import figure_requests
+    from app.report_mechanisms import SUPPORTED_POLICIES as MECHANISM_POLICIES
     requests=figure_requests(charts,pages)
     projected=[];bindings={};issues=[]
     for request in requests:
         source=request['source_chart_id'];kind=request['presentation']
         rows=request.get('rows') or [];points=request.get('points') or []
         valid=(kind=='table' and bool(rows or points or request.get('edges') or request.get('events'))
-            or kind=='flow' and request.get('mechanism_policy')=='adrs-source-mechanism-graph-v1'
+            or kind=='flow' and request.get('mechanism_policy') in MECHANISM_POLICIES
                 and 2<=len(request.get('nodes') or [])<=8 and 1<=len(request.get('edges') or [])<=12
             or kind=='timeline' and bool(request.get('events'))
                 and request.get('event_policy')=='adrs-source-publication-events-v1'

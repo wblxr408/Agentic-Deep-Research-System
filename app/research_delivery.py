@@ -152,17 +152,17 @@ def build_delivery_view(*, task_id: str, execution_id: str | None, query: str, r
         timeline,missing=build_timeline(result,citations,used)
         visual_issues=[{'location':row['output_id'],'reason':row['reason']} for row in missing]
         if timeline:used.update(timeline['citation_ids'])
-    from app.report_mechanisms import POLICY as MECHANISM_POLICY,build_mechanism_charts
+    from app.report_mechanisms import POLICY as MECHANISM_POLICY,SUPPORTED_POLICIES as MECHANISM_POLICIES,build_mechanism_charts
     mechanism_requested=frozen.get('mechanism_graph_policy') is not None
-    mechanism_enabled=(frozen.get('mechanism_graph_policy')==MECHANISM_POLICY
+    mechanism_enabled=(frozen.get('mechanism_graph_policy') in MECHANISM_POLICIES
         and frozen.get('drawing_mode','builtin')=='builtin' and frozen.get('layout') is None
         and 'deep_dive' in (((understanding or {}).get('slots') or {}).get('modules') or []))
     mechanisms=[];visual_requirements=[]
-    if mechanism_requested and frozen['mechanism_graph_policy']!=MECHANISM_POLICY:
+    if mechanism_requested and frozen['mechanism_graph_policy'] not in MECHANISM_POLICIES:
         visual_issues.append({'location':'mechanisms','reason':'mechanism_policy_unsupported'})
     if mechanism_enabled:
         quality=(audit or {}).get('reader_quality') or {}
-        mechanisms,visual_requirements=build_mechanism_charts(result,citations,used,quality,actual_media)
+        mechanisms,visual_requirements=build_mechanism_charts(result,citations,used,quality,actual_media,configuration=frozen)
         for chart in mechanisms:used.update(chart['citation_ids'])
         for requirement in visual_requirements:used.update(requirement.get('citation_ids') or [])
         if quality.get('coverage_complete') is not True:
@@ -362,6 +362,9 @@ def build_delivery_view(*, task_id: str, execution_id: str | None, query: str, r
                 gaps.append('此图型尚无内置适配器；请明确改选表格、条形、折线或关系图。')
             if not chosen and (requested_kind!='auto' or template=='custom'):
                 gaps.append('本页没有匹配图型的可追溯数据，不从正文猜测数值或生成装饰图。')
+                if (frozen.get('mechanism_graph_policy')==MECHANISM_POLICY and module=='deep_dive'
+                        and requested_kind=='flow' and not any(row.get('source_figure_id') for row in visual_requirements)):
+                    visual_issues.append({'location':spec['page_id'],'reason':'explicit_mechanism_page_not_fulfilled'})
         chart_refs = []
         for chart in chosen:
             kind = chart['kind'] if requested_kind == 'auto' else requested_kind
@@ -394,6 +397,10 @@ def build_delivery_view(*, task_id: str, execution_id: str | None, query: str, r
         charts,pages,pdf_issues=project_pdf_view(charts,pages,frozen['pdf_chart_policy'])
         _apply_surface_corrections(charts,corrections)
     for requirement in visual_requirements:
+        if requirement.get('required') is None:
+            visual_issues.append({'location':requirement['requirement_id'],
+                'reason':requirement.get('reason') or 'mechanism_reader_need_not_assessed'})
+            continue
         if requirement.get('source_figure_id'):continue
         actual=next((row for row in charts if row.get('source_chart_id',row['chart_id'])==requirement.get('chart_id')),None)
         placed=bool(actual and any(ref['chart_id']==actual['chart_id'] and ref['kind']=='flow'

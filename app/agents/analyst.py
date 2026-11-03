@@ -120,8 +120,8 @@ Return JSON with analysis_text and any additional fields explicitly required bel
         from app.research_context import (analysis_binding, identity_batches, QUESTION_SEED_VERSION,
             CONTEXT_PACKING_VERSION, LEGACY_CONTEXT_PACKING_VERSION, workflow_packing_version)
         from app.organization_purpose import MODULES, REPORT_MATERIAL_POLICY
-        from app.organization_deep_dive import READING_FIELD_POLICY,required_reading_fields,retain_reading_contract
-        if configuration.get('reading_field_policy') not in {None,READING_FIELD_POLICY}:
+        from app.organization_deep_dive import READING_FIELD_POLICIES,required_reading_fields,retain_reading_contract
+        if configuration.get('reading_field_policy') is not None and configuration['reading_field_policy'] not in READING_FIELD_POLICIES:
             self.last_workflow=deepcopy(resume_state or {})
             raise TokenBudgetExceeded('analysis_context_contract_changed')
         from app.organization_findings import build_organization_findings
@@ -150,7 +150,7 @@ Return JSON with analysis_text and any additional fields explicitly required bel
         self.last_workflow=workflow
         accepted={}
         from app.analysis_phase_contract import reading_all_requested
-        all_reading=(configuration.get('reading_field_policy')==READING_FIELD_POLICY
+        all_reading=(configuration.get('reading_field_policy') in READING_FIELD_POLICIES
             and reading_all_requested(configuration,user_query))
 
         def progress():
@@ -451,8 +451,8 @@ Return JSON with analysis_text and any additional fields explicitly required bel
             for card in view['cards']:
                 if card['output_id'] not in permitted:continue
                 target=technical_by_output.setdefault(card['output_id'],{'output_id':card['output_id'],'fields':{},'figure_references':[]})
-                if configuration.get('reading_field_policy')==READING_FIELD_POLICY:
-                    chosen,conflict=retain_reading_contract(reading_contracts.get(card['output_id']),card.get('reading_contract'))
+                if configuration.get('reading_field_policy') in READING_FIELD_POLICIES:
+                    chosen,conflict=retain_reading_contract(reading_contracts.get(card['output_id']),card.get('reading_contract'),configuration)
                     if chosen:
                         reading_contracts[card['output_id']]=chosen
                         if chosen.get('proposal'):target['reading_contract']=chosen['proposal']

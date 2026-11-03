@@ -82,17 +82,19 @@
 
 ### 逐篇深读字段合同
 
-新创建的组织研究冻结`reading_field_policy: adrs-question-reading-fields-v1`，不迁移未带该政策的旧根。组织研究请求新增`reading_mode`（`question_driven`默认／`all`）及可选`required_reading_fields`（原十种技术字段，最多十项），服务器合并去重后保存。显式all或必需字段要求同时选择deep_dive，否则拒绝输入，不静默忽略要求或增选模块。模式控制全部／按问题选择，尚不提供单独的“仅摘要”深度模式或前端新选择器，材料可用层级与实际已读状态继续分列。
+新创建的组织研究冻结`reading_field_policy: adrs-question-reading-fields-v2-revisable`，原v1及未带政策的旧根不迁移。组织研究请求提供`reading_mode`（`question_driven`默认／`all`）及可选`required_reading_fields`（原十种技术字段，最多十项），服务器合并去重后保存。显式all或必需字段要求同时选择deep_dive，否则拒绝输入，不静默忽略要求或增选模块。模式控制全部／按问题选择，尚不提供单独的“仅摘要”深度模式或前端新选择器，材料可用层级与实际已读状态继续分列。
 
-现有两篇一批的初读同时提出`technical_cards[].reading_contract`：profile、简短reason、当前原始来源的basis，以及问题确有需要的additional_required_fields。basis仍经原请求局部passage ID展开和原文字面定位，不能用另一篇或未取得来源作为依据；错误的可选合同不抹除其他有效字段。不增加分类Agent或额外模型调用。
+现有初读同时提出`technical_cards[].reading_contract`：描述性profile、简短reason、当前原始来源的basis，以及按问题选择的required_fields和确有需要的additional_required_fields。v2可直接选择所需字段，不由类型表强制决定；用户指定字段始终并入。basis经原请求局部passage ID展开和原文字面定位，不能用另一篇或未取得来源作为依据；错误的可选合同不抹除其他有效字段。不增加分类Agent或额外模型调用；原批次仅为容量。
 
-| 导读类型 | 默认必需字段 |
+| 导读类型 | v1默认／v2未建立有效选择时的回退字段 |
 |---|---|
 | empirical／unknown | mechanism、experimental_design、baselines、conditions、results |
 | theoretical | mechanism、conditions（假设／适用条件）、results（来源定理／结果） |
 | synthesis | method_overview、conditions（范围／方法条件）、results（综合发现） |
 
-这些类型是有原文定位的计划判断，不是独立核证或“不适用”认证。缺少类型依据时沿unknown保守字段；所有类型均叠加用户明确要求的字段和有依据的额外需求。初读尽量提供已有材料能支持的必需字段；共享补读只处理各自缺口，reading_focus只是批次并集，不要求两篇返回完全相同的字段。已定位合同可在后续扩大需求，不能静默缩减；重建时按原phase顺序保留合同及冲突。合法重新分类而需缩减字段的显式再评估仍待原依赖／修订任务接合。
+这些是有原文定位的计划判断，不是独立核证或“不适用”认证。未建立有效选择时保留回退字段；始终叠加用户明确字段及当前有据额外需求。初读尽量提供已有材料能支持的必需字段；共享补读只处理各自缺口，reading_focus只是批次并集。v2跟读可依据当前原文和具体理由修订系统推定字段及类型，包括缩减；保存前计划／理由，原phase和已定位字段继续保留。缺失或无有效依据的新合同不替代旧计划，不能把删去要求当作新读完字段。逐篇进度、补读选择、最终技术卡及读者材料接当前计划；v1仍只接受原扩展规则。
+
+最小行为目标：有据缩减系统字段更新后续缺口；用户字段无法被候选删除；无效／未定位候选不抹掉旧计划；原字段／响应可追溯；全篇可用、片段已看、字段已定位和事实已支持不混为完成。仅源码／调用链审阅，未运行用例或百篇研究，完整分级／成员裁决仍待原3.1／4.3。
 
 明确全部阅读的新任务直接使用全部已纳入成果；深读入口不再额外请求代表选择，landscape也不再生成无用途的全量reading_plan。其余按问题选择继续原计划与理由；缺材料或范围待核不会因此被默认为纳入。旧根保持原选择及条件补读路径。
 

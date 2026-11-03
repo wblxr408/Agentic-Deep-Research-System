@@ -7,7 +7,9 @@ from pydantic import Field,model_validator
 from app.research_scope import ScopeRecord,Identifier
 from app.organization_relationships import RelationProof
 
-POLICY='adrs-source-mechanism-graph-v1'
+LEGACY_POLICY='adrs-source-mechanism-graph-v1'
+POLICY='adrs-source-mechanism-graph-v2-question-need'
+SUPPORTED_POLICIES={LEGACY_POLICY,POLICY}
 RELATIONS={'data_flow':'向其传递数据','control_flow':'控制或触发','dependency':'依赖','feedback':'向其反馈'}
 
 
@@ -26,8 +28,9 @@ class MechanismEdge(ScopeRecord):
 
 
 class MechanismProposal(ScopeRecord):
-    status:Literal['available','original_figure','insufficient_evidence']='insufficient_evidence'
+    status:Literal['available','original_figure','insufficient_evidence','not_needed']='insufficient_evidence'
     reason:str=Field(default='',max_length=500)
+    required:bool|None=Field(default=None,strict=True)
     figure_label:str|None=Field(default=None,min_length=2,max_length=120)
     nodes:tuple[MechanismNode,...]=Field(default=(),max_length=8)
     edges:tuple[MechanismEdge,...]=Field(default=(),max_length=12)
@@ -46,19 +49,24 @@ class MechanismProposal(ScopeRecord):
             raise ValueError('mechanism_original_requires_figure_not_table')
         if self.status=='insufficient_evidence' and (not self.reason.strip() or self.nodes or self.edges):
             raise ValueError('mechanism_gap_requires_reason_without_invented_graph')
+        if self.required is not None and not self.reason.strip():raise ValueError('mechanism_need_requires_reader_reason')
+        if self.status=='not_needed' and (self.required is not False or self.nodes or self.edges or self.figure_label):
+            raise ValueError('mechanism_not_needed_requires_decision_without_graph')
         return self
 
 
-def locate_graph(proposal,output,locate):
-    if proposal.status=='original_figure':return {'policy':POLICY,'status':'source_figure_requested',
-        'figure_label':proposal.figure_label,'reason':proposal.reason}
-    if proposal.status!='available':return {'policy':POLICY,'status':proposal.status,'reason':proposal.reason}
+def locate_graph(proposal,output,locate,*,policy=POLICY):
+    decision=({'requirement_decision':{'required':proposal.required,'reason':proposal.reason}}
+        if proposal.required is not None else {})
+    if proposal.status=='original_figure':return {'policy':policy,'status':'source_figure_requested',
+        'figure_label':proposal.figure_label,'reason':proposal.reason,**decision}
+    if proposal.status!='available':return {'policy':policy,'status':proposal.status,'reason':proposal.reason,**decision}
     nodes=[{'id':row.node_id,'label':row.label,'proofs':[locate(proof,output,True) for proof in row.proofs]}
         for row in proposal.nodes]
     edges=[{**row.model_dump(exclude={'proofs'}),'proofs':[locate(proof,output,True) for proof in row.proofs]}
         for row in proposal.edges]
-    return {'policy':POLICY,'status':'source_located_requires_semantic_review','nodes':nodes,'edges':edges,
-        'reason':proposal.reason,'origin':'source_based_system_redrawing_not_original_paper_image'}
+    return {'policy':policy,'status':'source_located_requires_semantic_review','nodes':nodes,'edges':edges,
+        'reason':proposal.reason,'origin':'source_based_system_redrawing_not_original_paper_image',**decision}
 
 
 def _positions(nodes,edges):
@@ -95,7 +103,9 @@ def figure_label_key(value):
     return kind+re.sub(r'\s+','',prefix[2])
 
 
-def build_mechanism_charts(findings,citations,used,quality,media):
+def build_mechanism_charts(findings,citations,used,quality,media,*,configuration=None):
+    policy=(configuration or {}).get('mechanism_graph_policy') or LEGACY_POLICY
+    adaptive=policy==POLICY
     refs={row.get('locator',{}).get('evidence_id'):row['citation_id'] for row in citations
         if isinstance(row.get('locator'),dict) and row.get('citation_id')}
     metadata=findings.get('publication_metadata') or {};charts=[];requirements=[]
@@ -105,16 +115,25 @@ def build_mechanism_charts(findings,citations,used,quality,media):
         source_ids=set((metadata.get(card['output_id']) or {}).get('evidence_ids') or [])
         source_ids.update(proof['evidence_id'] for field in card.get('fields',{}).values() for proof in field.get('proofs') or [])
         if not any(refs.get(key) in used for key in source_ids):continue
-        if quality.get('coverage_complete') is not True or card['output_id'] not in main:continue
+        if not adaptive and (quality.get('coverage_complete') is not True or card['output_id'] not in main):continue
         graph=card.get('mechanism_graph') or {};contract=card.get('reading_contract') or {}
         profile=contract.get('profile','unknown') if contract.get('status')=='source_located_planning_judgment' else 'unknown'
-        required=profile not in {'theoretical','synthesis'} and bool((card.get('fields',{}).get('mechanism') or {}).get('text'))
+        decision=(graph.get('requirement_decision') or {}) if graph.get('policy')==policy else {}
+        required=(decision.get('required') if adaptive else profile not in {'theoretical','synthesis'}
+            and bool((card.get('fields',{}).get('mechanism') or {}).get('text')))
         requirement={'requirement_id':'mechanism:'+card['output_id'],'output_id':card['output_id'],
             'kind':'flow','module':'deep_dive','required':required,'status':'not_available',
-            'reason':graph.get('reason') or 'structured_mechanism_not_acquired',
+            'reason':(decision.get('reason') if adaptive else graph.get('reason')) or 'structured_mechanism_not_acquired',
             'scope':'cited_work_mechanism_projection_not_complete_visual_requirements'}
         requirements.append(requirement)
-        if graph.get('policy')==POLICY and graph.get('status')=='source_figure_requested':
+        if adaptive:
+            requirement['decision_basis']='same_technical_reading_response_for_current_question'
+            if type(required) is not bool or not str(decision.get('reason') or '').strip():
+                requirement.update(required=None,status='requirement_not_assessed',reason='mechanism_reader_need_not_assessed')
+                continue
+            if not required:
+                requirement['status']='not_required_for_current_question';continue
+        if graph.get('policy')==policy and graph.get('status')=='source_figure_requested':
             reference=graph.get('original_reference') or {}
             found=next(((page,figure) for page in (media or {}).get('pages') or []
                 if card['output_id'] in page.get('output_ids',[]) for figure in page.get('figures') or []
@@ -128,7 +147,7 @@ def build_mechanism_charts(findings,citations,used,quality,media):
                     citation_ids=[ref],original_reference=deepcopy(reference),reason=None)
             else:requirement['reason']='mechanism_original_figure_unavailable'
             continue
-        if graph.get('policy')!=POLICY or graph.get('status')!='source_located_requires_semantic_review':continue
+        if graph.get('policy')!=policy or graph.get('status')!='source_located_requires_semantic_review':continue
         proofs=[proof for node in graph['nodes'] for proof in node['proofs']]+[proof for edge in graph['edges'] for proof in edge['proofs']]
         if not all(refs.get(proof['evidence_id']) for proof in proofs):
             requirement['reason']='mechanism_source_citation_unavailable';continue
@@ -136,7 +155,7 @@ def build_mechanism_charts(findings,citations,used,quality,media):
         def sourced(row):return {**deepcopy(row),'citation_ids':list(dict.fromkeys(refs[p['evidence_id']] for p in row['proofs']))}
         chart_id='mechanism:'+card['output_id']
         charts.append({'chart_id':chart_id,'title':card['title']+'：来源机制／模块图','kind':'flow','module':'deep_dive',
-            'output_id':card['output_id'],'mechanism_policy':POLICY,'unit_label':'来源组件与有向交互',
+            'output_id':card['output_id'],'mechanism_policy':policy,'unit_label':'来源组件与有向交互',
             'nodes':[{**sourced(row),**positions[row['id']]} for row in graph['nodes']],
             'edges':[sourced(row) for row in graph['edges']],
             'citation_ids':list(dict.fromkeys(refs[p['evidence_id']] for p in proofs)),

@@ -14,7 +14,7 @@ from app.llm_budget import TokenBudgetExceeded, budgeted_client, request_token_b
 from app.query_understanding import identity
 from app.security.prompt_security import untrusted_context
 from app.report_material_packets import POLICY as MATERIAL_POLICY,COVERAGE_POLICY,DOCUMENT_POLICY,material_owners,context_overrides,material_packets
-from app.organization_purpose import READER_IMPACT_POLICY
+from app.organization_purpose import READER_IMPACT_POLICY,READER_IMPACT_POLICIES
 from app.report_content_units import POLICY as CONTENT_UNIT_POLICY,references as content_references
 
 POLICY = 'adrs-reader-quality-v1'
@@ -60,7 +60,7 @@ def reader_quality_satisfied(record,audit):
     impact_policy=(record or {}).get('reader_impact_policy')
     if impact_policy:
         impact=quality.get('inline_reading_impact') or {}
-        if (impact_policy!=READER_IMPACT_POLICY or quality.get('reader_impact_policy')!=impact_policy
+        if (impact_policy not in READER_IMPACT_POLICIES or quality.get('reader_impact_policy')!=impact_policy
                 or impact.get('policy')!=impact_policy or impact.get('validated') is not True
                 or not quality.get('global_binding')
                 or impact.get('binding')!=quality.get('global_binding')):return False
@@ -124,28 +124,36 @@ def reading_repair_targets(quality):
         for group in check.get('repair_groups',[]) for anchor in group['occurrences']}
 
 
-def inline_reading_impact(check):
+def inline_reading_impact(check,*,policy=READER_IMPACT_POLICY):
     """Consume semantic judgments from the full reading pass, not word overlap.
 
-    Missing or uncertain judgments retain the candidate gap for the existing
-    dispute review. Literal anchors and group coverage are validated by caller.
+    Missing judgments retain the gap. New-policy dispute review requires a
+    reasoned request; legacy roots retain their original three-flag rule.
+    Literal anchors and group coverage are validated by caller.
     """
     decisions=[];advisory=[];remaining=[];disputed=[]
     for group in check.get('repair_groups') or []:
         if group['kind']!='repetition':
             remaining.append(group);continue
         impact=group.get('impact')
-        fields=('same_proposition','same_reader_function','material_obstruction')
-        decided=(isinstance(impact,dict) and all(type(impact.get(key)) is bool for key in fields)
-            and isinstance(impact.get('reason'),str) and bool(impact['reason'].strip()))
-        blocking=all(impact[key] for key in fields) if decided else None
+        reasoned=(isinstance(impact,dict) and isinstance(impact.get('reason'),str)
+            and bool(impact['reason'].strip()))
+        adaptive=policy==READER_IMPACT_POLICY
+        if adaptive:
+            decided=reasoned and type(impact.get('blocking')) is bool
+            blocking=impact['blocking'] if decided else None
+        else:
+            fields=('same_proposition','same_reader_function','material_obstruction')
+            decided=reasoned and all(type(impact.get(key)) is bool for key in fields)
+            blocking=all(impact[key] for key in fields) if decided else None
         decisions.append({'group_id':group['id'],'blocking':blocking,
             'basis':'same_full_reading_response' if decided else 'disputed_or_incomplete',
             'assessment':deepcopy(impact)})
         if blocking is False:advisory.append(deepcopy(group))
         else:
             remaining.append(group)
-            if blocking is None:disputed.append(group['id'])
+            if blocking is None and (not adaptive or reasoned and impact.get('review_needed') is True):
+                disputed.append(group['id'])
     if advisory:
         check['repair_groups']=remaining
         if remaining:
@@ -161,7 +169,7 @@ def inline_reading_impact(check):
 
 def review_reader_quality(*, question, configuration, record, findings, client, model, budget,
                           evidence=(),retained_requests=(),on_progress=None,_partition_document=False):
-    from app.organization_deep_dive import READING_FIELD_POLICY,reading_contract_context
+    from app.organization_deep_dive import READING_FIELD_POLICIES,reading_contract_context
     owned=configuration.get('reader_material_policy')==MATERIAL_POLICY
     content_policy=configuration.get('content_unit_policy')
     if (content_policy not in {None,CONTENT_UNIT_POLICY} or record.get('content_unit_policy')!=content_policy):
@@ -171,7 +179,7 @@ def review_reader_quality(*, question, configuration, record, findings, client, 
         except (ValueError,KeyError,TypeError):
             return {'status':'incomplete','passed':False,'reason':'reader_content_unit_record_changed'}
     impact_policy=configuration.get('reader_impact_policy')
-    if (impact_policy not in {None,READER_IMPACT_POLICY} or record.get('reader_impact_policy')!=impact_policy
+    if (impact_policy is not None and impact_policy not in READER_IMPACT_POLICIES or record.get('reader_impact_policy')!=impact_policy
             or impact_policy and not owned):
         return {'status':'incomplete','passed':False,'reason':'reader_impact_policy_mismatch'}
     coverage_split=configuration.get('reader_coverage_policy')==COVERAGE_POLICY
@@ -186,7 +194,7 @@ def review_reader_quality(*, question, configuration, record, findings, client, 
     if (configuration.get('reader_material_policy') not in {None,MATERIAL_POLICY}
             or record.get('reader_material_policy')!=configuration.get('reader_material_policy')):
         return {'status':'incomplete','passed':False,'reason':'reader_material_policy_mismatch'}
-    if (configuration.get('reading_field_policy') not in {None,READING_FIELD_POLICY}
+    if (configuration.get('reading_field_policy') is not None and configuration['reading_field_policy'] not in READING_FIELD_POLICIES
             or record.get('reading_field_policy')!=configuration.get('reading_field_policy')):
         return {'policy':record.get('reader_quality_policy'),'status':'incomplete','passed':False,
             'reason':'reader_reading_field_policy_mismatch'}
@@ -229,7 +237,7 @@ def review_reader_quality(*, question, configuration, record, findings, client, 
         criteria['mechanisms']=('Explain mechanisms, experimental conditions, comparisons and limits '
             'needed to understand the central conclusions. Missing incidental implementation inventories '
             'or secondary measurements is not a gap merely because retained cards contain them.')
-    profiled=configuration.get('reading_field_policy')==READING_FIELD_POLICY
+    profiled=configuration.get('reading_field_policy') in READING_FIELD_POLICIES
     if profiled and 'mechanisms' in criteria:
         criteria['mechanisms']+=(' Use each source-located reading contract as a question-specific acquisition '
             'plan, not factual approval or proof of non-applicability. Theoretical results need their '
@@ -252,11 +260,11 @@ def review_reader_quality(*, question, configuration, record, findings, client, 
         **({'reader_document_policy':document_policy} if document_policy else {}),
         **({'reader_coverage_policy':COVERAGE_POLICY} if coverage_split else {}),
         **({'reader_material_policy':MATERIAL_POLICY} if owned else {}),
-        **({'reading_field_policy':READING_FIELD_POLICY} if profiled else {})})
+        **({'reading_field_policy':configuration['reading_field_policy']} if profiled else {})})
     base={'policy':policy,'review_contract':REVIEW_CONTRACT,'binding':binding,'model':model,'scope':'main_and_appendix_text',
         'report_content_id':identity(record.get('reading_structure')),
         'criteria':criteria,'status':'incomplete','passed':False,'packet_contract':PACKET_CONTRACT}
-    if profiled:base['reading_field_policy']=READING_FIELD_POLICY
+    if profiled:base['reading_field_policy']=configuration['reading_field_policy']
     if content_policy:base.update(content_unit_policy=content_policy,content_document_version=record['content_document_version'])
     if impact_policy:base['reader_impact_policy']=impact_policy
     if coverage_split:base['reader_coverage_policy']=COVERAGE_POLICY
@@ -406,7 +414,23 @@ def review_reader_quality(*, question, configuration, record, findings, client, 
         'a fabricated cooperation contact to fill a template. Quotes must be short contiguous verbatim '
         'substrings of the identified paragraph: no ellipses, paraphrasing, punctuation changes or merged excerpts.'},
         {'role':'user','content':untrusted_context('reader_quality_inputs',raw,limit=len(raw))}]
-    if impact_policy:
+    if impact_policy==READER_IMPACT_POLICY:
+        messages[0]['content']+=('\nIn this SAME full reading response, assess each repetition repair_group '
+            'against its complete anchored passages and the actual reader question. Return '
+            'impact:{"blocking":false,"review_needed":false,"reason":"specific reader consequence"}. '
+            'blocking is your semantic judgment, boolean or null when genuinely unresolved. '
+            'Explain the problem\'s importance, relevant proposition and reader function, and the '
+            'smallest useful repair in the group. These are reasoning dimensions, not a boolean '
+            'formula. A concise preview, necessary local qualification, distinct comparison or '
+            'scientific boundary may legitimately recur. Minor editorial suggestions may be '
+            'nonblocking. Do not invent missing arguments or experiments to justify a gap. '
+            'Use review_needed=true ONLY when a specific unresolved, consequential dispute would '
+            'benefit from the existing bounded recheck; explain why in reason. A null or omitted '
+            'flag alone never requests another model call and never approves the gap. Keep '
+            'unresolved candidates in repair_groups. Contradictions, missing required arguments '
+            'and internal-state prose keep their separate issue kinds. This judgment concerns '
+            'reader consequence and cannot approve source facts or discard necessary conditions.')
+    elif impact_policy:
         messages[0]['content']+=('\nIn this SAME full reading response, assess material impact for every '
             'repetition repair_group, using its complete anchored passages and the reader question. Add '
             'impact:{"same_proposition":true,"same_reader_function":true,"material_obstruction":true,'
@@ -606,7 +630,7 @@ def review_reader_quality(*, question, configuration, record, findings, client, 
             base['reading_impact_required']=False
             if reading_check and reading_check['status']=='gap':
                 base['original_reading_diagnosis']=deepcopy(reading_check)
-                decisions,suggestions,disputed=inline_reading_impact(reading_check)
+                decisions,suggestions,disputed=inline_reading_impact(reading_check,policy=impact_policy)
                 base['inline_reading_impact']['decisions']=decisions
                 base['inline_reading_impact']['disputed_group_ids']=disputed
                 base['editorial_suggestions']=suggestions
@@ -670,6 +694,11 @@ def review_reader_quality(*, question, configuration, record, findings, client, 
                     'Overall satisfied requires all groups nonblocking. Every decision and the overall '
                     'result need actual literal anchors. No rewritten report text.'},
                     {'role':'user','content':untrusted_context('repetition_impact',packed,limit=len(packed))}]
+                if impact_policy==READER_IMPACT_POLICY:
+                    impact_messages[0]['content']+=(' Assess actual consequence for this question yourself. '
+                        'Proposition, reader function and obstruction explain your judgment; do not apply '
+                        'a fixed three-flag formula. Resolve only the supplied material dispute, retaining '
+                        'necessary qualifications and independent gaps.')
                 response=budgeted_client(client,budget,'audit',operation='reader_repetition_impact',
                     content_unit_id='reader-impact:'+impact_binding if owned else None).chat.completions.create(
                     model=model,messages=impact_messages,temperature=0,max_tokens=2048,
