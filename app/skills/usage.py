@@ -37,6 +37,13 @@ def method_usage_view(selection,model_receipts,tool_receipts,status):
             else:
                 matches=[row for row in relevant if any(item.get('skill_id')==entry['skill_id'] and item.get('version')==entry['version']
                     for item in (row.get('method_context') or {}).get('methods',[]))]
+                scopes={item['content_scope'] for row in matches for item in (row.get('method_context') or {}).get('methods',[])
+                    if item.get('skill_id')==entry['skill_id'] and item.get('version')==entry['version'] and item.get('content_scope')}
+                if scopes:
+                    entry['content_scopes']=sorted(scopes)
+                    entry['legacy_content_scope_unknown']=any(not item.get('content_scope') for row in matches
+                        for item in (row.get('method_context') or {}).get('methods',[])
+                        if item.get('skill_id')==entry['skill_id'] and item.get('version')==entry['version'])
                 if any(row.get('response_received') is True for row in matches):
                     usage='sent'
                 elif any(row.get('dispatch_status')=='dispatch_attempted' for row in matches):

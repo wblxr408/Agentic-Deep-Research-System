@@ -50,7 +50,7 @@ from app.config import get_settings
 from app.llm_budget import ModelTokenBudget, TokenBudgetExceeded
 from app.organization_runtime import organization_query, organization_evidence_views, seed_organization_sources
 from app.query_understanding import query_contract_text
-from app.skills.stages import stage_profile
+from app.skills.stages import stage_profile, question_stage_profile, question_method_plan
 from app.tool_handoff import prepare_handoffs, tool_payload, bound_tool_node, accept_results, current_execution
 from app.planning_control import PlanningPolicy, PlanningError, compile_plan, dependency_batches, condition_decision, iteration_decision
 from app.core.time import utc_now_naive
@@ -151,9 +151,13 @@ def _compile_execution_plan(state: ResearchState, dag: DAGDefinition, agent, rea
         fallback = anchor_plan(fallback, state['user_query'], getattr(agent, 'research_strategy', None),
                                state.get('organization_research'),adjustments=discovery_adjustments)
         compiled,manifest = compile_plan(fallback, reason=fallback_reason, **arguments)
-    if discovery_adjustments:
+    method_plan=question_method_plan(_skill_context(state),_method_task_binding(state),
+        getattr(agent,'last_method_choices',None),offered=bool(getattr(agent,'method_catalog_offered',False)
+            and getattr(agent,'last_plan_reason',None)=='bounded_model_plan'))
+    if method_plan is not None:manifest['question_method_plan']=method_plan
+    if discovery_adjustments or method_plan is not None:
         from app.query_understanding import identity
-        manifest['adjustments'] = [*discovery_adjustments,*manifest['adjustments']]
+        if discovery_adjustments:manifest['adjustments'] = [*discovery_adjustments,*manifest['adjustments']]
         manifest.pop('plan_version',None)
         manifest['plan_version']=identity(manifest)
     return compiled,manifest
@@ -163,9 +167,22 @@ def _skill_context(state: ResearchState) -> dict[str, Any]:
     return dict(state.get("skill_context") or state.get("session", {}).get("skill_context") or {})
 
 
+def _method_task_binding(state):
+    from app.query_understanding import identity
+    return identity({'query':state['user_query'],'contract':_plan_contract(state)})
+
+
+def _question_skill_profile(state,stage):
+    context=_skill_context(state)
+    plan=(state.get('plan_manifest') or {}).get('question_method_plan') or {}
+    if stage not in {'analyst','reflection','report'} or not plan.get('decisions'):
+        return stage_profile(context.get('stage_compilation'),stage)
+    return question_stage_profile(context,stage,_method_task_binding(state),plan=plan)
+
+
 def _skill_prompt(state: ResearchState, stage: str) -> str:
     context = _skill_context(state)
-    profile = stage_profile(context.get('stage_compilation'), stage)
+    profile = _question_skill_profile(state,stage)
     if profile is not None:
         return profile['prompt']
     parts: list[str] = []
@@ -179,7 +196,7 @@ def _skill_prompt(state: ResearchState, stage: str) -> str:
 
 def _agent_skill_hints(state: ResearchState, agent_name: str) -> list[str]:
     context = _skill_context(state)
-    profile = stage_profile(context.get('stage_compilation'), agent_name)
+    profile = _question_skill_profile(state,agent_name)
     if profile is not None:
         return profile['agent_hints']
     hints = (context.get("effective_agent_hints") or {}).get(agent_name) or []
@@ -476,9 +493,11 @@ def _stage_model_budget(state: ResearchState, stage: str) -> ModelTokenBudget:
     compilation=_skill_context(state).get('stage_compilation') or {}
     profile_stage='planner' if stage=='replan' else stage
     profile=(compilation.get('profiles') or {}).get(profile_stage) or {}
+    if profile_stage in {'analyst','reflection','report'}:profile=_question_skill_profile(state,profile_stage) or {}
     if compilation.get('ready') and profile.get('ready') and profile.get('prompt') and compilation.get('arbitration_policy'):
         from app.security.prompt_security import research_method_context
-        methods=[{key:entry.get(key) for key in ('skill_id','version')}
+        methods=[{**{key:entry.get(key) for key in ('skill_id','version')},
+                  **({'content_scope':entry['content_scope']} if 'content_scope' in entry else {})}
                  for entry in profile.get('entries',[]) if entry.get('has_model_content')]
         if methods:
             meter.skill_guidance=True
@@ -997,6 +1016,7 @@ def planner_node(state: ResearchState) -> dict:
 
     # 调用 Planner Agent 生成 DAG
     agent = PlannerAgent()
+    agent.stage_skill_compilation=_skill_context(state).get('stage_compilation')
     agent.request_budget = _stage_model_budget(state,'planner')
     agent.model_routing=state.get('model_routing')
     agent.research_strategy=(state.get('query_understanding') or {}).get('research_strategy')
@@ -2674,6 +2694,7 @@ def replan_node(state: ResearchState) -> dict:
     failure_memory = state.get("failure_memory")
     planning_hints = _format_failure_memory_notes(failure_memory)
     agent = PlannerAgent()
+    agent.stage_skill_compilation=_skill_context(state).get('stage_compilation')
     agent.request_budget = _stage_model_budget(state,'replan')
     agent.model_routing=state.get('model_routing')
     agent.research_strategy=(state.get('query_understanding') or {}).get('research_strategy')

@@ -12,6 +12,118 @@ LEGACY_VERSION = 'adrs-stage-skills-v1'
 VERSION = 'adrs-stage-skills-v2-shared-sections'
 SUPPORTED_VERSIONS = {LEGACY_VERSION,VERSION}
 STAGES = ('planner', 'search', 'browser', 'rag', 'mcp', 'analyst', 'reflection', 'report', 'render')
+METHOD_STAGES = ('analyst','reflection','report')
+METHOD_PLAN = 'adrs-question-method-plan-v1'
+
+
+def question_method_catalog(compilation):
+    """Offer frozen metadata, never registry discovery or new tool authority."""
+    if not compilation or not compilation.get('ready') or compilation.get('schema_version') not in SUPPORTED_VERSIONS:return []
+    result=[]
+    for stage in METHOD_STAGES:
+        profile=(compilation.get('profiles') or {}).get(stage) or {}
+        entries=profile.get('entries') or []
+        if (not profile.get('ready') or not profile.get('prompt')
+                or any(row.get('activation') not in {'explicit_user_selection','registered_metadata_match'} for row in entries)
+                or not any(row.get('activation')=='registered_metadata_match' and row.get('has_model_content') for row in entries)):continue
+        result.append({'stage':stage,'methods':[{key:row.get(key) for key in
+            ('skill_id','version','name','activation')} for row in entries]})
+    return result
+
+
+def question_method_plan(context,task_binding,values,*,offered):
+    compilation=(context or {}).get('stage_compilation') or {}
+    catalog=question_method_catalog(compilation)
+    if not catalog:return None
+    plan={'policy':METHOD_PLAN,'compilation_id':compilation['compilation_id'],'task_binding':task_binding,
+        'decisions':[],'pending':[],'semantics':'method_context_selection_not_permission_or_quality_approval'}
+    if not offered:
+        plan['pending'].append({'reason':'no_existing_planner_catalog_judgment'})
+    elif not isinstance(values,list):
+        plan['pending'].append({'reason':'method_choices_not_supplied_or_not_array'})
+    else:
+        known={row['stage']:{item['skill_id'] for item in row['methods']} for row in catalog}
+        seen=set();duplicates=set()
+        for row in values:
+            stage=row.get('stage') if isinstance(row,dict) else None
+            ids=row.get('skill_ids') if isinstance(row,dict) else None
+            reason=row.get('reason') if isinstance(row,dict) else None
+            if not isinstance(stage,str):
+                plan['pending'].append({'reason':'method_choice_stage_invalid'});continue
+            if stage in seen:duplicates.add(stage)
+            seen.add(stage)
+            if (stage not in known or not isinstance(ids,list) or any(not isinstance(key,str) for key in ids)
+                    or len(ids)!=len(set(ids)) or not set(ids)<=known[stage]
+                    or not isinstance(reason,str) or not reason.strip() or len(reason)>1200):
+                plan['pending'].append({'stage':stage if isinstance(stage,str) else None,'reason':'method_choice_outside_frozen_catalog_or_invalid'})
+                continue
+            plan['decisions'].append({'stage':stage,'skill_ids':ids,'reason':reason.strip()})
+        if duplicates:
+            plan['decisions']=[row for row in plan['decisions'] if row['stage'] not in duplicates]
+            plan['pending'].extend({'stage':stage,'reason':'conflicting_method_choices'} for stage in sorted(duplicates))
+    plan['selection_id']=identity(plan)
+    return plan
+
+
+def question_stage_profile(context,stage,task_binding,plan=None):
+    compilation=(context or {}).get('stage_compilation')
+    base=stage_profile(compilation,stage)
+    plan=plan or {}
+    if (base is None or stage not in METHOD_STAGES or plan.get('policy')!=METHOD_PLAN
+            or plan.get('compilation_id')!=compilation.get('compilation_id') or plan.get('task_binding')!=task_binding
+            or plan.get('selection_id')!=identity({key:value for key,value in plan.items() if key!='selection_id'})):
+        return base
+    if not isinstance(plan.get('decisions'),list):return base
+    choices=[row for row in plan['decisions'] if isinstance(row,dict) and row.get('stage')==stage]
+    if len(choices)!=1:return base
+    entries=base.get('entries') or []
+    if not isinstance(choices[0].get('skill_ids'),list) or any(not isinstance(key,str) for key in choices[0]['skill_ids']):return base
+    selected=set(choices[0]['skill_ids'])|{row['skill_id'] for row in entries if row.get('activation')=='explicit_user_selection'}
+    if not selected<={row['skill_id'] for row in entries}:return base
+    def fallback(reason):
+        return {**base,'question_selection_id':plan['selection_id'],'question_selection_fallback':reason,
+            'entries':[{**row,'content_scope':'fallback_frozen_method'} for row in entries]}
+    if base.get('agent_hints'):return fallback('legacy_hint_packet_not_projectable')
+    try:
+        prefix,separator,text=base['prompt'].partition('\n')
+        packet=json.loads(text)
+        if not separator or packet.get('stage')!=stage:return fallback('frozen_packet_shape_unknown')
+        refs={row['skill_id']:row for row in (context or {}).get('resolved_skills') or []}
+        if packet.get('agent_hints') and any(row['skill_id'] not in refs
+                or refs[row['skill_id']].get('version')!=row['version']
+                or row.get('content_identity') and refs[row['skill_id']].get('content_identity')!=row['content_identity']
+                for row in entries if row['skill_id'] in selected):
+            return fallback('frozen_hint_attribution_unavailable')
+        hints=set();hint_ids=set()
+        for key in selected:
+            supplied=((refs.get(key) or {}).get('agent_hints') or {}).get(stage) or []
+            if isinstance(supplied,str):supplied=[supplied]
+            actual=[str(value) for value in supplied if str(value) in packet.get('agent_hints',[])]
+            hints.update(actual)
+            if actual:hint_ids.add(key)
+        instructions=[];text_ids=set();shared_ids=set()
+        for row in packet.get('instructions',[]):
+            sections=[item for item in row['sections'] if row['skill_id'] in selected or item.get('section')=='constraints']
+            if sections:
+                instructions.append({**row,'sections':sections});text_ids.add(row['skill_id'])
+                shared_ids.update(item['shared_section_id'] for item in sections if 'shared_section_id' in item)
+        packet={**packet,'instructions':instructions,'agent_hints':[value for value in packet.get('agent_hints',[]) if value in hints]}
+        if 'optional_overviews' in packet:
+            packet['optional_overviews']=[row for row in packet['optional_overviews'] if row['skill_id'] in selected]
+            text_ids.update(row['skill_id'] for row in packet['optional_overviews'])
+        if 'shared_sections' in packet:
+            packet['shared_sections']=[row for row in packet['shared_sections'] if row['section_id'] in shared_ids]
+            if not shared_ids:packet.pop('shared_sections');packet.pop('shared_section_semantics',None)
+        prompt=prefix+'\n'+json.dumps(packet,ensure_ascii=False)
+        projected=[{**row,'has_model_content':row['skill_id'] in text_ids|hint_ids,
+            'content_scope':'selected_method' if row['skill_id'] in selected else 'frozen_constraints_only',
+            'loaded_references':row.get('loaded_references',[]) if row['skill_id'] in selected else []} for row in entries]
+        if not any(row['has_model_content'] for row in projected):prompt=''
+        return {**base,'prompt':prompt,'entries':projected,'context_characters':len(prompt),
+            'required_context_characters':len(prompt),
+            'estimated_context_tokens':(len(prompt)+3)//4,'question_selection_id':plan['selection_id']}
+    except (ValueError,TypeError,KeyError,AttributeError):
+        return fallback('frozen_packet_not_projectable')
 
 
 def _normalize(value):

@@ -45,6 +45,18 @@
 
 ## 阶段上下文共享与研究评审职责（2026-11-03）
 
+### 同次规划的问题级方法选择
+
+原注册表的自动匹配按触发词／词项和优先级选候选；阶段编译再按阶段／学科／模板和授权筛选，尚不等于AI按问题选择。现在仅在已有Planner模型调用中，可附带analyst／reflection／report的冻结方法目录元数据，要求同次返回可选method_choices（阶段、已有ID和问题相关理由）。目录不能与完整原请求、4096输出及当前声明窗口／根份额共同容纳时不发送；固定流程、指定RAG目录／seed及简单事实等原本不调用Planner模型的路径不因此新增调用。
+
+有效选择以`adrs-question-method-plan-v1`保存到原plan_manifest并参与原计划版本，绑定原stage_compilation ID及问题／冻结合同。只允许实际目录中的阶段和ID；冲突阶段、非法或缺失选择独立回退原包，不派修复模型，也不阻塞有效研究计划。未给某阶段决定就保留原方法；明确空ID只停止该阶段自动方法指导，不删除手动选择。重规划可同次调整，原发现扩展继承该清单，旧无选择的检查点沿原包。
+
+三个阶段的模型提示、hint和请求收据消费同一投影：手动方法保留全部已冻结阶段内容／引用，自动未选方法保留原constraints，其他方法／阶段提示、hint和overview不重复装入。相同shared section引用继续有效，只保留实际需要的shared内容；hint只从同ID／版本／身份的冻结引用中归属且必须已在原包，无法可靠归属或解析时回退完整原包。原注册表、冻结stage_compilation、权限交集、required_tools、dispatch_tools及用户禁用约束均不改，不加载新文件、路径或方法版本；绘图手选及工具阶段保持原行为。
+
+收据的content_scope区分selected_method、frozen_constraints_only及fallback_frozen_method，既有方法usage投影保留这些已知范围；混有旧未记录范围时明确legacy_content_scope_unknown，不能把仅约束送达说成完整方法执行或遵循。选择理由在原计划清单／trace中，选择不批准科学内容、来源或完成状态。
+
+最小待运行目标：同次Planner可缩三个阶段自动方法且无额外选择请求；手选内容／引用、所有原constraints和服务端授权保留；未知ID、重复阶段、目录超容量／未发送或响应不完整均回退相应原包；非冲突阶段不被牵连；共享引用／hint归属与收据实际提示一致；任务或冻结编译改变不使用旧选择；固定RAG路径不新增Planner调用。仅源码／调用链审阅，无模型、测试或实际Token／费用数据。固定路径借后续既有分析响应择法、阶段内更细按需加载、工具／绘图及实际选择质量继续原4.5，整项未验收。
+
 源码对照发现，随附academic-pipeline、deep-research、agent-crosscheck、paper-audit、grilling和systematic-literature-review的Stage:reflection含同一逐项核对指令，通用Constraints也重复。原stage profiles已经只发送一次agent_hints，但多个方法同时选中时，各自章节仍重复序列化；本次没有读取或改写账号个人方法，也不据随附内容推断某次真实任务已经选择全部六项。
 
 新编译格式`adrs-stage-skills-v2-shared-sections`只在同一阶段共享章节名及文字完全相同的内容：shared_sections保存文字，各Skill的sections保留shared_section_id及所属身份／版本。模型包说明引用仍适用于各自Skill，不合并语义相近但不同的研究方法。只有序列化字节更少时采用共享表示，短文反而变大则保留内联；相同hint去重，试装与最终包使用相同表示计算资源占用。原阶段／学科／模板筛选、手选优先、权限交集、required_tools、引用加载、冲突及真实收据继续按各Skill维护。额外空间可能容纳原有自动候选，实际请求仍受原上下文和根预算约束，不能据此承诺固定Token降幅。

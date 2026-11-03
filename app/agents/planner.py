@@ -26,7 +26,7 @@ from typing import TYPE_CHECKING
 from openai import RateLimitError
 
 from app.config import get_settings
-from app.llm_budget import budgeted_client, skill_context_client, TokenBudgetExceeded
+from app.llm_budget import budgeted_client, skill_context_client, TokenBudgetExceeded, request_token_bound
 from app.graph.source_policy import apply_source_policy
 from app.graph.state import (
     DAGDefinition,
@@ -172,6 +172,9 @@ Return a JSON object with dag_name, nodes, and edges."""
         self.last_usage: dict | None = None
         self.request_budget = None
         self.last_plan_reason: str = 'not_started'
+        self.stage_skill_compilation = None
+        self.last_method_choices = None
+        self.method_catalog_offered = False
 
     @property
     def client(self) -> OpenAI:
@@ -257,6 +260,8 @@ Return a JSON object with dag_name, nodes, and edges."""
         """
         logger.info(f"Planner: Generating DAG for query: {query[:100]}")
         self.last_usage = None
+        self.last_method_choices = None
+        self.method_catalog_offered = False
         from app.organization_corpus import seed_only_dag, corpus_instructions
         declared_plan = seed_only_dag(organization_research)
         if declared_plan is not None:
@@ -314,6 +319,30 @@ Return a JSON object with dag_name, nodes, and edges."""
 
         try:
             active_client=skill_context_client(self.client) if skill_prompt else self.client
+            from app.skills.stages import question_method_catalog
+            catalog=question_method_catalog(self.stage_skill_compilation)
+            if catalog:
+                instruction=('\nIn this SAME planning response you may add optional TOP-LEVEL method_choices:[{"stage":"offered stage",'
+                    '"skill_ids":["frozen ID"],"reason":"why these automatic methods serve this question"}]. '
+                    'Prioritize the complete DAG. Choose automatic methods by actual purpose, not shared trigger words. '
+                    'Explicit user selections always remain active. Omit a stage if uncertain; its original methods '
+                    'remain. Keep any method explicitly requested in the question even if labeled automatic. '
+                    'An empty list for a stage declines only its automatic method guidance when the base '
+                    'agent already covers the work. Frozen constraints and server tool permissions always remain. '
+                    'Use only offered IDs; this is not permission to load another skill, tool or file. No separate selection call.')
+                catalog_text=json.dumps(catalog,ensure_ascii=False,separators=(',',':'))
+                expanded=[{**messages[0],'content':messages[0]['content']+instruction},
+                    {**messages[1],'content':messages[1]['content']+'\n'+
+                        untrusted_context('registered_method_catalog',catalog_text,limit=len(catalog_text))}]
+                bound=request_token_bound(expanded,response_format={'type':'json_object'})+4096
+                limits=[]
+                if self.request_budget is not None:limits.append(self.request_budget.available('research'))
+                window=(getattr(active_client,'route_info',None) or {}).get('context_tokens')
+                if window:limits.append(window)
+                fallback_window=(getattr(getattr(self,'routed_fallback',None),'route_info',None) or {}).get('context_tokens')
+                if fallback_window:limits.append(fallback_window)
+                if not limits or bound<=min(limits):
+                    messages=expanded;self.method_catalog_offered=True
             create_kwargs = {
                 "model": self.model,
                 "messages": messages,
@@ -351,6 +380,8 @@ Return a JSON object with dag_name, nodes, and edges."""
                 logger.warning(f"Planner: non-JSON output received, using fallback parser: {parse_error}")
                 return apply_source_policy(self._fixed_research_dag(query, organization_research), query, use_internal_docs=use_internal_docs)
             dag = self._parse_dag(data, query)
+            if self.method_catalog_offered and getattr(response.choices[0],'finish_reason',None)=='stop':
+                self.last_method_choices=data.get('method_choices')
 
             logger.info(
                 f"Planner: Generated DAG '{dag.dag_name}' with {len(dag.nodes)} nodes, "
