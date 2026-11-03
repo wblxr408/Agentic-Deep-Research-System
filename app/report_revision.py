@@ -9,7 +9,7 @@ from openai import APIError
 
 from app.claim_verification import audit_report, module_paragraph_kinds, shared_passage_payload, select_excerpts
 from app.llm_budget import TokenBudgetExceeded, budgeted_client, request_token_bound
-from app.organization_purpose import report_draft_model, assemble_module_report, report_prose, module_report_instructions
+from app.organization_purpose import REPORT_MATERIAL_POLICY, report_draft_model, assemble_module_report, report_prose, module_report_instructions
 from app.security.prompt_security import untrusted_context
 from app.report_content_units import reconcile as reconcile_content_units,lineage_after_deletions,references as content_references,require_patch_reference,patch_reference,validate_draft
 
@@ -110,22 +110,45 @@ def revise_reader_report(content,record,audit,*,question,findings,configuration,
             if group['kind']!='repetition' or anchor['paragraph_id']!=group['retain_in']}
         if (notes and anchor_ids and anchor_ids<=set(notes)
                 and all(group['kind'] in {'repetition','internal_state'} for group in groups)):
-            payload=json.dumps({'reader_gaps':gaps,'task_notes':{key:notes[key] for key in anchor_ids}},ensure_ascii=False)
-            messages=[{'role':'system','content':
-                'Consolidate repetitive internal task notes only. Return JSON {"remove_paragraph_ids":["provided ID"]}. '
-                'Remove redundant statements about missing user cooperation goals/resources/timing, or internal '
-                'reading/collection state. Preserve one concise relevant conditions note if useful. '
-                'Honor each repetition group retain_in: keep that owning paragraph, remove all other '
-                'occurrences. Remove all diagnosed internal-state notes. Do not remove distinct scientific '
-                'limitations or research substance. No text additions or edits.'},
-                {'role':'user','content':untrusted_context('task_note_edit',payload,limit=len(payload))}]
-            response=budgeted_client(client,budget,'report',operation='reader_note_revision').chat.completions.create(model=model,messages=messages,
-                temperature=0,max_tokens=1024,response_format={'type':'json_object'})
-            choice=response.choices[0]
-            if on_candidate:on_candidate(choice.message.content or '',stage='reader_note_revision_response'
-                if choice.finish_reason=='stop' else 'reader_revision_response_incomplete')
-            if choice.finish_reason!='stop':raise TokenBudgetExceeded('reader_revision_output_incomplete')
-            removed=json.loads(choice.message.content or '').get('remove_paragraph_ids')
+            direct_plan=configuration.get('report_material_policy')==REPORT_MATERIAL_POLICY
+            if direct_plan:
+                if (record.get('report_material_policy')!=REPORT_MATERIAL_POLICY
+                        or quality.get('global_review_valid') is not True
+                        or quality.get('report_content_id')!=identity(record.get('reading_structure'))):
+                    raise ValueError('reader_note_plan_not_bound_to_current_report')
+                if record.get('reader_impact_policy'):
+                    impact=quality.get('inline_reading_impact') or {}
+                    if (impact.get('policy')!=record['reader_impact_policy'] or impact.get('validated') is not True
+                            or impact.get('binding')!=quality.get('global_binding')):
+                        raise ValueError('reader_note_impact_not_bound_to_current_review')
+                    decisions={row['group_id']:row for row in impact.get('decisions') or []}
+                    rechecked=(quality.get('reading_impact_review') or {})
+                    if rechecked.get('validated') is True:
+                        decisions.update({row['group_id']:row for row in (rechecked.get('result') or {}).get('decisions') or []})
+                    if any(group['kind']=='repetition' and (decisions.get(group['id']) or {}).get('blocking') is not True
+                            for group in groups):
+                        return content,record,audit
+                # The existing repair groups already name every occurrence and
+                # the retained owner. A second model cannot change this exact
+                # delete-only plan under the existing validator.
+                removed=sorted(required_ids)
+            else:
+                payload=json.dumps({'reader_gaps':gaps,'task_notes':{key:notes[key] for key in anchor_ids}},ensure_ascii=False)
+                messages=[{'role':'system','content':
+                    'Consolidate repetitive internal task notes only. Return JSON {"remove_paragraph_ids":["provided ID"]}. '
+                    'Remove redundant statements about missing user cooperation goals/resources/timing, or internal '
+                    'reading/collection state. Preserve one concise relevant conditions note if useful. '
+                    'Honor each repetition group retain_in: keep that owning paragraph, remove all other '
+                    'occurrences. Remove all diagnosed internal-state notes. Do not remove distinct scientific '
+                    'limitations or research substance. No text additions or edits.'},
+                    {'role':'user','content':untrusted_context('task_note_edit',payload,limit=len(payload))}]
+                response=budgeted_client(client,budget,'report',operation='reader_note_revision').chat.completions.create(model=model,messages=messages,
+                    temperature=0,max_tokens=1024,response_format={'type':'json_object'})
+                choice=response.choices[0]
+                if on_candidate:on_candidate(choice.message.content or '',stage='reader_note_revision_response'
+                    if choice.finish_reason=='stop' else 'reader_revision_response_incomplete')
+                if choice.finish_reason!='stop':raise TokenBudgetExceeded('reader_revision_output_incomplete')
+                removed=json.loads(choice.message.content or '').get('remove_paragraph_ids')
             if (not isinstance(removed,list) or not removed or any(key not in anchor_ids for key in removed)
                     or not required_ids<=set(removed) or owners.intersection(removed)):
                 raise ValueError('reader_note_edit_invalid')
@@ -142,6 +165,8 @@ def revise_reader_report(content,record,audit,*,question,findings,configuration,
                 new_record['editorial_request_binding']=record['editorial_request_binding']
             new_record['reader_revision']={'policy':'adrs-task-note-consolidation-v1','removed_note_ids':removed,
                 'review_binding':quality.get('binding'),'repair_groups':groups,
+                **({'decision_source':'validated_current_reader_repair_groups','revision_model_request_avoided':True}
+                   if direct_plan else {}),
                 'original_record':{'raw_model_response':record['raw_model_response']},'original_audit':_prior_audit_summary(audit)}
             if on_candidate:on_candidate(raw,content=revised,record=new_record,stage='reader_notes_before_audit')
             paragraphs=[*new_record.get('summary',[]),*[p for module in new_record['modules']

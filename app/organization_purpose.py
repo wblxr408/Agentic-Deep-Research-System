@@ -12,7 +12,9 @@ from app.research_scope import ScopeRecord
 ResearchPurpose = Literal['research_development', 'cooperation_discovery', 'comprehensive']
 ResearchModule = Literal['landscape', 'evolution', 'relationships', 'deep_dive', 'validation', 'actions']
 POLICY_VERSION = 'adrs-analysis-modules-v1'
-REPORT_MATERIAL_POLICY = 'adrs-owned-chapter-input-v1'
+LEGACY_REPORT_MATERIAL_POLICY = 'adrs-owned-chapter-input-v1'
+REPORT_MATERIAL_POLICY = 'adrs-owned-chapter-input-v2-conclusion-ownership'
+REPORT_MATERIAL_POLICIES = {LEGACY_REPORT_MATERIAL_POLICY, REPORT_MATERIAL_POLICY}
 REPORT_ASSEMBLY_POLICY = 'adrs-batched-report-assembly-v1'
 EDITORIAL_PARTITION_POLICY = 'adrs-editorial-paragraph-packets-v1'
 LEGACY_READER_IMPACT_POLICY = 'adrs-inline-reader-impact-v1'

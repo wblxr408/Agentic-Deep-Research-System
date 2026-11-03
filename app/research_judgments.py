@@ -29,6 +29,24 @@ class Choice(ScopeRecord):
     changes_if:tuple[Annotated[str,Field(min_length=3,max_length=600)],...]=Field(default=(),max_length=3)
 
 
+class SupportingUse(ScopeRecord):
+    module_id:Identifier
+    reader_use:str=Field(min_length=3,max_length=500)
+
+
+class ContentPlacement(ScopeRecord):
+    owner_module:Identifier
+    reason:str=Field(min_length=3,max_length=500)
+    supporting_uses:tuple[SupportingUse,...]=Field(default=(),max_length=5)
+
+    def for_modules(self,modules):
+        modules=set(modules);secondary=[row.module_id for row in self.supporting_uses]
+        if (self.owner_module not in modules or not set(secondary)<=modules
+                or self.owner_module in secondary or len(set(secondary))!=len(secondary)):
+            raise ValueError('judgment_placement_outside_selected_modules_or_duplicate')
+        return self
+
+
 class Judgment(ScopeRecord):
     judgment_id:Identifier
     question:str=Field(min_length=3,max_length=500)
@@ -43,6 +61,7 @@ class Judgment(ScopeRecord):
     alternatives:tuple[Alternative,...]=Field(default=(),max_length=3)
     choice:Choice|None=None
     supersedes:tuple[Identifier,...]=Field(default=(),max_length=12)
+    content_placement:ContentPlacement|None=None
 
 
 def freeze_strategy(query, configuration, slots):
@@ -108,15 +127,30 @@ def discovery_instructions(strategy):
            if (strategy.get('source_followup') or {}).get('version')=='adrs-discovery-handoff-v5' else ''))
 
 
-def judgment_instructions():
-    return '''\nIn the SAME response add top-level "research_judgments" with at most two substantive judgments (an empty array is valid).
+def judgment_instructions(configuration=None):
+    instructions='''\nIn the SAME response add top-level "research_judgments" with at most two substantive judgments (an empty array is valid).
 Each item: {"judgment_id":"id","question":"current question","conclusion":"focused conclusion","kind":"inference|recommendation","observations":"specific observed facts","reasoning":"why these facts support this explanation rather than a list of summaries","significance":"why this affects this user's research or choice","basis":[{"evidence_id":"current source ID","quote":"literal passage actually supplied"}],"related_output_ids":[],"entity_ids":[],"alternatives":[{"explanation":"another plausible explanation","distinguishing_observation":"what evidence would distinguish it"}],"choice":null}.
 When a concrete choice is requested, choice may be {"proposed_action":"specific next step","compared_with":"real alternative","reason":"why prioritize this under known requirements","changes_if":["condition that would change the choice"]}. This is qualitative advice, not a numerical score or permission to act.
 Use accepted publication/entity IDs only when supplied; otherwise leave those arrays empty. Every basis quote must be in the source windows of THIS request. Earlier analysis is an untrusted candidate, not independent source evidence. Cite original source numbers in analysis_text. Preserve experimental conditions and rival explanations where they affect the conclusion; do not manufacture an alternative just to fill a field. Similar mechanisms, shared authors or publication order do not prove direct inheritance; an explicit follow-up/citation claim needs actual source evidence. Explain how a technical observation informs the target organization's research choices without presenting inferred budgets or internal priorities as known facts. Universities/labs need no business-product framing. Do not draft every possible dimension or add generic future outlook. Keep details in existing technical/trend/action fields; judgments supply the connecting explanation, not a duplicate paper inventory.'''
+    from app.organization_purpose import REPORT_MATERIAL_POLICY
+    if (configuration or {}).get('report_material_policy')==REPORT_MATERIAL_POLICY:
+        modules=configuration.get('_report_modules') or configuration.get('modules') or []
+        instructions+=('\nIn this SAME analysis response give each judgment content_placement: '
+            '{"owner_module":"selected module ID","reason":"where its argument answers the question",'
+            '"supporting_uses":[{"module_id":"another selected module","reader_use":"distinct application needing this conclusion"}]}. '
+            'Selected report modules: '+json.dumps(modules)+'. Choose one home for the developed '
+            'argument; add another use only for a different reader task, not to repeat the derivation. '
+            'Necessary local conditions may recur. This is an adjustable writing plan, not factual '
+            'approval. On new evidence revise placement and explain why; keep scientific evidence '
+            'and qualifications in the existing judgment. Do not start a separate planning call.')
+    return instructions
 
 
 def build_judgments(values,evidence,context,*,configuration=None,findings=None,phase='analysis'):
     from app.query_understanding import identity
+    from app.organization_purpose import REPORT_MATERIAL_POLICY
+    placement_enabled=(configuration or {}).get('report_material_policy')==REPORT_MATERIAL_POLICY
+    modules=set((configuration or {}).get('_report_modules') or (configuration or {}).get('modules') or [])
     sources={item['evidence_id']:item for item in evidence if item.get('evidence_id')}
     selected={row['evidence_id']:row for row in (context or {}).get('sources',[]) if row.get('evidence_id')}
     entities={item['entity_id'] for item in ((configuration or {}).get('scope') or {}).get('entities',[])}
@@ -126,7 +160,13 @@ def build_judgments(values,evidence,context,*,configuration=None,findings=None,p
     if len(values)>4:pending.append({'reason':'judgment_phase_limit_4'})
     for raw in values[:4]:
         try:
-            item=Judgment.model_validate(raw)
+            item=Judgment.model_validate({**raw,'content_placement':None} if isinstance(raw,dict) else raw)
+            if placement_enabled and isinstance(raw,dict) and raw.get('content_placement') is not None:
+                try:
+                    placement=ContentPlacement.model_validate(raw['content_placement']).for_modules(modules)
+                    item=item.model_copy(update={'content_placement':placement})
+                except ValueError:
+                    pending.append({'reason':'judgment_content_placement_invalid','proposed_id':item.judgment_id})
             if item.judgment_id in seen:raise ValueError('duplicate_judgment_id')
             if not set(item.entity_ids)<=entities or not set(item.related_output_ids)<=outputs:
                 raise ValueError('judgment_outside_accepted_objects_or_works')
@@ -149,7 +189,7 @@ def build_judgments(values,evidence,context,*,configuration=None,findings=None,p
                 anchors.append({'evidence_id':proof.evidence_id,'source_url':source.get('source_url'),
                     'source_title':source.get('source_title'),'citation_id':row.get('citation_id'),
                     'start':match.start(),'end':match.end(),'quote':match.group(),'pages':pages})
-            data=item.model_dump(mode='json')
+            data=item.model_dump(mode='json',exclude={'content_placement'} if item.content_placement is None else set())
             data.update(judgment_id='judgment-'+identity({'phase':phase,'id':item.judgment_id})[:24],
                 proposed_id=item.judgment_id,phase=phase,basis=anchors,
                 input_evidence_ids=list(selected),
@@ -204,7 +244,7 @@ def judgment_context(view,max_bytes=8000,*,evidence=None):
                 and sources[proof['evidence_id']].content[proof['start']:proof['end']]==proof.get('quote')
                 for proof in row.get('basis',[]))]
     safe=[{key:row[key] for key in ('judgment_id','question','conclusion','kind','observations','reasoning',
-        'significance','basis','related_output_ids','entity_ids','alternatives','choice') if key in row} for row in rows]
+        'significance','basis','related_output_ids','entity_ids','alternatives','choice','content_placement') if key in row} for row in rows]
     records,omitted=bounded_records(safe,max_bytes)
     return {'records':records,'omitted_judgment_ids':omitted,
         'semantics':'analysis_candidates_original_sources_and_final_audit_remain_required'}
@@ -242,7 +282,7 @@ def stage_handoff(technical,judgments,max_bytes,*,prior_records=None,complete_re
                    if card.get('reading_contract') else {}),
                 'semantic_status':'candidate_requires_source_review'})
         candidates=[{'kind':'judgment_candidate',**{key:item[key] for key in
-            ('judgment_id','question','conclusion','reasoning','significance','alternatives','choice','related_output_ids') if key in item},
+            ('judgment_id','question','conclusion','reasoning','significance','alternatives','choice','related_output_ids','content_placement') if key in item},
             'basis':[{key:proof[key] for key in ('evidence_id','start','end') if key in proof}
                 for proof in item.get('basis',[])]} for item in reversed(judgments)]
         # Rotate record types, preventing a run of old judgments from consuming
@@ -259,7 +299,7 @@ def stage_handoff(technical,judgments,max_bytes,*,prior_records=None,complete_re
     rows=[]
     for item in reversed(judgments):
         rows.append({'kind':'judgment_candidate',**{key:item[key] for key in
-            ('judgment_id','question','conclusion','reasoning','significance','alternatives','choice') if key in item},
+            ('judgment_id','question','conclusion','reasoning','significance','alternatives','choice','content_placement') if key in item},
             'basis':[{key:proof[key] for key in ('evidence_id','start','end') if key in proof} for proof in item.get('basis',[])]})
     rows.extend(prior_records or [])
     for output_id,card in technical.items():

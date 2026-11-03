@@ -5,7 +5,7 @@ import json
 import re
 
 from app.llm_budget import TokenBudgetExceeded, request_token_bound
-from app.organization_purpose import ModuleReportDraft, MODULES, CHAPTER_RESPONSIBILITIES, REPORT_MATERIAL_POLICY, report_draft_model
+from app.organization_purpose import ModuleReportDraft, MODULES, CHAPTER_RESPONSIBILITIES, REPORT_MATERIAL_POLICY, REPORT_MATERIAL_POLICIES, report_draft_model
 from app.research_context import _paragraph_window
 from app.security.prompt_security import untrusted_context
 from app.query_understanding import identity
@@ -16,11 +16,12 @@ def compose_sections(*,question,analysis,configuration,findings,evidence,statist
     findings=findings or {}
     assembled_model=report_draft_model(configuration)
     material_policy=configuration.get('report_material_policy')
-    if material_policy not in (None,REPORT_MATERIAL_POLICY):
+    if material_policy is not None and material_policy not in REPORT_MATERIAL_POLICIES:
         raise TokenBudgetExceeded('report_material_policy_unsupported')
-    owned_input=material_policy==REPORT_MATERIAL_POLICY
-    input_version='structured-section-input-v3' if owned_input else 'structured-section-input-v2'
-    chapter_plan={'version':REPORT_MATERIAL_POLICY,'chapters':[
+    owned_input=material_policy in REPORT_MATERIAL_POLICIES
+    ownership=material_policy==REPORT_MATERIAL_POLICY
+    input_version='structured-section-input-v4' if ownership else 'structured-section-input-v3' if owned_input else 'structured-section-input-v2'
+    chapter_plan={'version':material_policy,'chapters':[
         {'module_id':module,'reader_question':MODULES[module][1],
          'responsibility':CHAPTER_RESPONSIBILITIES[module]} for module in configuration['modules']]}
     works=(findings.get('scope_result') or {}).get('outputs') or []
@@ -34,6 +35,7 @@ def compose_sections(*,question,analysis,configuration,findings,evidence,statist
     if configuration.get('report_assembly_policy'):
         manifest['assembly_policy']=configuration['report_assembly_policy']
     if owned_input:manifest['chapter_plan']=chapter_plan
+    assigned_judgments={module:{} for module in configuration['modules']}
 
     def material(module,assigned,*,focused=False):
         work_ids={row['output_id'] for row in assigned}
@@ -48,6 +50,33 @@ def compose_sections(*,question,analysis,configuration,findings,evidence,statist
                 'field_scope':'chapter_selection_full_card_retained_for_deep_dive'} for row in technical]
         judgments=[row for row in (findings.get('research_judgments') or {}).get('records',[])
             if not row.get('related_output_ids') or set(row['related_output_ids']) & work_ids]
+        judgment_references=[]
+        if ownership:
+            from app.research_judgments import ContentPlacement
+            selected=[]
+            for row in judgments:
+                placement=None
+                if row.get('content_placement'):
+                    try:
+                        placement=ContentPlacement.model_validate(row['content_placement']).for_modules(assigned_judgments)
+                    except ValueError:pass
+                if placement:
+                    use=next((item for item in placement.supporting_uses if item.module_id==module),None)
+                    if placement.owner_module!=module and use is None:continue
+                    row={**row,'writing_role':'develop' if placement.owner_module==module else 'apply',
+                        'reader_use':use.reader_use if use else placement.reason}
+                else:
+                    row={**row,'writing_role':'placement_unresolved_preserve_candidate'}
+                    unresolved=manifest.setdefault('unassigned_judgment_ids',[])
+                    if row['judgment_id'] not in unresolved:unresolved.append(row['judgment_id'])
+                if row['judgment_id'] in assigned_judgments[module]:
+                    judgment_references.append({**{key:row[key] for key in
+                        ('judgment_id','question','conclusion','observations','basis','alternatives','choice','content_placement','reader_use') if key in row},
+                        'writing_role':'reference_to_assigned_argument',
+                        'assigned_section_id':assigned_judgments[module][row['judgment_id']]})
+                    continue
+                selected.append(row)
+            judgments=selected
         actions=findings.get('actions') if module=='actions' else None
         relationships=findings.get('relationship_view') if module in {'relationships','evolution'} else None
         trends=findings.get('trend_view') if module in {'evolution','validation'} else None
@@ -64,7 +93,7 @@ def compose_sections(*,question,analysis,configuration,findings,evidence,statist
                 for item in value.values():proofs(item)
             elif isinstance(value,(list,tuple)):
                 for item in value:proofs(item)
-        proofs(technical);proofs(judgments);proofs(actions);proofs(relationships);proofs(trends)
+        proofs(technical);proofs(judgments);proofs(judgment_references);proofs(actions);proofs(relationships);proofs(trends)
         for work in assigned:
             proofs(work.get('affiliations'))
             for key in (metadata.get(work['output_id']) or {}).get('evidence_ids',[]):
@@ -107,6 +136,7 @@ def compose_sections(*,question,analysis,configuration,findings,evidence,statist
             'trends':trends,'statistics':selected_statistics,
             'analysis':section_analysis[1] if section_analysis else None if owned_input else analysis,
             'sources':passages,'missing_proofs':missing}
+        if ownership:packet['judgment_references']=judgment_references
         if owned_input:
             packet['chapter_plan']=chapter_plan
             packet['analysis_selection']={'status':'module_section' if section_analysis else 'module_section_unavailable',
@@ -244,6 +274,16 @@ def compose_sections(*,question,analysis,configuration,findings,evidence,statist
                 'comparison. Do not claim that an omitted source has no research. Keep at most 4 main '
                 'paragraphs and 6 appendix paragraphs in this bounded section; prioritize substance. '
                 'Do not add other modules, numbering, workflow states or a general conclusion.')
+            if ownership:
+                instruction+=(' Follow each judgment\'s writing_role and content_placement. Develop '
+                    'its full argument at its owning module; other permitted modules apply it only '
+                    'for the stated distinct reader_use without repeating its derivation. Necessary '
+                    'conditions and counterexamples remain with any use. An unresolved placement '
+                    'is a retained candidate, not permission to discard the scientific point. '
+                    'judgment_references preserve conclusions, observations and original passages '
+                    'already assigned for development in this module: use necessary context or apply it to this '
+                    'part\'s actual works, without repeating the derivation. Do not expose section IDs. '
+                    'This is a writing plan; correct unsupported conclusions from actual passages.')
             packed=json.dumps(payload,ensure_ascii=False,separators=(',',':'))
             estimate=messages_for(payload,instruction) if owned_input else [
                 {'role':'system','content':system_prompt+'\n'+instruction},
@@ -276,10 +316,12 @@ def compose_sections(*,question,analysis,configuration,findings,evidence,statist
                     raise ValueError('section_writing_unsupplied_citation')
                 return part
             part=ask(payload,instruction,6144,section_id,{'assigned_output_ids':[row['output_id'] for row in assigned],
-                'material_policy':REPORT_MATERIAL_POLICY if owned_input else 'chapter-fields-v1' if focused else 'legacy-full-fields',
+                'material_policy':material_policy if owned_input else 'chapter-fields-v1' if focused else 'legacy-full-fields',
                 'sources':payload['sources'],'missing_proofs':payload['missing_proofs']},validate_section)
             parts.append(part)
+            if ownership:assigned_judgments[module].update({row['judgment_id']:section_id for row in payload['judgments']})
             manifest['sections'].append({'section_id':section_id,'output_ids':[row['output_id'] for row in assigned],
+                **({'judgment_ids':[row['judgment_id'] for row in payload['judgments']]} if ownership else {}),
                 'evidence_ids':[row['evidence_id'] for row in payload['sources']],
                 'missing_proofs':payload['missing_proofs']})
             manifest['sources'].extend({'evidence_id':row['evidence_id'],'citation_id':'citation:'+str(row['citation']),

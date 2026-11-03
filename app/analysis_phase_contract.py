@@ -165,6 +165,15 @@ def instructions(configuration, phase, seed=None):
         'narratives, so remove contradicted earlier claims and preserve useful supported conclusions with citations. '
         'Technical/trend/relationship cards remain separate detail; summaries connect and explain them.'
         if configuration.get('_post_reading_synthesis') else '')
+    if configuration.get('_post_reading_synthesis'):
+        from app.organization_purpose import REPORT_MATERIAL_POLICY
+        if configuration.get('report_material_policy')==REPORT_MATERIAL_POLICY:
+            synthesis+=(' In this SAME synthesis align module_summaries with the judgments\' '
+                'content_placement: one home develops each connecting argument, other modules '
+                'use it only for a distinct reader task. Keep necessary local conditions, but do '
+                'not restate the same argument in every summary. Placement is revisable; a '
+                'replacement candidate may supersede an existing placement while preserving '
+                'its supported scientific content. Do not request another outline/ownership call.')
     return (synthesis+'\nCURRENT PHASE OUTPUT CONTRACT (overrides generic Skill report templates):\n'+
         json.dumps(shape,ensure_ascii=False,separators=(',',':'))+
         '\nThe example describes field names, not facts. Use the actual selected IDs and only supported '

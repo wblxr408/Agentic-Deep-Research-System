@@ -119,7 +119,7 @@ Return JSON with analysis_text and any additional fields explicitly required bel
         """Sequential questions share one analyst, root allowance and checkpoint."""
         from app.research_context import (analysis_binding, identity_batches, QUESTION_SEED_VERSION,
             CONTEXT_PACKING_VERSION, LEGACY_CONTEXT_PACKING_VERSION, workflow_packing_version)
-        from app.organization_purpose import MODULES, REPORT_MATERIAL_POLICY
+        from app.organization_purpose import MODULES, REPORT_MATERIAL_POLICY, REPORT_MATERIAL_POLICIES
         from app.organization_deep_dive import READING_FIELD_POLICIES,required_reading_fields,retain_reading_contract
         if configuration.get('reading_field_policy') is not None and configuration['reading_field_policy'] not in READING_FIELD_POLICIES:
             self.last_workflow=deepcopy(resume_state or {})
@@ -158,6 +158,8 @@ Return JSON with analysis_text and any additional fields explicitly required bel
 
         def phase(key, phase_config, kind, seed=None):
             if all_reading:phase_config={**phase_config,'_reading_all_requested':True}
+            if configuration.get('report_material_policy')==REPORT_MATERIAL_POLICY:
+                phase_config={**phase_config,'_report_modules':modules}
             from app.query_understanding import identity
             seed_binding=identity({'configuration':phase_config,'kind':kind,'seed':seed})
             action_contract_binding=None
@@ -360,7 +362,7 @@ Return JSON with analysis_text and any additional fields explicitly required bel
             if resolved_entities:
                 extract_config = {**extract_config,'scope':{**extract_config['scope'],
                     'entities':resolved_entities}}
-            if (configuration.get('report_material_policy')==REPORT_MATERIAL_POLICY
+            if (configuration.get('report_material_policy') in REPORT_MATERIAL_POLICIES
                     and (configuration.get('corpus') or {}).get('collection_mode')=='rag_corpus'):
                 from app.rag_corpus import declared_scope_links
                 partial=workflow.setdefault('corpus_progress',{'version':'adrs-task-corpus-progress-v1',
@@ -383,7 +385,7 @@ Return JSON with analysis_text and any additional fields explicitly required bel
         # Task-specific progress stays in the existing phase checkpoint. The
         # RAG source catalog remains the library authority, not this projection.
         corpus_progress=None
-        if configuration.get('report_material_policy')==REPORT_MATERIAL_POLICY:
+        if configuration.get('report_material_policy') in REPORT_MATERIAL_POLICIES:
             from app.organization_deep_dive import _full_text
             current_evidence={item.evidence_id:item.model_dump(mode='json') for item in evidence_list}
             items={}
@@ -758,7 +760,7 @@ Return JSON with analysis_text and any additional fields explicitly required bel
             (getattr(self,'research_strategy',None) or {}).get('version'))
         if strategy_version==JUDGMENT_VERSION and _phase!='extraction' and (
                 not organization_research or set(organization_research.get('modules',[]))&{'landscape','evolution','validation','actions'}):
-            system_prompt+=judgment_instructions()
+            system_prompt+=judgment_instructions(organization_research)
         if passage_contract:
             system_prompt+=('\nProof reference contract: every selected source excerpt has a request-local passage_id. '
                 'For a proof object you may use exactly {"passage_id":"p17"}; the server supplies that '
