@@ -119,6 +119,7 @@ class ReportAgent:
         self.recovery_events:list[dict]=[]
         self.on_candidate=None
         self._fact_progress=None
+        self._last_revision_candidate=None
 
     def _fact_audit_options(self,configuration,findings):
         from app.organization_purpose import REPORT_MATERIAL_POLICY
@@ -132,13 +133,18 @@ class ReportAgent:
             self.on_candidate({'stage':'fact_audit_checkpoint','fact_audit_progress':deepcopy(progress)})
         return {'on_progress':save,'retained_progress':progress}
 
-    def retain_candidate(self, raw, *, content=None, record=None, stage='provider_response'):
+    def retain_candidate(self, raw, *, content=None, record=None, stage='provider_response',revision_request=None):
         """Persist paid output before a later model call; this never publishes it."""
-        if not self.on_candidate:return
-        self.on_candidate({'raw_model_response':raw,'content':content,'module_report':record,
+        if not self.on_candidate:
+            if revision_request is not None:raise TokenBudgetExceeded('reader_revision_checkpoint_unavailable')
+            return
+        candidate={'raw_model_response':raw,'content':content,'module_report':record,
             'stage':stage,'review_status':'not_reviewed','model':self.model,
+            **({'revision_request':revision_request} if revision_request is not None else {}),
             'citations':[item.model_dump(mode='json') for item in self.last_citations],
-            'report_context':self.last_context_manifest})
+            'report_context':self.last_context_manifest}
+        self.on_candidate(candidate)
+        self._last_revision_candidate=candidate if revision_request is not None else None
 
     @property
     def client(self) -> OpenAI:
@@ -701,6 +707,7 @@ Evidence Sources:
         located_spans=reading_source_spans(technical_reading,evidence_list,analysis_workflow)
         if reader_revision or supported_finalization:
             from app.report_revision import revise_reader_report,finalize_supported_report
+            self._last_revision_candidate=None
             try:
                 revision=finalize_supported_report if supported_finalization else revise_reader_report
                 content,self.last_module_report,self.last_audit=revision(content,self.last_module_report,
@@ -711,6 +718,13 @@ Evidence Sources:
                 self.last_draft=content
             except TokenBudgetExceeded:raise
             except (ValueError,TypeError,KeyError,AttributeError) as error:
+                candidate=getattr(self,'_last_revision_candidate',None)
+                request=(candidate or {}).get('revision_request') or {}
+                if request.get('status')=='response_received' and request.get('finish_reason')=='stop':
+                    # Only a diagnosed contract failure authorizes a bounded
+                    # format correction; merely resuming never starts one.
+                    self.retain_candidate(candidate['raw_model_response'],stage=candidate['stage'],
+                        revision_request={**request,'contract_error':str(error)[:1200]})
                 raise TokenBudgetExceeded('reader_revision_contract_invalid') from error
         try:
             if audit_unit_frontier:
