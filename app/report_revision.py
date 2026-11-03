@@ -97,10 +97,15 @@ def _editor_request_basis(*,messages,contract,purpose,record,quality,evidence,ci
             for index,source in enumerate(evidence,1) if index in cited}}
 
 
+def _editor_response_family(basis,output_cap,minimum_output,required_audit):
+    from app.query_understanding import identity
+    return identity({**basis,'output_limit':output_cap,'minimum_output':minimum_output,'required_audit':required_audit})
+
+
 def _reader_edit_response(*,messages,contract,purpose,output_cap,record,quality,findings,
                           configuration,evidence,cited,client,model,budget,on_candidate,
                           response_stage='reader_revision_response',temperature=.1,
-                          minimum_output=0,required_audit=0):
+                          minimum_output=0,required_audit=0,paragraph_ids=None):
     """Recover this editor's paid response through the existing root candidate."""
     control=getattr(budget,'execution_control',None)
     protected=configuration.get('report_material_policy')==REPORT_MATERIAL_POLICY and control is not None
@@ -133,7 +138,7 @@ def _reader_edit_response(*,messages,contract,purpose,output_cap,record,quality,
     from app.query_understanding import identity
     basis=_editor_request_basis(messages=messages,contract=contract,purpose=purpose,record=record,
         quality=quality,evidence=evidence,cited=cited,client=active,model=model,budget=budget,temperature=temperature)
-    family=identity({**basis,'output_limit':output_cap,'minimum_output':minimum_output,'required_audit':required_audit})
+    family=_editor_response_family(basis,output_cap,minimum_output,required_audit)
     prior=(findings or {}).get('report_candidate') or {}
     responses=((findings or {}).get('report_editor_sections') or {}).get('responses') or {}
     matching=max((candidate for candidate in responses.values()
@@ -181,7 +186,8 @@ def _reader_edit_response(*,messages,contract,purpose,output_cap,record,quality,
         on_candidate(reply,stage=response_stage if saved.get('finish_reason')=='stop'
             else 'reader_revision_response_incomplete',revision_request={**saved,'response_reused':True,
                 'family_binding':family,'output_tokens':output_cap,
-                'original_report_id':identity(record['raw_model_response'])})
+                'original_report_id':identity(record['raw_model_response']),
+                **({'paragraph_ids':list(paragraph_ids)} if paragraph_ids is not None else {})})
         _editor_response_consumed(budget)
         if saved.get('finish_reason')!='stop':raise TokenBudgetExceeded('reader_revision_output_incomplete')
         return reply
@@ -196,6 +202,7 @@ def _reader_edit_response(*,messages,contract,purpose,output_cap,record,quality,
     request={'policy':'adrs-reader-edit-response-v1','binding':binding,'contract':contract,
         'content_unit_id':unit,'status':'dispatch_intent','family_binding':family,'output_tokens':output_cap,
         'original_report_id':identity(record['raw_model_response']),
+        **({'paragraph_ids':list(paragraph_ids)} if paragraph_ids is not None else {}),
         **({'base_binding':base_binding,'repair_attempted':True,**repair} if repair else {})}
     on_candidate('',stage='reader_revision_dispatch',revision_request=request)
     try:
@@ -402,7 +409,7 @@ def revise_reader_report(content,record,audit,*,question,findings,configuration,
         before=sum(row.get('verification_required',True) and row.get('status')!='supported' for row in audit.get('claims',[]))
         result,new_record,new_audit=_revise_report_once(content,record,audit,configuration=configuration,
             statistics=statistics,evidence=evidence,client=client,model=model,budget=budget,deadline=deadline,
-            citation_count=len(evidence),task_context=task_context,source_spans=source_spans,on_candidate=on_candidate,audit_options=audit_options,
+            citation_count=len(evidence),task_context=task_context,source_spans=source_spans,on_candidate=on_candidate,audit_options=audit_options,findings=findings,
             retained_responses=(audit.get('revision_attempt') or {}).get('raw_responses')
                 if (audit.get('revision_attempt') or {}).get('status')=='ValueError' else None)
         new_record['repair_rounds']=[*rounds,{'round':len(rounds)+1,'authority':'explicit_owner_progress_continuation',
@@ -1250,7 +1257,7 @@ def revise_report_claims(content, record, audit, *, on_round=None, on_event=None
 
 def _revise_report_once(content, record, audit, *, configuration, statistics, evidence,
                          client, model, budget, deadline, citation_count, upgrade_callback=None, task_context=None,
-                         source_spans=None,on_candidate=None,retained_responses=None,audit_options=None):
+                         source_spans=None,on_candidate=None,retained_responses=None,audit_options=None,findings=None):
     """Only change mapped paragraph text, then audit the whole resulting report."""
     if not audit.get('needs_review') or audit.get('audit_incomplete') or audit.get('budget_incomplete'):
         return content,record,audit
@@ -1290,11 +1297,12 @@ def _revise_report_once(content, record, audit, *, configuration, statistics, ev
         for row in failed:
             for ex in row['excerpts']:
                 excerpts[ex['excerpt_id']]=ex
-    reply=None;replies=[];request_attempts=0;replacements={};format_adjustments=[]
+    reply=None;replies=[];request_attempts=0;reused_reply_count=0;replacements={};format_adjustments=[]
     saved_replies=list(retained_responses or [])
     def retain(reason,attempted=False):
         audit['revision_attempt']={'attempted':attempted,'status':reason,'paragraph_count':len(targets),
             'raw_response':reply,'raw_responses':list(replies),'request_attempts':request_attempts,
+            'reused_responses':reused_reply_count,
             **({'base_content_version':record['content_document_version']} if unit_refs else {}),
             'completed_paragraph_ids':list(replacements)}
         return content,record,audit
@@ -1306,6 +1314,17 @@ def _revise_report_once(content, record, audit, *, configuration, statistics, ev
             batches.append(batch);batch=[];size=0
         batch.append(target);size+=item_size
     if batch:batches.append(batch)
+    protected=(configuration.get('report_material_policy')==REPORT_MATERIAL_POLICY
+        and getattr(budget,'execution_control',None) is not None)
+    from app.query_understanding import identity
+    original_id=identity(record['raw_model_response'])
+    responses=(((findings or {}).get('report_editor_sections') or {}).get('responses') or {}
+    saved_batches=[candidate for candidate in responses.values()
+        if (candidate.get('revision_request') or {}).get('contract')==CLAIM_EDIT_CONTRACT
+        and (candidate.get('revision_request') or {}).get('original_report_id')==original_id] if protected else []
+    # New bound receipts take precedence over the legacy positional reply list.
+    # Do not bypass changed-input checks by accepting that old projection.
+    if saved_batches:saved_replies=[]
     instructions=(
         'Correct only the diagnosed clauses in the supplied paragraphs against their cited excerpts. Preserve supported facts, '
         'conditions and scope. Narrow or remove unsupported clauses; resolve contradictions using the evidence. '
@@ -1357,6 +1376,37 @@ def _revise_report_once(content, record, audit, *, configuration, statistics, ev
             'passages':[{'passage_number':numbers[key],'excerpt_references':references[key]} for key in needed]},ensure_ascii=False)
         return [{'role':'system','content':instructions},
             {'role':'user','content':untrusted_context('report_content_correction',payload,limit=len(payload))}]
+    def output_cap(items):
+        return 8192 if len(items)==1 and len(items[0]['text'].encode('utf-8'))>6000 else 4096
+    def cited_sources(items):
+        return {key for item in items for key in item['citations']}
+    restored=set()
+    if protected and not saved_replies:
+        # Recover actual paid/intended batches before current allowance can
+        # repartition them. Metadata only locates candidates; the original
+        # message/source/root family must still match before it owns targets.
+        by_id={item['paragraph_id']:item for item in targets}
+        position={key:index for index,key in enumerate(by_id)}
+        recovered={};claimed=set()
+        for candidate in saved_batches:
+            request=candidate.get('revision_request') or {};ids=request.get('paragraph_ids')
+            if (request.get('policy')!='adrs-reader-edit-response-v1' or request.get('contract')!=CLAIM_EDIT_CONTRACT
+                    or request.get('original_report_id')!=original_id
+                    or not isinstance(ids,list) or not ids or any(not isinstance(key,str) or key not in by_id for key in ids)
+                    or len(ids)!=len(set(ids))):continue
+            items=[by_id[key] for key in ids]
+            basis=_editor_request_basis(messages=correction_messages(items),contract=CLAIM_EDIT_CONTRACT,
+                purpose='report',record=record,quality=audit,evidence=evidence,cited=cited_sources(items),
+                client=client,model=model,budget=budget,temperature=0)
+            if request.get('family_binding')!=_editor_response_family(basis,output_cap(items),1024,2048):continue
+            key=tuple(ids)
+            if key in recovered:continue
+            if claimed.intersection(ids):return retain('correction_saved_batch_overlap')
+            claimed.update(ids);recovered[key]=items
+        restored=set(recovered)
+        unpaid=[[item for item in batch if item['paragraph_id'] not in claimed] for batch in batches]
+        batches=[*sorted(recovered.values(),key=lambda items:position[items[0]['paragraph_id']]),
+            *[batch for batch in unpaid if batch]]
     def next_batch_messages():
         # Full issue/excerpt payloads, rather than paragraph bytes alone,
         # determine whether a batch fits. Split before dispatch, never retry
@@ -1364,40 +1414,64 @@ def _revise_report_once(content, record, audit, *, configuration, statistics, ev
         while True:
             messages=correction_messages(batches[0])
             required=request_token_bound(messages,response_format={'type':'json_object'})+1024
-            if budget.available('report')>=required or len(batches[0])==1:
+            if (tuple(item['paragraph_id'] for item in batches[0]) in restored
+                    or budget.available('report')>=required or len(batches[0])==1):
                 return messages,required
             batch=batches.pop(0);middle=len(batch)//2
             batches[:0]=[batch[:middle],batch[middle:]]
     messages,required=next_batch_messages()
-    if budget.available('report')<required or budget.available('audit')<2048:
+    recovering=tuple(item['paragraph_id'] for item in batches[0]) in restored
+    if not recovering and (budget.available('report')<required or budget.available('audit')<2048):
         return retain('original_allowance_insufficient')
     # Persist the old draft, paid audit and routing decision before another
     # provider call. A checkpoint failure must reach the root pause handler.
-    if upgrade_callback is not None:
+    def upgrade(required):
+        nonlocal client,model
+        if upgrade_callback is None:return
         conflicts=[row for row in audit.get('claims',[]) if row.get('status')=='contradicted'
             and row.get('model_verdict') and row.get('excerpts')]
         trigger='source_conflict' if conflicts else 'evidence_gap'
         replacement=upgrade_callback(trigger,{'paragraph_ids':[item['paragraph_id'] for item in targets],
             'conflicting_claim_count':len(conflicts)},required)
         if replacement is not None:client,model=replacement
+    upgraded=False
+    if not recovering:
+        upgrade(required);upgraded=True
+    def save_response(raw,**candidate):
+        nonlocal request_attempts,reused_reply_count
+        request=candidate.get('revision_request') or {}
+        if candidate.get('stage')=='reader_revision_dispatch' and request.get('status')=='dispatch_intent':
+            request_attempts+=1
+        if request.get('response_reused'):reused_reply_count+=1
+        on_candidate(raw,**candidate)
     try:
         while batches:
             messages,required=next_batch_messages()
             batch=batches.pop(0)
             prompt_bound=required-1024
-            if budget.available('report')<prompt_bound+1024 or budget.available('audit')<2048:
+            recovering=tuple(item['paragraph_id'] for item in batch) in restored
+            if not recovering and (budget.available('report')<prompt_bound+1024 or budget.available('audit')<2048):
                 return retain('original_allowance_insufficient',bool(request_attempts))
-            output_cap=8192 if len(batch)==1 and len(batch[0]['text'].encode('utf-8'))>6000 else 4096
+            if not recovering and not upgraded:
+                upgrade(required);upgraded=True
             if saved_replies:
                 reply=saved_replies.pop(0)
+                reused_reply_count+=1
+            elif protected:
+                reply=_reader_edit_response(messages=messages,contract=CLAIM_EDIT_CONTRACT,purpose='report',
+                    output_cap=output_cap(batch),minimum_output=1024,required_audit=2048,
+                    record=record,quality=audit,findings=findings,configuration=configuration,
+                    evidence=evidence,cited=cited_sources(batch),client=client,model=model,budget=budget,
+                    on_candidate=save_response if on_candidate else None,response_stage='claim_revision_response',temperature=0,
+                    paragraph_ids=[item['paragraph_id'] for item in batch])
             else:
                 request_attempts+=1
                 response=client.chat.completions.create(model=model,messages=messages,temperature=0,
-                    max_tokens=min(output_cap,budget.available('report')-prompt_bound),response_format={'type':'json_object'})
+                    max_tokens=min(output_cap(batch),budget.available('report')-prompt_bound),response_format={'type':'json_object'})
                 reply=response.choices[0].message.content
                 if response.choices[0].finish_reason!='stop':return retain('correction_incomplete',True)
             replies.append(reply)
-            if on_candidate:on_candidate(reply,stage='claim_revision_response')
+            if on_candidate and not protected:on_candidate(reply,stage='claim_revision_response')
             changes=json.loads(reply).get('repairs',[])
             ids=[item['paragraph_id'] for item in changes]
             expected={item['paragraph_id'] for item in batch}
@@ -1456,10 +1530,11 @@ def _revise_report_once(content, record, audit, *, configuration, statistics, ev
             'original_audit':_prior_audit_summary(audit),
             'revised_paragraph_ids':list(replacements),'attempts':1,'request_attempts':request_attempts,
             'contract':CLAIM_EDIT_CONTRACT,'format_adjustments':format_adjustments,
-            'reused_responses':len(retained_responses or [])}
+            'reused_responses':reused_reply_count}
         new_audit['revision_attempt']={'attempted':True,'status':'reaudited','paragraph_count':len(targets),
-            'request_attempts':request_attempts,'raw_responses':list(replies),'contract':CLAIM_EDIT_CONTRACT}
+            'request_attempts':request_attempts,'reused_responses':reused_reply_count,
+            'raw_responses':list(replies),'contract':CLAIM_EDIT_CONTRACT}
         return revised,new_record,new_audit
     except AuditCheckpointError:raise
     except (APIError,OSError,ValueError,KeyError,TypeError,AttributeError,StopIteration,TokenBudgetExceeded) as error:
-        return retain(type(error).__name__,True)
+        return retain(error.reason if isinstance(error,TokenBudgetExceeded) else type(error).__name__,True)
