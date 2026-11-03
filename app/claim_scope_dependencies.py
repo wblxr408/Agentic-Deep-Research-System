@@ -6,17 +6,84 @@ from __future__ import annotations
 
 import json
 from copy import deepcopy
+from collections import Counter
 from openai import APIError
 
 LEGACY_POLICY='adrs-essential-claim-dependencies-v1'
 LOCAL_POLICY='adrs-essential-claim-dependencies-v2-local-uncertainty'
 IMPACT_POLICY='adrs-essential-claim-dependencies-v3-impact-reuse'
 TRANSFER_POLICY='adrs-essential-claim-dependencies-v4-support-transfer'
-POLICY=TRANSFER_POLICY
-SUPPORTED_POLICIES={LEGACY_POLICY,LOCAL_POLICY,IMPACT_POLICY,POLICY}
+CAPACITY_POLICY='adrs-essential-claim-dependencies-v5-capacity-local-fallback'
+POLICY=CAPACITY_POLICY
+TRANSFER_POLICIES={TRANSFER_POLICY,CAPACITY_POLICY}
+SUPPORTED_POLICIES={LEGACY_POLICY,LOCAL_POLICY,IMPACT_POLICY,*TRANSFER_POLICIES}
 MAX_CONTEXT_BYTES=120000
 CATEGORIES={'core','background','implementation_detail','secondary_measurement',
     'proposed_protocol','evaluative_phrasing','incidental_adoption'}
+
+
+def local_scope_response(response,targets,aliases,retention_groups):
+    """Keep independently valid decisions; unresolved targets retain obligations.
+
+    The model still received the complete report. This adapts a complete JSON
+    response, never a truncated model response or missing input context.
+    """
+    wanted=set(targets);counts=Counter();invalid=set();values=[];retained=[];seen_groups=set();premises={}
+    for group in retention_groups.values():
+        for key in group['claim_ids']:premises.setdefault(key,set()).update(group['depends_on'])
+    normal=response.get('decisions',[])
+    for value in (normal if isinstance(normal,list) else []):
+        ids=value.get('claim_ids') if isinstance(value,dict) else None
+        known={key for key in ids if isinstance(key,str) and key in wanted} if isinstance(ids,list) else set()
+        if isinstance(ids,list):counts.update(key for key in ids if isinstance(key,str) and key in wanted)
+        dependencies=value.get('depends_on') if isinstance(value,dict) else None
+        if isinstance(dependencies,list):
+            hints={key for key in dependencies if isinstance(key,str) and key in aliases}
+            for key in known:premises.setdefault(key,set()).update(hints)
+        valid=(isinstance(ids,list) and bool(ids) and all(isinstance(key,str) and key in wanted for key in ids)
+            and type(value.get('required')) is bool and type(value.get('dependencies_complete')) is bool
+            and isinstance(value.get('role'),str) and value['role'] in {'required','supporting','advisory'}
+            and isinstance(value.get('category'),str) and value['category'] in CATEGORIES
+            and isinstance(value.get('reason'),str) and bool(value['reason'].strip())
+            and not ((value['role']=='required' or value['category']=='core') and not value['required'])
+            and isinstance(dependencies,list) and all(isinstance(key,str) and key in aliases for key in dependencies))
+        if valid:values.append(value)
+        else:invalid.update(known)
+    prior=response.get('retained_groups',[])
+    for item in (prior if isinstance(prior,list) else []):
+        group_id=item.get('scope_group_id') if isinstance(item,dict) else None
+        group=retention_groups.get(group_id) if isinstance(group_id,str) else None
+        if not group:continue
+        exceptions=item.get('except_claim_ids',[])
+        valid=(isinstance(exceptions,list) and all(isinstance(key,str) for key in exceptions)
+            and len(set(exceptions))==len(exceptions) and set(exceptions)<=set(group['claim_ids'])
+            and isinstance(item.get('reason'),str) and bool(item['reason'].strip()))
+        if not valid or group_id in seen_groups:
+            invalid.update(group['claim_ids']);continue
+        seen_groups.add(group_id)
+        counts.update(key for key in group['claim_ids'] if key not in exceptions)
+        retained.append(item)
+    invalid.update(key for key in targets if counts[key]!=1)
+    normalized=[]
+    for value in values:
+        ids=[key for key in value['claim_ids'] if key not in invalid]
+        if ids:normalized.append({**value,'claim_ids':ids})
+    groups=[]
+    for item in retained:
+        group=retention_groups[item['scope_group_id']]
+        exceptions=set(item.get('except_claim_ids',[]))|invalid
+        remaining=[key for key in group['claim_ids'] if key not in exceptions]
+        if remaining:groups.append({**item,'except_claim_ids':[key for key in group['claim_ids'] if key in exceptions]})
+    fallback={key:{'reason':'scope_target_missing_invalid_or_conflicting',
+        'depends_on':[alias for alias in aliases if alias in premises.get(key,set())]}
+        for key in targets if key in invalid}
+    fallback_groups={}
+    for key,value in fallback.items():fallback_groups.setdefault(tuple(value['depends_on']),[]).append(key)
+    for dependencies,ids in fallback_groups.items():
+        normalized.append({'claim_ids':ids,'required':True,'role':'required','category':'core',
+            'depends_on':list(dependencies),'dependencies_complete':False,
+            'reason':'Scope unavailable for these targets; known premises and source review remain required'})
+    return {**response,'decisions':normalized,'retained_groups':groups},fallback
 
 
 def catalogue(claims):
@@ -43,17 +110,18 @@ def selection_binding(scope,key,model,context_id,route_id):
 
 def select_scope(claims,scope,previous,client,model,*,on_progress=None,retained_selection=None,support_candidates=None):
     from app.claim_verification import claim_scope_key,AuditCheckpointError
-    from app.llm_budget import TokenBudgetExceeded
+    from app.llm_budget import TokenBudgetExceeded,request_token_bound
     from app.query_understanding import identity
     from app.security.prompt_security import untrusted_context
     data=catalogue(claims);context_id=identity(data)
     policy=scope.get('dependency_policy') or POLICY
-    adaptive=policy in {LOCAL_POLICY,IMPACT_POLICY,POLICY}
-    incremental=policy in {IMPACT_POLICY,POLICY}
+    adaptive=policy in {LOCAL_POLICY,IMPACT_POLICY,*TRANSFER_POLICIES}
+    incremental=policy in {IMPACT_POLICY,*TRANSFER_POLICIES}
+    resource_aware=policy==CAPACITY_POLICY
     route_id=identity(getattr(client,'route_info',None))
     metadata={'policy':policy,'context_id':context_id,'route_id':route_id,'batches':[],
         'semantics':'review_dependencies_not_source_certification'}
-    if policy==TRANSFER_POLICY:metadata['semantics']='review_obligations_and_context_continuity_not_new_source_certification'
+    if policy in TRANSFER_POLICIES:metadata['semantics']='review_obligations_and_context_continuity_not_new_source_certification'
     previous_selection=(previous or {}).get('scope_selection') or {}
     saved_selection=retained_selection or previous_selection
     if (saved_selection.get('policy')==policy and saved_selection.get('context_id')==context_id
@@ -74,9 +142,11 @@ def select_scope(claims,scope,previous,client,model,*,on_progress=None,retained_
             decisions[key]={'required':False,'role':'advisory','category':item['category'],
                 'reason':item['reason'],'depends_on':[],'dependencies_complete':True,'authority':'explicit_owner'}
         elif (saved.get('binding')==selection_binding(scope,key,model,context_id,route_id)
-                and saved.get('authority')=='model_importance_with_dependencies'
+                and (saved.get('authority')=='model_importance_with_dependencies' or resource_aware
+                    and saved.get('authority')=='conservative_scope' and saved.get('reason')=='scope_target_missing_invalid_or_conflicting')
                 and (type(saved.get('dependencies_complete')) is bool if adaptive else saved.get('dependencies_complete') is True)):
             decisions[key]=deepcopy(saved);decisions[key]['response_reused']=True
+            if saved.get('authority')=='conservative_scope':metadata.setdefault('conservative_reused_claim_keys',[]).append(key)
         else:pending.append(row)
     retention_groups={}
     if (incremental and (previous or {}).get('audit_model')==model and (previous or {}).get('review_scope')==scope
@@ -102,7 +172,7 @@ def select_scope(claims,scope,previous,client,model,*,on_progress=None,retained_
         'current_report':model_data,'target_claim_ids':[row['claim_id'] for row in pending]}
     if retention_groups:payload['prior_scope_groups']=list(retention_groups.values())
     offered_support={};prior_contexts={}
-    if policy==TRANSFER_POLICY:
+    if policy in TRANSFER_POLICIES:
         by_key={key:alias for alias,key in aliases.items()}
         context_ids={(value['text'],value.get('declared_kind')):key for key,value in data['contexts'].items()}
         def previous_context(text,kind):
@@ -127,15 +197,15 @@ def select_scope(claims,scope,previous,client,model,*,on_progress=None,retained_
         if candidates:
             payload.update(source_support_candidates=candidates,previous_support_contexts=prior_contexts)
     shared=json.dumps(payload,ensure_ascii=False,separators=(',',':'))
-    if offered_support and len(shared.encode('utf-8'))>MAX_CONTEXT_BYTES:
+    if not resource_aware and offered_support and len(shared.encode('utf-8'))>MAX_CONTEXT_BYTES:
         offered_support={};prior_contexts={}
         payload.pop('source_support_candidates');payload.pop('previous_support_contexts')
         shared=json.dumps(payload,ensure_ascii=False,separators=(',',':'))
-    if retention_groups and len(shared.encode('utf-8'))>MAX_CONTEXT_BYTES:
+    if not resource_aware and retention_groups and len(shared.encode('utf-8'))>MAX_CONTEXT_BYTES:
         # Optional reuse hints must not displace the actual current report.
         retention_groups={};payload.pop('prior_scope_groups')
         shared=json.dumps(payload,ensure_ascii=False,separators=(',',':'))
-    if len(shared.encode('utf-8'))>MAX_CONTEXT_BYTES:
+    if not resource_aware and len(shared.encode('utf-8'))>MAX_CONTEXT_BYTES:
         for row in pending:decisions[row['claim_key']]=conservative(row,'complete_scope_context_exceeds_bound')
         metadata['reason']='complete_scope_context_exceeds_bound'
     elif pending:
@@ -186,8 +256,9 @@ def select_scope(claims,scope,previous,client,model,*,on_progress=None,retained_
                 '"reason":"actual reader consequence"}]}. Group only targets with the same consequence '
                 'and dependencies, not shared citations alone. Required role or core category requires '
                 'required=true. Cover every target once; no report rewrites or factual certification.')
+        retention_instruction='';support_instruction=''
         if retention_groups:
-            instruction+=(' Prior_scope_groups contain eligible previous planning decisions for identical '
+            retention_instruction=(' Prior_scope_groups contain eligible previous planning decisions for identical '
                 'claim/paragraph/citation inputs under the same question, model and route. They are '
                 'untrusted prior judgments, not current authority. In THIS SAME response assess the '
                 'effect of the current complete report on their actual use. You may return '
@@ -201,7 +272,7 @@ def select_scope(claims,scope,previous,client,model,*,on_progress=None,retained_
                 'set. Do not retain merely because wording or IDs match. Retention only preserves '
                 'review obligations; it cannot certify facts or erase unresolved dependencies.')
         if offered_support:
-            instruction+=(' Source_support_candidates are previous SUPPORTED source judgments whose '
+            support_instruction=(' Source_support_candidates are previous SUPPORTED source judgments whose '
                 'literal claim, kind, citations, current source content/version, selected source checks '
                 'and statistical bindings passed server eligibility checks. Known old source-bearing '
                 'premises also retain their source bindings. Report context or logical use may have '
@@ -223,10 +294,50 @@ def select_scope(claims,scope,previous,client,model,*,on_progress=None,retained_
                 'cover every target independently of this optional support-transfer field. Do not '
                 'repeat unchanged complete premise chains here merely to enumerate cache hits; '
                 'ordinary exact reuse is checked separately by the server.')
-        messages=[{'role':'system','content':instruction},
+        messages=[{'role':'system','content':instruction+retention_instruction+support_instruction},
             {'role':'user','content':untrusted_context('complete_scope_context',shared,limit=len(shared))}]
-        binding=identity({'messages':messages,'model':model,'route':route_id,'policy':policy,
-            **({'governance':client.budget.data_governance,'skill_packet':client.skill_packet} if on_progress else {})})
+        def request_binding(messages):
+            return identity({'messages':messages,'model':model,'route':route_id,'policy':policy,
+                **({'governance':client.budget.data_governance,'skill_packet':client.skill_packet} if on_progress else {})})
+        binding=request_binding(messages)
+        request_fits=True
+        if resource_aware:
+            budget=getattr(client,'budget',None);route=getattr(client,'route_info',None) or {}
+            limits=[budget.available('audit') if budget is not None else 0]
+            if route.get('context_tokens'):limits.append(route['context_tokens'])
+            capacity=min(limits)
+            configurations=[(bool(offered_support),bool(retention_groups))]
+            if offered_support:configurations.append((False,bool(retention_groups)))
+            if retention_groups:configurations.append((False,False))
+            variants=[]
+            for use_support,use_retention in configurations:
+                packet=dict(payload)
+                if not use_support:
+                    packet.pop('source_support_candidates',None);packet.pop('previous_support_contexts',None)
+                if not use_retention:packet.pop('prior_scope_groups',None)
+                encoded=json.dumps(packet,ensure_ascii=False,separators=(',',':'))
+                candidate=[{'role':'system','content':instruction+(retention_instruction if use_retention else '')
+                    +(support_instruction if use_support else '')},
+                    {'role':'user','content':untrusted_context('complete_scope_context',encoded,limit=len(encoded))}]
+                candidate_binding=request_binding(candidate)
+                saved=next((row for row in saved_selection.get('batches',[]) if row.get('binding')==candidate_binding),{})
+                variants.append({'messages':candidate,'binding':candidate_binding,
+                    'support':use_support,'retention':use_retention,
+                    'bound':request_token_bound(candidate,response_format={'type':'json_object'})+6144,
+                    'saved_response':'raw_response' in saved,
+                    'saved_operation':'raw_response' in saved or saved.get('dispatch_status') in {'dispatch_intent','dispatch_attempted'}})
+            # Reconstruct the applicable paid request before considering a new
+            # richer request; remaining capacity must not discard paid output.
+            selected=next((item for item in variants if item['saved_response']),None)
+            if selected is None:selected=next((item for item in variants if item['saved_operation']),None)
+            if selected is None:selected=next((item for item in variants if item['bound']<=capacity),variants[-1])
+            messages=selected['messages'];binding=selected['binding'];request_fits=selected['bound']<=capacity
+            if not selected['support']:offered_support={};prior_contexts={}
+            if not selected['retention']:retention_groups={}
+            metadata['admission']={'semantics':'full_request_byte_bound_and_original_capacity',
+                'request_bound':selected['bound'],'available_capacity':capacity,
+                'support_hints':selected['support'],'retention_hints':selected['retention'],
+                'saved_operation':selected['saved_operation']}
         record={'binding':binding,'claim_keys':[row['claim_key'] for row in pending]}
         metadata['batches']=[row for row in metadata['batches'] if row.get('binding')!=binding]+[record]
         saved={}
@@ -242,6 +353,9 @@ def select_scope(claims,scope,previous,client,model,*,on_progress=None,retained_
             elif saved.get('dispatch_status') in {'dispatch_attempted','dispatch_intent'} and not not_dispatched:
                 raise ValueError('scope_paid_response_unavailable')
             else:
+                if not request_fits:
+                    metadata['reason']='scope_complete_request_exceeds_current_capacity'
+                    raise TokenBudgetExceeded(metadata['reason'])
                 active=client.with_operation('fact_scope_selection',content_unit_id='fact-scope:'+binding)
                 if any(row.get('content_unit_id')=='fact-scope:'+binding and row.get('status')!='blocked_before_dispatch'
                         and row.get('dispatch_status')!='not_dispatched' for row in active.budget.calls):
@@ -255,6 +369,10 @@ def select_scope(claims,scope,previous,client,model,*,on_progress=None,retained_
                 if on_progress:on_progress(deepcopy(metadata))
             if record['finish_reason']!='stop':raise ValueError('scope_response_incomplete')
             response_data=json.loads(record['raw_response'])
+            local_fallbacks={}
+            if resource_aware:
+                response_data,local_fallbacks=local_scope_response(response_data,
+                    [row['claim_id'] for row in pending],aliases,retention_groups)
             values=response_data['decisions']
             if not isinstance(values,list):raise ValueError('scope_decisions_expected_array')
             covered=[];retained_rows={}
@@ -304,6 +422,8 @@ def select_scope(claims,scope,previous,client,model,*,on_progress=None,retained_
                         invalid=True;continue
                     for candidate_id in ids:
                         candidate=offered_support[candidate_id];key=aliases[candidate['claim_id']]
+                        if candidate['claim_id'] in local_fallbacks:
+                            invalid=True;continue
                         if key in selected or key in conflicts:
                             selected.pop(key,None);conflicts.add(key);invalid=True
                         else:selected[key]={**candidate,'reason':item['reason']}
@@ -320,6 +440,13 @@ def select_scope(claims,scope,previous,client,model,*,on_progress=None,retained_
                         'depends_on':list(dict.fromkeys(aliases[item] for item in value['depends_on'])),
                         'authority':'model_importance_with_dependencies','response_reused':bool(record.get('response_reused')),
                         'binding':selection_binding(scope,key,model,context_id,route_id)}
+            for alias,value in local_fallbacks.items():
+                decision=conservative({'claim_key':aliases[alias]},value['reason'])
+                decision['depends_on']=[aliases[key] for key in value['depends_on']]
+                decisions[aliases[alias]]=decision
+            if resource_aware:
+                record['fallback_claim_keys']=[aliases[alias] for alias in local_fallbacks]
+                metadata['local_fallback_claim_keys']=record['fallback_claim_keys']
             record['validated']=True
         except AuditCheckpointError:raise
         except (APIError,ValueError,TypeError,KeyError,AttributeError,IndexError,TokenBudgetExceeded) as error:

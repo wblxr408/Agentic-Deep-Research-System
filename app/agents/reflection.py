@@ -182,7 +182,8 @@ needs_revision=false. The runtime still enforces the original root budget, permi
         if readiness:self.last_context_manifest.update(policy=review_policy,
             scope='key_research_judgments_not_final_report_verification')
         decision = build_guardrail_decision(user_query)
-        system_prompt = f"{build_prompt_profile_message(decision)}\n\n{self.READINESS_PROMPT if readiness else self.SYSTEM_PROMPT}"
+        system_prompt = build_prompt_profile_message(decision)
+        if not readiness:system_prompt+=f"\n\n{self.SYSTEM_PROMPT}"
         if (organization_research or {}).get('corpus'):
             from app.organization_corpus import corpus_instructions
             from app.organization_purpose import analysis_instructions
@@ -194,6 +195,11 @@ needs_revision=false. The runtime still enforces the original root budget, permi
                 f"{system_prompt}\n\n## Reflection Skill Instructions\n"
                 + "\n".join(f"- {item}" for item in reflection_hints if item and item.strip())
             )
+
+        if readiness:
+            # Registered methods contribute research perspectives; the stage
+            # contract owns whether another evidence/analysis cycle is useful.
+            system_prompt+=f"\n\n{self.READINESS_PROMPT}"
 
         if readiness:
             formatted_evidence=json.dumps({'selection':'question_focused_original_passages_not_complete_claim_audit',

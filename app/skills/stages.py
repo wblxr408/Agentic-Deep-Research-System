@@ -8,7 +8,9 @@ from __future__ import annotations
 import json
 from app.query_understanding import identity
 
-VERSION = 'adrs-stage-skills-v1'
+LEGACY_VERSION = 'adrs-stage-skills-v1'
+VERSION = 'adrs-stage-skills-v2-shared-sections'
+SUPPORTED_VERSIONS = {LEGACY_VERSION,VERSION}
 STAGES = ('planner', 'search', 'browser', 'rag', 'mcp', 'analyst', 'reflection', 'report', 'render')
 
 
@@ -32,6 +34,33 @@ def _allowed_tools(items,task_tools):
     return allowed
 
 
+def _shared_packet(stage,instructions,hints):
+    """Share identical sections while retaining each skill's own attribution."""
+    counts={}
+    for item in instructions:
+        for section in item['sections']:
+            key=(section['section'],section['text']);counts[key]=counts.get(key,0)+1
+    shared={};entries=[]
+    for item in instructions:
+        sections=[]
+        for section in item['sections']:
+            key=(section['section'],section['text'])
+            if counts[key]>1:
+                if key not in shared:shared[key]={'section_id':'shared'+str(len(shared)+1),**section}
+                sections.append({'section':section['section'],'shared_section_id':shared[key]['section_id']})
+            else:sections.append(section)
+        entries.append({**item,'sections':sections})
+    unique_hints=list(dict.fromkeys(hints))
+    original={'stage':stage,'instructions':instructions,'agent_hints':unique_hints}
+    if not shared:return original
+    candidate={'stage':stage,'instructions':entries,'agent_hints':unique_hints,
+        'shared_sections':list(shared.values()),
+        'shared_section_semantics':'shared_section_id resolves to shared_sections; each reference retains its own skill scope'}
+    if len(json.dumps(candidate,ensure_ascii=False).encode('utf-8'))>=len(json.dumps(original,ensure_ascii=False).encode('utf-8')):
+        return original
+    return candidate
+
+
 def _required_packet(items,stage):
     mandatory=[];hints=[]
     for item in items:
@@ -50,7 +79,7 @@ def _required_packet(items,stage):
             content.append({'section':'overview_as_legacy_instructions','text':overview})
         mandatory.append({'skill_id':item['skill_id'],'version':item['version'],'sections':content})
         hints.extend(str(text) for text in stage_hints if str(text).strip())
-    return {'stage':stage,'instructions':mandatory,'agent_hints':hints}
+    return _shared_packet(stage,mandatory,hints)
 
 
 def _encoded_length(text):
@@ -182,7 +211,7 @@ def compile_stage_skills(selection: dict, *, task_tools: set[str], disciplines: 
             entries.append(entry)
             mandatory.append({'skill_id': key, 'version': item['version'], 'sections': content})
             hints.extend(str(text) for text in stage_hints if str(text).strip())
-        packet = {'stage': stage, 'instructions': mandatory, 'agent_hints': hints}
+        packet = _shared_packet(stage,mandatory,hints)
         mandatory_text = json.dumps(packet, ensure_ascii=False)
         if active and (len(mandatory_text)>payload_budget or _encoded_length(prefix+mandatory_text)>32000):
             conflicts.append({'reason': 'required_skill_context_exceeds_budget', 'required_characters': len(prefix)+len(mandatory_text),
@@ -208,6 +237,7 @@ def compile_stage_skills(selection: dict, *, task_tools: set[str], disciplines: 
             'entries': entries, 'omitted': omitted, 'conflicts': conflicts, 'restrictions': restrictions,
             'prompt': prompt,
             'agent_hints': [],  # Already represented once inside the frozen packet.
+            'instruction_representation':'identical_sections_shared_when_smaller_with_per_skill_references',
             'context_characters': len(prompt), 'required_context_characters': len(prefix)+len(mandatory_text) if active else 0,
             'character_budget': char_budget,
             'estimated_context_tokens': (len(prompt)+3)//4, 'token_estimate_not_provider_usage': True,
@@ -231,7 +261,7 @@ def compile_stage_skills(selection: dict, *, task_tools: set[str], disciplines: 
 def stage_profile(compilation: dict | None, stage: str) -> dict | None:
     if not compilation:
         return None
-    if compilation.get('schema_version') != VERSION or stage not in STAGES:
+    if compilation.get('schema_version') not in SUPPORTED_VERSIONS or stage not in STAGES:
         raise ValueError('stage_skill_compilation_version_unavailable')
     profile = (compilation.get('profiles') or {}).get(stage)
     if not profile or not compilation.get('ready') or not profile.get('ready'):

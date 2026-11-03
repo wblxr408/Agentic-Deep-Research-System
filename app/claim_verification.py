@@ -654,8 +654,8 @@ def audit_report(report: str, evidence: list[Evidence], *, client: Any, model: s
     if review_scope and not review_scope.get('question'):
         review_scope['question']=((task_context or {}).get('task-input:request') or {}).get('query')
     from app.organization_purpose import report_prose
-    from app.claim_scope_dependencies import TRANSFER_POLICY
-    support_transfer=(review_scope or {}).get('dependency_policy')==TRANSFER_POLICY
+    from app.claim_scope_dependencies import TRANSFER_POLICIES
+    support_transfer=(review_scope or {}).get('dependency_policy') in TRANSFER_POLICIES
     by_id={ev.evidence_id:ev for ev in evidence};source_fingerprints={}
     support_review_id=identity({'model':model,'route':getattr(client,'route_info',None),'contract':AUDIT_CONTRACT_VERSION,
         'governance':getattr(getattr(client,'budget',None),'data_governance',None),
