@@ -17,6 +17,40 @@ CLAIM_EDIT_CONTRACT = 'adrs-claim-clause-edit-v1'
 READER_DELETE_CONTRACT = 'adrs-reader-unit-delete-v1'
 READER_AUDIT_EDIT_CONTRACT = 'adrs-reader-audit-delete-v1'
 READER_CLAUSE_CONTRACT = 'adrs-reader-local-clauses-v2-placement'
+EDITOR_CONTEXT_POLICY = 'adrs-editor-context-v4-reader-feedback'
+
+
+def _editor_context_policy(findings,configuration):
+    """Keep an existing editor's input contract while slimming first use."""
+    if configuration.get('report_material_policy')!=REPORT_MATERIAL_POLICY:return None
+    editor=(findings or {}).get('report_editor_sections') or {}
+    if editor.get('raw_model_response'):
+        return (EDITOR_CONTEXT_POLICY if json.loads(editor['raw_model_response']).get('context_policy')==EDITOR_CONTEXT_POLICY
+            else None)
+    candidates=[(findings or {}).get('report_candidate') or {},*(editor.get('responses') or {}).values()]
+    contracts=[(row.get('revision_request') or {}).get('contract','') for row in candidates]
+    if any(value.startswith(('adrs-section-editor-v4:','adrs-structural-editor-v4')) for value in contracts):
+        return EDITOR_CONTEXT_POLICY
+    if any(value.startswith(('adrs-section-editor-v3:','adrs-structural-editor-v3')) for value in contracts):return None
+    if any(str(row.get('stage','')).startswith('structural_revision_') for row in candidates):return None
+    return EDITOR_CONTEXT_POLICY
+
+
+def _editor_feedback(quality):
+    """Editorial decisions travel; paid-response and cache records stay local."""
+    quality=quality or {}
+    result={key:quality[key] for key in ('status','checks','work_coverage','reason',
+        'global_review_valid','material_review_complete','coverage_complete','document_review_complete',
+        'reading_impact_required','editorial_suggestions','original_reading_diagnosis') if key in quality}
+    inline=quality.get('inline_reading_impact')
+    if inline:
+        result['inline_reading_impact']={key:inline[key] for key in
+            ('policy','validated','decisions','disputed_group_ids') if key in inline}
+    dispute=quality.get('reading_impact_review')
+    if dispute:
+        result['reading_impact_review']={key:dispute[key] for key in
+            ('policy','validated','finish_reason','result','reason') if key in dispute}
+    return result
 
 
 def _reader_edit_response(*,messages,contract,purpose,output_cap,record,quality,findings,
@@ -723,7 +757,9 @@ def _revise_reader_structure(record,audit,*,question,findings,configuration,stat
                 for proof in field.get('proofs',[])]}
             for name,field in (card.get('fields') or {}).items()}}
         for card in (findings.get('technical_reading') or {}).get('cards',[])]
-    payload={'question':question,'current_report':draft,'reader_quality':audit.get('reader_quality'),
+    context_policy=_editor_context_policy(findings,configuration)
+    payload={'question':question,'current_report':draft,
+        'reader_quality':_editor_feedback(audit.get('reader_quality')) if context_policy else audit.get('reader_quality'),
         'editorial_request':findings.get('editorial_request'),
         'claim_issues':_prior_audit_summary(audit)['issues'],'task_method':task_context,
         'accepted_works':works,'technical_reading':technical_cards,
@@ -752,9 +788,10 @@ def _revise_reader_structure(record,audit,*,question,findings,configuration,stat
         reply=retained_contract['raw_model_response']
     elif partitioned:
         reply=_edit_sections(payload,record,audit,findings,configuration,client,model,budget,
-            messages[0]['content'],on_candidate,evidence)
+            messages[0]['content'],on_candidate,evidence,context_policy=context_policy)
     else:
-        reply=_reader_edit_response(messages=messages,contract='adrs-structural-editor-v3',
+        reply=_reader_edit_response(messages=messages,
+            contract='adrs-structural-editor-v4' if context_policy else 'adrs-structural-editor-v3',
             purpose='report',output_cap=16384,minimum_output=4096,required_audit=2048,
             record=record,quality=audit.get('reader_quality') or {},findings=findings,
             configuration=configuration,evidence=evidence,cited=allowed,client=client,model=model,budget=budget,
@@ -811,10 +848,12 @@ def _revise_reader_structure(record,audit,*,question,findings,configuration,stat
     return revised,new_record,new_audit
 
 
-def _edit_sections(payload,record,audit,findings,configuration,client,model,budget,instructions,on_candidate,evidence):
+def _edit_sections(payload,record,audit,findings,configuration,client,model,budget,instructions,on_candidate,evidence,*,context_policy=None):
     """Edit each existing chapter once, then synthesize its lead; no new research."""
     from app.query_understanding import identity
-    binding=identity({'policy':'adrs-section-editor-v3','input':payload,'model':model})
+    slim=context_policy==EDITOR_CONTEXT_POLICY
+    editor_policy='adrs-section-editor-v4' if slim else 'adrs-section-editor-v3'
+    binding=identity({'policy':editor_policy,'input':payload,'model':model})
     retained=(findings.get('report_editor_sections') or {}).get('raw_model_response')
     saved=json.loads(retained) if retained else {}
     sections=saved.get('sections',{}) if saved.get('binding')==binding else {}
@@ -823,7 +862,8 @@ def _edit_sections(payload,record,audit,findings,configuration,client,model,budg
         for module in draft['modules']:
             sections.setdefault(module['module_id'],{'title':draft['title'],'summary':[],'modules':[module]})
     def save():
-        if on_candidate:on_candidate(json.dumps({'binding':binding,'sections':sections},ensure_ascii=False),
+        if on_candidate:on_candidate(json.dumps({'binding':binding,'sections':sections,
+            **({'context_policy':context_policy} if slim else {})},ensure_ascii=False),
             stage='structural_revision_sections')
     def request(section_id,packet,extra):
         if section_id in sections:return sections[section_id]
@@ -859,7 +899,7 @@ def _edit_sections(payload,record,audit,findings,configuration,client,model,budg
                 elif isinstance(value,(list,tuple)):
                     for child in value:citations(child)
             citations(packet)
-            reply=_reader_edit_response(messages=messages,contract='adrs-section-editor-v3:'+section_id,
+            reply=_reader_edit_response(messages=messages,contract=editor_policy+':'+section_id,
                 purpose='report',output_cap=16384 if section_id=='coherence' else 12288,minimum_output=4096,
                 record=record,quality=audit.get('reader_quality') or {},findings=findings,
                 configuration=configuration,evidence=evidence,cited=cited,client=client,model=model,budget=budget,
@@ -874,14 +914,32 @@ def _edit_sections(payload,record,audit,findings,configuration,client,model,budg
             parsed['summary']=[]
         sections[section_id]=parsed;save()
         return parsed
-    from app.organization_purpose import CHAPTER_RESPONSIBILITIES
     overview=[{'module_id':row['module_id'],'responsibility':CHAPTER_RESPONSIBILITIES.get(row['module_id']),
         'main_judgments':row['paragraphs']} for row in draft['modules']]
+    original_paragraphs=dict(content_paragraphs(draft));original_rendered=dict(content_paragraphs(record))
+    diagnosed=set()
+    def locate_diagnosis(value):
+        if isinstance(value,dict):
+            for name in ('paragraph_id','retain_in'):
+                if isinstance(value.get(name),str) and value[name] in original_paragraphs:diagnosed.add(value[name])
+            for child in value.values():locate_diagnosis(child)
+        elif isinstance(value,(list,tuple)):
+            for child in value:locate_diagnosis(child)
+    if slim:
+        for check in (payload.get('reader_quality') or {}).get('checks',[]):
+            if check.get('status')=='gap':locate_diagnosis(check)
     for module in draft['modules']:
         key=module['module_id']
+        cross_details=[{'paragraph_id':location,**original_paragraphs[location],
+            'context_status':'original_diagnosed_snapshot_not_current_edited_text'}
+            for location in original_paragraphs if location in diagnosed and not location.startswith(key+':')] if slim else []
         actual=next(row for row in record['modules'] if row['module_id']==key)
         contexts={(report_prose(row['rendered_text'])+' '+' '.join(f'[citation:{n}]' for n in row['citations'])).rstrip()
             for row in [*actual['paragraphs'],*actual.get('appendix',[])]}
+        for row in cross_details:
+            original=original_rendered[row['paragraph_id']]
+            contexts.add((report_prose(original['rendered_text'])+' '+
+                ' '.join(f'[citation:{n}]' for n in original['citations'])).rstrip())
         claims=[row for row in audit.get('claims',[]) if row.get('paragraph_context') in contexts]
         excerpts=[ex for row in claims for ex in row.get('excerpts',[])]
         # The editor reads a chapter's complete evidence union, unlike the
@@ -916,6 +974,16 @@ def _edit_sections(payload,record,audit,findings,configuration,client,model,budg
             'identity_openings':[{'citation':row['citation'],'source_url':row['source_url'],
                 'passages':[part for part in row['passages'] if part['start']==0]} for row in payload['sources']],
             'actions':payload['actions'] if key=='actions' else None}
+        if slim:
+            edited={name:row['modules'][0] for name,row in sections.items()
+                if name not in {'lead','coherence','editorial_selection'}}
+            packet.pop('already_edited_main')
+            packet['chapter_map']=[{'module_id':row['module_id'],'responsibility':row['responsibility'],
+                **({'context_location':'chapter.paragraphs','context_status':'editable_current_chapter'}
+                   if row['module_id']==key else {'context_status':'edited_main' if row['module_id'] in edited else 'original_main',
+                       'main_judgments':edited.get(row['module_id'],{}).get('paragraphs',row['main_judgments'])})}
+                for row in overview]
+            packet['cross_chapter_details']=cross_details
         request(key,packet,'Return only this chapter in modules, with summary empty. Merge duplicate paragraphs; '
             'Follow this chapter responsibility. Already edited chapters own their claims; do not repeat them. '
             'The old chapter map is a draft to improve, not a requirement to preserve its repetition. '
@@ -925,7 +993,14 @@ def _edit_sections(payload,record,audit,findings,configuration,client,model,budg
             'For actions give a conditional research project, named relevant researchers, public entry, '
             'resources and first research artifact, rather than a questionnaire. '
             'Use observation for source facts and interpretation for proposals. '
-            'Do not repeat global scope disclaimers in every chapter. Keep original citation numbers.')
+            'Do not repeat global scope disclaimers in every chapter. Keep original citation numbers.'+
+            (' chapter_map contains the complete main paragraphs of other chapters once, marking edited '
+             'versus original context. cross_chapter_details retains complete original paragraphs named '
+             'by current reader gaps, with available original source windows; missing windows remain '
+             'evidence gaps. Those snapshots may have '
+             'changed in edited chapters; use the edited main for current ownership. Missing unrelated '
+             'appendix text is not evidence of absence. Preserve local conditions and counterexamples; '
+             'read-only chapter context is not independent factual evidence.' if slim else ''))
     modules=[sections[row['module_id']]['modules'][0] for row in draft['modules']]
     from app.report_editorial import select_paragraphs
     def save_selection(value):
