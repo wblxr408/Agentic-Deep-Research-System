@@ -92,7 +92,8 @@ def capture_retained_synthesis(state, query, skills, hints):
     return deepcopy({'version':RETAINED_SYNTHESIS_VERSION,**identity,
         'material_version':retained_evidence_version(state),'evidence_ids':identifiers,
         'analysis':state['analysis'],'workflow':workflow,
-        'organization_result':state.get('organization_result'),
+        'organization_result':({key:value for key,value in state['organization_result'].items()
+            if key!='fact_audit_progress'} if isinstance(state.get('organization_result'),dict) else state.get('organization_result')),
         'verification':state.get('verification')})
 
 
@@ -123,8 +124,13 @@ def reuse_retained_synthesis(state, query, skills, hints):
         'material_version':frame['material_version'],
         'current_binding':analysis_binding(query,state.get('organization_research'),skills,hints,evidence,
             packing_version=workflow_packing_version(workflow),research_strategy_version=workflow.get('research_strategy_version'))}
+    findings=deepcopy(frame.get('organization_result'))
+    if isinstance(findings,dict):
+        findings.pop('fact_audit_progress',None)
+        if (state.get('organization_result') or {}).get('fact_audit_progress'):
+            findings['fact_audit_progress']=deepcopy(state['organization_result']['fact_audit_progress'])
     return {'analysis':frame['analysis'],'analysis_workflow':workflow,
-        'organization_result':deepcopy(frame.get('organization_result')),
+        'organization_result':findings,
         'verification':deepcopy(frame.get('verification'))}
 
 
@@ -199,7 +205,10 @@ def retained_revision_handoff(state, query, skills, hints):
     # current ledger; no old per-question result is resumed under this binding.
     workflow['binding']=analysis_binding(query,state.get('organization_research'),skills,hints,evidence,
         packing_version=workflow_packing_version(prior),research_strategy_version=prior.get('research_strategy_version'))
-    findings=citations(deepcopy(frame.get('organization_result') or {}))
+    findings=citations(deepcopy({key:value for key,value in (frame.get('organization_result') or {}).items()
+        if key!='fact_audit_progress'}))
+    if (state.get('organization_result') or {}).get('fact_audit_progress'):
+        findings['fact_audit_progress']=deepcopy(state['organization_result']['fact_audit_progress'])
     findings['revision_handoff']={'version':'adrs-retained-revision-handoff-v1',
         'original_binding':prior['binding'],'current_binding':workflow['binding'],
         'original_evidence_ids':frame['evidence_ids'],'material_version':retained_evidence_version(state),

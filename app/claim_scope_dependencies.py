@@ -38,8 +38,8 @@ def selection_binding(scope,key,model,context_id,route_id):
         'context':context_id,'route':route_id})
 
 
-def select_scope(claims,scope,previous,client,model):
-    from app.claim_verification import claim_scope_key
+def select_scope(claims,scope,previous,client,model,*,on_progress=None):
+    from app.claim_verification import claim_scope_key,AuditCheckpointError
     from app.llm_budget import TokenBudgetExceeded
     from app.query_understanding import identity
     from app.security.prompt_security import untrusted_context
@@ -112,26 +112,34 @@ def select_scope(claims,scope,previous,client,model):
                 'current consequence from evidence and scope without silently approving the old claim.')
         messages=[{'role':'system','content':instruction},
             {'role':'user','content':untrusted_context('complete_scope_context',shared,limit=len(shared))}]
-        binding=identity({'messages':messages,'model':model,'route':route_id,'policy':policy})
+        binding=identity({'messages':messages,'model':model,'route':route_id,'policy':policy,
+            **({'governance':client.budget.data_governance,'skill_packet':client.skill_packet} if on_progress else {})})
         record={'binding':binding,'claim_keys':[row['claim_key'] for row in pending]}
         metadata['batches']=[row for row in metadata['batches'] if row.get('binding')!=binding]+[record]
         saved={}
         try:
             saved=next((row for row in ((previous or {}).get('scope_selection') or {}).get('batches',[])
                 if row.get('binding')==binding),{})
+            receipts=[row for row in getattr(getattr(client,'budget',None),'calls',[])
+                if row.get('content_unit_id')=='fact-scope:'+binding]
+            not_dispatched=on_progress is not None and bool(receipts) and all(row.get('status')=='blocked_before_dispatch'
+                or row.get('dispatch_status')=='not_dispatched' for row in receipts)
             if 'raw_response' in saved:
                 record.update(raw_response=saved['raw_response'],finish_reason=saved.get('finish_reason'),response_reused=True)
-            elif saved.get('dispatch_status')=='dispatch_attempted':
+            elif saved.get('dispatch_status') in {'dispatch_attempted','dispatch_intent'} and not not_dispatched:
                 raise ValueError('scope_paid_response_unavailable')
             else:
                 active=client.with_operation('fact_scope_selection',content_unit_id='fact-scope:'+binding)
                 if any(row.get('content_unit_id')=='fact-scope:'+binding and row.get('status')!='blocked_before_dispatch'
                         and row.get('dispatch_status')!='not_dispatched' for row in active.budget.calls):
                     raise ValueError('scope_paid_response_unavailable')
+                if on_progress:
+                    record['dispatch_status']='dispatch_intent';on_progress(deepcopy(metadata))
                 response=active.chat.completions.create(model=model,temperature=0,max_tokens=6144,
                     response_format={'type':'json_object'},messages=messages)
                 choice=response.choices[0]
                 record.update(raw_response=choice.message.content or '',finish_reason=choice.finish_reason)
+                if on_progress:on_progress(deepcopy(metadata))
             if record['finish_reason']!='stop':raise ValueError('scope_response_incomplete')
             values=json.loads(record['raw_response'])['decisions']
             if not isinstance(values,list):raise ValueError('scope_decisions_expected_array')
@@ -156,13 +164,14 @@ def select_scope(claims,scope,previous,client,model):
                         'authority':'model_importance_with_dependencies','response_reused':bool(record.get('response_reused')),
                         'binding':selection_binding(scope,key,model,context_id,route_id)}
             record['validated']=True
+        except AuditCheckpointError:raise
         except (APIError,ValueError,TypeError,KeyError,AttributeError,IndexError,TokenBudgetExceeded) as error:
             record.update(validated=False,reason=str(error)[:200])
             calls=[row for row in getattr(getattr(client,'budget',None),'calls',[])
                 if row.get('content_unit_id')=='fact-scope:'+binding]
             if any(row.get('status')!='blocked_before_dispatch' and row.get('dispatch_status')!='not_dispatched' for row in calls):
                 record['dispatch_status']='dispatch_attempted'
-            elif saved.get('dispatch_status')=='dispatch_attempted':record['dispatch_status']='dispatch_attempted'
+            elif saved.get('dispatch_status') in {'dispatch_attempted','dispatch_intent'}:record['dispatch_status']=saved['dispatch_status']
             else:record['dispatch_status']='not_dispatched'
             for row in pending:decisions[row['claim_key']]=conservative(row,'scope_dependency_selection_unavailable')
     incomplete=any(not row.get('dependencies_complete') for row in decisions.values())
@@ -187,4 +196,5 @@ def select_scope(claims,scope,previous,client,model):
             if not target['required']:target.update(required=True,role='supporting',promotion_reason='premise_of_required_claim')
             if dependency not in seen:queue.append(dependency)
     metadata['promoted_claim_keys']=[key for key,row in decisions.items() if row.get('promotion_reason')]
+    if on_progress:on_progress(deepcopy(metadata))
     return decisions,metadata

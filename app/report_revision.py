@@ -7,7 +7,7 @@ from copy import deepcopy
 
 from openai import APIError
 
-from app.claim_verification import audit_report, module_paragraph_kinds, shared_passage_payload, select_excerpts
+from app.claim_verification import AuditCheckpointError, audit_report, module_paragraph_kinds, shared_passage_payload, select_excerpts
 from app.llm_budget import TokenBudgetExceeded, budgeted_client, request_token_bound
 from app.organization_purpose import REPORT_MATERIAL_POLICY, report_draft_model, assemble_module_report, report_prose, module_report_instructions
 from app.security.prompt_security import untrusted_context
@@ -77,7 +77,7 @@ def _current_reading_decisions(record,quality):
 
 
 def revise_reader_report(content,record,audit,*,question,findings,configuration,statistics,evidence,
-                         client,model,budget,deadline,source_spans,task_context,on_candidate=None):
+                         client,model,budget,deadline,source_spans,task_context,on_candidate=None,audit_options=None):
     """One report-wide edit, followed by the same complete source audit.
 
     Existing paragraph identities constrain edits. The editor may shorten or
@@ -100,7 +100,7 @@ def revise_reader_report(content,record,audit,*,question,findings,configuration,
         return _revise_reader_structure(record,audit,question=question,findings=findings,
             configuration=configuration,statistics=statistics,evidence=evidence,client=client,
             model=model,budget=budget,deadline=deadline,source_spans=source_spans,
-            task_context=task_context,on_candidate=on_candidate)
+            task_context=task_context,on_candidate=on_candidate,audit_options=audit_options)
     gaps=[row for row in quality.get('checks',[]) if row.get('status')=='gap']
     if not audit.get('needs_review') and gaps and all(row.get('id')=='reading' for row in gaps):
         from app.report_quality import REVIEW_CONTRACT, review_reader_quality
@@ -194,7 +194,7 @@ def revise_reader_report(content,record,audit,*,question,findings,configuration,
             new_audit=audit_report(revised,evidence,client=budgeted_client(client,budget,'audit'),model=model,
                 token_budget=budget.available('audit'),deadline=deadline,bound_statistics=bound,
                 paragraph_kinds=module_paragraph_kinds(new_record),task_context=task_context,
-                previous_audit=audit,source_spans=source_spans,paragraph_source_context=source_context)
+                previous_audit=audit,source_spans=source_spans,paragraph_source_context=source_context,**(audit_options or {}))
             return revised,new_record,new_audit
     rounds=record.get('repair_rounds') or []
     if (audit.get('needs_review') and not audit.get('audit_incomplete')
@@ -202,7 +202,7 @@ def revise_reader_report(content,record,audit,*,question,findings,configuration,
         before=sum(row.get('verification_required',True) and row.get('status')!='supported' for row in audit.get('claims',[]))
         result,new_record,new_audit=_revise_report_once(content,record,audit,configuration=configuration,
             statistics=statistics,evidence=evidence,client=client,model=model,budget=budget,deadline=deadline,
-            citation_count=len(evidence),task_context=task_context,source_spans=source_spans,on_candidate=on_candidate,
+            citation_count=len(evidence),task_context=task_context,source_spans=source_spans,on_candidate=on_candidate,audit_options=audit_options,
             retained_responses=(audit.get('revision_attempt') or {}).get('raw_responses')
                 if (audit.get('revision_attempt') or {}).get('status')=='ValueError' else None)
         new_record['repair_rounds']=[*rounds,{'round':len(rounds)+1,'authority':'explicit_owner_progress_continuation',
@@ -233,7 +233,7 @@ def revise_reader_report(content,record,audit,*,question,findings,configuration,
         return _revise_reader_structure(record,audit,question=question,findings=findings,
             configuration=configuration,statistics=statistics,evidence=evidence,client=client,
             model=model,budget=budget,deadline=deadline,source_spans=source_spans,
-            task_context=task_context,on_candidate=on_candidate)
+            task_context=task_context,on_candidate=on_candidate,audit_options=audit_options)
     draft=report_draft_model(configuration).model_validate_json(record['raw_model_response']).model_dump(mode='json')
     validate_draft(record,draft)
     targets={};rows=[]
@@ -500,12 +500,12 @@ def revise_reader_report(content,record,audit,*,question,findings,configuration,
     new_audit=audit_report(revised,evidence,client=budgeted_client(client,budget,'audit'),model=model,
         token_budget=budget.available('audit'),deadline=deadline,bound_statistics=bound,
         paragraph_kinds=module_paragraph_kinds(new_record),task_context=task_context,
-        previous_audit=audit,source_spans=source_spans,paragraph_source_context=source_context)
+        previous_audit=audit,source_spans=source_spans,paragraph_source_context=source_context,**(audit_options or {}))
     return revised,new_record,new_audit
 
 
 def _revise_reader_structure(record,audit,*,question,findings,configuration,statistics,evidence,
-                             client,model,budget,deadline,source_spans,task_context,on_candidate):
+                             client,model,budget,deadline,source_spans,task_context,on_candidate,audit_options=None):
     """Replace the bounded report structure using retained research and originals.
 
     No acquisition and no new agent: this is the existing editor invocation.
@@ -656,7 +656,7 @@ def _revise_reader_structure(record,audit,*,question,findings,configuration,stat
     new_audit=audit_report(revised,evidence,client=budgeted_client(client,budget,'audit'),model=model,
         token_budget=budget.available('audit'),deadline=deadline,bound_statistics=bound,
         paragraph_kinds=module_paragraph_kinds(new_record),task_context=task_context,
-        previous_audit=audit,source_spans=source_spans)
+        previous_audit=audit,source_spans=source_spans,**(audit_options or {}))
     return revised,new_record,new_audit
 
 
@@ -794,7 +794,7 @@ def _prior_audit_summary(audit):
 
 
 def finalize_supported_report(content,record,audit,*,configuration,statistics,evidence,client,model,
-                              budget,deadline,source_spans,task_context,on_candidate=None):
+                              budget,deadline,source_spans,task_context,on_candidate=None,audit_options=None):
     """Remove unresolved paragraphs as a whole; never relabel their claims.
 
     The original complete draft and audit remain in history. Unchanged claims
@@ -829,7 +829,7 @@ def finalize_supported_report(content,record,audit,*,configuration,statistics,ev
     new_audit=audit_report(revised,evidence,client=budgeted_client(client,budget,'audit'),model=model,
         token_budget=budget.available('audit'),deadline=deadline,
         paragraph_kinds=module_paragraph_kinds(new_record),task_context=task_context,
-        previous_audit=audit,source_spans=source_spans)
+        previous_audit=audit,source_spans=source_spans,**(audit_options or {}))
     new_record['supported_finalization']={'removed_paragraphs':removed,'original_record':{
         'raw_model_response':record['raw_model_response']},'original_audit':_prior_audit_summary(audit),
         'semantics':'reduced_prose_requires_complete_audit_not_approval_of_deleted_claims'}
@@ -882,7 +882,7 @@ def revise_report_claims(content, record, audit, *, on_round=None, on_event=None
 
 def _revise_report_once(content, record, audit, *, configuration, statistics, evidence,
                          client, model, budget, deadline, citation_count, upgrade_callback=None, task_context=None,
-                         source_spans=None,on_candidate=None,retained_responses=None):
+                         source_spans=None,on_candidate=None,retained_responses=None,audit_options=None):
     """Only change mapped paragraph text, then audit the whole resulting report."""
     if not audit.get('needs_review') or audit.get('audit_incomplete') or audit.get('budget_incomplete'):
         return content,record,audit
@@ -1082,7 +1082,7 @@ def _revise_report_once(content, record, audit, *, configuration, statistics, ev
         new_audit=audit_report(revised,evidence,client=budgeted_client(client,budget,'audit'),model=model,
             token_budget=budget.available('audit'),deadline=deadline,bound_statistics=bound,
             paragraph_kinds=module_paragraph_kinds(new_record), task_context=task_context,previous_audit=audit,
-            source_spans=source_spans,paragraph_source_context=paragraph_context)
+            source_spans=source_spans,paragraph_source_context=paragraph_context,**(audit_options or {}))
         new_record['semantic_revision']={'original_record':{'raw_model_response':record['raw_model_response']},
             'original_audit':_prior_audit_summary(audit),
             'revised_paragraph_ids':list(replacements),'attempts':1,'request_attempts':request_attempts,
@@ -1091,5 +1091,6 @@ def _revise_report_once(content, record, audit, *, configuration, statistics, ev
         new_audit['revision_attempt']={'attempted':True,'status':'reaudited','paragraph_count':len(targets),
             'request_attempts':request_attempts,'raw_responses':list(replies),'contract':CLAIM_EDIT_CONTRACT}
         return revised,new_record,new_audit
+    except AuditCheckpointError:raise
     except (APIError,OSError,ValueError,KeyError,TypeError,AttributeError,StopIteration,TokenBudgetExceeded) as error:
         return retain(type(error).__name__,True)

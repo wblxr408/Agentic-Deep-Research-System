@@ -118,6 +118,19 @@ class ReportAgent:
         self.last_writing_plan:dict={}
         self.recovery_events:list[dict]=[]
         self.on_candidate=None
+        self._fact_progress=None
+
+    def _fact_audit_options(self,configuration,findings):
+        from app.organization_purpose import REPORT_MATERIAL_POLICY
+        if (configuration or {}).get('report_material_policy')!=REPORT_MATERIAL_POLICY:return {}
+        if self._fact_progress is None:self._fact_progress=deepcopy((findings or {}).get('fact_audit_progress') or {})
+        progress=self._fact_progress
+        def save(value):
+            from app.claim_verification import AuditCheckpointError
+            if not self.on_candidate:raise AuditCheckpointError()
+            progress.clear();progress.update(deepcopy(value))
+            self.on_candidate({'stage':'fact_audit_checkpoint','fact_audit_progress':deepcopy(progress)})
+        return {'on_progress':save,'retained_progress':progress}
 
     def retain_candidate(self, raw, *, content=None, record=None, stage='provider_response'):
         """Persist paid output before a later model call; this never publishes it."""
@@ -565,11 +578,12 @@ Evidence Sources:
                     for paragraph in [*module['paragraphs'],*module.get('appendix',[])]]]
                 bound_statistics=[{'rendered_paragraph':paragraph['rendered_text'],**binding}
                     for paragraph in paragraphs for binding in paragraph.get('statistic_bindings',[])]
+            audit_options=self._fact_audit_options(organization_research,organization_findings)
             self.last_audit = audit_report(content, evidence_list,
                 client=budgeted_client(self.client,self.request_budget,'audit'), model=active_model,
                 token_budget=audit_tokens, deadline=verification_deadline,bound_statistics=bound_statistics,
                 paragraph_kinds=module_paragraph_kinds(self.last_module_report), task_context=method_context,
-                source_spans=located_spans,review_scope=(organization_research or {}).get('claim_review_scope'))
+                source_spans=located_spans,review_scope=(organization_research or {}).get('claim_review_scope'),**audit_options)
             if self.last_module_report is not None:
                 from app.report_revision import revise_report_claims
                 def upgrade_correction(trigger,details,required_tokens):
@@ -587,7 +601,7 @@ Evidence Sources:
                     client=self.client,model=active_model,budget=self.request_budget,deadline=verification_deadline,
                     citation_count=len(citations),upgrade_callback=upgrade_correction, task_context=method_context,
                     source_spans=located_spans,on_round=retain_correction,on_event=self.recovery_events.append,
-                    on_candidate=self.retain_candidate)
+                    on_candidate=self.retain_candidate,audit_options=audit_options)
                 self.last_audit['module_contract'] = self.last_module_report
                 self._emit_fallback_chunks(content,on_chunk)
             # Append references section if not present
@@ -675,6 +689,7 @@ Evidence Sources:
 
         active_client=self.client  # Select the authorized route before checking the model.
         active_model=self.model
+        audit_options=self._fact_audit_options(organization_research,organization_findings)
         if saved_audit.get('audit_model')!=active_model:
             raise TokenBudgetExceeded('audit_resume_model_changed')
         paragraphs=[*self.last_module_report.get('summary',[]), *[paragraph
@@ -692,7 +707,7 @@ Evidence Sources:
                     self.last_audit,**({} if supported_finalization else {'question':user_query,'findings':organization_findings}),
                     configuration=organization_research,statistics=organization_statistics,evidence=evidence_list,
                     client=active_client,model=active_model,budget=self.request_budget,deadline=self.request_budget.deadline,
-                    source_spans=located_spans,task_context=method_context,on_candidate=self.retain_candidate)
+                    source_spans=located_spans,task_context=method_context,on_candidate=self.retain_candidate,audit_options=audit_options)
                 self.last_draft=content
             except TokenBudgetExceeded:raise
             except (ValueError,TypeError,KeyError,AttributeError) as error:
@@ -713,7 +728,7 @@ Evidence Sources:
                 pending_excerpt_window=pending_excerpt_window,
                 review_scope=(self.last_module_report or {}).get('claim_review_scope')
                     or (organization_research or {}).get('claim_review_scope'),
-                resume_judged=not bool(audit_unit_frontier or proposal_reassessment))
+                resume_judged=not bool(audit_unit_frontier or proposal_reassessment),**audit_options)
         except ValueError as error:
             raise TokenBudgetExceeded('audit_resume_judgment_binding_changed') from error
 
@@ -733,7 +748,7 @@ Evidence Sources:
                 client=self.client,model=active_model,budget=self.request_budget,deadline=self.request_budget.deadline,
                 citation_count=len(citations),upgrade_callback=upgrade_correction,task_context=method_context,
                 source_spans=located_spans,on_round=retain_correction,on_event=self.recovery_events.append,
-                on_candidate=self.retain_candidate)
+                on_candidate=self.retain_candidate,audit_options=audit_options)
         self.last_audit['module_contract']=self.last_module_report
         if '## References' not in content and '## 参考' not in content:
             content+='\n\n---\n\n## References\n\n'+self._build_reference_list(citations)

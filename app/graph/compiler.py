@@ -2865,7 +2865,25 @@ async def report_node(state: ResearchState) -> dict:
         if current.get('collected_evidence')!=state.get('collected_evidence'):
             raise RuntimeError('report_candidate_sources_changed')
         session,budget=_apply_llm_usage_to_state(state,'report',_agent_model_usage(agent))
-        if candidate.get('stage')=='reader_quality_checkpoint':
+        if candidate.get('stage')=='fact_audit_checkpoint':
+            from app.query_understanding import identity
+            from app.claim_verification import AUDIT_PROGRESS_POLICY
+            from app.organization_purpose import REPORT_MATERIAL_POLICY
+            progress=candidate.get('fact_audit_progress') or {}
+            drafts=[agent.last_module_report or {},
+                ((organization_result or {}).get('report_candidate_draft') or {}).get('module_report') or {}]
+            reports=set()
+            for draft in drafts:
+                structure=draft.get('reading_structure') or {}
+                main,appendix=structure.get('main_markdown'),structure.get('appendix_markdown')
+                if isinstance(main,str) and isinstance(appendix,str):
+                    reports.add(identity(main+('\n\n'+appendix if appendix else '')))
+            if ((state.get('organization_research') or {}).get('report_material_policy')!=REPORT_MATERIAL_POLICY
+                    or progress.get('policy')!=AUDIT_PROGRESS_POLICY or progress.get('report_content_id') not in reports
+                    or not isinstance(progress.get('responses'),dict) or not isinstance(progress.get('scope_selections'),dict)):
+                raise RuntimeError('fact_audit_checkpoint_report_changed')
+            record={**(organization_result or {}),'fact_audit_progress':progress}
+        elif candidate.get('stage')=='reader_quality_checkpoint':
             from app.query_understanding import identity
             quality=candidate.get('reader_quality') or {}
             if quality.get('report_content_id')!=identity((agent.last_module_report or {}).get('reading_structure')):

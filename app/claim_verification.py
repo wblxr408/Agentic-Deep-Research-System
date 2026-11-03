@@ -13,9 +13,15 @@ from collections import Counter
 from copy import deepcopy
 from typing import Any
 from openai import APIError
-
+from app.llm_budget import TokenBudgetExceeded
 from app.graph.state import Evidence
 from app.security.prompt_security import untrusted_context
+
+AUDIT_PROGRESS_POLICY='adrs-paid-audit-responses-v1'
+
+
+class AuditCheckpointError(TokenBudgetExceeded):
+    def __init__(self):super().__init__('fact_audit_checkpoint_unavailable')
 
 _CITATION = re.compile(r"\[(?:citation:)?(\d+)\](?!\()")
 AUDIT_CONTRACT_VERSION = 'adrs-claim-support-v7-premise-action-grounding'
@@ -624,12 +630,23 @@ def audit_report(report: str, evidence: list[Evidence], *, client: Any, model: s
                  proposal_reassessment: bool = False,
                  pending_excerpt_window: int | None = None,
                  review_scope: dict | None = None,
-                 resume_judged: bool = False) -> dict:
+                 resume_judged: bool = False, on_progress=None, retained_progress: dict | None = None) -> dict:
     from app.llm_budget import BudgetedClient, ModelTokenBudget, TokenBudgetExceeded, request_token_bound
     if client is not None and not isinstance(client,BudgetedClient):
         client = BudgetedClient(client,ModelTokenBudget(token_budget if token_budget is not None else 12000,
             deadline=deadline),'audit')
     if isinstance(client,BudgetedClient):client=client.with_operation('fact_review')
+    from app.query_understanding import identity
+    durable=on_progress is not None
+    progress=deepcopy(retained_progress or {}) if durable else {}
+    if durable:
+        if progress.get('policy') not in {None,AUDIT_PROGRESS_POLICY}:raise ValueError('audit_progress_policy_unsupported')
+        progress.update(policy=AUDIT_PROGRESS_POLICY,report_content_id=identity(report))
+        progress.setdefault('responses',{});progress.setdefault('scope_selections',{})
+    def checkpoint():
+        if not durable:return
+        try:on_progress(deepcopy(progress))
+        except Exception as error:raise AuditCheckpointError() from error
     claims = extract_claims(report)
     for claim in claims:claim['declared_kind']=(paragraph_kinds or {}).get(claim['paragraph_context'])
     review_scope=deepcopy(review_scope or (previous_audit or {}).get('review_scope'))
@@ -640,7 +657,17 @@ def audit_report(report: str, evidence: list[Evidence], *, client: Any, model: s
     if (review_scope or {}).get('dependency_policy'):
         from app.claim_scope_dependencies import SUPPORTED_POLICIES as DEPENDENCY_POLICIES,select_scope
         if review_scope.get('policy')==ESSENTIAL_REVIEW_POLICY and review_scope['dependency_policy'] in DEPENDENCY_POLICIES:
-            scope_decisions,scope_selection=select_scope(claims,review_scope,previous_audit,scope_client,model)
+            from app.claim_scope_dependencies import catalogue
+            scope_key=identity({'scope':review_scope,'catalogue':catalogue(claims),'model':model,
+                'route':getattr(scope_client,'route_info',None),
+                **({'governance':client.budget.data_governance,'skill_packet':client.skill_packet} if durable else {})})
+            scope_previous=previous_audit
+            if durable and progress['scope_selections'].get(scope_key):
+                scope_previous={**(previous_audit or {}),'scope_selection':progress['scope_selections'][scope_key]}
+            def save_scope(value):
+                progress['scope_selections'][scope_key]=deepcopy(value);checkpoint()
+            scope_decisions,scope_selection=select_scope(claims,review_scope,scope_previous,scope_client,model,
+                on_progress=save_scope if durable else None)
         else:
             scope_decisions={}
             scope_selection={'policy':review_scope['dependency_policy'],'reason':'scope_dependency_policy_unsupported'}
@@ -856,6 +883,14 @@ def audit_report(report: str, evidence: list[Evidence], *, client: Any, model: s
         bound = request_token_bound(messages, response_format={"type":"json_object"}) + output_cap
         return serialized, messages, output_cap, bound
 
+    route_id=identity(getattr(client,'route_info',None))
+    def response_binding(messages,output_cap):
+        return identity({'policy':AUDIT_PROGRESS_POLICY,'contract':AUDIT_CONTRACT_VERSION,
+            'messages':messages,'model':model,'route':route_id,'temperature':0,
+            'max_tokens':output_cap,'response_format':{'type':'json_object'},
+            'governance':getattr(getattr(client,'budget',None),'data_governance',None),
+            'skill_packet':getattr(client,'skill_packet',None)})
+
     standalone_sizes = {}
     for row in pending:
         size = len(json.dumps(compact_payload([row]), ensure_ascii=False)) + 2
@@ -864,12 +899,41 @@ def audit_report(report: str, evidence: list[Evidence], *, client: Any, model: s
             continue
         waiting.append(row)
         standalone_sizes[row['claim_id']] = size
-    while waiting or retry_batches:
+    replay_batches=[]
+    if durable:
+        current_id=progress['report_content_id']
+        saved_records=sorted(progress['responses'].values(),key=lambda row:row.get('sequence',0))
+        for saved in saved_records:
+            if 'raw_response' in saved or saved.get('dispatch_status') not in {'dispatch_intent','dispatch_attempted'}:continue
+            receipts=[row for row in client.budget.calls if row.get('content_unit_id')=='fact-review:'+str(saved.get('binding'))]
+            if receipts and all(row.get('status')=='blocked_before_dispatch' or row.get('dispatch_status')=='not_dispatched' for row in receipts):
+                saved['dispatch_status']='not_dispatched'
+        unknown_ids={key for saved in saved_records if saved.get('report_content_id')==current_id
+            and saved.get('model')==model and saved.get('route_id')==route_id and 'raw_response' not in saved
+            and saved.get('dispatch_status') in {'dispatch_intent','dispatch_attempted'} for key in saved.get('claim_ids',[])}
+        for row in waiting:
+            if row['claim_id'] in unknown_ids:
+                row.update(status='not_checked',reason='Prior fact request was dispatched or intended but its paid response is unavailable')
+        waiting=[row for row in waiting if row['claim_id'] not in unknown_ids]
+        available_rows={row['claim_id']:row for row in waiting};assigned=set()
+        for saved in saved_records:
+            ids=saved.get('claim_ids') or []
+            if (saved.get('split_depth')!=0 or not ids or 'raw_response' not in saved
+                    or not set(ids)<=set(available_rows) or assigned.intersection(ids)):continue
+            batch=[available_rows[key] for key in ids]
+            _,messages,cap,_=batch_request(batch)
+            if response_binding(messages,cap)!=saved.get('binding'):continue
+            replay_batches.append(batch);assigned.update(ids)
+        waiting=[row for row in waiting if row['claim_id'] not in assigned]
+    while waiting or retry_batches or replay_batches:
+        if durable and client.budget.execution_control:client.budget.execution_control.check()
         # The oldest remaining claim starts each batch. Fill its remaining
         # space with the most shared context, even if report order separates
         # the claims. Keep the report-order rows and every verdict unchanged.
         if retry_batches:
             batch,depth,parent_ids = retry_batches.pop(0)
+        elif replay_batches:
+            batch=replay_batches.pop(0);depth=0;parent_ids=None
         else:
             batch = [waiting.pop(0)];depth=0;parent_ids=None
             size = len(json.dumps(compact_payload(batch), ensure_ascii=False))
@@ -890,13 +954,20 @@ def audit_report(report: str, evidence: list[Evidence], *, client: Any, model: s
         record = {'claim_ids':[row['claim_id'] for row in batch], 'status':'prepared','split_depth':depth}
         if parent_ids is not None:record['parent_claim_ids']=parent_ids
         batch_records.append(record)
+        binding=None
         try:
             serialized, messages, output_cap, reservation = batch_request(batch)
             from app.llm_client import collect_usage_metrics
             available = client.budget.available('audit') if isinstance(client,BudgetedClient) else (remaining_tokens or 0)
             record.update(payload_characters=len(serialized), reserved_tokens=reservation,
                 available_tokens=available, output_cap=output_cap)
-            if reservation > available or (deadline is not None and time.monotonic() >= deadline):
+            binding=response_binding(messages,output_cap) if durable else None
+            saved=progress['responses'].get(binding,{}) if durable else {}
+            if durable and saved.get('binding')!=binding:saved={}
+            if durable:
+                record.update(binding=binding,report_content_id=progress['report_content_id'],model=model,route_id=route_id,
+                    sequence=saved.get('sequence',1+max((row.get('sequence',0) for row in progress['responses'].values()),default=0)))
+            if 'raw_response' not in saved and (reservation > available or (deadline is not None and time.monotonic() >= deadline)):
                 record.update(status='not_dispatched', reason='original_token_or_time_allowance')
                 for row in batch:
                     row.update(status="not_checked", reason="Verification token/time budget exhausted")
@@ -904,14 +975,33 @@ def audit_report(report: str, evidence: list[Evidence], *, client: Any, model: s
             active_client = client
             if deadline is not None and hasattr(client, "with_options"):
                 active_client = client.with_options(timeout=max(0.1, deadline-time.monotonic()), max_retries=0)
-            response = active_client.chat.completions.create(model=model, temperature=0,
-                max_tokens=output_cap, response_format={"type": "json_object"}, messages=messages)
-            record['status'] = 'response_received'
-            usage.append(collect_usage_metrics(response=response, model=model, messages=messages,
-                                               completion_text=response.choices[0].message.content))
-            record['finish_reason'] = getattr(response.choices[0],'finish_reason',None)
+            if 'raw_response' in saved:
+                record.update(raw_response=saved['raw_response'],finish_reason=saved.get('finish_reason'),
+                    status='response_received',response_reused=True,dispatch_status=saved.get('dispatch_status'))
+            else:
+                if durable:
+                    active_client=active_client.with_operation('fact_review',content_unit_id='fact-review:'+binding)
+                    prior=[row for row in active_client.budget.calls if row.get('content_unit_id')=='fact-review:'+binding
+                        and row.get('status')!='blocked_before_dispatch' and row.get('dispatch_status')!='not_dispatched']
+                    if prior or saved.get('dispatch_status') in {'dispatch_intent','dispatch_attempted'}:
+                        record.update(status='paid_response_unavailable',dispatch_status='dispatch_attempted')
+                        for row in batch:row.update(status='not_checked',reason='Paid fact response unavailable; request not replayed')
+                        progress['responses'][binding]=deepcopy(record);checkpoint()
+                        continue
+                    record['dispatch_status']='dispatch_intent'
+                    progress['responses'][binding]=deepcopy(record);checkpoint()
+                response = active_client.chat.completions.create(model=model, temperature=0,
+                    max_tokens=output_cap, response_format={"type": "json_object"}, messages=messages)
+                record['status'] = 'response_received'
+                record['finish_reason'] = getattr(response.choices[0],'finish_reason',None)
+                if durable:
+                    record.update(raw_response=response.choices[0].message.content or '',dispatch_status='dispatch_attempted')
+                    progress['responses'][binding]=deepcopy(record);checkpoint()
+                usage.append(collect_usage_metrics(response=response, model=model, messages=messages,
+                                                   completion_text=response.choices[0].message.content))
             if record['finish_reason']=='length':raise AuditBatchOutputTruncated('audit_output_truncated')
-            data = json.loads(response.choices[0].message.content)
+            if durable and record['finish_reason']!='stop':raise AuditBatchStructureError('audit_response_incomplete')
+            data = json.loads(record['raw_response'] if durable else response.choices[0].message.content)
             if not isinstance(data,dict):raise AuditBatchStructureError('invalid_verdicts_envelope')
             verdicts = data.get("verdicts", [])
             if not isinstance(verdicts, list):
@@ -978,6 +1068,7 @@ def audit_report(report: str, evidence: list[Evidence], *, client: Any, model: s
             if missing:
                 record['reason']='missing_or_invalid_verdicts'
                 retry_smaller(batch,record,missing)
+        except AuditCheckpointError:raise
         except (json.JSONDecodeError,AuditBatchOutputTruncated,AuditBatchStructureError) as exc:
             record.update(status='response_unavailable_or_invalid',reason=type(exc).__name__)
             errors.append(type(exc).__name__)
@@ -985,6 +1076,8 @@ def audit_report(report: str, evidence: list[Evidence], *, client: Any, model: s
                 for row in batch:row['reason']='Verification unavailable: '+type(exc).__name__
         except TokenBudgetExceeded as exc:
             record.update(status='budget_blocked',reason=exc.reason)
+            if durable and binding and not any(row.get('content_unit_id')=='fact-review:'+binding for row in client.budget.calls):
+                record['dispatch_status']='not_dispatched'
             errors.append(exc.reason)
             for row in batch:
                 row.update(status='not_checked',reason='Verification token/time budget exhausted')
@@ -993,6 +1086,13 @@ def audit_report(report: str, evidence: list[Evidence], *, client: Any, model: s
             errors.append(type(exc).__name__)
             for row in batch:
                 row["reason"] = "Verification unavailable: " + type(exc).__name__
+        if durable and binding:
+            if 'raw_response' not in record:
+                receipts=[row for row in client.budget.calls if row.get('content_unit_id')=='fact-review:'+binding]
+                if receipts and all(row.get('status')=='blocked_before_dispatch' or row.get('dispatch_status')=='not_dispatched' for row in receipts):
+                    record['dispatch_status']='not_dispatched'
+                elif receipts:record['dispatch_status']='dispatch_attempted'
+            progress['responses'][binding]=deepcopy(record);checkpoint()
 
     supported = sum(row["status"] == "supported" for row in rows)
     unfinished = [row for row in rows if row['status']=='not_checked' or
@@ -1011,7 +1111,9 @@ def audit_report(report: str, evidence: list[Evidence], *, client: Any, model: s
             'batching':{'version':'adrs-shared-audit-packing-v2',
                 'max_payload_characters':max_payload_chars,'max_batch_claims':max_batch_claims,
                 'admission':'full_request_byte_bound_and_original_remaining_allowance',
-                'batches':batch_records},
+                'batches':[{key:value for key,value in row.items() if key!='raw_response'} for row in batch_records]},
+            **({'paid_response_progress_policy':AUDIT_PROGRESS_POLICY,
+                'reused_response_batches':sum(row.get('response_reused') is True for row in batch_records)} if durable else {}),
             'task_method_context':deepcopy(task_context) if any(row.get('allowed_method_ids') for row in rows) else None,
             'reused_supported_claims':sum(bool(row.get('verification_reused')) and row['status']=='supported' for row in rows),
             'reused_judged_claims':sum(bool(row.get('verification_reused')) for row in rows),
