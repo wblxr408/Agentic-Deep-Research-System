@@ -1212,11 +1212,37 @@ def finalize_supported_report(content,record,audit,*,configuration,statistics,ev
 
 
 def revise_report_claims(content, record, audit, *, on_round=None, on_event=None, **kwargs):
-    """Repair actual failed paragraphs until progress stops or the class cap wins."""
+    """Resume the saved repair opportunity before admitting another bounded round."""
     from app.recovery_policy import report_issue_keys, report_repair_limit
     from app.execution_control import check_execution, current_control
     limit=report_repair_limit(audit)
     history=list(record.get('repair_rounds') or [])
+    protected=((kwargs.get('configuration') or {}).get('report_material_policy')==REPORT_MATERIAL_POLICY
+        and getattr(kwargs.get('budget'),'execution_control',None) is not None)
+    from app.query_understanding import identity
+    pending=history[-1] if (protected and history and history[-1].get('input_report_id')
+        and history[-1].get('status') in {'running','awaiting_audit'}) else None
+    if pending:
+        check_execution()
+        expected=pending.get('candidate_report_id') if pending['status']=='awaiting_audit' else pending['input_report_id']
+        if (pending.get('round')!=len(history) or type(pending.get('before')) is not int or pending['before']<0
+                or type(pending.get('limit')) is not int or pending['limit']<1
+                or expected!=identity(record['raw_model_response'])):
+            raise TokenBudgetExceeded('report_repair_round_binding_changed')
+        audit.pop('repair_outcome',None)
+        complete=not audit.get('audit_incomplete') and not audit.get('budget_incomplete')
+        if complete and (pending['status']=='awaiting_audit' or not audit.get('needs_review')):
+            # The caller has already resumed the saved draft's audit. Settle
+            # the original opportunity before considering another edit.
+            after=len(report_issue_keys(audit))
+            pending.update(status='reaudited',after=after,
+                changed=identity(record['raw_model_response'])!=pending['input_report_id'])
+            record['repair_rounds']=deepcopy(history);audit['repair_rounds']=deepcopy(history)
+            if on_round:on_round(content,record,audit)
+            pending=None
+            if audit.get('needs_review') and after>=history[-1]['before']:
+                audit['repair_outcome']='no_progress'
+                return content,record,audit
     def emit(data):
         from app.graph.state import AgentEvent
         event=AgentEvent(agent='report',event_type='state_update',content=data['message']).model_dump()
@@ -1224,34 +1250,57 @@ def revise_report_claims(content, record, audit, *, on_round=None, on_event=None
         if on_event:on_event(event)
         control=current_control()
         if control:control.publish_trace(event)
-    while audit.get('needs_review') and len(history)<limit:
+    while audit.get('needs_review') and (pending is not None or len(history)<limit):
         check_execution()
         before=report_issue_keys(audit)
         if not before or audit.get('audit_incomplete') or audit.get('budget_incomplete'):break
-        round_number=len(history)+1
+        round_number=pending['round'] if pending is not None else len(history)+1
+        if protected and pending is None:
+            checkpoint=kwargs.get('on_candidate')
+            if checkpoint is None:raise TokenBudgetExceeded('report_repair_checkpoint_unavailable')
+            # Reserve the existing opportunity, not a provider charge. Paid
+            # responses and uncertain dispatch remain owned by their receipts.
+            pending={'round':round_number,'limit':limit,'before':len(before),'status':'running',
+                'input_report_id':identity(record['raw_model_response'])}
+            history.append(pending);record['repair_rounds']=deepcopy(history)
+            checkpoint(record['raw_model_response'],content=content,record=record,stage='claim_revision_round_started')
+        round_limit=pending['limit'] if pending else limit
         emit({
-            'status':'running','attempts':round_number,'limit':limit,
-            'message':f'正在修订 {len(before)} 项报告问题 · 第 {round_number}/{limit} 轮'})
+            'status':'running','attempts':round_number,'limit':round_limit,
+            'message':f'正在修订 {len(before)} 项报告问题 · 第 {round_number}/{round_limit} 轮'})
         new_content,new_record,new_audit=_revise_report_once(content,record,audit,**kwargs)
         attempt=new_audit.get('revision_attempt') or {}
         after=report_issue_keys(new_audit)
-        history.append({'round':round_number,'limit':limit,'before':len(before),'after':len(after),
-            'status':attempt.get('status'),'changed':new_content!=content})
         changed=new_content!=content
+        outcome={'round':round_number,'limit':round_limit,'before':pending['before'] if pending else len(before),
+            'after':len(after),'status':attempt.get('status'),'changed':changed}
+        if protected:
+            complete=not new_audit.get('audit_incomplete') and not new_audit.get('budget_incomplete')
+            if complete and (changed or attempt.get('status')=='reaudited'):
+                history[-1]={**pending,**outcome};pending=None
+            else:
+                pending.update(last_result=attempt.get('status'))
+                if changed:pending.update(status='awaiting_audit',candidate_report_id=identity(new_record['raw_model_response']))
+        else:history.append(outcome)
         content,record,audit=new_content,new_record,new_audit
-        record['repair_rounds']=list(history)
-        audit['repair_rounds']=list(history)
+        record['repair_rounds']=deepcopy(history)
+        audit['repair_rounds']=deepcopy(history)
         if on_round:on_round(content,record,audit)
-        if not audit.get('needs_review'):
+        if not audit.get('needs_review') and not pending:
             audit['repair_outcome']='resolved';break
-        if not changed or len(after)>=len(before):
+        if pending:
+            audit['repair_outcome']='awaiting_audit' if pending['status']=='awaiting_audit' else pending.get('last_result') or 'pending'
+            break
+        if not changed or len(after)>=outcome['before']:
             audit['repair_outcome']='no_progress' if attempt.get('status')=='reaudited' else attempt.get('status','blocked')
             break
     if history:
-        audit.setdefault('repair_outcome','round_limit' if len(history)>=limit else 'blocked')
+        audit.setdefault('repair_outcome','pending' if pending else 'resolved' if not audit.get('needs_review')
+            else 'round_limit' if len(history)>=limit else 'blocked')
         emit({
             'status':audit['repair_outcome'],'attempts':len(history),'limit':limit,
-            'message':f"报告修订已执行 {len(history)} 轮，剩余 {len(report_issue_keys(audit))} 项核对问题"})
+            'message':f"报告修订已登记 {len(history)} 轮，剩余 {len(report_issue_keys(audit))} 项核对问题"
+                + ('；当前轮待继续' if pending else '')})
     return content,record,audit
 
 
@@ -1532,6 +1581,11 @@ def _revise_report_once(content, record, audit, *, configuration, statistics, ev
             wire=(report_prose(item['rendered_text'])+' '+' '.join(f'[citation:{n}]' for n in item['citations'])).rstrip()
             paragraph_context[wire]=correction_context[target['paragraph_id']]
         paragraph_context=_carry_audit_context(record,new_record,paragraph_context,lineage=lineage_after_deletions(record))
+        rounds=record.get('repair_rounds') or []
+        if (protected and rounds and rounds[-1].get('status')=='running'
+                and rounds[-1].get('input_report_id')==identity(record['raw_model_response'])):
+            new_record['repair_rounds']=deepcopy(rounds)
+            new_record['repair_rounds'][-1].update(status='awaiting_audit',candidate_report_id=identity(new_record['raw_model_response']))
         if on_candidate:on_candidate(new_record['raw_model_response'],content=revised,record=new_record,
             stage='claim_revision_before_audit')
         new_audit=audit_report(revised,evidence,client=budgeted_client(client,budget,'audit'),model=model,

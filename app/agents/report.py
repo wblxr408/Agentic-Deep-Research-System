@@ -519,6 +519,7 @@ Evidence Sources:
                         self.last_draft=structure['main_markdown']+(
                             '\n\n'+structure['appendix_markdown'] if structure.get('appendix_markdown') else '')
                         raise TokenBudgetExceeded('report_candidate_record_changed') from error
+                    self.last_module_report['raw_model_response']=retained_record['raw_model_response']
                     for key in ('repair_rounds','structural_revision_attempted','reader_revision','editorial_request_binding'):
                         if key in retained_record:self.last_module_report[key]=deepcopy(retained_record[key])
                 if self.last_module_report['issues']:
