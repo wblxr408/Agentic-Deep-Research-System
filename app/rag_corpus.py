@@ -1,6 +1,7 @@
 """Typed research records and a bounded view of the existing RAG sources."""
 from __future__ import annotations
 
+import asyncio
 import base64
 import binascii
 from datetime import datetime
@@ -220,9 +221,11 @@ async def read_frozen_sources(conn,source_ids,manifest,*,owner_id,task_id,group)
         if not snapshot:
             gaps.append({'source_id':source_id,'work_id':member['work_id'],'reason':'current_source_access_or_revision_changed'})
             continue
-        row=await conn.fetchrow('''SELECT name,original_text,metadata FROM document_sources
-            WHERE id=$1::uuid AND owner_id=$2::uuid AND metadata->>'parse_version_id'=$3
-            AND metadata->>'content_hash' IS NOT DISTINCT FROM $4::text''',
+        row=await conn.fetchrow('''SELECT s.name,s.original_text,s.metadata,o.original_bytes FROM document_sources s
+            LEFT JOIN document_source_originals o ON o.source_id=s.id AND o.owner_id=s.owner_id
+            AND o.parse_version_id=s.metadata->>'parse_version_id' AND o.content_hash=s.metadata->>'content_hash'
+            WHERE s.id=$1::uuid AND s.owner_id=$2::uuid AND s.metadata->>'parse_version_id'=$3
+            AND s.metadata->>'content_hash' IS NOT DISTINCT FROM $4::text''',
             source_id,str(owner_id),member['parse_version_id'],member['source_content_version'])
         if not row:
             gaps.append({'source_id':source_id,'work_id':member['work_id'],'reason':'frozen_source_version_unavailable'})
@@ -245,6 +248,33 @@ async def read_frozen_sources(conn,source_ids,manifest,*,owner_id,task_id,group)
             gaps.append({'source_id':source_id,'work_id':member['work_id'],'reason':'source_access_changed_during_read'})
             continue
         parse=metadata.get('document_parse') or {}
+        asset=None
+        if parse.get('format')=='pdf':
+            from app.execution_control import current_control
+            from app.llm_budget import TokenBudgetExceeded
+            control=current_control()
+            asset={'status':'not_retained','format':'pdf','reason':'source_asset_document_original_unavailable'}
+            if row['original_bytes'] is not None:
+                if (control is None or str(control.binding.get('owner_id'))!=str(owner_id)
+                        or str(control.binding.get('session_id'))!=str(task_id)):
+                    asset['reason']='source_asset_execution_binding_unavailable'
+                else:
+                    from app.source_assets import _retain
+                    import time
+                    try:
+                        async with asyncio.timeout(8):
+                            asset=await _retain(control,member['source_url'],bytes(row['original_bytes']),text,time.monotonic()+8,
+                                document_source_id=source_id,parse_version_id=member['parse_version_id'])
+                        control.check()
+                    except TokenBudgetExceeded:raise
+                    except Exception as error:
+                        control.check()
+                        reason=str(error) if isinstance(error,ValueError) and str(error).startswith('source_asset_') else 'source_asset_persistence_unavailable'
+                        asset={'status':'not_retained','format':'pdf','reason':reason}
+            current=await current_access(conn,source_id,owner_id,task_id,group,member['source_access_revision'],with_snapshot=True)
+            if not current:
+                gaps.append({'source_id':source_id,'work_id':member['work_id'],'reason':'source_access_changed_during_original_retention'})
+                continue
         complete=record.kind=='fulltext' and not parse.get('truncated') and not parse.get('unreadable_pages')
         stable_access={key:value for key,value in current.items() if key!='checked_at'}
         results.append({'source_id':source_id,'content':text,'metadata':{
@@ -256,6 +286,7 @@ async def read_frozen_sources(conn,source_ids,manifest,*,owner_id,task_id,group)
             'retrieval_selector':'explicit_frozen_source','retrieval_score_scope':'selection_not_relevance',
             'retained_source':{'format':'internal_source','coverage':'full_text' if complete else 'abstract_or_partial_text',
                 'source_document_format':parse.get('format'),
+                **({'source_asset':asset} if asset is not None else {}),
                 'scientific_sections':scholarly_text_sections(text) if complete else [],
                 'truncated':bool(parse.get('truncated')),'complete_retained_artifact':complete,
                 'retained_characters':len(text),'pages':[

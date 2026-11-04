@@ -8,6 +8,8 @@ from __future__ import annotations
 import re
 from uuid import UUID
 
+from app.research_documents import source_document_format
+
 
 def select_source_pages(reading, evidence, *, max_pages=8, per_output=2,locate_captions=False,figure_mode=False):
     limit=2000 if figure_mode else 8
@@ -42,7 +44,7 @@ def select_source_pages(reading, evidence, *, max_pages=8, per_output=2,locate_c
             meta=(source.get('acquisition') or {}) if source else {}
             if not isinstance(meta,dict):pending(output_id,'invalid_source_metadata');continue
             asset=meta.get('source_asset') or {}
-            if (not source or meta.get('format')!='pdf' or meta.get('coverage')=='discovery_only'
+            if (not source or source_document_format(meta)!='pdf' or meta.get('coverage')=='discovery_only'
                     or not isinstance(asset,dict) or asset.get('status')!='retained' or asset.get('format')!='pdf'):
                 pending(output_id,'original_pdf_not_retained');continue
             try:asset_id=str(UUID(asset['asset_id']))

@@ -205,6 +205,7 @@ async def _ingest_source(
     index_policy:IndexPolicy|None=None,
     retention_policy:RetentionPolicy|None=None,
     revision_intake_key:str|None=None,
+    original_bytes:bytes|None=None,
 ) -> dict[str, Any]:
     text = content
     retain_unreadable_pdf=bool(parsed_document and parsed_document.get('format')=='pdf' and parsed_document.get('total_pages',0)>0)
@@ -223,6 +224,9 @@ async def _ingest_source(
     profile_key=hashlib.sha256(json.dumps(profile,sort_keys=True,ensure_ascii=False).encode('utf-8')).hexdigest()
     index_policy=index_policy or IndexPolicy()
     retention_policy=retention_policy or RetentionPolicy()
+    if original_bytes is not None and (not parsed_document or parsed_document.get('format')!='pdf'
+            or not isinstance(original_bytes,bytes) or not original_bytes.startswith(b'%PDF-')):
+        raise HTTPException(422,'invalid_source_original_pdf')
     feature_policy=feature_policy or FeaturePolicy()
     if index_policy.mode=='direct' and feature_policy.dense:raise HTTPException(422,'direct_only_source_cannot_request_dense_encoding')
     if index_policy.mode=='direct' and feature_policy.sparse:raise HTTPException(422,'direct_only_source_cannot_request_sparse_encoding')
@@ -271,6 +275,14 @@ async def _ingest_source(
         'retention_policy':retention_policy.model_dump(mode='json'),'revision_intake_key':revision_intake_key}
     if parsed_document:source_metadata['document_parse']={key:value for key,value in parsed_document.items() if key!='text'}
 
+    async def retain_original(conn,source_id):
+        if original_bytes is None:return None
+        from app.db.source_assets import MAX_ORIGINAL_BYTES,retain_document_original
+        if len(original_bytes)>MAX_ORIGINAL_BYTES:
+            return {'status':'not_retained','format':'pdf','reason':'source_asset_original_size_or_format'}
+        try:return await retain_document_original(conn,source_id,owner_id,source_metadata['parse_version_id'],digest,original_bytes)
+        except ValueError as error:raise HTTPException(409,str(error)) from None
+
     async def intake(conn):
         await lock_owner(conn,owner_id)
         from app.source_lifecycle import validate_policy
@@ -296,7 +308,9 @@ async def _ingest_source(
             retention_policy.reuse_scope,str(retention_policy.task_id) if retention_policy.task_id else None,retention_policy.valid_from,retention_policy.valid_until,retention_policy.purge_after,
             json.dumps(source_metadata['research_record'],sort_keys=True) if 'research_record' in source_metadata else None)
         if existing:
+            original=await retain_original(conn,existing['id'])
             return {'source_id':str(existing['id']),'deduplicated':True,'chunk_count':0,'document_ids':[],
+                **({'original_asset':original} if original is not None else {}),
                 'representation':{'status':'reused_compatible_effective_index_mode','new_embedding_api_calls':0,
                     'semantic_local_encoding_calls':int(semantic_plan is not None),'local_sparse_encoding_calls':int(sparse_output is not None),
                     'local_multivector_encoding_calls':int(multivector_output is not None)},'index':{'mode':index_policy.mode}}
@@ -326,7 +340,9 @@ async def _ingest_source(
             file_name=file_name,file_ext=file_ext,text=text,chunk_size=chunk_size,chunk_overlap=chunk_overlap,
             metadata=source_metadata,owner_id=owner_id,chunks=chunks,embeddings=embeddings,dense_coverage=coverage,
             multivector_output=multivector_output)
+        original=await retain_original(conn,result['source_id'])
         return {**result,'parse_version_id':source_metadata['parse_version_id'],'parse_quality':(parsed_document or {}).get('quality'),
+            **({'original_asset':original} if original is not None else {}),
             'representation':{'dense_status':features['dense']['status'],'semantic_local_encoding_calls':int(semantic_plan is not None),**features['effects']}}
 
     if connection is None:
@@ -917,6 +933,7 @@ async def upload_source(
     feature_policy_json:str=Form(default='{}',max_length=4000),
     index_policy_json:str=Form(default='{}',max_length=2000),
     retention_policy_json:str=Form(default='{}',max_length=4000),
+    research_record_json:str|None=Form(default=None,max_length=40000),
     principal: PrincipalDep = None,
 ):
     if source_type in {'web_sync','cdc'}:raise HTTPException(422,'server_managed_source_type')
@@ -942,6 +959,10 @@ async def upload_source(
     except ValueError:raise HTTPException(422,'invalid_index_policy') from None
     try:retention_policy=RetentionPolicy.model_validate_json(retention_policy_json)
     except ValueError:raise HTTPException(422,'invalid_retention_policy') from None
+    metadata={"uploaded_file":file.filename,'intake_mode':'explicit_upload_event'}
+    if research_record_json is not None:
+        try:metadata['research_record']=json.loads(research_record_json)
+        except ValueError:raise HTTPException(422,'invalid_research_source_record') from None
     digest = hashlib.sha256(raw).hexdigest()
     from app.research_documents import read_document
     from app.channels.models import ChannelError
@@ -950,9 +971,10 @@ async def upload_source(
             max_pages=get_settings().security.upload_max_pages,max_chars=get_settings().document_parsing.max_chars,allow_ocr=allow_ocr and suffix=='pdf')
     except ChannelError as error:raise HTTPException(400,error.category) from None
     return await _ingest_source(name=name,group_name=group_name,source_type=source_type,content=parsed['text'],
-        metadata={"uploaded_file":file.filename,'intake_mode':'explicit_upload_event'},
+        metadata=metadata,
         file_name=file.filename,file_ext=suffix,chunk_size=chunk_size,chunk_overlap=chunk_overlap,
-        owner_id=principal.id,content_hash=digest,parsed_document=parsed,chunk_policy=chunk_policy,feature_policy=feature_policy,index_policy=index_policy,retention_policy=retention_policy)
+        owner_id=principal.id,content_hash=digest,parsed_document=parsed,chunk_policy=chunk_policy,feature_policy=feature_policy,index_policy=index_policy,retention_policy=retention_policy,
+        original_bytes=raw if suffix=='pdf' else None)
 
 
 @router.get("/chunks")

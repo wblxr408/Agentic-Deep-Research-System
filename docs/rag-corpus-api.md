@@ -138,7 +138,17 @@ reading_level按当前有效字段来源标为source_located_fields_from_fulltex
 
 Citation遇到此内部地址必须是knowledge_base，并已带相同source_id或source_document_id；缺失或冲突拒绝混版引用。通过后source_url置空，locator保留source_id、source_document_id、source_address及原解析版本等定位字段，Report与RAG引用共用此行为。调用方通过既有受权资料接口定位，不能把URN交给浏览器／公开抓取工具；外部渠道的HTTPS／公开地址守卫不变。无新增资料服务、代理下载、DDL、模型调用或来源权限。
 
-当前仅接已保留original_text，不生成／声明原PDF文件下载地址，不证明原件真实或已完成整篇阅读；私有原PDF与论文图块资产、界面定位仍待原4.3／6。必要长文窗口沿下节已有路径复用，真正超限资料保留缺口。旧HTTP根继续原行为；旧worker／客户端不保证识别新内部地址，不能伪装公开URL或降低权限回退。仅源码／调用链审阅，无数据库、真实上传／读取、模型、引用／导出、权限或费用运行结果，整项继续待验收。
+内部地址先接已保留original_text，不生成公开下载地址，也不证明原件真实或整篇已读；后续私有PDF原件桥接见下节，真实图块及界面接受仍待原4.3／6。必要长文窗口沿下节已有路径复用，真正超限资料保留缺口。旧HTTP根继续原行为；旧worker／客户端不保证识别新内部地址，不能伪装公开URL或降低权限回退。仅源码／调用链审阅，无数据库、真实上传／读取、模型、引用／导出、权限或费用运行结果，整项继续待验收。
+
+### 私有PDF原件与任务图块资产
+
+2026-11-04，上传PDF除原解析文本外，将实际原字节放入现有PostgreSQL的document_source_originals子表，绑定原source_id／owner_id／parse_version_id／content_hash；同一版本只能保留一致字节。此表沿原SOURCE_ASSETS_SCHEMA_SQL初始化，随document_sources删除级联清理，不新增来源身份、生命周期、文件服务或公开下载接口。上传可带research_record_json，沿现有ResearchSourceRecord／主来源校验绑定work_id和材料kind，供指定语料使用；未提供仍为原普通上传，不自动把PDF归类为全文或合并作品，集合界面适配仍待。相同入库合同去重命中可回填相同原件，不重建来源／索引；接口original_asset报告是否保留。单件沿现有MAX_ORIGINAL_BYTES（12 MiB），超出仅保留原文本并明确原件缺口，不削减用户原上传配置或伪造文件。
+
+指定read_frozen_sources按当前owner／任务／group、冻结解析／内容版本联取原件。只有原可信执行控制也匹配owner／任务，才调用既有source_assets._retain把原PDF交给原research_source_assets；原同URL／文本／字节复用、任务64 MiB容量、执行锁和取消边界不变。任务副本携带document_source_id／document_parse_version，读源资产需匹配同一来源／解析版本；来源物理删除也沿外键级联删除对应任务副本及布局／图像，软删除／失效继续原访问生命周期。保留前后均核当前来源访问，变化不接纳正文；写入失败保留not_retained及原因，不新增抓取或模型。返回元数据只有原source_asset引用，原字节不进入RAGResult、索引或模型消息。
+
+acquisition.format仍为internal_source，source_document_format为pdf；原页／图块选择与current_original共用原格式识别，私有入口另核knowledge_base／rag及当前来源ID／访问快照，再沿原任务、owner、资产ID、字数／URL和byte_count核对。后续继续原PDFFigures2定位、图组提取、像素／布局缓存及受权导出，不把整页预览当独立图块，不因原件存在批准全文阅读或事实。
+
+旧仅文本资料不会自动获得原PDF，可在相同入库合同下以真实同版本原件重传回填；不存在／版本不符、超限或持久化失败均保留缺口，不从本地路径或URN联网补抓。此批新增表定义尚未执行数据库更新，也未运行上传、原件读取、提图或导出；配置的原提取器及实际私有图块交付继续待验收，不能宣称百篇已完成。
 
 ### 原格式与章节导航复用
 

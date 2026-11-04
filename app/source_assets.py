@@ -5,7 +5,7 @@ import asyncio
 import time
 
 
-async def _retain(control,source_url,original,retained_text,deadline):
+async def _retain(control,source_url,original,retained_text,deadline,*,document_source_id=None,parse_version_id=None):
     from app.db.connection import get_db_pool
     from app.db.source_assets import retain_original
     control.check()
@@ -16,7 +16,8 @@ async def _retain(control,source_url,original,retained_text,deadline):
         await conn.execute("SELECT set_config('statement_timeout','6000',true)")
         control.check()
         if time.monotonic()>=deadline:raise TimeoutError('source_asset_deadline')
-        return await retain_original(conn,control.binding,source_url,original,retained_text,local_mode=control.local_mode())
+        return await retain_original(conn,control.binding,source_url,original,retained_text,local_mode=control.local_mode(),
+            document_source_id=document_source_id,parse_version_id=parse_version_id)
 
 
 def retain_acquired_pdf(source_url,original,retained_text,*,deadline):
