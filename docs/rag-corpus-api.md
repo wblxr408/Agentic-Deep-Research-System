@@ -138,7 +138,15 @@ reading_level按当前有效字段来源标为source_located_fields_from_fulltex
 
 Citation遇到此内部地址必须是knowledge_base，并已带相同source_id或source_document_id；缺失或冲突拒绝混版引用。通过后source_url置空，locator保留source_id、source_document_id、source_address及原解析版本等定位字段，Report与RAG引用共用此行为。调用方通过既有受权资料接口定位，不能把URN交给浏览器／公开抓取工具；外部渠道的HTTPS／公开地址守卫不变。无新增资料服务、代理下载、DDL、模型调用或来源权限。
 
-当前仅接已保留original_text，不生成／声明原PDF文件下载地址，不证明原件真实或已完成整篇阅读；私有原PDF与论文图块资产、界面定位和必要长文窗口仍待原4.3／6。旧HTTP根继续原行为；旧worker／客户端不保证识别新内部地址，不能伪装公开URL或降低权限回退。仅源码／调用链审阅，无数据库、真实上传／读取、模型、引用／导出、权限或费用运行结果，整项继续待验收。
+当前仅接已保留original_text，不生成／声明原PDF文件下载地址，不证明原件真实或已完成整篇阅读；私有原PDF与论文图块资产、界面定位仍待原4.3／6。必要长文窗口沿下节已有路径复用，真正超限资料保留缺口。旧HTTP根继续原行为；旧worker／客户端不保证识别新内部地址，不能伪装公开URL或降低权限回退。仅源码／调用链审阅，无数据库、真实上传／读取、模型、引用／导出、权限或费用运行结果，整项继续待验收。
+
+### 原格式与章节导航复用
+
+2026-11-04，read_frozen_sources保留format=internal_source以承接原owner／来源／版本及完整保留文本资格检查；另带source_document_format=document_parse.format，不把上传PDF改成公开PDF来源。完整保留资料的scientific_sections复用现有scholarly_text_sections生成原文label／start／body_start／end；部分／截断资料仍给空导航，不因章节标题提升coverage。
+
+原research_context的角色窗口、reading_focus缺字段补读和技术窗口继续从保留原文选片段；共用source_document_format读取原格式，使上传PDF也走既有开篇续页、页内会刊及技术标题窗口。源内页码／字符范围仍沿原解析pages，未知原格式回到原internal_source行为，公开资料继续按原format。导航只用于定位，不是模型判断或新增全文认证；_full_text的私有来源资格仍按internal_source原守卫核对。
+
+入库解析max_chars和任务冻结read_max_chars沿现有同一配置上限；既有读取仍拒绝缺正文／真正超限的版本，留下retained_text_exceeds_source_read_bound等原缺口。该差量不新增窗口协议、模型、索引、状态库、根policy或限额，也不保证任意长度可读。原PDF字节、论文目标图块和超限旧资料的补取／交付沿原4.3／6.2继续；通用极端长度处理为有证据再做的P1。仅源码审阅，未运行读取、模型或费用评估。
 
 跨ID论证沿同一综合调用处理：完整交接候选补齐observations、entity_ids，原basis位置、条件性choice、备选解释和相关作品继续交接；容量按完整记录决定，省略仍在omitted_record_ids记录。综合由AI比较问题、结论、观察、条件与读者用途；确认同论证时，在原research_judgments以新judgment_id返回保留科学内容／作品范围的替代判断、supersedes及主归属，理由写入原reasoning。不因共享主题或相似文字合并不同条件／冲突结果；当前原文、响应空间或字段容量不足以保全内容时保留旧候选，不增加去重模型调用。
 

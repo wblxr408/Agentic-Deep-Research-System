@@ -13,6 +13,7 @@ from pydantic import Field, model_validator
 
 from app.research_scope import ScopeRecord
 from app.evidence_chunks import identity
+from app.research_documents import scholarly_text_sections
 
 VERSION = 'adrs-rag-research-record-v1'
 RecordKind = Literal['bibliography', 'abstract', 'fulltext', 'derived_card']
@@ -254,6 +255,8 @@ async def read_frozen_sources(conn,source_ids,manifest,*,owner_id,task_id,group)
             'source_access_snapshot':stable_access,
             'retrieval_selector':'explicit_frozen_source','retrieval_score_scope':'selection_not_relevance',
             'retained_source':{'format':'internal_source','coverage':'full_text' if complete else 'abstract_or_partial_text',
+                'source_document_format':parse.get('format'),
+                'scientific_sections':scholarly_text_sections(text) if complete else [],
                 'truncated':bool(parse.get('truncated')),'complete_retained_artifact':complete,
                 'retained_characters':len(text),'pages':[
                     {key:page[key] for key in ('number','start','end') if key in page}

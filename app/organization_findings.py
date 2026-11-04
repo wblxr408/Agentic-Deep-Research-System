@@ -17,6 +17,7 @@ from pydantic import Field
 from app.bibliography import bibtex_entries
 
 from app.research_evaluation import OutputType
+from app.research_documents import source_document_format
 from app.research_scope import (
     AffiliationRecord, Identifier, Label, OrganizationEntity, OrganizationRelationship,
     OrganizationResearchScope, OrganizationScopePreviewRequest, OutputRelation,
@@ -177,7 +178,7 @@ def _publication_url(value: str) -> str:
 def _publication_opening(source: dict) -> str:
     acquisition = source.get('acquisition') or {}
     opening_end = 3000
-    if acquisition.get('format') == 'pdf':
+    if source_document_format(acquisition)=='pdf':
         pages = acquisition.get('pages') or []
         opening_end = min(16000, max((page.get('end', 0) for page in pages[:2]), default=3000))
     opening = source['content'][:opening_end]
@@ -597,7 +598,7 @@ def build_organization_findings(configuration: dict | None, evidence: list[dict]
                         # Publication footers / ACM reference blocks can follow
                         # the abstract. Keep the actual bounded first PDF page,
                         # rather than the author-only opening before Abstract.
-                        if venue_acquisition.get('format')=='pdf' and isinstance(venue_pages,list) and venue_pages and isinstance(venue_pages[0],dict):
+                        if source_document_format(venue_acquisition)=='pdf' and isinstance(venue_pages,list) and venue_pages and isinstance(venue_pages[0],dict):
                             end=venue_pages[0].get('end')
                             if type(end) is int and 0<end<=len(venue_source['content']):
                                 venue_opening=venue_source['content'][:min(end,16000)]

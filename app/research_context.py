@@ -7,6 +7,7 @@ from copy import deepcopy
 
 from app.claim_verification import select_excerpts
 from app.llm_budget import TokenBudgetExceeded, request_token_bound
+from app.research_documents import source_document_format
 
 ROLES = {
     'method': r'method|design|architecture|mechanism|approach|方法|架构|机制',
@@ -491,7 +492,7 @@ def _ranges(source, query, deep, focus=None, located_spans=None):
             spans.append((role, sections[0]['start'], sections[0]['end']))
         else:
             hits = re.finditer(r'(?im)^[ \t]*(?:\d+(?:\.\d+)*\.?[ \t]+)?(?:[A-Za-z]+[ \t]+){0,2}(?:' + pattern + r')[A-Za-z :/—–-]{0,45}[ \t]*$', text)
-            hit = next((item for item in hits if item.start() >= (1200 if meta.get('format') == 'pdf' and len(text)>5000 else 0)), None)
+            hit = next((item for item in hits if item.start() >= (1200 if source_document_format(meta)=='pdf' and len(text)>5000 else 0)), None)
             if hit:
                 spans.append((role, hit.start(), min(len(text), hit.start()+2400)))
     # Retrieval searches the entire retained body. Section windows alone can
@@ -523,7 +524,7 @@ def _ranges(source, query, deep, focus=None, located_spans=None):
     # the next opening page as data, rather than treating a cover as the work's
     # complete attribution. This is not itself an affiliation judgement.
     pages = meta.get('pages') or []
-    if meta.get('format') == 'pdf' and len(pages)>1:
+    if source_document_format(meta)=='pdf' and len(pages)>1:
         page = pages[1]; start, end = page.get('start'), page.get('end')
         if isinstance(start,int) and isinstance(end,int) and 0<=start<end<=len(text) and not any(lower<=start<upper for _,lower,upper in spans):
             spans.append(('opening_page_continuation', start, min(end,start+1800)))

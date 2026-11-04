@@ -376,7 +376,8 @@ def technical_evidence_windows(source,limit):
     for section in meta.get('scientific_sections',[]):
         if re.search(r'method|experiment|evaluation|result|discussion|conclusion|limitation|方法|结果|讨论|结论',section['label'],re.I):
             ranges.append((section['start'],min(section['end'],section['start']+3500)))
-    if meta.get('format')=='pdf':
+    from app.research_documents import source_document_format
+    if source_document_format(meta)=='pdf':
         for hit in re.finditer(r'(?im)^.{0,30}(?:method|design|architecture|evaluation|experiment|baseline|result|limitation|conclusion).{0,70}$',text):
             ranges.append((max(0,hit.start()-200),min(len(text),hit.start()+3000)))
             if len(ranges)>=10:break
