@@ -106,7 +106,7 @@ def _editor_response_family(basis,output_cap,minimum_output,required_audit):
 def _reader_edit_response(*,messages,contract,purpose,output_cap,record,quality,findings,
                           configuration,evidence,cited,client,model,budget,on_candidate,
                           response_stage='reader_revision_response',temperature=.1,
-                          minimum_output=0,required_audit=0,paragraph_ids=None):
+                          minimum_output=0,required_audit=0,paragraph_ids=None,retained_requests=()):
     """Recover this editor's paid response through the existing root candidate."""
     control=getattr(budget,'execution_control',None)
     protected=configuration.get('report_material_policy')==REPORT_MATERIAL_POLICY and control is not None
@@ -180,7 +180,8 @@ def _reader_edit_response(*,messages,contract,purpose,output_cap,record,quality,
     if saved.get('binding')!=binding:saved={}
     unit='reader-revision:'+binding
     active=active.with_operation('reader_revision',content_unit_id=unit)
-    dispatch=operation_dispatch_status(budget.calls,unit)
+    def request_dispatch_status():
+        return operation_dispatch_status([*retained_requests,*budget.calls],unit)
     if saved.get('status')=='response_received':
         reply=prior.get('raw_model_response')
         if not isinstance(reply,str):raise TokenBudgetExceeded('reader_revision_paid_response_unavailable')
@@ -192,6 +193,7 @@ def _reader_edit_response(*,messages,contract,purpose,output_cap,record,quality,
         _editor_response_consumed(budget)
         if saved.get('finish_reason')!='stop':raise TokenBudgetExceeded('reader_revision_output_incomplete')
         return reply
+    dispatch=request_dispatch_status()
     if ((saved.get('status') in {'dispatch_intent','dispatch_attempted'} or dispatch is not None)
             and dispatch!='not_dispatched'):
         raise TokenBudgetExceeded('reader_revision_paid_response_unavailable')
@@ -210,7 +212,7 @@ def _reader_edit_response(*,messages,contract,purpose,output_cap,record,quality,
         response=active.chat.completions.create(model=model,messages=messages,temperature=temperature,
             max_tokens=output_cap,response_format={'type':'json_object'})
     except Exception:
-        dispatch=operation_dispatch_status(budget.calls,unit)
+        dispatch=request_dispatch_status()
         on_candidate('',stage='reader_revision_dispatch',revision_request={**request,
             'status':'not_dispatched' if dispatch=='not_dispatched' else 'dispatch_attempted'})
         raise
@@ -309,7 +311,8 @@ def revise_reader_report(content,record,audit,*,question,findings,configuration,
         return _revise_reader_structure(record,audit,question=question,findings=findings,
             configuration=configuration,statistics=statistics,evidence=evidence,client=client,
             model=model,budget=budget,deadline=deadline,source_spans=source_spans,
-            task_context=task_context,on_candidate=on_candidate,audit_options=audit_options)
+            task_context=task_context,on_candidate=on_candidate,audit_options=audit_options,
+            retained_requests=(reader_options or {}).get('retained_requests',()))
     gaps=[row for row in quality.get('checks',[]) if row.get('status')=='gap']
     if not audit.get('needs_review') and gaps and all(row.get('id')=='reading' for row in gaps):
         from app.report_quality import REVIEW_CONTRACT, review_reader_quality
@@ -447,7 +450,8 @@ def revise_reader_report(content,record,audit,*,question,findings,configuration,
         return _revise_reader_structure(record,audit,question=question,findings=findings,
             configuration=configuration,statistics=statistics,evidence=evidence,client=client,
             model=model,budget=budget,deadline=deadline,source_spans=source_spans,
-            task_context=task_context,on_candidate=on_candidate,audit_options=audit_options)
+            task_context=task_context,on_candidate=on_candidate,audit_options=audit_options,
+            retained_requests=(reader_options or {}).get('retained_requests',()))
     draft=report_draft_model(configuration).model_validate_json(record['raw_model_response']).model_dump(mode='json')
     validate_draft(record,draft)
     targets={};rows=[]
@@ -643,7 +647,7 @@ def revise_reader_report(content,record,audit,*,question,findings,configuration,
         contract=READER_DELETE_CONTRACT if unit_mode else clause_contract if clause_mode else 'reader-paragraph-edit',
         purpose=purpose,output_cap=output_cap,record=record,quality=quality,findings=findings,
         configuration=configuration,evidence=evidence,cited=cited,client=client,model=model,budget=budget,
-        on_candidate=on_candidate)
+        on_candidate=on_candidate,retained_requests=(reader_options or {}).get('retained_requests',()))
     result=json.loads(reply)
     unresolved=[]
     if clause_mode:
@@ -671,7 +675,8 @@ def revise_reader_report(content,record,audit,*,question,findings,configuration,
             return _revise_reader_structure(record,audit,question=question,findings=findings,
                 configuration=configuration,statistics=statistics,evidence=evidence,client=client,
                 model=model,budget=budget,deadline=deadline,source_spans=source_spans,task_context=task_context,
-                on_candidate=on_candidate,audit_options=audit_options,local_handoff=handoff)
+                on_candidate=on_candidate,audit_options=audit_options,local_handoff=handoff,
+                retained_requests=(reader_options or {}).get('retained_requests',()))
         if not result.get('repairs') and unresolved:
             audit['reader_revision_attempt']={'contract':clause_contract,'status':'unresolved',
                 'raw_response':reply,'unresolved':unresolved,'review_binding':quality.get('binding'),
@@ -801,7 +806,7 @@ def revise_reader_report(content,record,audit,*,question,findings,configuration,
 
 
 def _revise_reader_structure(record,audit,*,question,findings,configuration,statistics,evidence,
-                             client,model,budget,deadline,source_spans,task_context,on_candidate,audit_options=None,local_handoff=None):
+                             client,model,budget,deadline,source_spans,task_context,on_candidate,audit_options=None,local_handoff=None,retained_requests=()):
     """Replace the bounded report structure using retained research and originals.
 
     No acquisition and no new agent: this is the existing editor invocation.
@@ -950,14 +955,14 @@ def _revise_reader_structure(record,audit,*,question,findings,configuration,stat
         reply=retained_contract['raw_model_response']
     elif partitioned:
         reply=_edit_sections(payload,record,audit,findings,configuration,client,model,budget,
-            messages[0]['content'],on_candidate,evidence,context_policy=context_policy)
+            messages[0]['content'],on_candidate,evidence,context_policy=context_policy,retained_requests=retained_requests)
     else:
         reply=_reader_edit_response(messages=messages,
             contract='adrs-structural-editor-v4' if context_policy else 'adrs-structural-editor-v3',
             purpose='report',output_cap=16384,minimum_output=4096,required_audit=2048,
             record=record,quality=audit.get('reader_quality') or {},findings=findings,
             configuration=configuration,evidence=evidence,cited=allowed,client=client,model=model,budget=budget,
-            on_candidate=on_candidate,response_stage='structural_revision_response')
+            on_candidate=on_candidate,response_stage='structural_revision_response',retained_requests=retained_requests)
     replacement=report_draft_model(configuration).model_validate_json(reply)
     raw=replacement.model_dump_json()
     revised,new_record=assemble_module_report(raw,configuration,len(evidence),statistics=statistics,
@@ -973,7 +978,7 @@ def _revise_reader_structure(record,audit,*,question,findings,configuration,stat
             purpose='report',output_cap=8192,minimum_output=1024,temperature=0,
             record=record,quality=audit.get('reader_quality') or {},findings=findings,
             configuration=configuration,evidence=evidence,cited=repair_refs,client=client,model=model,budget=budget,
-            on_candidate=on_candidate,response_stage='structural_revision_paragraph_repair_response')
+            on_candidate=on_candidate,response_stage='structural_revision_paragraph_repair_response',retained_requests=retained_requests)
         corrections=json.loads(correction).get('repairs',[])
         ids=[row.get('paragraph_id') for row in corrections]
         if set(ids)!={f'rejected:{index+1}' for index in range(len(rejected))} or len(ids)!=len(rejected):
@@ -1018,7 +1023,7 @@ def _revise_reader_structure(record,audit,*,question,findings,configuration,stat
     return revised,new_record,new_audit
 
 
-def _edit_sections(payload,record,audit,findings,configuration,client,model,budget,instructions,on_candidate,evidence,*,context_policy=None):
+def _edit_sections(payload,record,audit,findings,configuration,client,model,budget,instructions,on_candidate,evidence,*,context_policy=None,retained_requests=()):
     """Edit each existing chapter once, then synthesize its lead; no new research."""
     from app.query_understanding import identity
     slim=context_policy==EDITOR_CONTEXT_POLICY
@@ -1102,7 +1107,8 @@ def _edit_sections(payload,record,audit,findings,configuration,client,model,budg
                 purpose='report',output_cap=16384 if section_id=='coherence' else 12288,minimum_output=4096,
                 record=record,quality=audit.get('reader_quality') or {},findings=findings,
                 configuration=configuration,evidence=evidence,cited=cited,client=client,model=model,budget=budget,
-                on_candidate=on_candidate,response_stage='structural_revision_section_response:'+section_id)
+                on_candidate=on_candidate,response_stage='structural_revision_section_response:'+section_id,
+                retained_requests=retained_requests)
         value=json.loads(reply)
         if section_id=='lead':value['modules']=[draft['modules'][0]]
         parsed=report_draft_model(configuration).model_validate(value).model_dump(mode='json')
@@ -1223,7 +1229,7 @@ def _edit_sections(payload,record,audit,findings,configuration,client,model,budg
         chosen,selection=select_paragraphs(selecting,question=payload['question'],
             client=budgeted_client(client,budget,'report'),model=model,budget=budget,
             retained=sections.get('editorial_selection'),on_saved=save_selection,
-            feedback=feedback,configuration=configuration)
+            feedback=feedback,configuration=configuration,retained_requests=retained_requests)
         selected_by_id={row['module_id']:row for row in chosen}
         modules=[selected_by_id.get(row['module_id'],row) for row in modules]
     else:
@@ -1392,7 +1398,7 @@ def revise_report_claims(content, record, audit, *, on_round=None, on_event=None
 @_reader_work_forecast
 def _revise_report_once(content, record, audit, *, configuration, statistics, evidence,
                          client, model, budget, deadline, citation_count, upgrade_callback=None, task_context=None,
-                         source_spans=None,on_candidate=None,retained_responses=None,audit_options=None,findings=None):
+                         source_spans=None,on_candidate=None,retained_responses=None,audit_options=None,findings=None,retained_requests=()):
     """Only change mapped paragraph text, then audit the whole resulting report."""
     if not audit.get('needs_review') or audit.get('audit_incomplete') or audit.get('budget_incomplete'):
         return content,record,audit
@@ -1607,7 +1613,7 @@ def _revise_report_once(content, record, audit, *, configuration, statistics, ev
                     record=record,quality=audit,findings=findings,configuration=configuration,
                     evidence=evidence,cited=cited_sources(batch),client=client,model=model,budget=budget,
                     on_candidate=save_response if on_candidate else None,response_stage='claim_revision_response',temperature=0,
-                    paragraph_ids=[item['paragraph_id'] for item in batch])
+                    paragraph_ids=[item['paragraph_id'] for item in batch],retained_requests=retained_requests)
             else:
                 request_attempts+=1
                 response=client.chat.completions.create(model=model,messages=messages,temperature=0,

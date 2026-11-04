@@ -42,7 +42,7 @@ INSTRUCTIONS=(
     'all allocations in original document order and retains the independent final review gates.')
 
 
-def select_paragraph_packets(modules,*,question,client,model,budget,retained,on_saved,feedback,configuration):
+def select_paragraph_packets(modules,*,question,client,model,budget,retained,on_saved,feedback,configuration,retained_requests=()):
     module_ids=[row['module_id'] for row in modules]
     if len(set(module_ids))!=len(module_ids):raise ValueError('editorial_selection_module_coverage')
     records=[];by_id={};current_ids={};groups=defaultdict(list);counts=defaultdict(int)
@@ -98,6 +98,8 @@ def select_paragraph_packets(modules,*,question,client,model,budget,retained,on_
         budget.remaining_writing_units=1+sum((state['packets'].get(entry['id']) or {}).get('binding')!=entry['binding']
             or (state['packets'].get(entry['id']) or {}).get('validated') is not True for entry in packets)
         if on_saved:on_saved(deepcopy(state))
+    def request_dispatch_status(unit):
+        return operation_dispatch_status([*retained_requests,*getattr(budget,'calls',[])],unit)
     def request(entry,part,messages,*,repair=False):
         raw_key='repair_raw_response' if repair else 'raw_response'
         finish_key='repair_finish_reason' if repair else 'finish_reason'
@@ -109,7 +111,12 @@ def select_paragraph_packets(modules,*,question,client,model,budget,retained,on_
             if part.get(finish_key)!='stop':raise TokenBudgetExceeded('editorial_packet_response_incomplete')
             part['reused_response']=True
             return part[raw_key]
-        if part.get(dispatch_key)=='pending':
+        unit='editorial-packet:'+operation_binding+(':repair' if repair else ':initial')
+        dispatch=request_dispatch_status(unit)
+        retained_intent=(part.get(dispatch_key) in {'pending','response_received'}
+            or repair and part.get('repair_attempted') and part.get(dispatch_key)!='not_dispatched')
+        if dispatch=='dispatch_attempted' or retained_intent and dispatch!='not_dispatched':
+            part[dispatch_key]='pending';checkpoint()
             raise TokenBudgetExceeded('editorial_packet_paid_response_unavailable')
         required=request_token_bound(messages,response_format={'type':'json_object'})+OUTPUT_TOKENS
         live_editor=getattr(budget,'editor_work_active',False)
@@ -119,7 +126,6 @@ def select_paragraph_packets(modules,*,question,client,model,budget,retained,on_
             if required>budget.available('report'):
                 raise TokenBudgetExceeded('editorial_packet_original_allowance_insufficient')
             if on_saved is None:raise TokenBudgetExceeded('editorial_packet_checkpoint_required')
-            unit='editorial-packet:'+operation_binding+(':repair' if repair else ':initial')
             # Persist the opportunity before dispatch; interruption cannot reset it.
             if repair:part.update(repair_attempted=True,repair_input_binding=operation_binding)
             part[dispatch_key]='pending';checkpoint()
@@ -131,7 +137,7 @@ def select_paragraph_packets(modules,*,question,client,model,budget,retained,on_
                 response=active.chat.completions.create(model=model,messages=messages,
                     temperature=0,max_tokens=OUTPUT_TOKENS,response_format={'type':'json_object'})
             except TokenBudgetExceeded:
-                if operation_dispatch_status(getattr(budget,'calls',[]),unit)!='dispatch_attempted':
+                if request_dispatch_status(unit)!='dispatch_attempted':
                     part[dispatch_key]='not_dispatched';checkpoint()
                 raise
             choice=response.choices[0] if response.choices else None
@@ -207,8 +213,6 @@ def select_paragraph_packets(modules,*,question,client,model,budget,retained,on_
         try:
             raw=request(entry,part,entry['messages'])
             if part.get('repair_attempted'):
-                if 'repair_raw_response' not in part and part.get('repair_dispatch_status')!='not_dispatched':
-                    raise TokenBudgetExceeded('editorial_packet_paid_response_unavailable')
                 raw=request(entry,part,repair_messages(entry,part,raw),repair=True)
                 plan=validate(raw,entry)
             else:

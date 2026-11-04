@@ -802,7 +802,8 @@ Evidence Sources:
                 client=self.client,model=active_model,budget=self.request_budget,deadline=self.request_budget.deadline,
                 citation_count=len(citations),upgrade_callback=upgrade_correction,task_context=method_context,
                 source_spans=located_spans,on_round=retain_correction,on_event=self.recovery_events.append,
-                on_candidate=self.retain_candidate,audit_options=audit_options,findings=organization_findings)
+                on_candidate=self.retain_candidate,audit_options=audit_options,findings=organization_findings,
+                retained_requests=retained_requests)
         self.last_audit['module_contract']=self.last_module_report
         if '## References' not in content and '## 参考' not in content:
             content+='\n\n---\n\n## References\n\n'+self._build_reference_list(citations)

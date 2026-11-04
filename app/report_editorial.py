@@ -7,7 +7,7 @@ from app.security.prompt_security import untrusted_context
 from app.organization_purpose import CHAPTER_RESPONSIBILITIES, REPORT_ASSEMBLY_POLICY, EDITORIAL_PARTITION_POLICY, MAX_ASSEMBLED_PARAGRAPHS, report_draft_model
 
 
-def select_paragraphs(modules,*,question,client,model,budget,retained=None,on_saved=None,feedback=None,configuration=None):
+def select_paragraphs(modules,*,question,client,model,budget,retained=None,on_saved=None,feedback=None,configuration=None,retained_requests=()):
     report_draft_model(configuration)  # Reject an unknown frozen assembly policy.
     assembly_policy=(configuration or {}).get('report_assembly_policy')
     assembled=assembly_policy==REPORT_ASSEMBLY_POLICY
@@ -17,7 +17,7 @@ def select_paragraphs(modules,*,question,client,model,budget,retained=None,on_sa
             raise TokenBudgetExceeded('editorial_partition_policy_unsupported')
         from app.report_editorial_packets import select_paragraph_packets
         return select_paragraph_packets(modules,question=question,client=client,model=model,budget=budget,
-            retained=retained,on_saved=on_saved,feedback=feedback,configuration=configuration)
+            retained=retained,on_saved=on_saved,feedback=feedback,configuration=configuration,retained_requests=retained_requests)
     records=[];by_id={}
     for module in modules:
         for section in ('paragraphs','appendix'):
