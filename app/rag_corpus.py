@@ -309,6 +309,41 @@ def declared_scope_links(manifest,evidence,findings):
         'decisions':decisions,'identity_gaps':conflicts}
 
 
+def current_reading_items(reading_items,evidence):
+    """Project retained field progress against current source bindings; no approval."""
+    sources={row['evidence_id']:row for row in evidence}
+    projected={}
+    for key,item in (reading_items or {}).items():
+        located={};gaps=[]
+        for name,field in (item.get('located_fields') or {}).items():
+            refs=field.get('evidence_ids') or []
+            invalid=[]
+            for ref in refs:
+                source=sources.get(ref);saved=(item.get('source_bindings') or {}).get(ref)
+                acquisition=(source or {}).get('acquisition') or {}
+                expected={'evidence_id':ref,'source_id':acquisition.get('source_document_id'),
+                    **{binding_key:acquisition.get(binding_key) for binding_key in ('parse_version_id','source_content_version','coverage')}}
+                if (not source or not (source.get('content') or '').strip() or not saved
+                        or any(saved.get(binding_key)!=value for binding_key,value in expected.items())):invalid.append(ref)
+            if not refs or invalid:
+                gaps.append({'field':name,'reason':'reading_source_binding_unavailable_or_changed',
+                    'evidence_ids':invalid or refs})
+            else:located[name]=field
+        required=list(item.get('required_fields') or [])
+        missing=[name for name in required if name not in located]
+        status=item.get('reading_status','not_recorded')
+        if status=='required_fields_located' and (not required or missing):status='needs_source_refresh' if required else 'requirements_not_recorded'
+        refs={ref for field in located.values() for ref in field.get('evidence_ids',[])}
+        full=bool(refs) and all((sources[ref].get('acquisition') or {}).get('coverage')=='full_text'
+            and not (sources[ref].get('acquisition') or {}).get('truncated') for ref in refs)
+        projected[key]={**item,'reading_status':status,'located_fields':located,'missing_fields':missing,
+            'reading_level':'source_located_fields_from_fulltext' if full else 'source_located_fields_from_abstract_or_partial'
+                if refs else 'not_established',
+            'reading_evidence_gaps':gaps,'full_document_read':False,
+            'support_status':'not_granted_by_reading_progress'}
+    return projected
+
+
 def declared_member_progress(configuration,evidence,*,scope_links=None,reading_items=None,tool_histories=()):
     """Project every frozen member, even before analysis; no second state store."""
     from collections import Counter
@@ -317,7 +352,7 @@ def declared_member_progress(configuration,evidence,*,scope_links=None,reading_i
     if corpus.get('collection_mode')!='rag_corpus' or manifest.get('version')!='adrs-rag-membership-v1':return None
     retained=_retained_members(manifest,evidence)
     current_ids={item['evidence_id'] for values in retained.values() for item in values}
-    reading_items=reading_items or {}
+    reading_items=current_reading_items(reading_items,evidence)
     linked=scope_links if ((scope_links or {}).get('version')=='adrs-declared-scope-links-v1'
         and scope_links.get('scope_id')==manifest['scope_id']) else {}
     gaps={item['source_id']:[] for item in manifest['members']}
@@ -338,9 +373,11 @@ def declared_member_progress(configuration,evidence,*,scope_links=None,reading_i
             'evidence_ids':[item['evidence_id'] for item in values],'available_kind':member['record_kind'],
             'full_text_available':full,'read_gap_history':gaps[source_id]})
         work=works.setdefault(member['work_id'],{'work_id':member['work_id'],'source_ids':[],
-            'retained_source_ids':[],'full_text_available':False})
+            'retained_source_ids':[],'retained_record_kinds':[],'full_text_available':False})
         work['source_ids'].append(source_id)
-        if values:work['retained_source_ids'].append(source_id)
+        if values:
+            work['retained_source_ids'].append(source_id)
+            if member['record_kind'] not in work['retained_record_kinds']:work['retained_record_kinds'].append(member['record_kind'])
         work['full_text_available']=work['full_text_available'] or full
     for work_id,work in works.items():
         decisions=(linked.get('decisions') or {}).get(work_id,[])
@@ -355,6 +392,11 @@ def declared_member_progress(configuration,evidence,*,scope_links=None,reading_i
             'needs_scope_refresh' if decisions else 'not_screened')
         work.update(screening_status=status,scope_decisions=valid,accepted_output_ids=accepted,
             stale_scope_decision_count=len(decisions)-len(valid),
+            reading_progress=[{'output_id':key,**{field:(reading_items.get(key) or {}).get(field)
+                for field in ('reading_status','reading_role','selection_reason','required_fields','missing_fields',
+                    'reading_level','gaps','reading_evidence_gaps','supplementation')},
+                'reading_status':(reading_items.get(key) or {}).get('reading_status','not_recorded'),
+                'located_fields':list(((reading_items.get(key) or {}).get('located_fields') or {}))} for key in accepted],
             reading_status_counts=dict(Counter((reading_items.get(key) or {}).get('reading_status','not_recorded') for key in accepted)),
             required_fields_located_output_ids=[key for key in accepted
                 if (reading_items.get(key) or {}).get('reading_status')=='required_fields_located'],

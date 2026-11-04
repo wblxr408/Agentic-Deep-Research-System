@@ -359,7 +359,8 @@ def task_reading_progress(workflow,*,configuration=None,evidence=(),tool_histori
     if not current:
         return {'status':'stale_analysis_binding','items':[],**declaration,
             'semantics':'retained_progress_not_valid_for_current_analysis'}
-    items=list((progress.get('items') or {}).values())
+    from app.rag_corpus import current_reading_items
+    items=list(current_reading_items(progress.get('items'),evidence).values())
     return {**{key:value for key,value in progress.items() if key not in {'items','declared_scope'}},**declaration,
         'status':'recorded','items':items,'member_count':len(items),
         'reading_status_counts':dict(Counter(item['reading_status'] for item in items)),
