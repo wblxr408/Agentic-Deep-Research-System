@@ -4,13 +4,29 @@ from __future__ import annotations
 from collections import defaultdict, deque
 from datetime import date
 from typing import Annotated, Literal
+from uuid import UUID
 
 from pydantic import AnyHttpUrl, BaseModel, ConfigDict, Field, StringConstraints, model_validator
 
 OrganizationType = Literal["university", "laboratory", "company"]
 Label = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=300)]
 Identifier = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=160)]
-Sources = Annotated[tuple[AnyHttpUrl, ...], Field(min_length=1, max_length=20)]
+RetainedSourceURI = Annotated[str,StringConstraints(min_length=52,max_length=52,
+    pattern=r'^urn:adrs:source:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$')]
+Sources = Annotated[tuple[AnyHttpUrl | RetainedSourceURI, ...], Field(min_length=1, max_length=20)]
+
+
+def retained_source_uri(source_id):
+    """Identify a retained object, never a network fetch or an access grant."""
+    return 'urn:adrs:source:'+str(UUID(str(source_id)))
+
+
+def retained_source_id(value):
+    if not isinstance(value,str) or not value.startswith('urn:adrs:source:'):return None
+    try:
+        source_id=str(UUID(value[len('urn:adrs:source:'):]))
+        return source_id if value==retained_source_uri(source_id) else None
+    except ValueError:return None
 
 
 class ScopeRecord(BaseModel):

@@ -130,6 +130,16 @@ reading_level按当前有效字段来源标为source_located_fields_from_fulltex
 
 当前只补数据消费者；补证派发、完整报告门、研究台显示及百篇实际接受沿原3.1／4.3／4.6／6.1，未新增状态库、policy、Agent或调度器。本轮仅源码／调用链审阅，无测试、模型、恢复或费用证据。
 
+### 无公开URL的本人资料定位
+
+2026-11-04，原freeze_members／read_frozen_sources共用source_locator。没有url、空url或本地／其他非HTTP位置时，用已经过owner／任务／group及生命周期核对的实际source_id生成urn:adrs:source:<UUID>；不复制元数据中另一对象的ID，也不把本地路径作为模型网址。显式HTTP(S)继续原主机、凭据、敏感参数及长度校验；非法HTTP不转换为可用公开地址。读取仍按原源ID、解析／内容版本、访问修订及读后复核执行，地址本身无读取权限。公开HTTP任务的原冻结地址保持。
+
+原科学记录Sources类型现接受HTTP(S)及这一种精确的内部对象地址，不接纳任意file／javascript等scheme；内部地址是ADRS自有资料标识扩展，不是网页或A2A标准字段。保留资料的作品、归属和关系仍须原文字面及来源检查；没有公开封面身份链接时identity_basis标为owned_retained_source，不冒充公开出版社认证。原成员／证据去重、每批两条和read_max_chars上限不变，超长原文仍留缺口。
+
+Citation遇到此内部地址必须是knowledge_base，并已带相同source_id或source_document_id；缺失或冲突拒绝混版引用。通过后source_url置空，locator保留source_id、source_document_id、source_address及原解析版本等定位字段，Report与RAG引用共用此行为。调用方通过既有受权资料接口定位，不能把URN交给浏览器／公开抓取工具；外部渠道的HTTPS／公开地址守卫不变。无新增资料服务、代理下载、DDL、模型调用或来源权限。
+
+当前仅接已保留original_text，不生成／声明原PDF文件下载地址，不证明原件真实或已完成整篇阅读；私有原PDF与论文图块资产、界面定位和必要长文窗口仍待原4.3／6。旧HTTP根继续原行为；旧worker／客户端不保证识别新内部地址，不能伪装公开URL或降低权限回退。仅源码／调用链审阅，无数据库、真实上传／读取、模型、引用／导出、权限或费用运行结果，整项继续待验收。
+
 跨ID论证沿同一综合调用处理：完整交接候选补齐observations、entity_ids，原basis位置、条件性choice、备选解释和相关作品继续交接；容量按完整记录决定，省略仍在omitted_record_ids记录。综合由AI比较问题、结论、观察、条件与读者用途；确认同论证时，在原research_judgments以新judgment_id返回保留科学内容／作品范围的替代判断、supersedes及主归属，理由写入原reasoning。不因共享主题或相似文字合并不同条件／冲突结果；当前原文、响应空间或字段容量不足以保全内容时保留旧候选，不增加去重模型调用。
 
 新归属政策下，build_judgments只允许最终综合替换实际analysis_handoff收到的候选ID。未知／未交接ID使该替换关系整体失效，记pending，但科学校验通过的新判断可保留，旧候选不退休；原reconcile再核当前活跃ID并保存retired记录，原Report仅从活跃集合选择章节材料。该边界不能证明语义合并正确，最终来源／读者审核仍有效。既有v1章节材料合同不迁移；已完成phase沿原恢复规则保留，不为补一次去重自动重跑付费综合。

@@ -152,10 +152,23 @@ async def catalog_page(conn, owner_id, *, group_name, record_kind, work_id,
         'snapshot_rule': 'owner_source_mutation_invalidates_cursor_no_silent_membership_skip'}
 
 
+def source_locator(metadata,source_id):
+    """Use the owned object identity when an uploaded original has no web URL."""
+    from app.data_governance import sensitive_url
+    from app.research_scope import retained_source_uri
+    value=metadata.get('url')
+    if value is None or value=='':return retained_source_uri(source_id)
+    if not isinstance(value,str):raise ValueError('rag_corpus_requires_stable_original_source_locator')
+    parts=urlsplit(value)
+    if parts.scheme not in {'http','https'}:return retained_source_uri(source_id)
+    if (len(value)>4000 or not parts.hostname or parts.username or parts.password or sensitive_url(value)):
+        raise ValueError('rag_corpus_requires_stable_original_source_locator')
+    return value
+
+
 async def freeze_members(conn, owner_id, source_ids, *, group, task_id, max_nodes, read_max_chars):
     """Freeze exact owned source versions at submission, without reading/embedding bodies."""
     from app.source_lifecycle import current_access
-    from app.data_governance import sensitive_url
     task_id=str(UUID(str(task_id))) if task_id else None
     ids=[str(UUID(str(value))) for value in source_ids]
     if not ids or len(ids)!=len(set(ids)):raise ValueError('rag_corpus_members_invalid')
@@ -172,14 +185,8 @@ async def freeze_members(conn, owner_id, source_ids, *, group, task_id, max_node
         if record.kind=='derived_card':raise ValueError('rag_corpus_requires_original_sources_not_cards')
         snapshot=await current_access(conn,source_id,owner_id,task_id,group,with_snapshot=True)
         if not snapshot:raise ValueError('rag_corpus_source_not_current_or_not_in_task_scope')
-        version=metadata.get('parse_version_id');url=metadata.get('url')
+        version=metadata.get('parse_version_id');url=source_locator(metadata,source_id)
         if not version:raise ValueError('rag_corpus_source_version_unavailable')
-        if not isinstance(url,str) or not 1<=len(url)<=4000:
-            raise ValueError('rag_corpus_requires_stable_original_source_locator')
-        parts=urlsplit(url)
-        if (parts.scheme not in {'http','https'} or not parts.hostname or parts.username or parts.password
-                or sensitive_url(url)):
-            raise ValueError('rag_corpus_requires_stable_original_source_locator')
         members.append({'source_id':source_id,'work_id':record.work_id,'record_kind':record.kind,
             'name':row['name'],'source_url':url,'parse_version_id':version,
             'source_content_version':metadata.get('content_hash'),
@@ -228,7 +235,7 @@ async def read_frozen_sources(conn,source_ids,manifest,*,owner_id,task_id,group)
         metadata=json.loads(row['metadata']) if isinstance(row['metadata'],str) else row['metadata'] or {}
         record=ResearchSourceRecord.model_validate(metadata.get('research_record'))
         if (record.work_id!=member['work_id'] or record.kind!=member['record_kind']
-                or metadata.get('url')!=member['source_url']):
+                or source_locator(metadata,source_id)!=member['source_url']):
             gaps.append({'source_id':source_id,'work_id':member['work_id'],'reason':'frozen_source_identity_changed'})
             continue
         # Check again after the body read; stale text cannot enter model context.

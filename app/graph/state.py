@@ -42,7 +42,7 @@ from datetime import UTC,datetime
 from enum import Enum
 from typing import Annotated, Any, Literal, TypedDict
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from app.core.time import utc_now_naive
 
@@ -436,6 +436,19 @@ class Citation(BaseModel):
     extracted_evidence: str | None = None
     relevance_score: float = 0.0
     locator:dict|None=None
+
+    @model_validator(mode='after')
+    def retained_source(self):
+        from app.research_scope import retained_source_id
+        source_id=retained_source_id(self.source_url)
+        if source_id is None:return self
+        locator=self.locator or {}
+        refs=[locator[key] for key in ('source_id','source_document_id') if locator.get(key) is not None]
+        if self.source_type!='knowledge_base' or not refs or any(str(ref)!=source_id for ref in refs):
+            raise ValueError('retained_source_citation_binding_required')
+        self.locator={**locator,'source_id':source_id,'source_document_id':source_id,'source_address':self.source_url}
+        self.source_url=None
+        return self
 
 
 class SearchResult(BaseModel):

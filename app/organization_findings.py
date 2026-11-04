@@ -20,7 +20,7 @@ from app.research_evaluation import OutputType
 from app.research_scope import (
     AffiliationRecord, Identifier, Label, OrganizationEntity, OrganizationRelationship,
     OrganizationResearchScope, OrganizationScopePreviewRequest, OutputRelation,
-    ResearchFamily, ResearchOutput, ScopeRecord, preview_organization_scope,
+    ResearchFamily, ResearchOutput, ScopeRecord, preview_organization_scope, retained_source_id,
 )
 
 
@@ -733,7 +733,8 @@ def build_organization_findings(configuration: dict | None, evidence: list[dict]
                     'venue_status':'source_opening_quote_checked' if venue else 'unknown',
                     'output_type_status':type_status} if field_policy else {}),
                 'year': lower.year, 'evidence_ids': sorted(evidence_ids),
-                'identity_basis': 'explicit_primary_cover_link' if identity_links else 'primary_source_url',
+                'identity_basis': 'explicit_primary_cover_link' if identity_links else 'owned_retained_source'
+                    if source.get('source_type')=='knowledge_base' and retained_source_id(source['source_url']) else 'primary_source_url',
                 'canonical_primary_url': key, 'identity_links': identity_links,
                 'date_basis': date_basis, 'proposed_publication_date': publication.publication_date}
             if event_binding:publication_meta[output.output_id]['publication_event']=event_binding
