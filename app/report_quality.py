@@ -317,8 +317,8 @@ def review_reader_quality(*, question, configuration, record, findings, client, 
     if review_scope:base['review_scope_id']=identity(review_scope)
     def checkpoint():
         if owned and on_progress:on_progress(deepcopy(base))
-    def missing_paid_response(unit):
-        return operation_dispatch_status([*retained_requests,*getattr(budget,'calls',[])],unit)=='dispatch_attempted'
+    def request_dispatch_status(unit):
+        return operation_dispatch_status([*retained_requests,*getattr(budget,'calls',[])],unit)
     # The global pass reads the complete report. Candidate knowledge is checked
     # in separate complete packets, avoiding one oversized admission reserve.
     global_payload={key:payload[key] for key in ('question','criteria','paragraphs','accepted_works')}
@@ -354,7 +354,8 @@ def review_reader_quality(*, question, configuration, record, findings, client, 
                 client=client,model=model,budget=budget,
                 retained=((findings or {}).get('reader_quality') or {}).get('document_review'),
                 report_content_id=base['report_content_id'],on_progress=document_progress if on_progress else None,
-                binding_context=binding_context,retained_reviews=[row.get('document_review') for row in candidates])
+                binding_context=binding_context,retained_reviews=[row.get('document_review') for row in candidates],
+                retained_requests=retained_requests)
             base['document_review']=document
             base['document_reconciliation_input_id']=identity(global_payload)
             document_prepared=True
@@ -511,10 +512,11 @@ def review_reader_quality(*, question, configuration, record, findings, client, 
             base['reused_response']=True
             base['response_reuse'].update(status='hit',reasons=[])
         else:
-            if owned and missing_paid_response('reader-global:'+global_binding):
+            if owned and request_dispatch_status('reader-global:'+global_binding)=='dispatch_attempted':
                 return {**base,'reason':'reader_global_paid_response_unavailable'}
             if (document_policy and previous.get('global_dispatch_binding')==global_binding
-                    and previous.get('global_dispatch_status') in {'pending','response_received'}):
+                    and previous.get('global_dispatch_status') in {'pending','response_received'}
+                    and request_dispatch_status('reader-global:'+global_binding)!='not_dispatched'):
                 return {**base,'reason':'reader_global_paid_response_unavailable'}
             output_cap=min(6144,max(1024,budget.available('audit')-
                 request_token_bound(messages,response_format={'type':'json_object'})-512))
@@ -529,7 +531,7 @@ def review_reader_quality(*, question, configuration, record, findings, client, 
                     model=model,messages=messages,temperature=0,max_tokens=output_cap,response_format={'type':'json_object'})
             except TokenBudgetExceeded:
                 if document_policy:
-                    if operation_dispatch_status(getattr(budget,'calls',[]),'reader-global:'+global_binding)!='dispatch_attempted':
+                    if request_dispatch_status('reader-global:'+global_binding)!='dispatch_attempted':
                         base['global_dispatch_status']='not_dispatched';checkpoint()
                 raise
             choice=response.choices[0]
@@ -692,7 +694,7 @@ def review_reader_quality(*, question, configuration, record, findings, client, 
                     if impact['finish_reason']!='stop':return {**base,'reason':'reader_impact_response_incomplete'}
                 impact['response_reuse'].update(status='hit',reasons=[])
             else:
-                if owned and missing_paid_response('reader-impact:'+impact_binding):
+                if owned and request_dispatch_status('reader-impact:'+impact_binding)=='dispatch_attempted':
                     return {**base,'reason':'reader_impact_paid_response_unavailable'}
                 packed=json.dumps(impact_input,ensure_ascii=False,separators=(',',':'))
                 impact_messages=[{'role':'system','content':
@@ -830,7 +832,7 @@ def review_reader_quality(*, question, configuration, record, findings, client, 
                     if owned:part['finish_reason']='stop'
                     part['response_reuse'].update(status='hit',reasons=[])
                 else:
-                    if owned and missing_paid_response('reader-material:'+packet_binding):
+                    if owned and request_dispatch_status('reader-material:'+packet_binding)=='dispatch_attempted':
                         return {**base,'reason':'reader_material_paid_response_unavailable','missing_packet':name}
                     packed=json.dumps(packet,ensure_ascii=False,separators=(',',':'))
                     part_messages=[{'role':'system','content':

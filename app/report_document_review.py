@@ -38,7 +38,7 @@ INSTRUCTIONS=(
     'or final reader passes. Keep them concise without deleting decisive conditions.')
 
 
-def prepare_document_review(payload,paragraphs,owners,*,client,model,budget,retained,report_content_id,on_progress,binding_context=None,retained_reviews=()):
+def prepare_document_review(payload,paragraphs,owners,*,client,model,budget,retained,report_content_id,on_progress,binding_context=None,retained_reviews=(),retained_requests=()):
     from app.report_quality import saved_reader_response
     aliases={};current={};counts=defaultdict(int);sections=defaultdict(list)
     for key,row in paragraphs.items():
@@ -91,6 +91,17 @@ def prepare_document_review(payload,paragraphs,owners,*,client,model,budget,reta
         part['response_reuse']={'status':'candidate','reason':'awaiting_current_pass_binding'}
     def checkpoint():
         if on_progress:on_progress(deepcopy(state))
+    def request_dispatch_status(unit):
+        return operation_dispatch_status([*retained_requests,*getattr(budget,'calls',[])],unit)
+    # Preserve every current pass candidate before the first checkpoint. An
+    # earlier unavailable pass must not replace another snapshot's paid output.
+    for entry in entries:
+        prior=deepcopy(saved_reader_response([(row.get('passes') or {}).get(entry['id']) for row in candidates],entry['binding']))
+        part=prior if prior.get('binding')==entry['binding'] else {'binding':entry['binding']}
+        part['validated']=False;part.pop('reused_response',None)
+        part['response_reuse']={'status':'not_reused','reason':'saved_response_pending_revalidation'
+            if 'raw_response' in part else 'saved_response_unavailable_or_input_changed'}
+        state['passes'][entry['id']]=part
     checkpoint()
     main=[row for row in payload['paragraphs'] if ':appendix:' not in row['id']]
     result={**payload,'paragraphs':main}
@@ -99,19 +110,19 @@ def prepare_document_review(payload,paragraphs,owners,*,client,model,budget,reta
     observations=[];contexts={};required=set(state.get('requested_paragraph_ids') or [])
     if any(key not in paragraphs for key in required):raise TokenBudgetExceeded('reader_document_context_invalid')
     for entry in entries:
-        prior=deepcopy(saved_reader_response([(row.get('passes') or {}).get(entry['id']) for row in candidates],entry['binding']))
-        part=prior if prior.get('binding')==entry['binding'] else {'binding':entry['binding']}
-        part['validated']=False;part.pop('reused_response',None)
-        part['response_reuse']={'status':'not_reused','reason':'saved_response_pending_revalidation'
-            if 'raw_response' in part else 'saved_response_unavailable_or_input_changed'}
-        state['passes'][entry['id']]=part
+        part=state['passes'][entry['id']]
         if entry['blocked']:continue
         if 'raw_response' not in part:
-            if part.get('dispatch_status')=='pending':raise TokenBudgetExceeded('reader_document_paid_response_unavailable')
+            unit='reader-document:'+entry['binding']
+            dispatch=request_dispatch_status(unit)
+            if (dispatch=='dispatch_attempted' or part.get('dispatch_status') in {'pending','response_received'}
+                    and dispatch!='not_dispatched'):
+                part['dispatch_status']='pending'
+                checkpoint()
+                raise TokenBudgetExceeded('reader_document_paid_response_unavailable')
             if request_token_bound(entry['messages'],response_format={'type':'json_object'})+4096>budget.available('audit'):
                 raise TokenBudgetExceeded('reader_document_original_allowance_insufficient')
             if on_progress is None:raise TokenBudgetExceeded('reader_document_checkpoint_required')
-            unit='reader-document:'+entry['binding']
             part['dispatch_status']='pending';checkpoint()
             try:
                 active=(client.with_operation('reader_appendix_pass',content_unit_id=unit)
@@ -120,7 +131,7 @@ def prepare_document_review(payload,paragraphs,owners,*,client,model,budget,reta
                 response=active.chat.completions.create(model=model,messages=entry['messages'],temperature=0,
                     max_tokens=4096,response_format={'type':'json_object'})
             except TokenBudgetExceeded:
-                if operation_dispatch_status(getattr(budget,'calls',[]),unit)!='dispatch_attempted':
+                if request_dispatch_status(unit)!='dispatch_attempted':
                     part['dispatch_status']='not_dispatched';checkpoint()
                 raise
             choice=response.choices[0] if response.choices else None
@@ -169,7 +180,7 @@ def prepare_document_review(payload,paragraphs,owners,*,client,model,budget,reta
     order={key:index for index,key in enumerate(appendix)}
     observations.sort(key=lambda row:order[row['paragraph_id']])
     state['passes']={entry['id']:state['passes'][entry['id']] for entry in entries}
-    state.update(status='read','material_contexts':{key:list(dict.fromkeys(value)) for key,value in contexts.items()})
+    state.update(status='read',material_contexts={key:list(dict.fromkeys(value)) for key,value in contexts.items()})
     if state.get('requested_paragraph_ids'):state['context_expansion_used']=True
     result['paragraphs']=[row for row in payload['paragraphs'] if ':appendix:' not in row['id'] or row['id'] in required]
     result['appendix_reading']={'policy':DOCUMENT_POLICY,'observations':observations,
