@@ -205,30 +205,35 @@ def selection_binding(scope,key,model,context_id,route_id):
 
 def select_scope(claims,scope,previous,client,model,*,on_progress=None,retained_selection=None,
                  support_candidates=None,scope_layout=None):
+    from app.query_understanding import identity
+    data=catalogue(claims)
+    # This request-local pair is read-only throughout pagination and views.
+    # Keep the original order/IDs and hash input, without another stored state.
+    prepared_catalogue=(data,identity(data))
     budget=getattr(client,'budget',None)
     policy=scope.get('dependency_policy') or POLICY
     if (policy in {PAGED_POLICY,*WINDOW_POLICIES} and on_progress is not None
             and getattr(budget,'execution_control',None) is not None):
         if policy in WINDOW_POLICIES:
             from app.claim_scope_windows import select_window_scope
-            return select_window_scope(claims,scope,previous,client,model,on_progress=on_progress,
+            return select_window_scope(prepared_catalogue,scope,previous,client,model,on_progress=on_progress,
                 retained_selection=retained_selection,support_candidates=support_candidates,layout=scope_layout)
-        return _select_scope_pages(claims,scope,previous,client,model,on_progress=on_progress,
+        return _select_scope_pages(prepared_catalogue,scope,previous,client,model,on_progress=on_progress,
             retained_selection=retained_selection,support_candidates=support_candidates)
     # Independent callers retain one complete response, without claiming a
     # durable pagination facility when they have no protected checkpoint.
-    return _select_scope_once(claims,scope,previous,client,model,on_progress=on_progress,
+    return _select_scope_once(prepared_catalogue,scope,previous,client,model,on_progress=on_progress,
         retained_selection=retained_selection,support_candidates=support_candidates)
 
 
-def _select_scope_once(claims,scope,previous,client,model,*,on_progress=None,retained_selection=None,
+def _select_scope_once(prepared_catalogue,scope,previous,client,model,*,on_progress=None,retained_selection=None,
                        support_candidates=None,target_claim_keys=None,paginate=False,replay_binding=None,
                        reuse_previous_decisions=True,finalize=True,input_view=None):
     from app.claim_verification import claim_scope_key,AuditCheckpointError
     from app.llm_budget import TokenBudgetExceeded,operation_dispatch_status,request_token_bound
     from app.query_understanding import identity
     from app.security.prompt_security import untrusted_context
-    data=catalogue(claims);context_id=identity(data)
+    data,context_id=prepared_catalogue
     policy=scope.get('dependency_policy') or POLICY
     adaptive=policy in {LOCAL_POLICY,IMPACT_POLICY,*TRANSFER_POLICIES}
     incremental=policy in {IMPACT_POLICY,*TRANSFER_POLICIES}
@@ -239,7 +244,9 @@ def _select_scope_once(claims,scope,previous,client,model,*,on_progress=None,ret
     if policy in TRANSFER_POLICIES:metadata['semantics']='review_obligations_and_context_continuity_not_new_source_certification'
     previous_selection=(previous or {}).get('scope_selection') or {}
     saved_selection=retained_selection or previous_selection
-    if (saved_selection.get('policy')==policy and saved_selection.get('context_id')==context_id
+    # The paginated caller already owns and merges the complete batch history.
+    # Read paid candidates from saved_selection, but emit only this page's row.
+    if (not paginate and saved_selection.get('policy')==policy and saved_selection.get('context_id')==context_id
             and saved_selection.get('route_id')==route_id):
         metadata['batches']=deepcopy(saved_selection.get('batches') or [])
     old={claim_scope_key(row):row for row in (previous or {}).get('claims',[])}
@@ -662,12 +669,13 @@ def _finish_scope(decisions,metadata,old,adaptive,on_progress):
     return decisions,metadata
 
 
-def _select_scope_pages(claims,scope,previous,client,model,*,on_progress,retained_selection,support_candidates,
+def _select_scope_pages(prepared_catalogue,scope,previous,client,model,*,on_progress,retained_selection,support_candidates,
                         target_claim_keys=None,input_view=None,finalize=True):
     """Page existing scope output; every request retains complete input context."""
     from app.claim_verification import claim_scope_key,AuditCheckpointError
     from app.query_understanding import identity
-    data=catalogue(claims);context_id=identity(data);route_id=identity(getattr(client,'route_info',None))
+    data,context_id=prepared_catalogue
+    route_id=identity(getattr(client,'route_info',None))
     all_keys={row['claim_key'] for row in data['claims']}
     keys=all_keys if target_claim_keys is None else all_keys.intersection(target_claim_keys)
     old={claim_scope_key(row):row for row in (previous or {}).get('claims',[])}
@@ -755,7 +763,7 @@ def _select_scope_pages(claims,scope,previous,client,model,*,on_progress,retaine
                 or not row.get('validated') and set(requested_keys(row)).intersection(remaining))
             and ('raw_response' in row or row.get('dispatch_status') in {'dispatch_intent','dispatch_attempted'})),None)
         requested=set(requested_keys(replay)) if replay else remaining
-        values,part=_select_scope_once(claims,scope,previous,client,model,on_progress=checkpoint,
+        values,part=_select_scope_once(prepared_catalogue,scope,previous,client,model,on_progress=checkpoint,
             retained_selection=state,support_candidates=support_candidates,target_claim_keys=requested,paginate=True,
             replay_binding=replay['binding'] if replay else None,
             reuse_previous_decisions=input_view is None and ((previous or {}).get('scope_selection') or {}).get('page_runtime_context')==runtime_context,

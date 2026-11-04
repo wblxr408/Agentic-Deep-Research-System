@@ -6,11 +6,12 @@ from copy import deepcopy
 from app.query_understanding import identity
 
 
-def select_window_scope(claims,scope,previous,client,model,*,on_progress,retained_selection,support_candidates,layout):
+def select_window_scope(prepared_catalogue,scope,previous,client,model,*,on_progress,retained_selection,support_candidates,layout):
     from app.claim_verification import claim_scope_key,AuditCheckpointError
-    from app.claim_scope_dependencies import POLICY,CONTEXT_POLICY,catalogue,selection_binding,_select_scope_pages,_finish_scope
+    from app.claim_scope_dependencies import POLICY,CONTEXT_POLICY,selection_binding,_select_scope_pages,_finish_scope
     policy=scope.get('dependency_policy') or POLICY;contextual=policy==CONTEXT_POLICY
-    data=catalogue(claims);context_id=identity(data);route_id=identity(getattr(client,'route_info',None))
+    data,context_id=prepared_catalogue
+    route_id=identity(getattr(client,'route_info',None))
     control=client.budget.execution_control;root=control.binding
     binding=identity({'policy':policy,'scope':scope,'context':context_id,'layout':layout,
         'model':model,'route':route_id,'governance':client.budget.data_governance,'skill_packet':client.skill_packet,
@@ -19,7 +20,7 @@ def select_window_scope(claims,scope,previous,client,model,*,on_progress,retaine
     restoring=saved.get('window_binding')==binding
     full=None
     if not restoring:
-        result,full=_select_scope_pages(claims,scope,previous,client,model,on_progress=on_progress,
+        result,full=_select_scope_pages(prepared_catalogue,scope,previous,client,model,on_progress=on_progress,
             retained_selection=retained_selection,support_candidates=support_candidates)
         admission=full.get('admission') or {};window=(getattr(client,'route_info',None) or {}).get('context_tokens')
         paid=any('raw_response' in row or row.get('dispatch_status') in {'dispatch_intent','dispatch_attempted'}
@@ -97,7 +98,7 @@ def select_window_scope(claims,scope,previous,client,model,*,on_progress,retaine
         view={'data':view_data,'navigation':navigation,'main_layout':main_layout}
         view['binding']=identity(view)
         def save(value):state['views'][prefix]=value;checkpoint()
-        values,part=_select_scope_pages(claims,scope,previous,client,model,on_progress=save,
+        values,part=_select_scope_pages(prepared_catalogue,scope,previous,client,model,on_progress=save,
             retained_selection=state['views'].get(prefix),support_candidates=support_candidates,
             target_claim_keys=target_keys,input_view=view,finalize=False)
         admission=part.get('admission') or {};window=(getattr(client,'route_info',None) or {}).get('context_tokens')
