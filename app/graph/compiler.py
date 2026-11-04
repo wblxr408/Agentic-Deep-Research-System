@@ -3010,6 +3010,7 @@ async def report_node(state: ResearchState) -> dict:
                 retained_model=candidate['model'] if candidate else None,
                 retained_sections=section_candidates,
                 retained_record=candidate['module_report'] if candidate else None,
+                retained_requests=(state.get('budget_state') or {}).get('model_requests') or [],
                 evidence_list=evidence_list,
                 reflection=verification,
                 output_length=state.get("output_length") or state.get("session", {}).get("output_length"),

@@ -205,6 +205,7 @@ class ReportAgent:
         retained_model: str | None = None,
         retained_sections: dict | None = None,
         retained_record: dict | None = None,
+        retained_requests=(),
     ) -> tuple[str, list[Citation]]:
         """
         Generate the final research report.
@@ -468,7 +469,7 @@ Evidence Sources:
                         configuration=organization_research,findings=organization_findings,evidence=evidence_list,
                         statistics=computed_statistics,system_prompt=system_prompt,client=active_client,
                         model=active_model,budget=self.request_budget,on_section=retain_section,
-                        retained_sections=retained_sections)
+                        retained_sections=retained_sections,retained_requests=retained_requests)
                     self.last_context_manifest=manifest
                     chunks.append(raw);finish_reason='stop'
                     self.retain_candidate(raw)
@@ -641,7 +642,8 @@ Evidence Sources:
                     client=self.client,model=active_model,budget=self.request_budget,deadline=verification_deadline,
                     citation_count=len(citations),upgrade_callback=upgrade_correction, task_context=method_context,
                     source_spans=located_spans,on_round=retain_correction,on_event=self.recovery_events.append,
-                    on_candidate=self.retain_candidate,audit_options=audit_options,findings=organization_findings)
+                    on_candidate=self.retain_candidate,audit_options=audit_options,findings=organization_findings,
+                    retained_requests=retained_requests)
                 self.last_audit['module_contract'] = self.last_module_report
                 self._emit_fallback_chunks(content,on_chunk)
             # Append references section if not present

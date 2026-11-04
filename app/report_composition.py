@@ -4,7 +4,7 @@ from __future__ import annotations
 import json
 import re
 
-from app.llm_budget import TokenBudgetExceeded, request_token_bound
+from app.llm_budget import TokenBudgetExceeded, operation_dispatch_status, request_token_bound
 from app.organization_purpose import ModuleReportDraft, MODULES, CHAPTER_RESPONSIBILITIES, REPORT_MATERIAL_POLICY, REPORT_MATERIAL_POLICIES, report_draft_model
 from app.research_context import _paragraph_window
 from app.security.prompt_security import untrusted_context
@@ -12,7 +12,7 @@ from app.query_understanding import identity
 
 
 def compose_sections(*,question,analysis,configuration,findings,evidence,statistics,
-                     system_prompt,client,model,budget,on_section,retained_sections=None):
+                     system_prompt,client,model,budget,on_section,retained_sections=None,retained_requests=()):
     findings=findings or {}
     assembled_model=report_draft_model(configuration)
     material_policy=configuration.get('report_material_policy')
@@ -20,6 +20,7 @@ def compose_sections(*,question,analysis,configuration,findings,evidence,statist
         raise TokenBudgetExceeded('report_material_policy_unsupported')
     owned_input=material_policy in REPORT_MATERIAL_POLICIES
     ownership=material_policy==REPORT_MATERIAL_POLICY
+    protected=ownership and getattr(budget,'execution_control',None) is not None
     input_version='structured-section-input-v4' if ownership else 'structured-section-input-v3' if owned_input else 'structured-section-input-v2'
     chapter_plan={'version':material_policy,'chapters':[
         {'module_id':module,'reader_question':MODULES[module][1],
@@ -158,12 +159,29 @@ def compose_sections(*,question,analysis,configuration,findings,evidence,statist
             {'role':'user','content':untrusted_context('section_research_sources',shared,limit=len(shared))},
             {'role':'user','content':untrusted_context('section_research_task',task,limit=len(task))}]
 
+    def request_unit(section_binding,operation,messages,output_tokens,temperature):
+        governance=getattr(budget,'data_governance',None) or {}
+        root=budget.execution_control.binding
+        return operation+':'+identity({'section_input_id':section_binding,'messages':messages,
+            'model':model,'output_tokens':output_tokens,'temperature':temperature,
+            'route':getattr(client,'route_info',None),'root':{key:root.get(key) for key in ('owner_id','session_id')},
+            'governance':{key:governance.get(key) for key in ('version','data_class','max_model_class','policy_id')},
+            'skill_packet':getattr(client,'skill_packet',None)})
+
+    def request_dispatch_status(section_id,operation,unit):
+        receipts=[*retained_requests,*getattr(budget,'calls',[])]
+        # Old bare section IDs cannot attest which input was dispatched.
+        if operation_dispatch_status([row for row in receipts if row.get('operation')==operation],section_id)=='dispatch_attempted':
+            raise TokenBudgetExceeded('section_writing_legacy_dispatch_binding_unavailable')
+        return operation_dispatch_status(receipts,unit)
+
     def ask(payload,instruction,output_tokens,section_id,context,validate):
         messages=messages_for(payload,instruction)
         bound={'system':messages[0]['content'],'payload':payload,
             'model':model,'section_id':section_id,'version':input_version}
         if owned_input:bound['messages']=messages
         section_binding=identity(bound)
+        writing_unit=request_unit(section_binding,'section_writing',messages,output_tokens,.2) if protected else section_id
         context={**context,'section_binding_version':input_version}
         retained=(retained_sections or {}).get(section_id)
         if retained:
@@ -177,6 +195,8 @@ def compose_sections(*,question,analysis,configuration,findings,evidence,statist
                 and old_context.get('assigned_output_ids')==context.get('assigned_output_ids'))
             if retained.get('model')!=model or not (exact or legacy):
                 raise TokenBudgetExceeded('section_writing_inputs_changed')
+            if protected and old_context.get('finish_reason') not in {None,'stop'}:
+                raise TokenBudgetExceeded('section_writing_response_incomplete')
             reply=retained['raw_model_response']
             manifest['application_response_reuse'].append({'operation':'section_writing',
                 'content_unit_id':section_id,'input_binding':section_binding,
@@ -184,9 +204,11 @@ def compose_sections(*,question,analysis,configuration,findings,evidence,statist
                 'effect':'initial_model_request_avoided_not_review_approval',
                 'saved_tokens':None,'saved_cost_usd':None})
         else:
+            if protected and request_dispatch_status(section_id,'section_writing',writing_unit)=='dispatch_attempted':
+                raise TokenBudgetExceeded('section_writing_paid_response_unavailable')
             required=request_token_bound(messages,response_format={'type':'json_object'})+output_tokens
             if required>budget.available('report'):raise TokenBudgetExceeded('section_writing_original_allowance_insufficient')
-            active=client.with_operation('section_writing',content_unit_id=section_id) if hasattr(client,'with_operation') else client
+            active=client.with_operation('section_writing',content_unit_id=writing_unit) if hasattr(client,'with_operation') else client
             response=active.chat.completions.create(model=model,messages=messages,temperature=.2,
                 max_tokens=output_tokens,response_format={'type':'json_object'})
             choice=response.choices[0] if response.choices else None
@@ -196,14 +218,10 @@ def compose_sections(*,question,analysis,configuration,findings,evidence,statist
             if choice is None or choice.finish_reason!='stop':raise TokenBudgetExceeded('section_writing_response_incomplete')
         try:return validate(reply)
         except (ValueError,TypeError,KeyError) as error:
-            if (retained and (retained.get('report_context') or {}).get('repair_attempted')
-                    and not (retained.get('report_context') or {}).get('repair_admission_denied')):
-                raise TokenBudgetExceeded('section_writing_repair_exhausted') from error
             # Persist the consumed attempt and original response before dispatch.
             # A crash cannot reset this section's correction allowance.
             repair_context={**context,'section_input_id':section_binding,'repair_attempted':True,
                 'original_response':reply,'repair_reason':type(error).__name__}
-            on_section(reply,section_id,repair_context)
             repair_payload=json.dumps({'invalid_section':reply,'validation_error':str(error)[:2000],
                 'assigned_works':payload.get('assigned_works'),'sources':payload.get('sources'),
                 'statistics':payload.get('statistics'),'question':payload.get('question'),
@@ -215,11 +233,20 @@ def compose_sections(*,question,analysis,configuration,findings,evidence,statist
                 'here; previous analytical summaries are not factual authority. Remove or correct statements '
                 'about unassigned works rather than retaining an unsupplied citation.\n'+
                 untrusted_context('section_repair',repair_payload,limit=len(repair_payload))}]
+            repair_unit=request_unit(section_binding,'section_format_repair',repair_messages,output_tokens,.1) if protected else section_id
+            dispatch=request_dispatch_status(section_id,'section_format_repair',repair_unit) if protected else None
+            if (retained and (retained.get('report_context') or {}).get('repair_attempted')
+                    and not (retained.get('report_context') or {}).get('repair_admission_denied')
+                    and dispatch!='not_dispatched'):
+                raise TokenBudgetExceeded('section_writing_repair_exhausted') from error
+            if dispatch=='dispatch_attempted':
+                raise TokenBudgetExceeded('section_writing_paid_repair_response_unavailable') from error
+            on_section(reply,section_id,repair_context)
             required=request_token_bound(repair_messages,response_format={'type':'json_object'})+output_tokens
             if required>budget.available('report'):
                 on_section(reply,section_id,{**repair_context,'repair_admission_denied':True})
                 raise TokenBudgetExceeded('section_repair_original_allowance_insufficient')
-            active=client.with_operation('section_format_repair',content_unit_id=section_id) if hasattr(client,'with_operation') else client
+            active=client.with_operation('section_format_repair',content_unit_id=repair_unit) if hasattr(client,'with_operation') else client
             response=active.chat.completions.create(model=model,messages=repair_messages,temperature=.1,
                 max_tokens=output_tokens,response_format={'type':'json_object'})
             choice=response.choices[0] if response.choices else None
@@ -335,7 +362,7 @@ def compose_sections(*,question,analysis,configuration,findings,evidence,statist
     def save_selection(value):
         on_section(json.dumps(value,ensure_ascii=False),'editorial-selection',{'section_input_id':value['binding']})
     sections,selection=select_paragraphs(sections,question=question,client=client,model=model,budget=budget,
-        retained=saved_selection,on_saved=save_selection,configuration=configuration)
+        retained=saved_selection,on_saved=save_selection,configuration=configuration,retained_requests=retained_requests)
     manifest['editorial_selection']=selection
     manifest['application_response_reuse'].extend(selection.get('application_response_reuse') or [])
     if configuration.get('report_assembly_policy'):
