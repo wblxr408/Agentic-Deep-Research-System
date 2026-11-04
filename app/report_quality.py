@@ -180,7 +180,8 @@ def inline_reading_impact(check,*,policy=READER_IMPACT_POLICY):
 
 
 def review_reader_quality(*, question, configuration, record, findings, client, model, budget,
-                          evidence=(),retained_requests=(),retained_reviews=(),on_progress=None,_partition_document=False):
+                          evidence=(),retained_requests=(),retained_reviews=(),on_progress=None,_partition_document=False,
+                          reading_progress=None):
     from app.organization_deep_dive import READING_FIELD_POLICIES,reading_contract_context
     material_policy=configuration.get('reader_material_policy')
     owned=material_policy in MATERIAL_POLICIES
@@ -277,6 +278,10 @@ def review_reader_quality(*, question, configuration, record, findings, client, 
         'actions':(findings or {}).get('actions'),
         'judgments':(findings or {}).get('research_judgments'),
         'fact_review_scope':review_scope}
+    if reading_progress is not None:
+        from app.organization_deep_dive import reading_progress_context
+        current_reading=reading_progress_context(reading_progress,findings,include_titles=False)
+        if current_reading is not None:payload['reading_progress']=current_reading
     binding=identity({'policy':policy,'review_contract':REVIEW_CONTRACT,'packet_contract':PACKET_CONTRACT,'model':model,'input':payload,
         **({'reader_impact_policy':impact_policy} if impact_policy else {}),
         **({'reader_document_policy':document_policy} if document_policy else {}),
@@ -315,6 +320,7 @@ def review_reader_quality(*, question, configuration, record, findings, client, 
             base['reading_impact_review']['response_reuse']={
                 'status':'candidate','reason':'awaiting_current_impact_binding'}
     if review_scope:base['review_scope_id']=identity(review_scope)
+    if 'reading_progress' in payload:base['reading_progress_input_id']=identity(payload['reading_progress'])
     def checkpoint():
         if owned and on_progress:on_progress(deepcopy(base))
     def request_dispatch_status(unit):
@@ -322,6 +328,7 @@ def review_reader_quality(*, question, configuration, record, findings, client, 
     # The global pass reads the complete report. Candidate knowledge is checked
     # in separate complete packets, avoiding one oversized admission reserve.
     global_payload={key:payload[key] for key in ('question','criteria','paragraphs','accepted_works')}
+    if 'reading_progress' in payload:global_payload['reading_progress']=payload['reading_progress']
     global_payload['judgments']=[{key:row[key] for key in
         ('judgment_id','question','conclusion','choice','related_output_ids') if key in row}
         for row in ((findings or {}).get('research_judgments') or {}).get('records',[])]
@@ -470,6 +477,15 @@ def review_reader_quality(*, question, configuration, record, findings, client, 
             'Keep contradictions, missing required arguments and internal-state prose as their own '
             'issue kinds; do not turn them into harmless repetition. This impact judgment concerns '
             'editorial consequence only and cannot approve a source fact or remove necessary conditions.')
+    if 'reading_progress' in payload:
+        messages[0]['content']+=('\nFor selection, compare report coverage claims with the supplied current '
+            'declared-member and field progress. An explicit all-paper request cannot silently become '
+            'representative-only reading. Material availability and located-field counts do not prove '
+            'full-document reading or factual approval. Judge concrete missing knowledge or misleading '
+            'completeness claims against this question; an unknown state alone is not a fabricated fact '
+            'or an automatic order to expand every field. Keep explicit user requirements and necessary '
+            'conditions, allow justified out-of-scope dispositions, and do not invent experiments or '
+            'completion-rate thresholds.')
     if owned:
         messages[0]['content']+=('\nMaterial context contract: the owner layout gives default citation/title '
             'contexts including neighbouring paragraphs. '
@@ -494,7 +510,7 @@ def review_reader_quality(*, question, configuration, record, findings, client, 
             if document_prepared:return {**base,'reason':'reader_document_reconciliation_exceeds_model_context'}
             return review_reader_quality(question=question,configuration=configuration,record=record,findings=findings,
                 client=client,model=model,budget=budget,evidence=evidence,retained_requests=retained_requests,
-                retained_reviews=retained_reviews,on_progress=on_progress,_partition_document=True)
+                retained_reviews=retained_reviews,on_progress=on_progress,_partition_document=True,reading_progress=reading_progress)
     try:
         previous=saved_reader_response(candidates,global_binding,key='global_binding' if owned else 'binding')
         previous_global={**previous,'binding':previous.get('global_binding')} if owned else previous
@@ -573,7 +589,7 @@ def review_reader_quality(*, question, configuration, record, findings, client, 
                 return review_reader_quality(question=question,configuration=configuration,record=record,
                     findings={**(findings or {}),'reader_quality':base},client=client,model=model,budget=budget,
                     evidence=evidence,retained_requests=retained_requests,retained_reviews=candidates,
-                    on_progress=on_progress,_partition_document=True)
+                    on_progress=on_progress,_partition_document=True,reading_progress=reading_progress)
         if 'work_coverage' not in result:
             nested=[row['work_coverage'] for row in result.get('checks',[])
                 if row.get('id')=='selection' and isinstance(row.get('work_coverage'),list)]

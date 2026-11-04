@@ -159,6 +159,7 @@ needs_revision=false. The runtime still enforces the original root budget, permi
         reflection_hints: list[str] | None = None,
         organization_research: dict | None = None,
         research_findings: dict | None = None,
+        reading_progress: dict | None = None,
     ) -> ReflectionResult:
         """
         Perform reflection on the analysis.
@@ -231,6 +232,23 @@ Perform a rigorous quality check and return the structured JSON output."""
                 if isinstance(phase,dict) and phase.get('question_evidence')]
             messages[1]['content']+='\nRetained research observations:\n'+untrusted_context(
                 'retained_question_observations',json.dumps(retained,ensure_ascii=False),limit=7000)
+            from app.organization_deep_dive import reading_progress_context
+            current=reading_progress_context(reading_progress,research_findings)
+            if current is not None:
+                encoded=json.dumps(current,ensure_ascii=False,separators=(',',':'))
+                messages[1]['content']+='\nCurrent work and field progress:\n'+untrusted_context(
+                    'current_reading_progress',encoded,limit=len(encoded))
+                messages[0]['content']+=('\nUse the supplied current work/field progress to assess research readiness '
+                    'against the actual question. Review every declared member disposition; an explicit all-paper '
+                    'request must not silently become representative-only reading. Field plans may adapt with '
+                    'evidence, while explicit user requirements remain. Counts, material availability and located '
+                    'field names do not prove full-document reading, factual support or adequate depth. Missing '
+                    'states are unknown, not fabricated facts or automatic orders to rerun every paper. Decide '
+                    'which gaps could change a required answer; use revision_focus to name the unfinished works '
+                    'or fields and the smallest useful next action, preserving valid completed research. If more '
+                    'research cannot help, retain the specific limitation or direct it to report wording. Do not '
+                    'invent experiments, use fixed completion-rate thresholds or duplicate final report auditing.')
+                self.last_context_manifest['reading_progress_prepared']=True
 
         try:
             active_client=skill_context_client(self.client) if skill_prompt else self.client

@@ -370,6 +370,40 @@ def task_reading_progress(workflow,*,configuration=None,evidence=(),tool_histori
         'effects':{'model_calls':0,'network_requests':0,'index_writes':0}}
 
 
+def reading_progress_context(progress,findings=None,*,include_titles=True):
+    """Expose current work/field states once, without repeating source payloads."""
+    if not progress or progress.get('status')=='not_recorded' and not progress.get('declared_membership'):return None
+    outputs={row['output_id']:row for row in ((findings or {}).get('scope_result') or {}).get('outputs',[])}
+    fields=('output_id','reading_role','reading_status','required_fields','missing_fields','reading_level')
+    result={'status':progress.get('status'),'reading_status_counts':progress.get('reading_status_counts'),
+        'items':[],
+        'semantics':'current_retained_field_progress_not_full_document_reading_live_access_or_fact_approval'}
+    for row in progress.get('items') or []:
+        item={key:row[key] for key in fields if key in row}
+        if include_titles:item['title']=(outputs.get(row.get('output_id')) or {}).get('title')
+        if row.get('reading_status')!='required_fields_located' or row.get('missing_fields'):
+            item.update({key:row[key] for key in ('selection_reason','gaps') if key in row})
+            item['located_fields']=list(row.get('located_fields') or {})
+        if row.get('reading_evidence_gaps'):item['reading_evidence_gaps']=row['reading_evidence_gaps']
+        item['supplementation_status']=(row.get('supplementation') or {}).get('status','not_recorded')
+        result['items'].append(item)
+    declared=progress.get('declared_membership')
+    if declared:
+        result['declared_membership']={**{key:declared.get(key) for key in
+            ('scope_id','declared_source_count','declared_work_count','retained_source_count','screening_status_counts','identity_gaps')},
+            'unavailable_sources':[{key:row[key] for key in ('source_id','work_id','record_kind','acquisition_status') if key in row}
+                for row in declared.get('sources') or [] if row.get('acquisition_status')!='retained_matching_version'],
+            'works':[]}
+        for row in declared.get('works') or []:
+            work={key:row[key] for key in ('work_id','screening_status','accepted_output_ids','retained_record_kinds','full_text_available') if key in row}
+            if row.get('screening_status')!='accepted':
+                work['source_ids']=row.get('source_ids') or []
+                work['scope_decisions']=[{key:item[key] for key in ('status','output_id','reason') if key in item}
+                    for item in row.get('scope_decisions') or []]
+            result['declared_membership']['works'].append(work)
+    return result
+
+
 def technical_evidence_windows(source,limit):
     """Select source windows, keeping offsets instead of manufacturing a summary."""
     text=source.content;meta=source.acquisition or {};ranges=[(0,min(len(text),2000))]

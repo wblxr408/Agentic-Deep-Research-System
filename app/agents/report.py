@@ -743,6 +743,7 @@ Evidence Sources:
         located_spans=reading_source_spans(technical_reading,evidence_list,analysis_workflow)
         if reader_revision or supported_finalization:
             from app.report_revision import revise_reader_report,finalize_supported_report
+            from app.organization_deep_dive import task_reading_progress
             self._last_revision_candidate=None
             try:
                 revision=finalize_supported_report if supported_finalization else revise_reader_report
@@ -750,6 +751,8 @@ Evidence Sources:
                     self.last_audit,**({} if supported_finalization else {'question':user_query,'findings':organization_findings,
                         'reader_options':{'retained_requests':retained_requests,
                             'retained_reviews':((organization_findings or {}).get('reader_quality'),self.last_audit.get('reader_quality')),
+                            'reading_progress':task_reading_progress(analysis_workflow,configuration=organization_research,
+                                evidence=[row.model_dump(mode='json') for row in evidence_list]),
                             'on_progress':self.retain_reader_quality if self.on_candidate else None}}),
                     configuration=organization_research,statistics=organization_statistics,evidence=evidence_list,
                     client=active_client,model=active_model,budget=self.request_budget,deadline=self.request_budget.deadline,

@@ -2589,11 +2589,14 @@ async def reflection_node(state: ResearchState) -> dict:
     agent.request_budget = _stage_model_budget(state,'reflection')
     agent.model_routing=state.get('model_routing')
     try:
+        from app.organization_deep_dive import task_reading_progress
+        progress=task_reading_progress(state.get('analysis_workflow'),configuration=state.get('organization_research'),
+            evidence=[row.model_dump(mode='json') for row in evidence_list],tool_histories=state.get('tool_histories') or [])
         verification: VerificationResult = await asyncio.to_thread(agent.reflect,
             _research_question(state),state["analysis"],evidence_list,
             skill_prompt=_skill_prompt(state, 'reflection') or None,
             reflection_hints=_agent_skill_hints(state, "reflection"),organization_research=state.get('organization_research'),
-            research_findings=state.get('organization_result'))
+            research_findings=state.get('organization_result'),reading_progress=progress)
     except TokenBudgetExceeded as error:
         if (not agent.request_budget.calls and state.get('analysis') and error.reason in {
                 'token_budget_exhausted','insufficient_context_budget','model_time_reservation_exhausted'}):
@@ -3107,6 +3110,9 @@ async def report_node(state: ResearchState) -> dict:
     if org_config.get('reader_quality_policy'):
         from app.report_quality import review_reader_quality,reader_quality_satisfied
         from app.query_understanding import identity
+        from app.organization_deep_dive import task_reading_progress
+        reader_progress=task_reading_progress(state.get('analysis_workflow'),configuration=org_config,
+            evidence=[row.model_dump(mode='json') for row in evidence_list],tool_histories=state.get('tool_histories') or [])
         for editorial_round in range(2):
             # The root checkpoint can contain a newer paid response than the
             # fact-audit snapshot restored by resume_audit. Revalidate that raw
@@ -3128,7 +3134,7 @@ async def report_node(state: ResearchState) -> dict:
                     evidence=state.get('collected_evidence') or [],
                     retained_requests=(state.get('budget_state') or {}).get('model_requests') or [],
                     retained_reviews=(root_reader,audit_reader),
-                    on_progress=agent.retain_reader_quality)
+                    on_progress=agent.retain_reader_quality,reading_progress=reader_progress)
             except TokenBudgetExceeded as error:
                 quality={'policy':org_config['reader_quality_policy'],'status':'incomplete','passed':False,'reason':error.reason}
             finally:
