@@ -377,6 +377,8 @@ version覆盖原文、渲染文字、kind、引用及统计绑定，revision在�
 
 2026-11-04图文续接：受保护Root的review_surfaces也传入原audit_report的on_progress／retained_progress，把原adrs-paid-audit-responses-v1进度放在现有surface_review.fact_audit_progress；scope／事实请求继续使用原逐响应、原文、未知派发和当前请求重验合同。原Root候选回调的surface_review_checkpoint只接受当前描述绑定、passed=false／incomplete及原进度结构，沿当前来源围栏和原持久化入口保存，不覆盖正文fact_audit_progress。前次claim_audit只作为待核候选保留，不是当前批准。初审及局部纠正后复审都接此回调，异常保留最新进度；未完成状态不启动表格纠正。原正文正判候选及图文独有事实／数值校验不变，无新Agent、policy、额度或状态库。独立未传回调入口保留原合同；并未实现全部图文修订响应恢复或实测降本。
 
+2026-11-04图文修订续接：受保护的repair_table_cells复用_reader_edit_response及原report_candidate／report_editor_sections.responses，用adrs-surface-cell-edit-v1合同绑定当前完整消息、原稿、图文描述和实际引用来源，操作归因保持surface_revision。已标同一描述尝试过时，resume_only要求原base_binding有效；无匹配原请求不新派发，已有明确未派发意图可在原额度内继续，原文优先重验。完整返回但cells覆盖／文本格式不符时保存具体contract_error，沿原一次格式纠正；截断／未知不盲重发。正确返回仍只是候选，须重新过当前图文事实审核。旧无请求绑定原文和未保护入口不自动升级为可恢复批准，Root跨阶段机会总归属仍待原5.3。没有新缓存、policy、阶段额度或恢复服务，模型的首次实际消息／输出上限保持。
+
 本批属于现有行为收敛；仅源码／调用链与文档审阅，未执行测试、模型或恢复重放，不能据此认定实际恢复或Token净收益已通过。原2.1／5.4整项仍未验收。
 
 

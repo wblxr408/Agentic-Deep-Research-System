@@ -7,11 +7,12 @@ import json
 from urllib.parse import urlsplit
 
 from app.claim_verification import audit_report
-from app.llm_budget import budgeted_client
+from app.llm_budget import TokenBudgetExceeded, budgeted_client
 from app.query_understanding import identity
 from app.security.prompt_security import untrusted_context
 
 POLICY='adrs-report-surfaces-v1'
+SURFACE_EDIT_CONTRACT='adrs-surface-cell-edit-v1'
 
 
 def surface_binding(charts,media,visual_requirements=None):
@@ -230,7 +231,8 @@ def review_surfaces(view,media,evidence,*,statistics,client,model,budget,source_
         'semantics':'descriptor_facts_and_numeric_bindings_reviewed_visual_legibility_separate'}
 
 
-def repair_table_cells(view,review,*,client,model,budget,on_candidate,media=None):
+def repair_table_cells(view,review,*,client,model,budget,on_candidate,media=None,
+                       record=None,configuration=None,findings=None,evidence=(),retained_requests=(),resume_only=False):
     """Correct only table cells with completed source-audit failures, once."""
     audit=review.get('claim_audit') or {}
     if audit.get('audit_incomplete') or audit.get('budget_incomplete'):return None
@@ -263,19 +265,45 @@ def repair_table_cells(view,review,*,client,model,budget,on_candidate,media=None
         'Return JSON {"cells":[{"cell_id":"supplied ID","text":"corrected cell or explanation"}]}, '
         'exactly once for each supplied cell. Earlier audit reasons are diagnostics, not source facts.'},
         {'role':'user','content':untrusted_context('surface_repairs',payload,limit=len(payload))}]
-    response=budgeted_client(client,budget,'report',operation='surface_revision',
-        content_unit_id='surface-repair:'+identity(messages)).chat.completions.create(model=model,messages=messages,
-        temperature=.1,max_tokens=4096,response_format={'type':'json_object'})
-    choice=response.choices[0] if response.choices else None
-    if choice is None:return None
-    reply=choice.message.content or ''
-    on_candidate(reply,stage='table_cell_revision')
-    if choice.finish_reason!='stop':return None
+    from app.organization_purpose import REPORT_MATERIAL_POLICY
+    protected=((configuration or {}).get('report_material_policy')==REPORT_MATERIAL_POLICY
+        and getattr(budget,'execution_control',None) is not None)
+    request={}
+    if protected:
+        from app.report_revision import _reader_edit_response
+        if on_candidate is None or not isinstance((record or {}).get('raw_model_response'),str):
+            raise TokenBudgetExceeded('surface_revision_checkpoint_unavailable')
+        def retain(raw,**options):
+            request.clear();request.update(options.get('revision_request') or {})
+            on_candidate(raw,**options)
+        cited={number for target in targets.values() for issue in target['issues'] for number in issue.get('citation_ids') or []}
+        reply=_reader_edit_response(messages=messages,contract=SURFACE_EDIT_CONTRACT,purpose='report',
+            output_cap=4096,record=record,quality={'binding':review['binding']},findings=findings,
+            configuration=configuration,evidence=evidence,cited=cited,client=client,model=model,budget=budget,
+            on_candidate=retain,response_stage='table_cell_revision',temperature=.1,
+            retained_requests=retained_requests,operation='surface_revision',resume_only=resume_only)
+    else:
+        if resume_only:return None
+        response=budgeted_client(client,budget,'report',operation='surface_revision',
+            content_unit_id='surface-repair:'+identity(messages)).chat.completions.create(model=model,messages=messages,
+            temperature=.1,max_tokens=4096,response_format={'type':'json_object'})
+        choice=response.choices[0] if response.choices else None
+        if choice is None:return None
+        reply=choice.message.content or ''
+        on_candidate(reply,stage='table_cell_revision')
+        if choice.finish_reason!='stop':return None
     try:
         cells=json.loads(reply)['cells']
-        if len(cells)!=len(targets) or {row['cell_id'] for row in cells}!=set(targets):return None
-        if any(not isinstance(row.get('text'),str) or not 3<=len(row['text'])<=4000 for row in cells):return None
-    except (ValueError,KeyError,TypeError):return None
+        if (not isinstance(cells,list) or any(not isinstance(row,dict) for row in cells)
+                or len(cells)!=len(targets) or {row['cell_id'] for row in cells}!=set(targets)):
+            raise ValueError('surface_revision_target_coverage')
+        if any(not isinstance(row.get('text'),str) or not 3<=len(row['text'])<=4000 for row in cells):
+            raise ValueError('surface_revision_cell_text')
+    except (ValueError,KeyError,TypeError) as error:
+        if protected:
+            on_candidate(reply,stage='table_cell_revision',revision_request={**request,'contract_error':str(error)[:1200]})
+            raise TokenBudgetExceeded('surface_revision_contract_invalid') from error
+        return None
     return {'base_binding':surface_binding(view.get('charts',[]),None),
         'cells':[row for row in cells if row['cell_id'] not in pages],
         'pages':[row for row in cells if row['cell_id'] in pages],

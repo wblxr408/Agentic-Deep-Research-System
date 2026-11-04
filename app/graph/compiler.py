@@ -3296,15 +3296,19 @@ async def report_node(state: ResearchState) -> dict:
                 'policy':'adrs-report-surfaces-v1','passed':False,'status':'incomplete','reason':error.reason}
         finally:agent.last_usage=agent.request_budget.usage()
         if (not surfaces['passed'] and surfaces.get('status')!='incomplete' and surfaces.get('claim_audit')
-                and surfaces.get('binding')!=(organization_result or {}).get('surface_repair_binding')):
+                and (surfaces.get('binding')!=(organization_result or {}).get('surface_repair_binding')
+                    or surface_progress is not None)):
             from app.report_surface_review import repair_table_cells
+            resume_surface_repair=surfaces.get('binding')==(organization_result or {}).get('surface_repair_binding')
             organization_result={**(organization_result or {}),'surface_repair_attempted':True,
                 'surface_repair_binding':surfaces.get('binding'),'surface_review':surfaces}
             try:
                 await asyncio.to_thread(agent.retain_candidate,agent.last_module_report['raw_model_response'],
                     content=report,record=agent.last_module_report,stage='before_table_cell_revision')
                 corrections=await asyncio.to_thread(repair_table_cells,surface_view,surfaces,
-                    client=agent.client,model=agent.model,budget=agent.request_budget,on_candidate=agent.retain_candidate,media=media)
+                    client=agent.client,model=agent.model,budget=agent.request_budget,on_candidate=agent.retain_candidate,media=media,
+                    record=agent.last_module_report,configuration=org_config,findings=organization_result,evidence=evidence_list,
+                    retained_requests=(state.get('budget_state') or {}).get('model_requests') or [],resume_only=resume_surface_repair)
                 if corrections:
                     for correction in corrections.get('pages',[]):
                         for page in media.get('pages',[]):
