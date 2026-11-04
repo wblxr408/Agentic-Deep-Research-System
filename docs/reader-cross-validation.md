@@ -375,6 +375,8 @@ version覆盖原文、渲染文字、kind、引用及统计绑定，revision在�
 
 范围审核局部格式回退、普通接纳及恢复页共用`_valid_scope_decision`，统一required／role／category／reason／depends_on／dependencies_complete的原字段要求；目标覆盖、重复／冲突、上下文充分性、来源资格、实际绑定和前提提升仍沿原各自消费者。未知不因共享字段校验取得通过，旧合同和既有已付费原文继续按原输入重验。
 
+2026-11-04图文续接：受保护Root的review_surfaces也传入原audit_report的on_progress／retained_progress，把原adrs-paid-audit-responses-v1进度放在现有surface_review.fact_audit_progress；scope／事实请求继续使用原逐响应、原文、未知派发和当前请求重验合同。原Root候选回调的surface_review_checkpoint只接受当前描述绑定、passed=false／incomplete及原进度结构，沿当前来源围栏和原持久化入口保存，不覆盖正文fact_audit_progress。前次claim_audit只作为待核候选保留，不是当前批准。初审及局部纠正后复审都接此回调，异常保留最新进度；未完成状态不启动表格纠正。原正文正判候选及图文独有事实／数值校验不变，无新Agent、policy、额度或状态库。独立未传回调入口保留原合同；并未实现全部图文修订响应恢复或实测降本。
+
 本批属于现有行为收敛；仅源码／调用链与文档审阅，未执行测试、模型或恢复重放，不能据此认定实际恢复或Token净收益已通过。原2.1／5.4整项仍未验收。
 
 

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from collections import Counter
+from copy import deepcopy
 import json
 from urllib.parse import urlsplit
 
@@ -25,7 +26,7 @@ def surface_binding(charts,media,visual_requirements=None):
 
 
 def review_surfaces(view,media,evidence,*,statistics,client,model,budget,source_spans=None,previous=None,
-                    review_scope=None,report_audit=None,findings=None):
+                    review_scope=None,report_audit=None,findings=None,on_progress=None):
     charts=view.get('charts') or [];issues=[];paragraphs=[];locations={};page_spans={}
     from app.source_figure_extraction import MEDIA_POLICY
     deduplicate=bool(view.get('event_timeline_policy')) or (media or {}).get('policy')==MEDIA_POLICY
@@ -205,15 +206,26 @@ def review_surfaces(view,media,evidence,*,statistics,client,model,budget,source_
         prior={**(prior or {}),'claims':[*((prior or {}).get('claims') or []),*retained_claims],
             'audit_contract_version':report_audit.get('audit_contract_version'),
             'audit_model':report_audit.get('audit_model')}
+    binding=surface_binding(charts,media,view.get('visual_requirements'))
+    progress=deepcopy((previous or {}).get('fact_audit_progress') or {})
+    durable=on_progress is not None and getattr(budget,'execution_control',None) is not None
+    def checkpoint(value):
+        progress.clear();progress.update(deepcopy(value))
+        on_progress({'policy':POLICY,'binding':binding,'passed':False,'status':'incomplete',
+            'issues':deepcopy(issues),'paragraph_locations':deepcopy(locations),
+            'claim_audit':deepcopy(prior),'fact_audit_progress':deepcopy(progress)})
     audit=audit_report('\n\n'.join(paragraphs),evidence,
         client=budgeted_client(client,budget,'audit'),model=model,token_budget=budget.available('audit'),
         deadline=budget.deadline,source_spans=source_spans,paragraph_source_spans=page_spans,
         previous_audit=prior,support_audits=support_audits,
-        review_scope=review_scope,paragraph_kinds=retained_contexts) if paragraphs else None
+        review_scope=review_scope,paragraph_kinds=retained_contexts,
+        **({'on_progress':checkpoint,'retained_progress':progress} if durable else {})) if paragraphs else None
     passed=not issues and (audit is None or not audit.get('needs_review',True)
         and not audit.get('audit_incomplete') and not audit.get('budget_incomplete'))
-    return {'policy':POLICY,'binding':surface_binding(charts,media,view.get('visual_requirements')),'passed':passed,
-        'status':'satisfied' if passed else 'needs_revision','issues':issues,'claim_audit':audit,
+    incomplete=bool(audit and (audit.get('audit_incomplete') or audit.get('budget_incomplete')))
+    return {'policy':POLICY,'binding':binding,'passed':passed,
+        'status':'satisfied' if passed else 'incomplete' if incomplete else 'needs_revision','issues':issues,'claim_audit':audit,
+        **({'fact_audit_progress':progress} if durable else {}),
         'paragraph_locations':locations,
         'semantics':'descriptor_facts_and_numeric_bindings_reviewed_visual_legibility_separate'}
 

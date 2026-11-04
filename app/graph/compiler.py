@@ -2907,6 +2907,21 @@ async def report_node(state: ResearchState) -> dict:
                     or not isinstance(progress.get('responses'),dict) or not isinstance(progress.get('scope_selections'),dict)):
                 raise RuntimeError('fact_audit_checkpoint_report_changed')
             record={**(organization_result or {}),'fact_audit_progress':progress}
+        elif candidate.get('stage')=='surface_review_checkpoint':
+            from app.claim_verification import AUDIT_PROGRESS_POLICY
+            from app.organization_purpose import REPORT_MATERIAL_POLICY
+            from app.report_surface_review import POLICY as SURFACE_POLICY,surface_binding
+            surface=candidate.get('surface_review') or {}
+            progress=surface.get('fact_audit_progress') or {}
+            if ((state.get('organization_research') or {}).get('report_material_policy')!=REPORT_MATERIAL_POLICY
+                    or surface.get('policy')!=SURFACE_POLICY or surface.get('passed') is not False
+                    or surface.get('status')!='incomplete'
+                    or surface.get('binding')!=surface_binding(surface_view.get('charts') or [],media,surface_view.get('visual_requirements'))
+                    or progress.get('policy')!=AUDIT_PROGRESS_POLICY
+                    or not isinstance(progress.get('report_content_id'),str) or not progress['report_content_id']
+                    or not isinstance(progress.get('responses'),dict) or not isinstance(progress.get('scope_selections'),dict)):
+                raise RuntimeError('surface_review_checkpoint_binding_changed')
+            record={**(organization_result or {}),'surface_review':surface}
         elif candidate.get('stage')=='reader_quality_checkpoint':
             from app.query_understanding import identity
             quality=candidate.get('reader_quality') or {}
@@ -3264,6 +3279,10 @@ async def report_node(state: ResearchState) -> dict:
             query=state['user_query'],report=report,citations=[item.model_dump() for item in citations],
             understanding=state.get('query_understanding'),organization_result=organization_result,
             audit=agent.last_audit,source_media=media)
+        from app.organization_purpose import REPORT_MATERIAL_POLICY
+        def retain_surface_progress(value):
+            agent.on_candidate({'stage':'surface_review_checkpoint','surface_review':value})
+        surface_progress=retain_surface_progress if org_config.get('report_material_policy')==REPORT_MATERIAL_POLICY else None
         try:
             surfaces=await asyncio.to_thread(review_surfaces,surface_view,media,evidence_list,
                 statistics=(organization_result or {}).get('statistics'),client=agent.client,model=agent.model,
@@ -3271,11 +3290,12 @@ async def report_node(state: ResearchState) -> dict:
                     (organization_result or {}).get('technical_reading'),evidence_list,state.get('analysis_workflow')),
                 previous=(organization_result or {}).get('surface_review'),
                 review_scope=(agent.last_audit or {}).get('review_scope'),report_audit=agent.last_audit,
-                findings=organization_result)
+                findings=organization_result,on_progress=surface_progress)
         except TokenBudgetExceeded as error:
-            surfaces={'policy':'adrs-report-surfaces-v1','passed':False,'status':'incomplete','reason':error.reason}
+            surfaces={**((organization_result or {}).get('surface_review') or {}),
+                'policy':'adrs-report-surfaces-v1','passed':False,'status':'incomplete','reason':error.reason}
         finally:agent.last_usage=agent.request_budget.usage()
-        if (not surfaces['passed'] and surfaces.get('claim_audit')
+        if (not surfaces['passed'] and surfaces.get('status')!='incomplete' and surfaces.get('claim_audit')
                 and surfaces.get('binding')!=(organization_result or {}).get('surface_repair_binding')):
             from app.report_surface_review import repair_table_cells
             organization_result={**(organization_result or {}),'surface_repair_attempted':True,
@@ -3305,12 +3325,16 @@ async def report_node(state: ResearchState) -> dict:
                         budget=agent.request_budget,source_spans=reading_source_spans(
                             (organization_result or {}).get('technical_reading'),evidence_list,state.get('analysis_workflow')),
                         previous=surfaces,review_scope=(agent.last_audit or {}).get('review_scope'),
-                        report_audit=agent.last_audit,findings=organization_result)
+                        report_audit=agent.last_audit,findings=organization_result,on_progress=surface_progress)
             except TokenBudgetExceeded as error:
-                surfaces={**surfaces,'passed':False,'status':'incomplete','repair_reason':error.reason}
+                surfaces={**surfaces,**((organization_result or {}).get('surface_review') or {}),
+                    'passed':False,'status':'incomplete','repair_reason':error.reason}
             finally:agent.last_usage=agent.request_budget.usage()
         organization_result={**(organization_result or {}),'surface_review':surfaces}
-        agent.last_audit={**agent.last_audit,'surface_review':surfaces}
+        # Raw paid progress stays in the original root artifact, outside the
+        # public audit copied to delivery views and report history.
+        agent.last_audit={**agent.last_audit,'surface_review':{
+            key:value for key,value in surfaces.items() if key!='fact_audit_progress'}}
         if (surfaces['passed'] and drawing_mode!='builtin' and not layout_without_figures
                 and surface_view.get('drawing',{}).get('status')=='blocked'):
             current=await current_synthesis_state(state)
