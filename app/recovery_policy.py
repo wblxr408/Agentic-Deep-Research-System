@@ -3,6 +3,7 @@ from __future__ import annotations
 
 ROOT_RECOVERY_LIMIT = 8
 PHASE_ATTEMPT_LIMIT = 10
+REPORT_REPAIR_PROGRESS_POLICY = 'adrs-fact-repair-reviewed-passage-v1'
 POLICIES = {
     'connection': (3, 1, '重新建立模型连接'),
     'timeout': (2, 2, '等待后重发当前问题'),
@@ -85,3 +86,24 @@ def report_issue_keys(audit):
 
 def report_repair_limit(audit):
     return 3 if any(row.get('verification_required',True) and row.get('status') == 'contradicted' for row in audit.get('claims', [])) else 2
+
+
+def reviewed_repair_progress(audit, changed_targets):
+    """Find an edited target whose required claims now pass the source audit."""
+    from app.query_understanding import identity
+
+    if not changed_targets:
+        return False
+    supported = set()
+    unresolved = set()
+    targets = set(changed_targets)
+    for claim in audit.get('claims', []):
+        if not claim.get('verification_required', True) or not claim.get('paragraph_context'):
+            continue
+        paragraph = identity(claim['paragraph_context'])
+        if paragraph in targets:
+            if claim['status'] == 'supported':
+                supported.add(paragraph)
+            else:
+                unresolved.add(paragraph)
+    return bool(supported - unresolved)

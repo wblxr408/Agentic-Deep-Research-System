@@ -13,6 +13,7 @@ from app.research_matching import WeightConfigurationRequest, preview_weights
 from app.research_evaluation import public_sources, scheme_catalogue
 from app.db.presets import PresetReference
 from app.research_scope import OrganizationResearchScope, ScopeRecord
+from app.recovery_policy import REPORT_REPAIR_PROGRESS_POLICY
 from app.organization_purpose import ResearchPurpose, ResearchModule, POLICY_VERSION, REPORT_MATERIAL_POLICY, REPORT_ASSEMBLY_POLICY, EDITORIAL_PARTITION_POLICY, READER_IMPACT_POLICY, RESEARCH_REVIEW_POLICY, resolve_modules, analysis_instructions
 from app.organization_corpus import CorpusDeclaration, freeze_corpus, corpus_instructions
 from app.channels.models import ChannelError
@@ -82,6 +83,7 @@ def freeze_organization_request(request: OrganizationResearchRequest | None, sel
         'topic_action_policy':'adrs-topic-actions-v2',
         'research_handoff_policy':'adrs-complete-evidence-handoff-v2',
         'report_material_policy':REPORT_MATERIAL_POLICY,
+        'report_repair_progress_policy':REPORT_REPAIR_PROGRESS_POLICY,
         'report_assembly_policy':REPORT_ASSEMBLY_POLICY,
         'editorial_partition_policy':EDITORIAL_PARTITION_POLICY,
         'reading_field_policy':READING_FIELD_POLICY,

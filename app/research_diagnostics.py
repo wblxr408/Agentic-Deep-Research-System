@@ -88,13 +88,19 @@ def diagnose_stop(state,*,active_execution=False):
                 'detail':str(item.get('requested_action') or item.get('reason') or '需要补充依据或调整结论')[:240]})
         revision=audit.get('revision_attempt') or {}
         rounds=audit.get('repair_rounds') or []
-        if rounds:
-            result['findings'].append({'text':f'已自动修改并核对 {len(rounds)} 轮',
-                'detail':f"问题数量从 {rounds[0]['before']} 项变为 {rounds[-1]['after']} 项。"})
+        settled=[row for row in rounds if type(row.get('after')) is int and type(row.get('before')) is int]
+        if settled:
+            result['findings'].append({'text':f'已记录 {len(settled)} 轮修订结果',
+                'detail':f"必核问题数量从 {settled[0]['before']} 项变为 {settled[-1]['after']} 项。"})
             outcome=audit.get('repair_outcome')
-            result['next_step']=('本轮修订没有进一步减少问题，已停止重复请求。' if outcome=='no_progress' else
-                '已达到本类问题的修订轮数，具体未解决问题已列出。' if outcome=='round_limit' else
-                '剩余问题受原资料、修订契约或额度约束，未继续派发。')
+            if outcome=='no_progress':
+                result['next_step']=('本轮重审未确认有受影响段落解决了必核问题。'
+                    if settled[-1].get('confirmed_progress') is False else
+                    '本轮修订没有进一步减少问题，已停止重复请求。')
+            elif outcome=='round_limit':
+                result['next_step']='已达到本类问题的修订轮数，具体未解决问题已列出。'
+            else:
+                result['next_step']='剩余问题受原资料、修订契约或额度约束，未继续派发。'
         elif revision.get('attempted'):
             result['next_step']='系统已尝试修订，当前仍有未解决的问题；需补充对应资料后继续。'
         elif revision.get('status')=='unmapped_paragraphs':

@@ -11,6 +11,7 @@ from openai import APIError
 from app.claim_verification import AuditCheckpointError, audit_report, module_paragraph_kinds, module_scope_layout, shared_passage_payload, select_excerpts
 from app.llm_budget import TokenBudgetExceeded, budgeted_client, operation_dispatch_status, request_token_bound
 from app.organization_purpose import CHAPTER_RESPONSIBILITIES, REPORT_MATERIAL_POLICY, report_draft_model, assemble_module_report, report_prose, module_report_instructions
+from app.recovery_policy import REPORT_REPAIR_PROGRESS_POLICY, reviewed_repair_progress
 from app.security.prompt_security import untrusted_context
 from app.report_content_units import reconcile as reconcile_content_units,lineage_after_deletions,references as content_references,require_patch_reference,patch_reference,validate_draft,paragraphs as content_paragraphs
 
@@ -1311,9 +1312,18 @@ def revise_report_claims(content, record, audit, *, on_round=None, on_event=None
     from app.execution_control import check_execution, current_control
     limit=report_repair_limit(audit)
     history=list(record.get('repair_rounds') or [])
-    protected=((kwargs.get('configuration') or {}).get('report_material_policy')==REPORT_MATERIAL_POLICY
+    configuration=kwargs.get('configuration') or {}
+    protected=(configuration.get('report_material_policy')==REPORT_MATERIAL_POLICY
         and getattr(kwargs.get('budget'),'execution_control',None) is not None)
     from app.query_understanding import identity
+
+    def settle_progress(result, current_audit):
+        if result.get('progress_policy')!=REPORT_REPAIR_PROGRESS_POLICY:
+            return result['after']<result['before']
+        result['confirmed_progress']=result['changed'] and reviewed_repair_progress(
+            current_audit,result.get('changed_target_wires') or ())
+        return result['confirmed_progress']
+
     pending=history[-1] if (protected and history and history[-1].get('input_report_id')
         and history[-1].get('status') in {'running','awaiting_audit'}) else None
     if pending:
@@ -1331,11 +1341,13 @@ def revise_report_claims(content, record, audit, *, on_round=None, on_event=None
             after=len(report_issue_keys(audit))
             pending.update(status='reaudited',after=after,
                 changed=identity(record['raw_model_response'])!=pending['input_report_id'])
+            progressed=settle_progress(pending,audit)
+            if audit.get('needs_review') and not progressed:
+                audit['repair_outcome']='no_progress'
             record['repair_rounds']=deepcopy(history);audit['repair_rounds']=deepcopy(history)
             if on_round:on_round(content,record,audit)
             pending=None
-            if audit.get('needs_review') and after>=history[-1]['before']:
-                audit['repair_outcome']='no_progress'
+            if audit.get('repair_outcome')=='no_progress':
                 return content,record,audit
     def emit(data):
         from app.graph.state import AgentEvent
@@ -1356,6 +1368,8 @@ def revise_report_claims(content, record, audit, *, on_round=None, on_event=None
             # responses and uncertain dispatch remain owned by their receipts.
             pending={'round':round_number,'limit':limit,'before':len(before),'status':'running',
                 'input_report_id':identity(record['raw_model_response'])}
+            if configuration.get('report_repair_progress_policy')==REPORT_REPAIR_PROGRESS_POLICY:
+                pending['progress_policy']=REPORT_REPAIR_PROGRESS_POLICY
             history.append(pending);record['repair_rounds']=deepcopy(history)
             checkpoint(record['raw_model_response'],content=content,record=record,stage='claim_revision_round_started')
         round_limit=pending['limit'] if pending else limit
@@ -1370,6 +1384,12 @@ def revise_report_claims(content, record, audit, *, on_round=None, on_event=None
             'after':len(after),'status':attempt.get('status'),'changed':changed}
         if protected:
             complete=not new_audit.get('audit_incomplete') and not new_audit.get('budget_incomplete')
+            candidate_rounds=new_record.get('repair_rounds') or []
+            candidate_round=candidate_rounds[-1] if candidate_rounds else {}
+            if (pending.get('progress_policy')==REPORT_REPAIR_PROGRESS_POLICY
+                    and candidate_round.get('input_report_id')==pending['input_report_id']
+                    and candidate_round.get('candidate_report_id')==identity(new_record['raw_model_response'])):
+                pending['changed_target_wires']=candidate_round.get('changed_target_wires') or []
             if complete and (changed or attempt.get('status')=='reaudited'):
                 history[-1]={**pending,**outcome};pending=None
             else:
@@ -1377,6 +1397,10 @@ def revise_report_claims(content, record, audit, *, on_round=None, on_event=None
                 if changed:pending.update(status='awaiting_audit',candidate_report_id=identity(new_record['raw_model_response']))
         else:history.append(outcome)
         content,record,audit=new_content,new_record,new_audit
+        stopped_for_progress=(not pending and audit.get('needs_review')
+            and (not settle_progress(history[-1],audit) or not changed))
+        if stopped_for_progress:
+            audit['repair_outcome']='no_progress' if attempt.get('status')=='reaudited' else attempt.get('status','blocked')
         record['repair_rounds']=deepcopy(history)
         audit['repair_rounds']=deepcopy(history)
         if on_round:on_round(content,record,audit)
@@ -1385,9 +1409,7 @@ def revise_report_claims(content, record, audit, *, on_round=None, on_event=None
         if pending:
             audit['repair_outcome']='awaiting_audit' if pending['status']=='awaiting_audit' else pending.get('last_result') or 'pending'
             break
-        if not changed or len(after)>=outcome['before']:
-            audit['repair_outcome']='no_progress' if attempt.get('status')=='reaudited' else attempt.get('status','blocked')
-            break
+        if stopped_for_progress:break
     if history:
         audit.setdefault('repair_outcome','pending' if pending else 'resolved' if not audit.get('needs_review')
             else 'round_limit' if len(history)>=limit else 'blocked')
@@ -1415,13 +1437,14 @@ def _revise_report_once(content, record, audit, *, configuration, statistics, ev
         for section in ('paragraphs','appendix'):
             for index,item in enumerate(module.get(section,[])):
                 paragraphs.append((module['module_id']+':'+section,index,item))
-    targets=[];excerpts={};correction_context={}
+    targets=[];excerpts={};correction_context={};target_wires={}
     for section,index,item in paragraphs:
         wire=(report_prose(item['rendered_text'])+' '+ ' '.join(f'[citation:{n}]' for n in item['citations'])).rstrip()
         failed=[row for row in audit.get('claims',[]) if row.get('verification_required',True) and row['status']!='supported'
                 and row.get('paragraph_context')==wire]
         if not failed:continue
         key=f'{section}:{index}'
+        target_wires[key]=wire
         # Short referential sentences can retrieve an introduction instead of
         # their experiment. Give this correction the cited paragraph's source
         # context as well; never turn the previous verdict into evidence.
@@ -1667,6 +1690,7 @@ def _revise_report_once(content, record, audit, *, configuration, statistics, ev
                 for item in [*module['paragraphs'],*module.get('appendix',[])]]]
             for binding in item.get('statistic_bindings',[])]
         paragraph_context={}
+        changed_target_wires=[]
         for target in targets:
             parts=target['paragraph_id'].split(':')
             items=new_record['summary'] if parts[0]=='summary' else next(
@@ -1674,12 +1698,17 @@ def _revise_report_once(content, record, audit, *, configuration, statistics, ev
             item=items[int(parts[-1])]
             wire=(report_prose(item['rendered_text'])+' '+' '.join(f'[citation:{n}]' for n in item['citations'])).rstrip()
             paragraph_context[wire]=correction_context[target['paragraph_id']]
+            if wire!=target_wires[target['paragraph_id']]:
+                changed_target_wires.append(identity(wire))
         paragraph_context=_carry_audit_context(record,new_record,paragraph_context,lineage=lineage_after_deletions(record))
         rounds=record.get('repair_rounds') or []
         if (protected and rounds and rounds[-1].get('status')=='running'
                 and rounds[-1].get('input_report_id')==identity(record['raw_model_response'])):
             new_record['repair_rounds']=deepcopy(rounds)
-            new_record['repair_rounds'][-1].update(status='awaiting_audit',candidate_report_id=identity(new_record['raw_model_response']))
+            candidate_round=new_record['repair_rounds'][-1]
+            candidate_round.update(status='awaiting_audit',candidate_report_id=identity(new_record['raw_model_response']))
+            if candidate_round.get('progress_policy')==REPORT_REPAIR_PROGRESS_POLICY:
+                candidate_round['changed_target_wires']=changed_target_wires
         if on_candidate:on_candidate(new_record['raw_model_response'],content=revised,record=new_record,
             stage='claim_revision_before_audit')
         new_audit=audit_report(revised,evidence,client=budgeted_client(client,budget,'audit'),model=model,
