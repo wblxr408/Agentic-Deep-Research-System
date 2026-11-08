@@ -4,6 +4,8 @@ from __future__ import annotations
 ROOT_RECOVERY_LIMIT = 8
 PHASE_ATTEMPT_LIMIT = 10
 REPORT_REPAIR_PROGRESS_POLICY = 'adrs-fact-repair-reviewed-passage-v1'
+REPORT_REPAIR_CONTINUATION_POLICY = 'adrs-fact-repair-root-budget-v2'
+REPORT_REPAIR_PROGRESS_POLICIES = {REPORT_REPAIR_PROGRESS_POLICY, REPORT_REPAIR_CONTINUATION_POLICY}
 POLICIES = {
     'connection': (3, 1, '重新建立模型连接'),
     'timeout': (2, 2, '等待后重发当前问题'),
@@ -86,6 +88,18 @@ def report_issue_keys(audit):
 
 def report_repair_limit(audit):
     return 3 if any(row.get('verification_required',True) and row.get('status') == 'contradicted' for row in audit.get('claims', [])) else 2
+
+
+def report_issue_frontier(audit):
+    """Bind the remaining obligations to their actual context and sources."""
+    from app.query_understanding import identity
+
+    fields = ('text', 'paragraph_context', 'citation_ids', 'citation_scope',
+              'source_basis', 'statistic_context', 'allowed_method_ids')
+    issues = {identity({key: row.get(key) for key in fields})
+              for row in audit.get('claims', [])
+              if row.get('verification_required', True) and row.get('status') != 'supported'}
+    return identity(sorted(issues))
 
 
 def reviewed_repair_progress(audit, changed_targets):

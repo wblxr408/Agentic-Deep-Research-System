@@ -11,7 +11,8 @@ from openai import APIError
 from app.claim_verification import AuditCheckpointError, audit_report, module_paragraph_kinds, module_scope_layout, shared_passage_payload, select_excerpts
 from app.llm_budget import TokenBudgetExceeded, budgeted_client, operation_dispatch_status, request_token_bound
 from app.organization_purpose import CHAPTER_RESPONSIBILITIES, REPORT_MATERIAL_POLICY, report_draft_model, assemble_module_report, report_prose, module_report_instructions
-from app.recovery_policy import REPORT_REPAIR_PROGRESS_POLICY, reviewed_repair_progress
+from app.recovery_policy import (REPORT_REPAIR_CONTINUATION_POLICY, REPORT_REPAIR_PROGRESS_POLICIES,
+                                 report_issue_frontier, reviewed_repair_progress)
 from app.security.prompt_security import untrusted_context
 from app.report_content_units import reconcile as reconcile_content_units,lineage_after_deletions,references as content_references,require_patch_reference,patch_reference,validate_draft,paragraphs as content_paragraphs
 
@@ -1310,16 +1311,21 @@ def revise_report_claims(content, record, audit, *, on_round=None, on_event=None
     """Resume the saved repair opportunity before admitting another bounded round."""
     from app.recovery_policy import report_issue_keys, report_repair_limit
     from app.execution_control import check_execution, current_control
-    limit=report_repair_limit(audit)
     history=list(record.get('repair_rounds') or [])
     configuration=kwargs.get('configuration') or {}
     protected=(configuration.get('report_material_policy')==REPORT_MATERIAL_POLICY
         and getattr(kwargs.get('budget'),'execution_control',None) is not None)
+    progress_policy=configuration.get('report_repair_progress_policy') if protected else None
+    adaptive_rounds=progress_policy==REPORT_REPAIR_CONTINUATION_POLICY
+    limit=None if adaptive_rounds else report_repair_limit(audit)
     from app.query_understanding import identity
 
     def settle_progress(result, current_audit):
-        if result.get('progress_policy')!=REPORT_REPAIR_PROGRESS_POLICY:
+        policy=result.get('progress_policy')
+        if policy not in REPORT_REPAIR_PROGRESS_POLICIES:
             return result['after']<result['before']
+        if policy==REPORT_REPAIR_CONTINUATION_POLICY:
+            result['result_issue_frontier']=report_issue_frontier(current_audit)
         result['confirmed_progress']=result['changed'] and reviewed_repair_progress(
             current_audit,result.get('changed_target_wires') or ())
         return result['confirmed_progress']
@@ -1329,8 +1335,14 @@ def revise_report_claims(content, record, audit, *, on_round=None, on_event=None
     if pending:
         check_execution()
         expected=pending.get('candidate_report_id') if pending['status']=='awaiting_audit' else pending['input_report_id']
+        pending_limit=pending.get('limit')
+        if adaptive_rounds:
+            valid_limit=(pending.get('progress_policy')==progress_policy and pending_limit is None
+                and isinstance(pending.get('input_issue_frontier'),str) and bool(pending['input_issue_frontier']))
+        else:
+            valid_limit=type(pending_limit) is int and pending_limit>=1
         if (pending.get('round')!=len(history) or type(pending.get('before')) is not int or pending['before']<0
-                or type(pending.get('limit')) is not int or pending['limit']<1
+                or not valid_limit
                 or expected!=identity(record['raw_model_response'])):
             raise TokenBudgetExceeded('report_repair_round_binding_changed')
         audit.pop('repair_outcome',None)
@@ -1356,26 +1368,43 @@ def revise_report_claims(content, record, audit, *, on_round=None, on_event=None
         if on_event:on_event(event)
         control=current_control()
         if control:control.publish_trace(event)
-    while audit.get('needs_review') and (pending is not None or len(history)<limit):
+    while audit.get('needs_review') and (pending is not None or limit is None or len(history)<limit):
         check_execution()
         before=report_issue_keys(audit)
         if not before or audit.get('audit_incomplete') or audit.get('budget_incomplete'):break
+        frontier=report_issue_frontier(audit) if adaptive_rounds else None
+        if adaptive_rounds and pending is not None and frontier!=pending['input_issue_frontier']:
+            raise TokenBudgetExceeded('report_repair_round_binding_changed')
         round_number=pending['round'] if pending is not None else len(history)+1
         if protected and pending is None:
+            if frontier is not None:
+                last=history[-1] if history else {}
+                if last.get('confirmed_progress') is False and last.get('result_issue_frontier')==frontier:
+                    audit['repair_outcome']='no_progress'
+                    break
+                if any(row.get('input_issue_frontier')==frontier
+                        or (row.get('confirmed_progress') is False and row.get('result_issue_frontier')==frontier)
+                        for row in history):
+                    audit['repair_outcome']='repeated_issues'
+                    break
             checkpoint=kwargs.get('on_candidate')
             if checkpoint is None:raise TokenBudgetExceeded('report_repair_checkpoint_unavailable')
             # Reserve the existing opportunity, not a provider charge. Paid
             # responses and uncertain dispatch remain owned by their receipts.
             pending={'round':round_number,'limit':limit,'before':len(before),'status':'running',
                 'input_report_id':identity(record['raw_model_response'])}
-            if configuration.get('report_repair_progress_policy')==REPORT_REPAIR_PROGRESS_POLICY:
-                pending['progress_policy']=REPORT_REPAIR_PROGRESS_POLICY
+            if progress_policy in REPORT_REPAIR_PROGRESS_POLICIES:
+                pending['progress_policy']=progress_policy
+            if frontier is not None:
+                pending['input_issue_frontier']=frontier
             history.append(pending);record['repair_rounds']=deepcopy(history)
             checkpoint(record['raw_model_response'],content=content,record=record,stage='claim_revision_round_started')
         round_limit=pending['limit'] if pending else limit
+        round_label=str(round_number) if round_limit is None else f'{round_number}/{round_limit}'
         emit({
-            'status':'running','attempts':round_number,'limit':round_limit,
-            'message':f'正在修订 {len(before)} 项报告问题 · 第 {round_number}/{round_limit} 轮'})
+            'status':'running','attempts':round_number,
+            **({'limit':round_limit} if round_limit is not None else {}),
+            'message':f'正在修订 {len(before)} 项报告问题 · 第 {round_label} 轮'})
         new_content,new_record,new_audit=_revise_report_once(content,record,audit,**kwargs)
         attempt=new_audit.get('revision_attempt') or {}
         after=report_issue_keys(new_audit)
@@ -1386,7 +1415,7 @@ def revise_report_claims(content, record, audit, *, on_round=None, on_event=None
             complete=not new_audit.get('audit_incomplete') and not new_audit.get('budget_incomplete')
             candidate_rounds=new_record.get('repair_rounds') or []
             candidate_round=candidate_rounds[-1] if candidate_rounds else {}
-            if (pending.get('progress_policy')==REPORT_REPAIR_PROGRESS_POLICY
+            if (pending.get('progress_policy') in REPORT_REPAIR_PROGRESS_POLICIES
                     and candidate_round.get('input_report_id')==pending['input_report_id']
                     and candidate_round.get('candidate_report_id')==identity(new_record['raw_model_response'])):
                 pending['changed_target_wires']=candidate_round.get('changed_target_wires') or []
@@ -1411,10 +1440,13 @@ def revise_report_claims(content, record, audit, *, on_round=None, on_event=None
             break
         if stopped_for_progress:break
     if history:
+        if 'repair_rounds' not in audit:
+            audit['repair_rounds']=deepcopy(history)
         audit.setdefault('repair_outcome','pending' if pending else 'resolved' if not audit.get('needs_review')
-            else 'round_limit' if len(history)>=limit else 'blocked')
+            else 'round_limit' if limit is not None and len(history)>=limit else 'blocked')
         emit({
-            'status':audit['repair_outcome'],'attempts':len(history),'limit':limit,
+            'status':audit['repair_outcome'],'attempts':len(history),
+            **({'limit':limit} if limit is not None else {}),
             'message':f"报告修订已登记 {len(history)} 轮，剩余 {len(report_issue_keys(audit))} 项核对问题"
                 + ('；当前轮待继续' if pending else '')})
     return content,record,audit
@@ -1707,7 +1739,7 @@ def _revise_report_once(content, record, audit, *, configuration, statistics, ev
             new_record['repair_rounds']=deepcopy(rounds)
             candidate_round=new_record['repair_rounds'][-1]
             candidate_round.update(status='awaiting_audit',candidate_report_id=identity(new_record['raw_model_response']))
-            if candidate_round.get('progress_policy')==REPORT_REPAIR_PROGRESS_POLICY:
+            if candidate_round.get('progress_policy') in REPORT_REPAIR_PROGRESS_POLICIES:
                 candidate_round['changed_target_wires']=changed_target_wires
         if on_candidate:on_candidate(new_record['raw_model_response'],content=revised,record=new_record,
             stage='claim_revision_before_audit')

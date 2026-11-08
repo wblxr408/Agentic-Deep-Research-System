@@ -99,6 +99,8 @@ def diagnose_stop(state,*,active_execution=False):
                     '本轮修订没有进一步减少问题，已停止重复请求。')
             elif outcome=='round_limit':
                 result['next_step']='已达到本类问题的修订轮数，具体未解决问题已列出。'
+            elif outcome=='repeated_issues':
+                result['next_step']='当前必核问题及其来源与已修订的一轮相同，已停止重复修订。'
             else:
                 result['next_step']='剩余问题受原资料、修订契约或额度约束，未继续派发。'
         elif revision.get('attempted'):
