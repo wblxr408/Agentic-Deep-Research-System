@@ -269,6 +269,28 @@ def _carry_audit_context(record,new_record,added=None,*,lineage=None):
     return context
 
 
+def _carry_repair_history(record, new_record, configuration):
+    """Carry factual repair history through an accepted editorial candidate."""
+    if configuration.get('report_repair_progress_policy') != REPORT_REPAIR_CONTINUATION_POLICY:
+        return
+    rounds = record.get('repair_rounds')
+    if not rounds:
+        return
+    history = deepcopy(rounds)
+    last = history[-1]
+    status = last.get('status')
+    if status in {'running', 'awaiting_audit'}:
+        from app.query_understanding import identity
+
+        expected = last.get('candidate_report_id' if status == 'awaiting_audit' else 'input_report_id')
+        successor = identity(new_record['raw_model_response'])
+        if expected != successor:
+            # A new draft cannot resume a request bound to the old draft.
+            last.update(status='superseded_by_edit', superseded_status=status,
+                        successor_report_id=successor)
+    new_record['repair_rounds'] = history
+
+
 def _current_reading_decisions(record,quality):
     from app.query_understanding import identity
     if (record.get('report_material_policy')!=REPORT_MATERIAL_POLICY
@@ -400,6 +422,7 @@ def revise_reader_report(content,record,audit,*,question,findings,configuration,
                 publication_titles=[work['title'] for work in ((findings or {}).get('scope_result') or {}).get('outputs',[])])
             if new_record['issues']:raise ValueError('reader_note_edit_contract_invalid')
             source_context=_carry_audit_context(record,new_record,lineage=lineage_after_deletions(record,removed))
+            _carry_repair_history(record,new_record,configuration)
             if record.get('editorial_request_binding'):
                 new_record['editorial_request_binding']=record['editorial_request_binding']
             new_record['reader_revision']={'policy':'adrs-task-note-consolidation-v1','removed_note_ids':removed,
@@ -418,9 +441,11 @@ def revise_reader_report(content,record,audit,*,question,findings,configuration,
                 scope_layout=module_scope_layout(new_record),
                 previous_audit=audit,source_spans=source_spans,paragraph_source_context=source_context,**(audit_options or {}))
             return revised,new_record,new_audit
-    rounds=record.get('repair_rounds') or []
     if (audit.get('needs_review') and not audit.get('audit_incomplete')
             and record.get('reader_revision')):
+        if configuration.get('report_repair_progress_policy') == REPORT_REPAIR_CONTINUATION_POLICY:
+            return content,record,audit
+        rounds=record.get('repair_rounds') or []
         before=sum(row.get('verification_required',True) and row.get('status')!='supported' for row in audit.get('claims',[]))
         result,new_record,new_audit=_revise_report_once(content,record,audit,configuration=configuration,
             statistics=statistics,evidence=evidence,client=client,model=model,budget=budget,deadline=deadline,
@@ -787,6 +812,7 @@ def revise_reader_report(content,record,audit,*,question,findings,configuration,
     lineage=({location:origins[id(item)] for location,item in content_paragraphs(draft) if id(item) in origins}
         if destinations and unit_refs else lineage_after_deletions(record,deleted))
     source_context=_carry_audit_context(record,new_record,added_context,lineage=lineage)
+    _carry_repair_history(record,new_record,configuration)
     if record.get('editorial_request_binding'):
         new_record['editorial_request_binding']=record['editorial_request_binding']
     bound=[{'rendered_paragraph':item['rendered_text'],**binding} for item in [
@@ -1008,6 +1034,7 @@ def _revise_reader_structure(record,audit,*,question,findings,configuration,stat
                 if item['module_id'] not in local_handoff['module_ids']):
             raise ValueError('reader_structure_outside_handoff')
     reconcile_content_units(record,new_record)
+    _carry_repair_history(record,new_record,configuration)
     if findings.get('editorial_request'):
         new_record['editorial_request_binding']=identity(findings['editorial_request'])
     new_record['reader_revision']={'policy':'adrs-structural-editor-v3','original_content_identity':identity(record['raw_model_response']),
@@ -1294,6 +1321,7 @@ def finalize_supported_report(content,record,audit,*,configuration,statistics,ev
     revised,new_record=assemble_module_report(json.dumps(draft,ensure_ascii=False),configuration,len(evidence),statistics=statistics)
     if new_record['issues']:raise TokenBudgetExceeded('supported_report_module_incomplete')
     reconcile_content_units(record,new_record,lineage_after_deletions(record,[row['paragraph_id'] for row in removed]))
+    _carry_repair_history(record,new_record,configuration)
     if on_candidate:on_candidate(new_record['raw_model_response'],content=revised,record=new_record,
         stage='finalization_before_audit')
     new_audit=audit_report(revised,evidence,client=budgeted_client(client,budget,'audit'),model=model,

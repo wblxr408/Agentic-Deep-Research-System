@@ -703,6 +703,7 @@ Evidence Sources:
         """Continue only the unfinished audit of an unchanged, retained draft."""
         from app.claim_verification import module_paragraph_kinds, module_scope_layout, research_method_context
         from app.research_context import reading_source_spans
+        from app.recovery_policy import REPORT_REPAIR_CONTINUATION_POLICY
         from app.report_revision import revise_report_claims
 
         self.last_audit=deepcopy(saved_audit)
@@ -801,7 +802,11 @@ Evidence Sources:
             self.last_audit=audit
             self.retain_candidate(record['raw_model_response'],content=draft,record=record,
                 stage='claim_revision_round_recorded')
-        if not (reader_revision and (self.last_audit.get('revision_attempt') or {}).get('attempted')):
+        shared_repair=((organization_research or {}).get('report_repair_progress_policy')
+            ==REPORT_REPAIR_CONTINUATION_POLICY)
+        legacy_reader_attempt=(reader_revision and (self.last_audit.get('revision_attempt') or {}).get('attempted')
+            and not shared_repair)
+        if not legacy_reader_attempt:
             content,self.last_module_report,self.last_audit=revise_report_claims(content,self.last_module_report,self.last_audit,
                 configuration=organization_research,statistics=organization_statistics,evidence=evidence_list,
                 client=self.client,model=active_model,budget=self.request_budget,deadline=self.request_budget.deadline,

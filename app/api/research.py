@@ -2351,7 +2351,11 @@ async def _resume_retained_synthesis(session_id, background_tasks, principal, *,
         and not root.get('reader_clause_format_recovery') and module_report.get('reader_revision')
         and not (review.get('final_report_audit') or {}).get('audit_incomplete'))
     reader_claim_contract_recovery=reader_claim_contract_recovery or clause_format_recovery
-    reader_claim_progress=bool(reader_revision and review.get('reason')=='final_report_needs_revision'
+    from app.recovery_policy import REPORT_REPAIR_CONTINUATION_POLICY
+    shared_claim_repair=((state.get('organization_research') or {}).get('report_repair_progress_policy')
+        ==REPORT_REPAIR_CONTINUATION_POLICY)
+    reader_claim_progress=bool(not shared_claim_repair and reader_revision
+        and review.get('reason')=='final_report_needs_revision'
         and repair_rounds and repair_rounds[-1].get('after',0)<min(
             repair_rounds[-1].get('before',0),root.get('reader_claim_remaining',repair_rounds[-1].get('before',0)))
         and ((review.get('final_report_audit') or {}).get('revision_attempt') or {}).get('status')=='reaudited'
